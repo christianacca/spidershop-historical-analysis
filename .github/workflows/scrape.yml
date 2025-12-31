@@ -2,24 +2,26 @@ name: Spider Shop Spiderlings Scrape
 
 on:
   schedule:
-    # Twice a month at 06:10 UTC
     - cron: "10 6 1,15 * *"
   workflow_dispatch:
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
 
     steps:
-      # -----------------------------
-      # Checkout repo
-      # -----------------------------
+      # --------------------------------
+      # Checkout
+      # --------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # -----------------------------
+      # --------------------------------
       # Python setup
-      # -----------------------------
+      # --------------------------------
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -30,26 +32,46 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
 
-      # -----------------------------
-      # Download previous history artifact (if any)
-      # -----------------------------
+      # --------------------------------
+      # Resolve last successful run-id
+      # --------------------------------
+      - name: Find last successful workflow run on this branch
+        id: last_run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN_ID=$(gh api \
+            repos/${{ github.repository }}/actions/workflows/${{ github.workflow }}.yml/runs \
+            --paginate \
+            -q '.workflow_runs
+                | map(select(.head_branch == "${{ github.ref_name }}" and .conclusion == "success"))
+                | sort_by(.run_number)
+                | last
+                | .id' || true)
+
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+
+      # --------------------------------
+      # Download history artifact (if exists)
+      # --------------------------------
       - name: Download previous history artifact
+        if: steps.last_run.outputs.run_id != ''
         uses: actions/download-artifact@v4
         with:
           name: spidershop-history
+          run-id: ${{ steps.last_run.outputs.run_id }}
           path: .
-        continue-on-error: true
 
-      # -----------------------------
+      # --------------------------------
       # Run scraper
-      # -----------------------------
+      # --------------------------------
       - name: Run Spider Shop scraper
         run: |
           python scrape_spidershop_spiderlings.py
 
-      # -----------------------------
-      # Upload snapshot CSV (always replace)
-      # -----------------------------
+      # --------------------------------
+      # Upload snapshot
+      # --------------------------------
       - name: Upload snapshot artifact
         uses: actions/upload-artifact@v4
         with:
@@ -57,9 +79,9 @@ jobs:
           path: spidershop_spiderlings_scrape.csv
           if-no-files-found: error
 
-      # -----------------------------
-      # Upload updated history CSV
-      # -----------------------------
+      # --------------------------------
+      # Upload updated history
+      # --------------------------------
       - name: Upload history artifact
         uses: actions/upload-artifact@v4
         with:
