@@ -1,0 +1,33 @@
+name: Scrape Spider Shop Spiderlings
+
+on:
+  schedule:
+    - cron: "10 6 1,15 * *"   # 06:10 UTC on the 1st and 15th
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4
+
+      - name: Run scraper
+        run: |
+          python scrape_spidershop_spiderlings.py
+          ls -la spidershop_spiderlings_scrape.csv
+
+      - name: Upload CSV
+        uses: actions/upload-artifact@v4
+        with:
+          name: spidershop_spiderlings_scrape
+          path: spidershop_spiderlings_scrape.csv
