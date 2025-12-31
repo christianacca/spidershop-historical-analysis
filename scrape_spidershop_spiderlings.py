@@ -12,7 +12,7 @@ BASE_URL = "https://thespidershop.co.uk/product-category/tarantulas-for-sale-in-
 OUTFILE = "spidershop_spiderlings_scrape.csv"
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; spidershop-scraper/2.1)",
+    "User-Agent": "Mozilla/5.0 (compatible; spidershop-scraper/2.2)",
     "Accept-Language": "en-GB,en;q=0.9",
 }
 
@@ -22,10 +22,24 @@ SIZE_RE = re.compile(
     re.IGNORECASE,
 )
 
+# ---------- Normalization ----------
+
+def normalize_whitespace(text: str) -> str:
+    if not text:
+        return ""
+    # Replace non-breaking & other odd unicode spaces with normal space
+    text = text.replace("\u00a0", " ")
+    # Collapse all whitespace runs
+    return re.sub(r"\s+", " ", text).strip()
+
+# ---------- HTTP ----------
+
 def fetch(url: str) -> str:
     r = requests.get(url, headers=HEADERS, timeout=30)
     r.raise_for_status()
     return r.text
+
+# ---------- Parsing helpers ----------
 
 def first_cm_parenthetical(text: str):
     for m in PARENS_RE.finditer(text or ""):
@@ -49,20 +63,28 @@ def parse_size_cm(text: str) -> str:
         return ""
 
 def remove_size_parenthetical_only(text: str) -> str:
+    text = normalize_whitespace(text)
     paren = first_cm_parenthetical(text)
     if not paren:
-        return (text or "").strip()
+        return text
     cleaned = text.replace(paren, " ", 1)
-    return re.sub(r"\s+", " ", cleaned).strip()
+    return normalize_whitespace(cleaned)
 
 def parse_price(text: str) -> str:
     if not text:
         return ""
-    s = text.replace("£", "").replace("\u00a3", "").replace(",", "").strip()
+    s = (
+        text.replace("£", "")
+            .replace("\u00a3", "")
+            .replace(",", "")
+            .strip()
+    )
     try:
         return format(Decimal(s), "f")
     except InvalidOperation:
         return ""
+
+# ---------- Scraping ----------
 
 def extract_product_urls(category_html: str, category_url: str):
     soup = BeautifulSoup(category_html, "html.parser")
@@ -86,18 +108,22 @@ def scrape_product(product_url: str):
     soup = BeautifulSoup(html, "html.parser")
 
     h1 = soup.find("h1")
-    scientific_name = h1.get_text(strip=True) if h1 else ""
+    scientific_name = normalize_whitespace(h1.get_text()) if h1 else ""
 
     h2 = soup.find("h2")
-    common_line = h2.get_text(strip=True) if h2 else ""
+    common_line = normalize_whitespace(h2.get_text()) if h2 else ""
 
     common_name = remove_size_parenthetical_only(common_line)
     size_cm = parse_size_cm(common_line)
 
     price_el = soup.select_one(".price .woocommerce-Price-amount, .woocommerce-Price-amount")
-    price_gbp = parse_price(price_el.get_text(strip=True) if price_el else "")
+    price_gbp = parse_price(
+        normalize_whitespace(price_el.get_text()) if price_el else ""
+    )
 
     return scientific_name, common_name, size_cm, price_gbp
+
+# ---------- Main ----------
 
 def main():
     all_rows = []
@@ -109,7 +135,7 @@ def main():
             category_html = fetch(category_url)
         except HTTPError as e:
             if e.response is not None and e.response.status_code == 404:
-                break  # 정상적인 pagination 종료
+                break  # normal end of pagination
             raise
 
         product_urls = extract_product_urls(category_html, category_url)
