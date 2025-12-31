@@ -40,16 +40,23 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          WORKFLOW_FILE="$(basename "${{ github.workflow_ref }}")"
+
           RUN_ID=$(gh api \
-            repos/${{ github.repository }}/actions/workflows/${{ github.workflow }}.yml/runs \
+            repos/${{ github.repository }}/actions/workflows/$WORKFLOW_FILE/runs \
             --paginate \
             -q '.workflow_runs
-                | map(select(.head_branch == "${{ github.ref_name }}" and .conclusion == "success"))
+                | map(select(
+                    .head_branch == "${{ github.ref_name }}" and
+                    .conclusion == "success" and
+                    .id != ${{ github.run_id }}
+                  ))
                 | sort_by(.run_number)
                 | last
                 | .id' || true)
 
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+          echo "Resolved previous run-id: $RUN_ID"
 
       # --------------------------------
       # Download history artifact (if exists)
