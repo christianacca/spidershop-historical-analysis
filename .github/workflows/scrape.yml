@@ -1,33 +1,68 @@
-name: Scrape Spider Shop Spiderlings
+name: Spider Shop Spiderlings Scrape
 
 on:
   schedule:
-    - cron: "10 6 1,15 * *"   # 06:10 UTC on the 1st and 15th
+    # Twice a month at 06:10 UTC
+    - cron: "10 6 1,15 * *"
   workflow_dispatch:
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
+    steps:
+      # -----------------------------
+      # Checkout repo
+      # -----------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # -----------------------------
+      # Python setup
+      # -----------------------------
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install deps
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
 
-      - name: Run scraper
+      # -----------------------------
+      # Download previous history artifact (if any)
+      # -----------------------------
+      - name: Download previous history artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: spidershop-history
+          path: .
+        continue-on-error: true
+
+      # -----------------------------
+      # Run scraper
+      # -----------------------------
+      - name: Run Spider Shop scraper
         run: |
           python scrape_spidershop_spiderlings.py
-          ls -la spidershop_spiderlings_scrape.csv
 
-      - name: Upload CSV
+      # -----------------------------
+      # Upload snapshot CSV (always replace)
+      # -----------------------------
+      - name: Upload snapshot artifact
         uses: actions/upload-artifact@v4
         with:
-          name: spidershop_spiderlings_scrape
+          name: spidershop-snapshot
           path: spidershop_spiderlings_scrape.csv
+          if-no-files-found: error
+
+      # -----------------------------
+      # Upload updated history CSV
+      # -----------------------------
+      - name: Upload history artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: spidershop-history
+          path: spidershop_spiderlings_history.csv
+          if-no-files-found: error
