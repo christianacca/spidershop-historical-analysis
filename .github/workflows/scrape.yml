@@ -32,42 +32,38 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
 
-      # -----------------------------
-      # Find last successful run-id (ROBUST METHOD)
-      # -----------------------------
-      - name: Find last successful workflow run on this branch
-        id: last_run
+      # ------------------------------------------------
+      # Find latest spidershop-history artifact (any run)
+      # ------------------------------------------------
+      - name: Find latest history artifact
+        id: history_artifact
         env:
           GH_TOKEN: ${{ github.token }}
-          WORKFLOW_NAME: Spider Shop Spiderlings Scrape
         run: |
-          RUN_ID=$(gh api \
-            repos/${{ github.repository }}/actions/runs \
+          ARTIFACT_ID=$(gh api \
+            repos/${{ github.repository }}/actions/artifacts \
             --paginate \
-            -q '.workflow_runs
-                | map(select(
-                    .head_branch == "${{ github.ref_name }}" and
-                    .conclusion == "success" and
-                    .name == env.WORKFLOW_NAME and
-                    .id != ${{ github.run_id }}
-                  ))
-                | sort_by(.run_number)
+            -q '.artifacts
+                | map(select(.name == "spidershop-history" and .expired == false))
+                | sort_by(.created_at)
                 | last
                 | .id' || true)
 
-          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
-          echo "Resolved previous run-id: $RUN_ID"
+          echo "artifact_id=$ARTIFACT_ID" >> $GITHUB_OUTPUT
+          echo "Resolved history artifact id: $ARTIFACT_ID"
 
-      # -----------------------------
-      # Download history artifact (if exists)
-      # -----------------------------
+      # ------------------------------------------------
+      # Download history artifact if it exists
+      # ------------------------------------------------
       - name: Download previous history artifact
-        if: steps.last_run.outputs.run_id != ''
-        uses: actions/download-artifact@v4
-        with:
-          name: spidershop-history
-          run-id: ${{ steps.last_run.outputs.run_id }}
-          path: .
+        if: steps.history_artifact.outputs.artifact_id != ''
+        run: |
+          gh api \
+            repos/${{ github.repository }}/actions/artifacts/${{ steps.history_artifact.outputs.artifact_id }}/zip \
+            > history.zip
+
+          unzip -o history.zip
+          rm history.zip
 
       # -----------------------------
       # Run scraper
