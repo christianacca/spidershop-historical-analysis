@@ -5,13 +5,14 @@ from decimal import Decimal, InvalidOperation
 from urllib.parse import urljoin
 
 import requests
+from requests.exceptions import HTTPError
 from bs4 import BeautifulSoup
 
 BASE_URL = "https://thespidershop.co.uk/product-category/tarantulas-for-sale-in-the-uk/spiderlings/"
 OUTFILE = "spidershop_spiderlings_scrape.csv"
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; spidershop-scraper/1.2)",
+    "User-Agent": "Mozilla/5.0 (compatible; spidershop-scraper/2.2)",
     "Accept-Language": "en-GB,en;q=0.9",
 }
 
@@ -21,98 +22,148 @@ SIZE_RE = re.compile(
     re.IGNORECASE,
 )
 
+# ---------- Normalization ----------
+
+def normalize_whitespace(text: str) -> str:
+    if not text:
+        return ""
+    # Replace non-breaking & other odd unicode spaces with normal space
+    text = text.replace("\u00a0", " ")
+    # Collapse all whitespace runs
+    return re.sub(r"\s+", " ", text).strip()
+
+# ---------- HTTP ----------
+
 def fetch(url: str) -> str:
     r = requests.get(url, headers=HEADERS, timeout=30)
     r.raise_for_status()
     return r.text
 
-def extract_size_cm(title_text: str) -> str:
-    for m in PARENS_RE.finditer(title_text):
-        inner = m.group(1)
-        if "cm" not in inner.lower():
-            continue
-        sm = SIZE_RE.match(inner)
-        if not sm:
-            return ""
-        try:
-            upper = sm.group(2) or sm.group(1)
-            d = Decimal(upper)
-            return str(int(d)) if d == d.to_integral_value() else format(d, "f")
-        except InvalidOperation:
-            return ""
-    return ""
+# ---------- Parsing helpers ----------
 
-def extract_common_name(title_text: str) -> str:
-    for m in PARENS_RE.finditer(title_text):
+def first_cm_parenthetical(text: str):
+    for m in PARENS_RE.finditer(text or ""):
         if "cm" in m.group(1).lower():
-            title_text = title_text.replace(m.group(0), "", 1)
-            break
-    return re.sub(r"\s+", " ", title_text).strip()
+            return m.group(0)
+    return None
 
-def extract_price(bdi) -> str:
-    if not bdi:
+def parse_size_cm(text: str) -> str:
+    paren = first_cm_parenthetical(text)
+    if not paren:
         return ""
-    text = bdi.get_text(strip=True).replace("£", "").replace(",", "")
+    inner = paren[1:-1]
+    m = SIZE_RE.match(inner)
+    if not m:
+        return ""
     try:
-        return format(Decimal(text), "f")
+        val = m.group(2) or m.group(1)  # upper bound
+        d = Decimal(val)
+        return str(int(d)) if d == d.to_integral_value() else format(d, "f")
     except InvalidOperation:
         return ""
 
-def scrape_page(html: str, page_url: str):
-    soup = BeautifulSoup(html, "html.parser")
-    rows = []
+def remove_size_parenthetical_only(text: str) -> str:
+    text = normalize_whitespace(text)
+    paren = first_cm_parenthetical(text)
+    if not paren:
+        return text
+    cleaned = text.replace(paren, " ", 1)
+    return normalize_whitespace(cleaned)
 
-    products = soup.select("li.product")
+def parse_price(text: str) -> str:
+    if not text:
+        return ""
+    s = (
+        text.replace("£", "")
+            .replace("\u00a3", "")
+            .replace(",", "")
+            .strip()
+    )
+    try:
+        return format(Decimal(s), "f")
+    except InvalidOperation:
+        return ""
 
-    for p in products:
-        title = p.select_one("h2.woocommerce-loop-product__title")
-        price = p.select_one("bdi")
+# ---------- Scraping ----------
 
-        if not title:
+def extract_product_urls(category_html: str, category_url: str):
+    soup = BeautifulSoup(category_html, "html.parser")
+    urls = []
+    seen = set()
+
+    for a in soup.select("a[href]"):
+        href = a.get("href", "").strip()
+        if "/product/" not in href:
             continue
+        full = urljoin(category_url, href)
+        if full in seen:
+            continue
+        seen.add(full)
+        urls.append(full)
 
-        title_text = title.get_text(strip=True)
+    return urls
 
-        scientific_name = title_text
-        common_name = extract_common_name(title_text)
-        size_cm = extract_size_cm(title_text)
-        price_gbp = extract_price(price)
+def scrape_product(product_url: str):
+    html = fetch(product_url)
+    soup = BeautifulSoup(html, "html.parser")
 
-        rows.append([
-            scientific_name,
-            common_name,
-            size_cm,
-            price_gbp,
-            page_url
-        ])
+    h1 = soup.find("h1")
+    scientific_name = normalize_whitespace(h1.get_text()) if h1 else ""
 
-    return rows
+    h2 = soup.find("h2")
+    common_line = normalize_whitespace(h2.get_text()) if h2 else ""
+
+    common_name = remove_size_parenthetical_only(common_line)
+    size_cm = parse_size_cm(common_line)
+
+    price_el = soup.select_one(".price .woocommerce-Price-amount, .woocommerce-Price-amount")
+    price_gbp = parse_price(
+        normalize_whitespace(price_el.get_text()) if price_el else ""
+    )
+
+    return scientific_name, common_name, size_cm, price_gbp
+
+# ---------- Main ----------
 
 def main():
     all_rows = []
     page = 1
 
     while True:
-        url = BASE_URL if page == 1 else urljoin(BASE_URL, f"page/{page}/")
-        html = fetch(url)
+        category_url = BASE_URL if page == 1 else urljoin(BASE_URL, f"page/{page}/")
+        try:
+            category_html = fetch(category_url)
+        except HTTPError as e:
+            if e.response is not None and e.response.status_code == 404:
+                break  # normal end of pagination
+            raise
 
-        rows = scrape_page(html, url)
-        if not rows:
+        product_urls = extract_product_urls(category_html, category_url)
+        if not product_urls:
             break
 
-        all_rows.extend(rows)
+        for pu in product_urls:
+            scientific_name, common_name, size_cm, price_gbp = scrape_product(pu)
+            all_rows.append([
+                scientific_name,
+                common_name,
+                size_cm,
+                price_gbp,
+                category_url
+            ])
+
         page += 1
 
     with open(OUTFILE, "w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow([
+        w = csv.writer(f)
+        w.writerow([
             "scientific_name",
             "common_name",
             "size_cm",
             "price_gbp",
-            "page_url",
+            "page_url"
         ])
-        writer.writerows(all_rows)
+        w.writerows(all_rows)
 
     row_count = len(all_rows)
     print(f"Wrote {row_count} rows → {OUTFILE}")
