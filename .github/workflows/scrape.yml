@@ -81,3 +81,15 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: spidershop-snapshot
+          path: spidershop_spiderlings_scrape.csv
+          if-no-files-found: error
+
+      # -----------------------------
+      # Upload updated history
+      # -----------------------------
+      - name: Upload history artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: spidershop-history
+          path: spidershop_spiderlings_history.csv
+          if-no-files-found: error
