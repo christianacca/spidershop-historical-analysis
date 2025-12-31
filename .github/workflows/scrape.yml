@@ -33,26 +33,27 @@ jobs:
           pip install requests beautifulsoup4
 
       # -----------------------------
-      # Find last successful run-id
+      # Find last successful run-id (ROBUST METHOD)
       # -----------------------------
       - name: Find last successful workflow run on this branch
         id: last_run
         env:
           GH_TOKEN: ${{ github.token }}
-          WORKFLOW_FILE: spidershop_scrape.yml
+          WORKFLOW_NAME: Spider Shop Spiderlings Scrape
         run: |
           RUN_ID=$(gh api \
-            repos/${{ github.repository }}/actions/workflows/$WORKFLOW_FILE/runs \
+            repos/${{ github.repository }}/actions/runs \
             --paginate \
             -q '.workflow_runs
                 | map(select(
                     .head_branch == "${{ github.ref_name }}" and
                     .conclusion == "success" and
+                    .name == env.WORKFLOW_NAME and
                     .id != ${{ github.run_id }}
                   ))
                 | sort_by(.run_number)
                 | last
-                | .id')
+                | .id' || true)
 
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
           echo "Resolved previous run-id: $RUN_ID"
