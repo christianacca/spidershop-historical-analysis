@@ -33,7 +33,7 @@ jobs:
           pip install requests beautifulsoup4
 
       # ------------------------------------------------
-      # Find latest spidershop-history artifact (any run)
+      # Find latest spidershop-history artifact
       # ------------------------------------------------
       - name: Find latest history artifact
         id: history_artifact
@@ -53,10 +53,12 @@ jobs:
           echo "Resolved history artifact id: $ARTIFACT_ID"
 
       # ------------------------------------------------
-      # Download history artifact if it exists
+      # Download history artifact (FIXED: GH_TOKEN added)
       # ------------------------------------------------
       - name: Download previous history artifact
         if: steps.history_artifact.outputs.artifact_id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           gh api \
             repos/${{ github.repository }}/actions/artifacts/${{ steps.history_artifact.outputs.artifact_id }}/zip \
@@ -79,15 +81,3 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: spidershop-snapshot
-          path: spidershop_spiderlings_scrape.csv
-          if-no-files-found: error
-
-      # -----------------------------
-      # Upload updated history
-      # -----------------------------
-      - name: Upload history artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: spidershop-history
-          path: spidershop_spiderlings_history.csv
-          if-no-files-found: error
