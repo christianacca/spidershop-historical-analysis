@@ -373,9 +373,9 @@ def build_breeder_opportunity_table(history_rows):
                 oos_runs += 1
 
         # Pattern derived from OOS evidence
-        if oos_runs >= 3:
+        if oos_runs >= 4:
             pattern = "Sustained"
-        elif oos_runs == 2:
+        elif oos_runs >= 2:
             pattern = "Emerging"
         elif oos_status == "IN/OUT":
             pattern = "Cyclical"

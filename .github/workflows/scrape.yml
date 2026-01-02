@@ -2,8 +2,8 @@ name: Spider Shop Spiderlings Scrape
 
 on:
   schedule:
-    # Run twice per month
-    - cron: "10 6 1,15 * *"
+    # Run weekly (Wednesday 06:10 UTC)
+    - cron: "10 6 * * 3"
   workflow_dispatch:
 
 jobs:
