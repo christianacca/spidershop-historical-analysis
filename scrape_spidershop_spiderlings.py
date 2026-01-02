@@ -10,21 +10,14 @@ import requests
 from requests.exceptions import HTTPError
 from bs4 import BeautifulSoup
 
+# =====================
+# CONFIG
+# =====================
+
 BASE_URL = "https://thespidershop.co.uk/product-category/tarantulas-for-sale-in-the-uk/spiderlings/"
 
 SNAPSHOT_FILE = "spidershop_spiderlings_scrape.csv"
 HISTORY_FILE  = "spidershop_spiderlings_history.csv"
-
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; spidershop-scraper/3.1)",
-    "Accept-Language": "en-GB,en;q=0.9",
-}
-
-PARENS_RE = re.compile(r"\(([^)]*)\)")
-SIZE_RE = re.compile(
-    r"^\s*(\d+(?:\.\d+)?)\s*(?:[-–]\s*(\d+(?:\.\d+)?))?\s*cm\s*$",
-    re.IGNORECASE,
-)
 
 CSV_HEADER = [
     "scrape_datetime",
@@ -35,7 +28,20 @@ CSV_HEADER = [
     "page_url",
 ]
 
-# ---------- Normalization ----------
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (compatible; spidershop-scraper/4.0)",
+    "Accept-Language": "en-GB,en;q=0.9",
+}
+
+PARENS_RE = re.compile(r"\(([^)]*)\)")
+SIZE_RE = re.compile(
+    r"^\s*(\d+(?:\.\d+)?)\s*(?:[-–]\s*(\d+(?:\.\d+)?))?\s*cm\s*$",
+    re.IGNORECASE,
+)
+
+# =====================
+# UTILITIES
+# =====================
 
 def normalize_whitespace(text: str) -> str:
     if not text:
@@ -43,14 +49,14 @@ def normalize_whitespace(text: str) -> str:
     text = text.replace("\u00a0", " ")
     return re.sub(r"\s+", " ", text).strip()
 
-# ---------- HTTP ----------
-
 def fetch(url: str) -> str:
     r = requests.get(url, headers=HEADERS, timeout=30)
     r.raise_for_status()
     return r.text
 
-# ---------- Parsing helpers ----------
+# =====================
+# PARSING HELPERS
+# =====================
 
 def first_cm_parenthetical(text: str):
     for m in PARENS_RE.finditer(text or ""):
@@ -83,23 +89,19 @@ def remove_size_parenthetical_only(text: str) -> str:
 def parse_price(text: str) -> str:
     if not text:
         return ""
-    s = (
-        text.replace("£", "")
-            .replace("\u00a3", "")
-            .replace(",", "")
-            .strip()
-    )
+    s = text.replace("£", "").replace("\u00a3", "").replace(",", "").strip()
     try:
         return format(Decimal(s), "f")
     except InvalidOperation:
         return ""
 
-# ---------- Scraping ----------
+# =====================
+# SCRAPING
+# =====================
 
 def extract_product_urls(category_html: str, category_url: str):
     soup = BeautifulSoup(category_html, "html.parser")
-    urls = []
-    seen = set()
+    urls, seen = [], set()
 
     for a in soup.select("a[href]"):
         href = a.get("href", "").strip()
@@ -126,22 +128,19 @@ def scrape_product(product_url: str):
     size_cm = parse_size_cm(common_line)
 
     price_el = soup.select_one(".price .woocommerce-Price-amount, .woocommerce-Price-amount")
-    price_gbp = parse_price(
-        normalize_whitespace(price_el.get_text()) if price_el else ""
-    )
+    price_gbp = parse_price(normalize_whitespace(price_el.get_text()) if price_el else "")
 
     return scientific_name, common_name, size_cm, price_gbp
 
-# ---------- History helpers ----------
+# =====================
+# HISTORY HANDLING
+# =====================
 
 def load_existing_history(path: str):
     if not os.path.exists(path):
         return set()
     with open(path, newline="", encoding="utf-8") as f:
-        return {
-            tuple(row[h] for h in CSV_HEADER)
-            for row in csv.DictReader(f)
-        }
+        return {tuple(row[h] for h in CSV_HEADER) for row in csv.DictReader(f)}
 
 def append_history(path: str, rows):
     exists = os.path.exists(path)
@@ -151,7 +150,111 @@ def append_history(path: str, rows):
             w.writerow(CSV_HEADER)
         w.writerows(rows)
 
-# ---------- Main ----------
+# =====================
+# JOB SUMMARY
+# =====================
+
+def write_job_summary(history_file: str, scrape_datetime: str):
+    summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if not summary_path or not os.path.exists(history_file):
+        return
+
+    with open(history_file, newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+
+    by_run = {}
+    for r in rows:
+        by_run.setdefault(r["scrape_datetime"], []).append(r)
+
+    run_times = sorted(by_run.keys())
+    current = by_run[run_times[-1]]
+    previous = by_run[run_times[-2]] if len(run_times) > 1 else []
+
+    def key(r):
+        return (r["scientific_name"], r["common_name"], r["size_cm"])
+
+    cur_map = {key(r): r for r in current}
+    prev_map = {key(r): r for r in previous}
+
+    prices = [float(r["price_gbp"]) for r in current if r["price_gbp"]]
+    min_p = min(prices) if prices else None
+    max_p = max(prices) if prices else None
+    med_p = sorted(prices)[len(prices)//2] if prices else None
+
+    inc = dec = same = new = gone = 0
+
+    for k, r in cur_map.items():
+        if k not in prev_map:
+            new += 1
+        elif r["price_gbp"] != prev_map[k]["price_gbp"]:
+            if float(r["price_gbp"]) > float(prev_map[k]["price_gbp"]):
+                inc += 1
+            else:
+                dec += 1
+        else:
+            same += 1
+
+    for k in prev_map:
+        if k not in cur_map:
+            gone += 1
+
+    movers = []
+    for k, cur in cur_map.items():
+        if k not in prev_map:
+            continue
+        old_p, new_p = prev_map[k]["price_gbp"], cur["price_gbp"]
+        if not old_p or not new_p:
+            continue
+        old_p, new_p = float(old_p), float(new_p)
+        if old_p <= 0:
+            continue
+        pct = (new_p - old_p) / old_p
+        movers.append({
+            "name": cur["scientific_name"],
+            "size": cur["size_cm"],
+            "old": old_p,
+            "new": new_p,
+            "pct": pct,
+        })
+
+    movers.sort(key=lambda x: abs(x["pct"]), reverse=True)
+    top5 = movers[:5]
+
+    with open(summary_path, "a", encoding="utf-8") as f:
+        f.write("## 🕷️ Spiderlings Pricing Summary\n\n")
+        f.write(f"**Scrape time (UTC):** `{scrape_datetime}`\n\n")
+
+        f.write("### 📊 Current Snapshot\n")
+        f.write(f"- Listings: **{len(current)}**\n")
+        f.write(f"- Unique species: **{len(set(r['scientific_name'] for r in current))}**\n")
+        if prices:
+            f.write(f"- Price range: **£{min_p:.2f} – £{max_p:.2f}**\n")
+            f.write(f"- Median price: **£{med_p:.2f}**\n")
+
+        f.write("\n### 🔄 Changes Since Last Run\n")
+        f.write(f"- 🔼 Price increases: **{inc}**\n")
+        f.write(f"- 🔽 Price decreases: **{dec}**\n")
+        f.write(f"- ➖ Unchanged: **{same}**\n")
+        f.write(f"- 🆕 New listings: **{new}**\n")
+        f.write(f"- ❌ Removed listings: **{gone}**\n")
+
+        f.write("\n### 🚀 Top 5 Price Movers (largest % change)\n")
+        if not top5:
+            f.write("_No comparable price changes detected._\n")
+        else:
+            f.write("\n| Species | Size (cm) | Old (£) | New (£) | Change |\n")
+            f.write("|--------|-----------|---------|---------|--------|\n")
+            for m in top5:
+                sign = "+" if m["pct"] > 0 else ""
+                f.write(
+                    f"| {m['name']} | {m['size']} | "
+                    f"{m['old']:.2f} | {m['new']:.2f} | "
+                    f"{sign}{m['pct']*100:.1f}% |\n"
+                )
+
+# =====================
+# MAIN
+# =====================
 
 def main():
     scrape_datetime = (
@@ -177,14 +280,9 @@ def main():
             break
 
         for pu in product_urls:
-            scientific_name, common_name, size_cm, price_gbp = scrape_product(pu)
+            sci, com, size, price = scrape_product(pu)
             all_rows.append([
-                scrape_datetime,
-                scientific_name,
-                common_name,
-                size_cm,
-                price_gbp,
-                category_url,
+                scrape_datetime, sci, com, size, price, category_url
             ])
 
         page += 1
@@ -192,16 +290,16 @@ def main():
     if not all_rows:
         raise SystemExit("ERROR: Scrape completed but returned ZERO rows")
 
-    # Snapshot (this run only)
     with open(SNAPSHOT_FILE, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(CSV_HEADER)
         w.writerows(all_rows)
 
-    # Historical append (artifact-based)
     existing = load_existing_history(HISTORY_FILE)
     new_rows = [r for r in all_rows if tuple(r) not in existing]
     append_history(HISTORY_FILE, new_rows)
+
+    write_job_summary(HISTORY_FILE, scrape_datetime)
 
     print(f"Snapshot rows: {len(all_rows)}")
     print(f"New historical rows appended: {len(new_rows)}")
