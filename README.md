@@ -17,9 +17,25 @@ The scraped data is used to:
 
 ## How to Access the Scraped Data
 
-The scraper runs automatically every **Wednesday at 06:10 UTC** via GitHub Actions. You can access the data:
+The scraper runs automatically every **Wednesday at 06:10 UTC** via GitHub Actions. You can access the data in two ways:
 
-Alternatively:
+### 🌐 Option 1: View on GitHub Pages (Recommended)
+
+Visit the live website at: **[https://christianacca.github.io/spidershop-historical-analysis/](https://christianacca.github.io/spidershop-historical-analysis/)**
+
+The GitHub Pages site provides:
+- **Interactive HTML tables** with sortable columns and search functionality
+- **Latest snapshot** of all available spiderlings
+- **Historical data** showing pricing trends over time
+- **Breeder opportunity analysis** for market insights
+- **Dealer supply risk analysis** for inventory patterns
+- **Download links** for all CSV files
+
+The website is automatically updated after each successful scrape run.
+
+### 📦 Option 2: Download Artifacts Directly
+
+Alternatively, you can download the raw CSV files from GitHub Actions:
 
 1. **Navigate to "Spider Shop Spiderlings Scrape"** workflow runs [here](https://github.com/christianacca/spidershop-historical-analysis/actions/workflows/scrape.yml?query=branch%3Amaster)
 2. **Select the most recent workflow run** (the one at the top of the list)
