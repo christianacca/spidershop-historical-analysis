@@ -30,7 +30,7 @@ CSV_HEADER = [
 ]
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; spidershop-scraper/5.0)",
+    "User-Agent": "Mozilla/5.0 (compatible; spidershop-scraper/5.1)",
     "Accept-Language": "en-GB,en;q=0.9",
 }
 
@@ -329,6 +329,9 @@ def write_breeder_opportunity_outputs(table):
     if not table:
         return
 
+    total_rows = len(table)
+    shown = min(10, total_rows)
+
     with open(BREEDER_TABLE_FILE, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=table[0].keys())
         writer.writeheader()
@@ -342,10 +345,17 @@ def write_breeder_opportunity_outputs(table):
         f.write("\n## 🧬 Breeder Opportunity Matrix\n\n")
         f.write("| Species | Size | OOS | OOS Runs | Pattern | Price | Signal | Recommendation |\n")
         f.write("|--------|------|-----|----------|---------|-------|--------|----------------|\n")
-        for r in table[:10]:
+
+        for r in table[:shown]:
             f.write(
                 f"| {r['Species']} | {r['Size (cm)']} | {r['OOS']} | {r['OOS Runs']} | "
                 f"{r['Pattern']} | {r['Price']} | {r['Signal']} | {r['Recommendation']} |\n"
+            )
+
+        if total_rows > shown:
+            f.write(
+                f"\n_Showing top {shown} of {total_rows} species — "
+                f"see `{BREEDER_TABLE_FILE}` for full list._\n"
             )
 
 # =====================
