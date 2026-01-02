@@ -17,10 +17,12 @@ The scraped data is used to:
 
 ## How to Access the Scraped Data
 
-The scraper runs automatically every **Wednesday at 06:10 UTC** via GitHub Actions. You can access the data by:
+The scraper runs automatically every **Wednesday at 06:10 UTC** via GitHub Actions. You can access the data [here](https://github.com/christianacca/spidershop-historical-analysis/actions/workflows/scrape.yml?query=branch%3Amaster).
+
+Alternatively:
 
 1. **Navigate to the Actions tab** in this repository
-2. **Click on "Spider Shop Spiderlings Scrape"** workflow
+2. **Click on "Spider Shop Spiderlings Scrape"** workflow runs 
 3. **Select the most recent workflow run** (the one at the top of the list)
 4. **Scroll down to the "Artifacts" section** at the bottom of the workflow run page
 
