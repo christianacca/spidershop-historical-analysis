@@ -2,26 +2,28 @@ name: Spider Shop Spiderlings Scrape
 
 on:
   schedule:
+    # Twice per month
     - cron: "10 6 1,15 * *"
   workflow_dispatch:
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
+
     permissions:
       actions: read
       contents: read
 
     steps:
-      # -----------------------------
-      # Checkout
-      # -----------------------------
+      # --------------------------------
+      # Checkout repository
+      # --------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # -----------------------------
+      # --------------------------------
       # Python setup
-      # -----------------------------
+      # --------------------------------
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -33,7 +35,7 @@ jobs:
           pip install requests beautifulsoup4
 
       # ------------------------------------------------
-      # Find latest spidershop-history artifact
+      # Find latest spidershop-history artifact (repo-wide)
       # ------------------------------------------------
       - name: Find latest history artifact
         id: history_artifact
@@ -53,7 +55,7 @@ jobs:
           echo "Resolved history artifact id: $ARTIFACT_ID"
 
       # ------------------------------------------------
-      # Download history artifact (FIXED: GH_TOKEN added)
+      # Download history artifact if it exists
       # ------------------------------------------------
       - name: Download previous history artifact
         if: steps.history_artifact.outputs.artifact_id != ''
@@ -67,16 +69,16 @@ jobs:
           unzip -o history.zip
           rm history.zip
 
-      # -----------------------------
-      # Run scraper
-      # -----------------------------
+      # --------------------------------
+      # Run scraper + analysis
+      # --------------------------------
       - name: Run Spider Shop scraper
         run: |
           python scrape_spidershop_spiderlings.py
 
-      # -----------------------------
-      # Upload snapshot
-      # -----------------------------
+      # --------------------------------
+      # Upload snapshot CSV (this run only)
+      # --------------------------------
       - name: Upload snapshot artifact
         uses: actions/upload-artifact@v4
         with:
@@ -84,12 +86,22 @@ jobs:
           path: spidershop_spiderlings_scrape.csv
           if-no-files-found: error
 
-      # -----------------------------
-      # Upload updated history
-      # -----------------------------
+      # --------------------------------
+      # Upload updated historical CSV
+      # --------------------------------
       - name: Upload history artifact
         uses: actions/upload-artifact@v4
         with:
           name: spidershop-history
           path: spidershop_spiderlings_history.csv
           if-no-files-found: error
+
+      # --------------------------------
+      # Upload breeder opportunity table
+      # --------------------------------
+      - name: Upload breeder opportunity table
+        uses: actions/upload-artifact@v4
+        with:
+          name: breeder-opportunity-table
+          path: breeder_opportunity_table.csv
+          if-no-files-found: ignore
