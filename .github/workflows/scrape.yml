@@ -1,29 +1,23 @@
-name: Spider Shop Spiderlings Scrape
+name: SpiderShop Spiderlings Scrape
 
 on:
   schedule:
-    # Run twice per month
-    - cron: "10 6 1,15 * *"
+    # Every 2 weeks (Monday 03:00 UTC)
+    - cron: "0 3 */14 * *"
   workflow_dispatch:
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: read
-      actions: read
+    env:
+      DEFAULT_BRANCH: master
+      BRANCH_NAME: ${{ github.ref_name }}
 
     steps:
-      # --------------------------------
-      # Checkout repository
-      # --------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # --------------------------------
-      # Python setup
-      # --------------------------------
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -34,84 +28,78 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
 
-      # ------------------------------------------------
-      # Locate most recent spidershop-history artifact
-      # ------------------------------------------------
-      - name: Find latest history artifact
-        id: history_artifact
-        env:
-          GH_TOKEN: ${{ github.token }}
+      # ------------------------------------------------------------
+      # Compute branch-aware artifact names
+      # ------------------------------------------------------------
+      - name: Compute history artifact names
+        id: history_names
+        shell: bash
         run: |
-          ARTIFACT_ID=$(gh api \
-            repos/${{ github.repository }}/actions/artifacts \
-            --paginate \
-            -q '.artifacts
-                | map(select(.name == "spidershop-history" and .expired == false))
-                | sort_by(.created_at)
-                | last
-                | .id' || true)
+          if [ "${BRANCH_NAME}" = "${DEFAULT_BRANCH}" ]; then
+            echo "primary=spidershop-history" >> $GITHUB_OUTPUT
+            echo "fallback=" >> $GITHUB_OUTPUT
+          else
+            echo "primary=spidershop-history-${BRANCH_NAME}" >> $GITHUB_OUTPUT
+            echo "fallback=spidershop-history" >> $GITHUB_OUTPUT
+          fi
 
-          echo "artifact_id=$ARTIFACT_ID" >> $GITHUB_OUTPUT
-          echo "Resolved history artifact id: $ARTIFACT_ID"
+      # ------------------------------------------------------------
+      # Try branch-scoped history first
+      # ------------------------------------------------------------
+      - name: Download branch-scoped history artifact
+        id: download_primary
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.history_names.outputs.primary }}
+          path: .
+        continue-on-error: true
 
-      # ------------------------------------------------
-      # Download history artifact (if it exists)
-      # ------------------------------------------------
-      - name: Download previous history artifact
-        if: steps.history_artifact.outputs.artifact_id != ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api \
-            repos/${{ github.repository }}/actions/artifacts/${{ steps.history_artifact.outputs.artifact_id }}/zip \
-            > history.zip
+      # ------------------------------------------------------------
+      # Fallback to default branch history if needed
+      # ------------------------------------------------------------
+      - name: Download default-branch history artifact (fallback)
+        if: >
+          steps.history_names.outputs.fallback != '' &&
+          steps.download_primary.outcome != 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.history_names.outputs.fallback }}
+          path: .
+        continue-on-error: true
 
-          unzip -o history.zip
-          rm history.zip
-
-      # --------------------------------
-      # Run scraper + analysis
-      # --------------------------------
-      - name: Run Spider Shop scraper
+      # ------------------------------------------------------------
+      # Run scraper (fail-fast assertions live inside script)
+      # ------------------------------------------------------------
+      - name: Run SpiderShop scraper
         run: |
           python scrape_spidershop_spiderlings.py
 
-      # --------------------------------
-      # Upload snapshot CSV (this run)
-      # --------------------------------
-      - name: Upload snapshot artifact
+      # ------------------------------------------------------------
+      # Upload branch-scoped history artifact
+      # ------------------------------------------------------------
+      - name: Upload history artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.history_names.outputs.primary }}
+          path: spidershop_spiderlings_history.csv
+
+      # ------------------------------------------------------------
+      # Upload other useful artifacts
+      # ------------------------------------------------------------
+      - name: Upload scrape snapshot
         uses: actions/upload-artifact@v4
         with:
           name: spidershop-snapshot
           path: spidershop_spiderlings_scrape.csv
-          if-no-files-found: error
 
-      # --------------------------------
-      # Upload updated history CSV
-      # --------------------------------
-      - name: Upload history artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: spidershop-history
-          path: spidershop_spiderlings_history.csv
-          if-no-files-found: error
-
-      # --------------------------------
-      # Upload breeder opportunity matrix
-      # --------------------------------
       - name: Upload breeder opportunity table
         uses: actions/upload-artifact@v4
         with:
           name: breeder-opportunity-table
           path: breeder_opportunity_table.csv
-          if-no-files-found: ignore
 
-      # --------------------------------
-      # Upload dealer supply risk matrix
-      # --------------------------------
       - name: Upload dealer supply risk table
         uses: actions/upload-artifact@v4
         with:
           name: dealer-supply-risk-table
           path: dealer_supply_risk_table.csv
-          if-no-files-found: ignore
