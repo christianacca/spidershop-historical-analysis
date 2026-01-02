@@ -36,3 +36,9 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db
+
+# Generated website
+website/
+
+# Scraper outputs
+*.csv

@@ -1,0 +1,126 @@
+name: Deploy to GitHub Pages
+
+on:
+  workflow_run:
+    workflows: ["Spider Shop Spiderlings Scrape"]
+    types:
+      - completed
+    branches:
+      - master
+
+# Sets permissions for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  actions: read
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    # Only run if the scrape workflow completed successfully
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      # --------------------------------
+      # Checkout repository
+      # --------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # --------------------------------
+      # Python setup
+      # --------------------------------
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # --------------------------------
+      # Download artifacts from scrape workflow
+      # --------------------------------
+      - name: Download snapshot artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: spidershop-snapshot
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+        continue-on-error: true
+
+      - name: Download history artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: spidershop-history
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+        continue-on-error: true
+
+      - name: Download breeder opportunity table
+        uses: actions/download-artifact@v4
+        with:
+          name: breeder-opportunity-table
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+        continue-on-error: true
+
+      - name: Download dealer supply risk table
+        uses: actions/download-artifact@v4
+        with:
+          name: dealer-supply-risk-table
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+        continue-on-error: true
+
+      - name: Download analysis summary
+        uses: actions/download-artifact@v4
+        with:
+          name: analysis-summary
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+        continue-on-error: true
+
+      # --------------------------------
+      # Verify downloaded artifacts
+      # --------------------------------
+      - name: List downloaded files
+        run: |
+          echo "Files in current directory:"
+          ls -lh *.csv || echo "No CSV files found"
+
+      # --------------------------------
+      # Generate static website
+      # --------------------------------
+      - name: Generate HTML website
+        run: |
+          python src/generate_website.py
+
+      # --------------------------------
+      # Setup GitHub Pages
+      # --------------------------------
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      # --------------------------------
+      # Upload website to Pages
+      # --------------------------------
+      - name: Upload artifact for Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './website'
+
+      # --------------------------------
+      # Deploy to GitHub Pages
+      # --------------------------------
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

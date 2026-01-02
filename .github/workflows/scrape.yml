@@ -127,6 +127,27 @@ jobs:
           python src/scrape_spidershop_spiderlings.py
 
       # --------------------------------
+      # Save job summary as artifact
+      # --------------------------------
+      - name: Save analysis summary
+        if: always()
+        run: |
+          if [ -f "$GITHUB_STEP_SUMMARY" ]; then
+            cp "$GITHUB_STEP_SUMMARY" analysis_summary.md
+            echo "Analysis summary saved"
+          else
+            echo "No summary file found"
+            touch analysis_summary.md
+          fi
+
+      - name: Upload analysis summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: analysis-summary
+          path: analysis_summary.md
+          if-no-files-found: warn
+
+      # --------------------------------
       # Upload snapshot CSV (this run)
       # --------------------------------
       - name: Upload snapshot artifact
