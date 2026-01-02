@@ -124,7 +124,7 @@ jobs:
       # --------------------------------
       - name: Run Spider Shop scraper
         run: |
-          python scrape_spidershop_spiderlings.py
+          python src/scrape_spidershop_spiderlings.py
 
       # --------------------------------
       # Upload snapshot CSV (this run)
