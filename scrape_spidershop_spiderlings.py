@@ -2,7 +2,7 @@
 import csv
 import os
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal, InvalidOperation
 from urllib.parse import urljoin
 
@@ -29,7 +29,7 @@ CSV_HEADER = [
 ]
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; spidershop-scraper/4.0)",
+    "User-Agent": "Mozilla/5.0 (compatible; spidershop-scraper/4.1)",
     "Accept-Language": "en-GB,en;q=0.9",
 }
 
@@ -53,6 +53,16 @@ def fetch(url: str) -> str:
     r = requests.get(url, headers=HEADERS, timeout=30)
     r.raise_for_status()
     return r.text
+
+def median(values):
+    if not values:
+        return None
+    values = sorted(values)
+    n = len(values)
+    mid = n // 2
+    if n % 2:
+        return values[mid]
+    return (values[mid - 1] + values[mid]) / 2
 
 # =====================
 # PARSING HELPERS
@@ -159,6 +169,9 @@ def write_job_summary(history_file: str, scrape_datetime: str):
     if not summary_path or not os.path.exists(history_file):
         return
 
+    now = datetime.fromisoformat(scrape_datetime)
+    window_start = now - timedelta(days=90)
+
     with open(history_file, newline="", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
 
@@ -177,10 +190,6 @@ def write_job_summary(history_file: str, scrape_datetime: str):
     prev_map = {key(r): r for r in previous}
 
     prices = [float(r["price_gbp"]) for r in current if r["price_gbp"]]
-    min_p = min(prices) if prices else None
-    max_p = max(prices) if prices else None
-    med_p = sorted(prices)[len(prices)//2] if prices else None
-
     inc = dec = same = new = gone = 0
 
     for k, r in cur_map.items():
@@ -198,27 +207,15 @@ def write_job_summary(history_file: str, scrape_datetime: str):
         if k not in cur_map:
             gone += 1
 
-    movers = []
-    for k, cur in cur_map.items():
-        if k not in prev_map:
-            continue
-        old_p, new_p = prev_map[k]["price_gbp"], cur["price_gbp"]
-        if not old_p or not new_p:
-            continue
-        old_p, new_p = float(old_p), float(new_p)
-        if old_p <= 0:
-            continue
-        pct = (new_p - old_p) / old_p
-        movers.append({
-            "name": cur["scientific_name"],
-            "size": cur["size_cm"],
-            "old": old_p,
-            "new": new_p,
-            "pct": pct,
-        })
+    # Rolling 3-month median
+    rolling_prices = [
+        float(r["price_gbp"])
+        for r in rows
+        if r["price_gbp"]
+        and window_start <= datetime.fromisoformat(r["scrape_datetime"]) <= now
+    ]
 
-    movers.sort(key=lambda x: abs(x["pct"]), reverse=True)
-    top5 = movers[:5]
+    rolling_median = median(rolling_prices)
 
     with open(summary_path, "a", encoding="utf-8") as f:
         f.write("## 🕷️ Spiderlings Pricing Summary\n\n")
@@ -226,10 +223,8 @@ def write_job_summary(history_file: str, scrape_datetime: str):
 
         f.write("### 📊 Current Snapshot\n")
         f.write(f"- Listings: **{len(current)}**\n")
-        f.write(f"- Unique species: **{len(set(r['scientific_name'] for r in current))}**\n")
         if prices:
-            f.write(f"- Price range: **£{min_p:.2f} – £{max_p:.2f}**\n")
-            f.write(f"- Median price: **£{med_p:.2f}**\n")
+            f.write(f"- Median price (this run): **£{median(prices):.2f}**\n")
 
         f.write("\n### 🔄 Changes Since Last Run\n")
         f.write(f"- 🔼 Price increases: **{inc}**\n")
@@ -238,19 +233,15 @@ def write_job_summary(history_file: str, scrape_datetime: str):
         f.write(f"- 🆕 New listings: **{new}**\n")
         f.write(f"- ❌ Removed listings: **{gone}**\n")
 
-        f.write("\n### 🚀 Top 5 Price Movers (largest % change)\n")
-        if not top5:
-            f.write("_No comparable price changes detected._\n")
+        f.write("\n### 📈 Rolling 3-Month Median Price\n")
+        if rolling_median is None:
+            f.write("_Insufficient historical data (need up to 90 days)._")
         else:
-            f.write("\n| Species | Size (cm) | Old (£) | New (£) | Change |\n")
-            f.write("|--------|-----------|---------|---------|--------|\n")
-            for m in top5:
-                sign = "+" if m["pct"] > 0 else ""
-                f.write(
-                    f"| {m['name']} | {m['size']} | "
-                    f"{m['old']:.2f} | {m['new']:.2f} | "
-                    f"{sign}{m['pct']*100:.1f}% |\n"
-                )
+            f.write(
+                f"- Window: `{window_start.date()} → {now.date()}`\n"
+                f"- Price points: **{len(rolling_prices)}**\n"
+                f"- Median price: **£{rolling_median:.2f}**\n"
+            )
 
 # =====================
 # MAIN
