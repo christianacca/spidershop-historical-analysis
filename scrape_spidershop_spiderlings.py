@@ -268,7 +268,7 @@ def write_pricing_summary(history_rows, scrape_datetime: str):
                 f.write(f"| {s} | {size} | £{o:.2f} | £{n:.2f} | {sign}{p*100:.1f}% |\n")
 
 # =====================
-# BREEDER MATRIX (PRICE AWARE)
+# BREEDER MATRIX (PRICE AWARE) — FIXED TO INCLUDE OUT-OF-STOCK ITEMS
 # =====================
 
 def build_breeder_opportunity_table(history_rows):
@@ -277,29 +277,102 @@ def build_breeder_opportunity_table(history_rows):
     if len(runs) < 2:
         return []
 
-    current = by_run[runs[-1]]
-    prev = by_run[runs[-2]]
+    cur_run = runs[-1]
+    prev_run = runs[-2]
 
-    prev_keys = {k2(r) for r in prev}
-    prev_price = {k2(r): r.get("price_gbp", "") for r in prev if r.get("price_gbp")}
+    cur_rows = by_run[cur_run]
+    prev_rows = by_run[prev_run]
+
+    # Index rows by (species,size) for quick lookup
+    cur_map = {k2(r): r for r in cur_rows}
+    prev_map = {k2(r): r for r in prev_rows}
+
+    # Union of keys across ALL history so OUT items can appear in the breeder table
+    all_keys = set()
+    for rt in runs:
+        for r in by_run[rt]:
+            all_keys.add(k2(r))
+
+    # For display of OUT items: last-seen row
+    last_seen = {}
+    for rt in runs:
+        for r in by_run[rt]:
+            last_seen[k2(r)] = r  # later runs overwrite earlier
+
+    # Helper: last 2 price points for a key before/at current
+    def price_trend_for_key(key):
+        # If present now and present previous -> compare those
+        if key in cur_map and key in prev_map:
+            c = cur_map[key].get("price_gbp", "")
+            p = prev_map[key].get("price_gbp", "")
+            try:
+                if c and p:
+                    cf = float(c); pf = float(p)
+                    if cf > pf:
+                        return "↑"
+                    if cf < pf:
+                        return "↓"
+            except ValueError:
+                pass
+            return "→"
+
+        # If OUT now: compare last seen price vs price in run before last seen (if available)
+        # Walk backward through runs to find last two occurrences with prices
+        prices = []
+        for rt in reversed(runs):
+            m = {k2(r): r for r in by_run[rt]}
+            if key in m:
+                val = m[key].get("price_gbp", "")
+                if val:
+                    prices.append(val)
+                if len(prices) >= 2:
+                    break
+
+        if len(prices) >= 2:
+            try:
+                latest = float(prices[0])
+                prior = float(prices[1])
+                if latest > prior:
+                    return "↑"
+                if latest < prior:
+                    return "↓"
+            except ValueError:
+                return "→"
+        return "→"
 
     table = []
 
-    for r in current:
-        key = k2(r)
-        oos_runs = 0
-        oos_status = "IN"
+    # Precompute membership sets per run for faster OOS counting
+    keys_by_run = {rt: {k2(r) for r in by_run[rt]} for rt in runs}
 
-        if key not in prev_keys:
+    for key in sorted(all_keys):
+        in_current = key in keys_by_run[cur_run]
+        in_prev = key in keys_by_run[prev_run]
+
+        # Use current row if present, otherwise last-seen row for display
+        row = cur_map.get(key) or last_seen.get(key) or {"scientific_name": key[0], "size_cm": key[1]}
+
+        # OOS status + consecutive OOS runs (INCLUDING the current run if OUT)
+        if in_current:
+            oos_status = "IN"
+            oos_runs = 0
+
+            # If it was missing last run but exists now (or flapped recently), show IN/OUT
+            if not in_prev and len(runs) >= 3:
+                # If seen before, it truly flapped
+                seen_before = any(key in keys_by_run[rt] for rt in runs[:-1])
+                if seen_before:
+                    oos_status = "IN/OUT"
+        else:
             oos_status = "OUT"
-            for rt in reversed(runs[:-1]):
-                if any(k2(x) == key for x in by_run[rt]):
+            # Count consecutive missing runs ending at current, including current as 1
+            oos_runs = 1
+            for rt in reversed(runs[:-1]):  # start from prev run backward
+                if key in keys_by_run[rt]:
                     break
                 oos_runs += 1
-        elif len(runs) >= 3:
-            if any(key not in {k2(x) for x in by_run[rt]} for rt in runs[-3:-1]):
-                oos_status = "IN/OUT"
 
+        # Pattern derived from OOS evidence
         if oos_runs >= 3:
             pattern = "Sustained"
         elif oos_runs == 2:
@@ -309,18 +382,9 @@ def build_breeder_opportunity_table(history_rows):
         else:
             pattern = "Always"
 
-        price_trend = "→"
-        if r.get("price_gbp") and key in prev_price:
-            try:
-                cur_p = float(r["price_gbp"])
-                prv_p = float(prev_price[key])
-                if cur_p > prv_p:
-                    price_trend = "↑"
-                elif cur_p < prv_p:
-                    price_trend = "↓"
-            except ValueError:
-                pass
+        price_trend = price_trend_for_key(key)
 
+        # Recommendation logic (price-aware, unchanged)
         if pattern == "Sustained" and price_trend in ("↑", "→"):
             signal = "🔥"
             rec = "Pair soon — sustained scarcity"
@@ -338,8 +402,8 @@ def build_breeder_opportunity_table(history_rows):
             rec = "Avoid for profit — oversupplied"
 
         table.append({
-            "Species": r["scientific_name"],
-            "Size (cm)": r["size_cm"],
+            "Species": row.get("scientific_name", key[0]),
+            "Size (cm)": row.get("size_cm", key[1]),
             "OOS": oos_status,
             "OOS Runs": str(oos_runs),
             "Pattern": pattern,
@@ -348,6 +412,7 @@ def build_breeder_opportunity_table(history_rows):
             "Recommendation": rec,
         })
 
+    # Sort: best signals first, then highest OOS streak
     table.sort(key=lambda r: ({"🔥": 0, "⚠️": 1, "❌": 2}[r["Signal"]], -int(r["OOS Runs"])))
     return table
 
@@ -409,7 +474,7 @@ def build_dealer_supply_risk_table(history_rows):
         present_pct = len(present_runs) / total_runs
         reliability = "High" if present_pct >= 0.8 else "Medium" if present_pct >= 0.4 else "Low"
 
-        # FIXED: safe OOS event counting even if the series starts with "absent"
+        # safe OOS event counting even if the series starts with "absent"
         oos_events = []
         last_present = None
         for rt in runs:
@@ -422,7 +487,7 @@ def build_dealer_supply_risk_table(history_rows):
                         oos_events[-1] += 1
                     else:
                         oos_events.append(1)
-                else:  # last_present is None (first datapoint absent)
+                else:  # last_present is None
                     oos_events.append(1)
             last_present = present
 
