@@ -34,11 +34,33 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
 
+      # --------------------------------
+      # Resolve branch + artifact names
+      # --------------------------------
+      - name: Resolve branch-scoped artifact names
+        id: artifact_names
+        run: |
+          DEFAULT_BRANCH="master"
+          BRANCH_NAME="${GITHUB_REF_NAME}"
+          SAFE_BRANCH="$(echo "$BRANCH_NAME" | tr '/' '-')"
+
+          if [ "$BRANCH_NAME" = "$DEFAULT_BRANCH" ]; then
+            HISTORY_NAME="spidershop-history"
+          else
+            HISTORY_NAME="spidershop-history__${SAFE_BRANCH}"
+          fi
+
+          echo "history_name=$HISTORY_NAME" >> $GITHUB_OUTPUT
+          echo "default_history_name=spidershop-history" >> $GITHUB_OUTPUT
+
+          echo "Resolved branch: $BRANCH_NAME"
+          echo "Resolved history artifact name: $HISTORY_NAME"
+
       # ------------------------------------------------
-      # Locate most recent spidershop-history artifact
+      # Locate latest branch-scoped history artifact
       # ------------------------------------------------
-      - name: Find latest history artifact
-        id: history_artifact
+      - name: Find branch history artifact
+        id: branch_history
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -46,24 +68,52 @@ jobs:
             repos/${{ github.repository }}/actions/artifacts \
             --paginate \
             -q '.artifacts
-                | map(select(.name == "spidershop-history" and .expired == false))
+                | map(select(.name == "'"${{ steps.artifact_names.outputs.history_name }}"'" and .expired == false))
                 | sort_by(.created_at)
                 | last
                 | .id' || true)
 
           echo "artifact_id=$ARTIFACT_ID" >> $GITHUB_OUTPUT
-          echo "Resolved history artifact id: $ARTIFACT_ID"
+          echo "Resolved branch history artifact id: $ARTIFACT_ID"
 
       # ------------------------------------------------
-      # Download history artifact (if it exists)
+      # Locate default-branch history artifact (fallback)
       # ------------------------------------------------
-      - name: Download previous history artifact
-        if: steps.history_artifact.outputs.artifact_id != ''
+      - name: Find default branch history artifact
+        id: default_history
+        if: steps.branch_history.outputs.artifact_id == '' && github.ref_name != 'master'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          ARTIFACT_ID=$(gh api \
+            repos/${{ github.repository }}/actions/artifacts \
+            --paginate \
+            -q '.artifacts
+                | map(select(.name == "'"${{ steps.artifact_names.outputs.default_history_name }}"'" and .expired == false))
+                | sort_by(.created_at)
+                | last
+                | .id' || true)
+
+          echo "artifact_id=$ARTIFACT_ID" >> $GITHUB_OUTPUT
+          echo "Resolved default history artifact id: $ARTIFACT_ID"
+
+      # ------------------------------------------------
+      # Download history artifact (branch or fallback)
+      # ------------------------------------------------
+      - name: Download previous history artifact
+        if: steps.branch_history.outputs.artifact_id != '' || steps.default_history.outputs.artifact_id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ARTIFACT_ID="${{ steps.branch_history.outputs.artifact_id }}"
+          if [ -z "$ARTIFACT_ID" ]; then
+            ARTIFACT_ID="${{ steps.default_history.outputs.artifact_id }}"
+          fi
+
+          echo "Downloading history artifact id: $ARTIFACT_ID"
+
           gh api \
-            repos/${{ github.repository }}/actions/artifacts/${{ steps.history_artifact.outputs.artifact_id }}/zip \
+            repos/${{ github.repository }}/actions/artifacts/$ARTIFACT_ID/zip \
             > history.zip
 
           unzip -o history.zip
@@ -87,12 +137,12 @@ jobs:
           if-no-files-found: error
 
       # --------------------------------
-      # Upload updated history CSV
+      # Upload updated history CSV (branch-scoped)
       # --------------------------------
       - name: Upload history artifact
         uses: actions/upload-artifact@v4
         with:
-          name: spidershop-history
+          name: ${{ steps.artifact_names.outputs.history_name }}
           path: spidershop_spiderlings_history.csv
           if-no-files-found: error
 
