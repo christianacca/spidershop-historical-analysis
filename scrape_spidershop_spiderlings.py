@@ -355,13 +355,11 @@ def write_breeder_outputs(table):
     if not table:
         return False
 
-    # CSV output
     with open(BREEDER_TABLE_FILE, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=table[0].keys())
         w.writeheader()
         w.writerows(table)
 
-    # Markdown output
     summary_path = get_summary_path()
     if not summary_path:
         return False
@@ -411,14 +409,21 @@ def build_dealer_supply_risk_table(history_rows):
         present_pct = len(present_runs) / total_runs
         reliability = "High" if present_pct >= 0.8 else "Medium" if present_pct >= 0.4 else "Low"
 
+        # FIXED: safe OOS event counting even if the series starts with "absent"
         oos_events = []
         last_present = None
         for rt in runs:
             present = rt in present_runs
-            if last_present is True and not present:
-                oos_events.append(1)
-            elif last_present is False and not present:
-                oos_events[-1] += 1
+            if not present:
+                if last_present is True:
+                    oos_events.append(1)
+                elif last_present is False:
+                    if oos_events:
+                        oos_events[-1] += 1
+                    else:
+                        oos_events.append(1)
+                else:  # last_present is None (first datapoint absent)
+                    oos_events.append(1)
             last_present = present
 
         avg_oos = round(sum(oos_events) / len(oos_events), 1) if oos_events else 0
@@ -464,13 +469,11 @@ def write_dealer_outputs(table):
     if not table:
         return False
 
-    # CSV output
     with open(DEALER_TABLE_FILE, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=table[0].keys())
         w.writeheader()
         w.writerows(table)
 
-    # Markdown output
     summary_path = get_summary_path()
     if not summary_path:
         return False
@@ -521,26 +524,20 @@ def main():
 
         page += 1
 
-    # Assertion: scrape must not be empty
     assert_condition(len(all_rows) > 0, "Scrape completed but returned ZERO rows")
 
-    # Snapshot CSV
     with open(SNAPSHOT_FILE, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(CSV_HEADER)
         w.writerows(all_rows)
 
-    # Load history (downloaded artifact should provide this file if it exists)
     history_rows = load_history(HISTORY_FILE)
     existing = {tuple(r[h] for h in CSV_HEADER) for r in history_rows}
 
     new_rows = [r for r in all_rows if tuple(r) not in existing]
     append_history(HISTORY_FILE, new_rows)
-
-    # Extend in-memory history for analysis
     history_rows.extend(dict(zip(CSV_HEADER, r)) for r in new_rows)
 
-    # Outputs
     write_pricing_summary(history_rows, scrape_dt)
 
     breeder_table = build_breeder_opportunity_table(history_rows)
@@ -550,10 +547,9 @@ def main():
     dealer_written = write_dealer_outputs(dealer_table)
 
     # =====================
-    # ASSERTIONS (ADDED, BASELINE-PRESERVING)
+    # ASSERTIONS (BASELINE-PRESERVING)
     # =====================
 
-    # CSV existence + non-empty (beyond header)
     assert_condition(os.path.exists(SNAPSHOT_FILE), f"Missing snapshot CSV: {SNAPSHOT_FILE}")
     assert_condition(csv_row_count(SNAPSHOT_FILE) > 0, "Snapshot CSV has 0 data rows")
 
@@ -566,11 +562,9 @@ def main():
     assert_condition(os.path.exists(DEALER_TABLE_FILE), f"Missing dealer table CSV: {DEALER_TABLE_FILE}")
     assert_condition(csv_row_count(DEALER_TABLE_FILE) > 0, "Dealer table CSV has 0 data rows")
 
-    # Ensure the writer functions actually executed successfully
     assert_condition(breeder_written, "Breeder Opportunity Matrix was not written (writer returned False)")
     assert_condition(dealer_written, "Dealer Supply Risk Matrix was not written (writer returned False)")
 
-    # Ensure Job Summary contains expected headings
     summary_text = read_summary_text()
     assert_condition("## 🧬 Breeder Opportunity Matrix" in summary_text,
                      "Breeder Opportunity Matrix heading missing from Job Summary")
