@@ -1,15 +1,231 @@
-# [SCRIPT START]
-# NOTE: This is a direct continuation of your last corrected version.
-# Only changes vs previous are:
-# - Breeder Opportunity Matrix regains Price Trend column
-# - Breeder recommendations again incorporate price movement
+#!/usr/bin/env python3
+import csv
+import os
+import re
+from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
+from urllib.parse import urljoin
 
-# --- snip ---
-# (All imports, config, scraping, history, pricing summary remain unchanged)
-# --- snip ---
+import requests
+from requests.exceptions import HTTPError
+from bs4 import BeautifulSoup
 
 # =====================
-# BREEDER MATRIX (Phase 1 – PRICE AWARE, RESTORED)
+# CONFIG
+# =====================
+
+BASE_URL = "https://thespidershop.co.uk/product-category/tarantulas-for-sale-in-the-uk/spiderlings/"
+
+SNAPSHOT_FILE = "spidershop_spiderlings_scrape.csv"
+HISTORY_FILE = "spidershop_spiderlings_history.csv"
+
+BREEDER_TABLE_FILE = "breeder_opportunity_table.csv"
+DEALER_TABLE_FILE = "dealer_supply_risk_table.csv"
+
+CSV_HEADER = [
+    "scrape_datetime",
+    "scientific_name",
+    "common_name",
+    "size_cm",
+    "price_gbp",
+    "page_url",
+]
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (compatible; spidershop-scraper/6.4)",
+    "Accept-Language": "en-GB,en;q=0.9",
+}
+
+PARENS_RE = re.compile(r"\(([^)]*)\)")
+SIZE_RE = re.compile(
+    r"^\s*(\d+(?:\.\d+)?)\s*(?:[-–]\s*(\d+(?:\.\d+)?))?\s*cm\s*$",
+    re.IGNORECASE,
+)
+
+# =====================
+# UTILITIES
+# =====================
+
+def normalize_whitespace(text: str) -> str:
+    if not text:
+        return ""
+    text = text.replace("\u00a0", " ")
+    return re.sub(r"\s+", " ", text).strip()
+
+def fetch(url: str) -> str:
+    r = requests.get(url, headers=HEADERS, timeout=30)
+    r.raise_for_status()
+    return r.text
+
+# =====================
+# PARSING HELPERS
+# =====================
+
+def first_cm_parenthetical(text: str):
+    for m in PARENS_RE.finditer(text or ""):
+        if "cm" in m.group(1).lower():
+            return m.group(0)
+    return None
+
+def parse_size_cm(text: str) -> str:
+    paren = first_cm_parenthetical(text)
+    if not paren:
+        return ""
+    inner = paren[1:-1]
+    m = SIZE_RE.match(inner)
+    if not m:
+        return ""
+    try:
+        val = m.group(2) or m.group(1)
+        d = Decimal(val)
+        return str(int(d)) if d == d.to_integral_value() else format(d, "f")
+    except InvalidOperation:
+        return ""
+
+def remove_size_parenthetical_only(text: str) -> str:
+    text = normalize_whitespace(text)
+    paren = first_cm_parenthetical(text)
+    if not paren:
+        return text
+    return normalize_whitespace(text.replace(paren, " ", 1))
+
+def parse_price(text: str) -> str:
+    if not text:
+        return ""
+    s = text.replace("£", "").replace("\u00a3", "").replace(",", "").strip()
+    try:
+        return format(Decimal(s), "f")
+    except InvalidOperation:
+        return ""
+
+# =====================
+# SCRAPING
+# =====================
+
+def extract_product_urls(category_html: str, category_url: str):
+    soup = BeautifulSoup(category_html, "html.parser")
+    urls, seen = [], set()
+
+    for a in soup.select("a[href]"):
+        href = a.get("href", "").strip()
+        if "/product/" not in href:
+            continue
+        full = urljoin(category_url, href)
+        if full not in seen:
+            seen.add(full)
+            urls.append(full)
+
+    return urls
+
+def scrape_product(product_url: str):
+    soup = BeautifulSoup(fetch(product_url), "html.parser")
+
+    h1 = soup.find("h1")
+    scientific_name = normalize_whitespace(h1.get_text()) if h1 else ""
+
+    h2 = soup.find("h2")
+    common_line = normalize_whitespace(h2.get_text()) if h2 else ""
+
+    price_el = soup.select_one(".woocommerce-Price-amount")
+
+    return (
+        scientific_name,
+        remove_size_parenthetical_only(common_line),
+        parse_size_cm(common_line),
+        parse_price(normalize_whitespace(price_el.get_text()) if price_el else ""),
+    )
+
+# =====================
+# HISTORY
+# =====================
+
+def load_history(path):
+    if not os.path.exists(path):
+        return []
+    with open(path, newline="", encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+def append_history(path, rows):
+    exists = os.path.exists(path)
+    with open(path, "a", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        if not exists:
+            w.writerow(CSV_HEADER)
+        w.writerows(rows)
+
+# =====================
+# HELPERS
+# =====================
+
+def group_by_run(rows):
+    by_run = {}
+    for r in rows:
+        by_run.setdefault(r["scrape_datetime"], []).append(r)
+    return by_run
+
+def k2(r):
+    return (r["scientific_name"], r["size_cm"])
+
+# =====================
+# PRICING SUMMARY
+# =====================
+
+def write_pricing_summary(history_rows, scrape_dt):
+    summary = os.environ.get("GITHUB_STEP_SUMMARY")
+    if not summary:
+        return
+
+    by_run = group_by_run(history_rows)
+    runs = sorted(by_run)
+    if len(runs) < 2:
+        return
+
+    cur = by_run[runs[-1]]
+    prev = by_run[runs[-2]]
+
+    cur_map = {k2(r): r for r in cur if r["price_gbp"]}
+    prev_map = {k2(r): r for r in prev if r["price_gbp"]}
+
+    inc = dec = same = new = gone = 0
+    movers = []
+
+    for k, r in cur_map.items():
+        if k not in prev_map:
+            new += 1
+            continue
+        cp, pp = float(r["price_gbp"]), float(prev_map[k]["price_gbp"])
+        if cp > pp:
+            inc += 1
+        elif cp < pp:
+            dec += 1
+        else:
+            same += 1
+        if pp:
+            movers.append((r["scientific_name"], r["size_cm"], pp, cp, (cp - pp) / pp))
+
+    gone = len([k for k in prev_map if k not in cur_map])
+    movers.sort(key=lambda x: abs(x[4]), reverse=True)
+    top5 = movers[:5]
+
+    with open(summary, "a", encoding="utf-8") as f:
+        f.write("## 🕷️ Spiderlings Pricing Summary\n\n")
+        f.write(f"**Scrape time (UTC):** `{scrape_dt}`\n\n")
+        f.write(f"- 🔼 Increases: **{inc}**\n")
+        f.write(f"- 🔽 Decreases: **{dec}**\n")
+        f.write(f"- ➖ Unchanged: **{same}**\n")
+        f.write(f"- 🆕 New: **{new}**\n")
+        f.write(f"- ❌ Removed: **{gone}**\n\n")
+        f.write("### 🚀 Top 5 Price Movers\n")
+        if top5:
+            f.write("| Species | Size | Old | New | Change |\n|---|---|---|---|---|\n")
+            for s, size, o, n, p in top5:
+                sign = "+" if p > 0 else ""
+                f.write(f"| {s} | {size} | £{o:.2f} | £{n:.2f} | {sign}{p*100:.1f}% |\n")
+        else:
+            f.write("_No comparable price changes detected._\n")
+
+# =====================
+# BREEDER MATRIX (PRICE AWARE)
 # =====================
 
 def build_breeder_opportunity_table(history_rows):
@@ -18,53 +234,40 @@ def build_breeder_opportunity_table(history_rows):
     if len(runs) < 2:
         return []
 
-    current = by_run[runs[-1]]
+    cur = by_run[runs[-1]]
     prev = by_run[runs[-2]]
-
-    prev_map = {k2(r): r for r in prev if r.get("price_gbp")}
-    cur_map = {k2(r): r for r in current}
+    prev_map = {k2(r): r for r in prev if r["price_gbp"]}
 
     table = []
 
-    for r in current:
+    for r in cur:
         k = k2(r)
         oos_runs = 0
-        oos_status = "IN"
+        oos = "IN"
 
-        if k not in prev_map:
-            oos_status = "OUT"
+        if k not in {k2(x) for x in prev}:
+            oos = "OUT"
             for rt in reversed(runs[:-1]):
                 if any(k2(x) == k for x in by_run[rt]):
                     break
                 oos_runs += 1
-        elif any(k not in {k2(x) for x in by_run[rt]} for rt in runs[-3:-1]):
-            oos_status = "IN/OUT"
 
-        # Pattern
         if oos_runs >= 3:
             pattern = "Sustained"
         elif oos_runs == 2:
             pattern = "Emerging"
-        elif oos_status == "IN/OUT":
-            pattern = "Cyclical"
         else:
             pattern = "Always"
 
-        # Price trend (RESTORED)
         price_trend = "→"
-        if k in prev_map and r.get("price_gbp"):
-            try:
-                cur_p = float(r["price_gbp"])
-                prev_p = float(prev_map[k]["price_gbp"])
-                if cur_p > prev_p:
-                    price_trend = "↑"
-                elif cur_p < prev_p:
-                    price_trend = "↓"
-            except ValueError:
-                pass
+        if k in prev_map and r["price_gbp"]:
+            cp, pp = float(r["price_gbp"]), float(prev_map[k]["price_gbp"])
+            if cp > pp:
+                price_trend = "↑"
+            elif cp < pp:
+                price_trend = "↓"
 
-        # Recommendation logic (price-aware again)
-        if pattern == "Sustained" and price_trend in ("↑", "→"):
+        if pattern == "Sustained" and price_trend != "↓":
             signal = "🔥"
             rec = "Pair soon — sustained scarcity"
         elif pattern == "Emerging" and price_trend == "↑":
@@ -73,9 +276,6 @@ def build_breeder_opportunity_table(history_rows):
         elif pattern == "Emerging":
             signal = "⚠️"
             rec = "Monitor closely — supply tightening"
-        elif pattern == "Cyclical":
-            signal = "⚠️"
-            rec = "Breed cautiously — wave restocking"
         else:
             signal = "❌"
             rec = "Avoid for profit — oversupplied"
@@ -83,7 +283,7 @@ def build_breeder_opportunity_table(history_rows):
         table.append({
             "Species": r["scientific_name"],
             "Size (cm)": r["size_cm"],
-            "OOS": oos_status,
+            "OOS": oos,
             "OOS Runs": str(oos_runs),
             "Pattern": pattern,
             "Price Trend": price_trend,
@@ -93,3 +293,114 @@ def build_breeder_opportunity_table(history_rows):
 
     table.sort(key=lambda r: ({"🔥":0,"⚠️":1,"❌":2}[r["Signal"]], -int(r["OOS Runs"])))
     return table
+
+# =====================
+# DEALER MATRIX (Option B)
+# =====================
+
+def build_dealer_supply_risk_table(history_rows):
+    by_run = group_by_run(history_rows)
+    runs = sorted(by_run)
+    if len(runs) < 2:
+        return []
+
+    prev = by_run[runs[-2]]
+    cur = by_run[runs[-1]]
+
+    prev_prices = {k2(r): r["price_gbp"] for r in prev if r["price_gbp"]}
+    cur_prices = {k2(r): r["price_gbp"] for r in cur if r["price_gbp"]}
+
+    presence = {}
+    for rt in runs:
+        for r in by_run[rt]:
+            presence.setdefault(k2(r), set()).add(rt)
+
+    table = []
+
+    for (sci, size), pres in presence.items():
+        reliability = "High" if len(pres) / len(runs) >= 0.8 else "Medium"
+        avg_oos = max(0, len(runs) - len(pres))
+        speed = "Fast" if avg_oos <= 1 else "Moderate"
+
+        pp = "→"
+        if (sci, size) in prev_prices and (sci, size) in cur_prices:
+            cp, ppv = float(cur_prices[(sci, size)]), float(prev_prices[(sci, size)])
+            if cp > ppv:
+                pp = "↑"
+            elif cp < ppv:
+                pp = "↓"
+
+        risk = "🔥" if reliability == "Low" else "⚠️" if reliability == "Medium" else "❌"
+        rec = "Actively seek breeders" if risk == "🔥" else "Buy opportunistically" if risk == "⚠️" else "No urgency / oversupplied"
+
+        table.append({
+            "Species": sci,
+            "Size (cm)": size,
+            "Stock Reliability": reliability,
+            "Avg OOS Duration": avg_oos,
+            "Restock Speed": speed,
+            "Price Pressure": pp,
+            "Dealer Risk": risk,
+            "Dealer Recommendation": rec,
+        })
+
+    return sorted(table, key=lambda r: {"🔥":0,"⚠️":1,"❌":2}[r["Dealer Risk"]])
+
+# =====================
+# OUTPUT
+# =====================
+
+def write_table(path, table):
+    if not table:
+        return
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=table[0].keys())
+        w.writeheader()
+        w.writerows(table)
+
+# =====================
+# MAIN
+# =====================
+
+def main():
+    scrape_dt = datetime.now(timezone.utc).replace(second=0, microsecond=0).isoformat(timespec="minutes")
+    all_rows, page = [], 1
+
+    while True:
+        url = BASE_URL if page == 1 else urljoin(BASE_URL, f"page/{page}/")
+        try:
+            html = fetch(url)
+        except HTTPError as e:
+            if e.response.status_code == 404:
+                break
+            raise
+
+        for pu in extract_product_urls(html, url):
+            sci, com, size, price = scrape_product(pu)
+            all_rows.append([scrape_dt, sci, com, size, price, url])
+
+        page += 1
+
+    if not all_rows:
+        raise SystemExit("ERROR: ZERO rows scraped")
+
+    with open(SNAPSHOT_FILE, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(CSV_HEADER)
+        w.writerows(all_rows)
+
+    history = load_history(HISTORY_FILE)
+    existing = {tuple(r[h] for h in CSV_HEADER) for r in history}
+    new_rows = [r for r in all_rows if tuple(r) not in existing]
+    append_history(HISTORY_FILE, new_rows)
+    history.extend(dict(zip(CSV_HEADER, r)) for r in new_rows)
+
+    write_pricing_summary(history, scrape_dt)
+    write_table(BREEDER_TABLE_FILE, build_breeder_opportunity_table(history))
+    write_table(DEALER_TABLE_FILE, build_dealer_supply_risk_table(history))
+
+    print(f"Snapshot rows: {len(all_rows)}")
+    print(f"History rows added: {len(new_rows)}")
+
+if __name__ == "__main__":
+    main()
