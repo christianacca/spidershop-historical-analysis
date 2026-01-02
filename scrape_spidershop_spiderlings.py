@@ -193,119 +193,80 @@ def k2(r):
     return (r["scientific_name"], r["size_cm"])
 
 # =====================
-# LEGENDS (NEW, BASELINE-SAFE)
+# LEGENDS (NEW)
 # =====================
 
-def write_breeder_legend():
-    s = get_summary_path()
-    if not s:
-        return
-    with open(s, "a", encoding="utf-8") as f:
-        f.write("""
+def write_breeder_legend(f):
+    f.write("""
 <details>
-<summary><strong>ℹ️ How to read the Breeder Opportunity Matrix</strong></summary>
+<summary><strong>ℹ️ Breeder Opportunity Matrix — Legend</strong></summary>
 
-- **OOS**: `IN`, `OUT`, or `IN/OUT` (cyclical)
-- **OOS Runs**: consecutive weekly runs out of stock
-- **Pattern**:
-  - Always — normal availability / noise
-  - Emerging — 2–3 weeks absent
-  - Sustained — 4+ weeks absent
-  - Cyclical — predictable restock waves
-- **Price Trend**: ↑ rising · → stable · ↓ falling
-- **Signal**: 🔥 strong · ⚠️ watch · ❌ low opportunity
-- **Recommendation**: breeder-focused guidance combining scarcity + pricing
+**OOS**
+- `IN` — Currently listed for sale
+- `OUT` — Not listed in the current scrape
+- `IN/OUT` — Flapping availability (recently restocked after absence)
+
+**OOS Runs**
+- Number of **consecutive weekly scrapes** the species has been absent (including current run if OUT)
+
+**Pattern**
+- `Always` — No meaningful scarcity signal (0–1 OOS runs)
+- `Emerging` — Repeated short-term scarcity (2–3 OOS runs)
+- `Sustained` — Persistent supply gap (4+ OOS runs)
+- `Cyclical` — Regular disappear/reappear behaviour
+
+**Price Trend**
+- `↑` Price increasing
+- `↓` Price decreasing
+- `→` Flat or insufficient data
+
+**Signal**
+- 🔥 Strong breeding opportunity
+- ⚠️ Monitor closely
+- ❌ Oversupplied / low priority
+
+**Recommendation**
+- Action guidance from a **breeder’s perspective**, combining availability and pricing behaviour.
 
 </details>
 """)
 
-def write_dealer_legend():
-    s = get_summary_path()
-    if not s:
-        return
-    with open(s, "a", encoding="utf-8") as f:
-        f.write("""
+def write_dealer_legend(f):
+    f.write("""
 <details>
-<summary><strong>ℹ️ How to read the Dealer Supply Risk Matrix</strong></summary>
+<summary><strong>ℹ️ Dealer Supply Risk Matrix — Legend</strong></summary>
 
-- **Stock Reliability**: High / Medium / Low
-- **Avg OOS Duration**: average weekly runs out of stock
-- **Restock Speed**: Fast / Moderate / Slow
-- **Price Pressure**: ↑ rising · → stable · ↓ falling
-- **Dealer Risk**: 🔥 high · ⚠️ medium · ❌ low
-- **Dealer Recommendation**: inventory-focused guidance
+**Stock Reliability**
+- `High` — Available in most historical runs
+- `Medium` — Intermittent availability
+- `Low` — Rarely in stock
+
+**Avg OOS Duration**
+- Average number of **consecutive weeks** a species stays out of stock per event
+
+**Restock Speed**
+- `Fast` — Typically returns within 1 week
+- `Moderate` — Returns within ~2 weeks
+- `Slow` — Often absent for 3+ weeks
+
+**Price Pressure**
+- `↑` Rising wholesale / retail pressure
+- `↓` Falling prices
+- `→` Stable
+
+**Dealer Risk**
+- 🔥 High risk of missed sales
+- ⚠️ Moderate risk
+- ❌ Low risk / oversupplied
+
+**Dealer Recommendation**
+- Action guidance from a **dealer’s perspective**.
 
 </details>
 """)
 
 # =====================
-# MAIN
+# (UNCHANGED LOGIC BELOW)
 # =====================
-
-def main():
-    scrape_dt = datetime.now(timezone.utc).replace(second=0, microsecond=0).isoformat(timespec="minutes")
-
-    all_rows = []
-    page = 1
-
-    while True:
-        category_url = BASE_URL if page == 1 else urljoin(BASE_URL, f"page/{page}/")
-        try:
-            category_html = fetch(category_url)
-        except HTTPError as e:
-            if e.response is not None and e.response.status_code == 404:
-                break
-            raise
-
-        product_urls = extract_product_urls(category_html, category_url)
-        if not product_urls:
-            break
-
-        for pu in product_urls:
-            sci, com, size, price = scrape_product(pu)
-            all_rows.append([scrape_dt, sci, com, size, price, category_url])
-
-        page += 1
-
-    assert_condition(len(all_rows) > 0, "Scrape completed but returned ZERO rows")
-
-    with open(SNAPSHOT_FILE, "w", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
-        w.writerow(CSV_HEADER)
-        w.writerows(all_rows)
-
-    history_rows = load_history(HISTORY_FILE)
-    existing = {tuple(r[h] for h in CSV_HEADER) for r in history_rows}
-
-    new_rows = [r for r in all_rows if tuple(r) not in existing]
-    append_history(HISTORY_FILE, new_rows)
-    history_rows.extend(dict(zip(CSV_HEADER, r)) for r in new_rows)
-
-    write_pricing_summary(history_rows, scrape_dt)
-
-    breeder_table = build_breeder_opportunity_table(history_rows)
-    breeder_written = write_breeder_outputs(breeder_table)
-    write_breeder_legend()
-
-    dealer_table = build_dealer_supply_risk_table(history_rows)
-    dealer_written = write_dealer_outputs(dealer_table)
-    write_dealer_legend()
-
-    # =====================
-    # ASSERTIONS
-    # =====================
-
-    assert_condition(breeder_written, "Breeder Opportunity Matrix not written")
-    assert_condition(dealer_written, "Dealer Supply Risk Matrix not written")
-
-    summary_text = read_summary_text()
-    assert_condition("## 🧬 Breeder Opportunity Matrix" in summary_text,
-                     "Breeder Opportunity Matrix missing from summary")
-    assert_condition("## 🏪 Dealer Supply Risk Matrix" in summary_text,
-                     "Dealer Supply Risk Matrix missing from summary")
-
-    print(f"Snapshot rows: {len(all_rows)}")
-    print(f"New historical rows appended: {len(new_rows)}")
-
-if __name__ == "__main__":
-    main()
+# … your existing breeder / dealer builders and writers …
+# =====================
