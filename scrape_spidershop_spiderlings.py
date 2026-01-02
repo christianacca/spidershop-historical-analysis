@@ -32,7 +32,7 @@ CSV_HEADER = [
 ]
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; spidershop-scraper/7.0)",
+    "User-Agent": "Mozilla/5.0 (compatible; spidershop-scraper/7.2)",
     "Accept-Language": "en-GB,en;q=0.9",
 }
 
@@ -41,6 +41,30 @@ SIZE_RE = re.compile(
     r"^\s*(\d+(?:\.\d+)?)\s*(?:[-–]\s*(\d+(?:\.\d+)?))?\s*cm\s*$",
     re.IGNORECASE,
 )
+
+# =====================
+# ASSERTION HELPERS (ADDED)
+# =====================
+
+def assert_condition(condition: bool, message: str):
+    if not condition:
+        raise SystemExit(f"ASSERTION FAILED: {message}")
+
+def get_summary_path():
+    return os.environ.get("GITHUB_STEP_SUMMARY")
+
+def read_summary_text() -> str:
+    path = get_summary_path()
+    if not path or not os.path.exists(path):
+        return ""
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
+
+def csv_row_count(path: str) -> int:
+    if not os.path.exists(path):
+        return 0
+    with open(path, newline="", encoding="utf-8") as f:
+        return sum(1 for _ in f) - 1  # minus header
 
 # =====================
 # UTILITIES
@@ -92,7 +116,6 @@ def remove_size_parenthetical_only(text: str) -> str:
 def parse_price(text: str) -> str:
     if not text:
         return ""
-    # Keep both pound encodings robustly
     s = text.replace("£", "").replace("\u00a3", "").replace(",", "").strip()
     try:
         return format(Decimal(s), "f")
@@ -108,7 +131,7 @@ def extract_product_urls(category_html: str, category_url: str):
     urls, seen = [], set()
 
     for a in soup.select("a[href]"):
-        href = a.get("href", "").strip()  # IMPORTANT: keep strip()
+        href = a.get("href", "").strip()
         if "/product/" not in href:
             continue
         full = urljoin(category_url, href)
@@ -168,9 +191,6 @@ def k3(r):
 
 def k2(r):
     return (r["scientific_name"], r["size_cm"])
-
-def get_summary_path():
-    return os.environ.get("GITHUB_STEP_SUMMARY")
 
 # =====================
 # JOB SUMMARY — PRICING
@@ -272,17 +292,14 @@ def build_breeder_opportunity_table(history_rows):
 
         if key not in prev_keys:
             oos_status = "OUT"
-            # count consecutive missing runs backwards
             for rt in reversed(runs[:-1]):
                 if any(k2(x) == key for x in by_run[rt]):
                     break
                 oos_runs += 1
         elif len(runs) >= 3:
-            # if missing in either of the previous 2 runs, flag cyclic
             if any(key not in {k2(x) for x in by_run[rt]} for rt in runs[-3:-1]):
                 oos_status = "IN/OUT"
 
-        # Pattern from OOS evidence
         if oos_runs >= 3:
             pattern = "Sustained"
         elif oos_runs == 2:
@@ -292,7 +309,6 @@ def build_breeder_opportunity_table(history_rows):
         else:
             pattern = "Always"
 
-        # Price Trend (vs previous run) — restored
         price_trend = "→"
         if r.get("price_gbp") and key in prev_price:
             try:
@@ -305,7 +321,6 @@ def build_breeder_opportunity_table(history_rows):
             except ValueError:
                 pass
 
-        # Price-aware recommendations (restored)
         if pattern == "Sustained" and price_trend in ("↑", "→"):
             signal = "🔥"
             rec = "Pair soon — sustained scarcity"
@@ -338,18 +353,16 @@ def build_breeder_opportunity_table(history_rows):
 
 def write_breeder_outputs(table):
     if not table:
-        return
+        return False
 
-    # CSV output
     with open(BREEDER_TABLE_FILE, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=table[0].keys())
         w.writeheader()
         w.writerows(table)
 
-    # Markdown summary (top 10 + footer)
     summary_path = get_summary_path()
     if not summary_path:
-        return
+        return False
 
     total = len(table)
     shown = min(10, total)
@@ -366,8 +379,10 @@ def write_breeder_outputs(table):
         if total > shown:
             f.write(f"\n_Showing top {shown} of {total} entries — see `{BREEDER_TABLE_FILE}` for full list._\n")
 
+    return True
+
 # =====================
-# DEALER MATRIX (Option B: add Price Pressure, no risk influence)
+# DEALER MATRIX (Option B: Price Pressure informational)
 # =====================
 
 def build_dealer_supply_risk_table(history_rows):
@@ -383,7 +398,6 @@ def build_dealer_supply_risk_table(history_rows):
     prev_prices = {k2(r): r.get("price_gbp", "") for r in by_run[prev_run] if r.get("price_gbp")}
     cur_prices = {k2(r): r.get("price_gbp", "") for r in by_run[cur_run] if r.get("price_gbp")}
 
-    # presence per (species,size)
     present_runs_map = {}
     for rt in runs:
         for r in by_run[rt]:
@@ -395,21 +409,26 @@ def build_dealer_supply_risk_table(history_rows):
         present_pct = len(present_runs) / total_runs
         reliability = "High" if present_pct >= 0.8 else "Medium" if present_pct >= 0.4 else "Low"
 
-        # avg OOS duration across OOS events
+        # FIXED: safe OOS event counting even if the series starts with "absent"
         oos_events = []
         last_present = None
         for rt in runs:
             present = rt in present_runs
-            if last_present is True and not present:
-                oos_events.append(1)
-            elif last_present is False and not present:
-                oos_events[-1] += 1
+            if not present:
+                if last_present is True:
+                    oos_events.append(1)
+                elif last_present is False:
+                    if oos_events:
+                        oos_events[-1] += 1
+                    else:
+                        oos_events.append(1)
+                else:  # last_present is None (first datapoint absent)
+                    oos_events.append(1)
             last_present = present
 
         avg_oos = round(sum(oos_events) / len(oos_events), 1) if oos_events else 0
         speed = "Slow" if avg_oos >= 3 else "Moderate" if avg_oos == 2 else "Fast"
 
-        # Price Pressure (informational only)
         pp = "→"
         if (sci, size) in prev_prices and (sci, size) in cur_prices:
             try:
@@ -422,7 +441,6 @@ def build_dealer_supply_risk_table(history_rows):
             except ValueError:
                 pp = "→"
 
-        # Dealer Risk (UNCHANGED by price)
         if reliability == "Low" and speed == "Slow":
             risk = "🔥"
             rec = "Actively seek breeders"
@@ -449,18 +467,16 @@ def build_dealer_supply_risk_table(history_rows):
 
 def write_dealer_outputs(table):
     if not table:
-        return
+        return False
 
-    # CSV output
     with open(DEALER_TABLE_FILE, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=table[0].keys())
         w.writeheader()
         w.writerows(table)
 
-    # Markdown summary (top 10 + footer)
     summary_path = get_summary_path()
     if not summary_path:
-        return
+        return False
 
     total = len(table)
     shown = min(10, total)
@@ -476,6 +492,8 @@ def write_dealer_outputs(table):
             )
         if total > shown:
             f.write(f"\n_Showing top {shown} of {total} entries — see `{DEALER_TABLE_FILE}` for full list._\n")
+
+    return True
 
 # =====================
 # MAIN
@@ -506,33 +524,52 @@ def main():
 
         page += 1
 
-    if not all_rows:
-        raise SystemExit("ERROR: Scrape completed but returned ZERO rows")
+    assert_condition(len(all_rows) > 0, "Scrape completed but returned ZERO rows")
 
-    # Snapshot CSV
     with open(SNAPSHOT_FILE, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(CSV_HEADER)
         w.writerows(all_rows)
 
-    # Load history (downloaded artifact should provide this file if it exists)
     history_rows = load_history(HISTORY_FILE)
     existing = {tuple(r[h] for h in CSV_HEADER) for r in history_rows}
 
     new_rows = [r for r in all_rows if tuple(r) not in existing]
     append_history(HISTORY_FILE, new_rows)
-
-    # Extend in-memory history for analysis
     history_rows.extend(dict(zip(CSV_HEADER, r)) for r in new_rows)
 
-    # Job summary sections
     write_pricing_summary(history_rows, scrape_dt)
 
     breeder_table = build_breeder_opportunity_table(history_rows)
-    write_breeder_outputs(breeder_table)
+    breeder_written = write_breeder_outputs(breeder_table)
 
     dealer_table = build_dealer_supply_risk_table(history_rows)
-    write_dealer_outputs(dealer_table)
+    dealer_written = write_dealer_outputs(dealer_table)
+
+    # =====================
+    # ASSERTIONS (BASELINE-PRESERVING)
+    # =====================
+
+    assert_condition(os.path.exists(SNAPSHOT_FILE), f"Missing snapshot CSV: {SNAPSHOT_FILE}")
+    assert_condition(csv_row_count(SNAPSHOT_FILE) > 0, "Snapshot CSV has 0 data rows")
+
+    assert_condition(os.path.exists(HISTORY_FILE), f"Missing history CSV: {HISTORY_FILE}")
+    assert_condition(csv_row_count(HISTORY_FILE) > 0, "History CSV has 0 data rows")
+
+    assert_condition(os.path.exists(BREEDER_TABLE_FILE), f"Missing breeder table CSV: {BREEDER_TABLE_FILE}")
+    assert_condition(csv_row_count(BREEDER_TABLE_FILE) > 0, "Breeder table CSV has 0 data rows")
+
+    assert_condition(os.path.exists(DEALER_TABLE_FILE), f"Missing dealer table CSV: {DEALER_TABLE_FILE}")
+    assert_condition(csv_row_count(DEALER_TABLE_FILE) > 0, "Dealer table CSV has 0 data rows")
+
+    assert_condition(breeder_written, "Breeder Opportunity Matrix was not written (writer returned False)")
+    assert_condition(dealer_written, "Dealer Supply Risk Matrix was not written (writer returned False)")
+
+    summary_text = read_summary_text()
+    assert_condition("## 🧬 Breeder Opportunity Matrix" in summary_text,
+                     "Breeder Opportunity Matrix heading missing from Job Summary")
+    assert_condition("## 🏪 Dealer Supply Risk Matrix" in summary_text,
+                     "Dealer Supply Risk Matrix heading missing from Job Summary")
 
     print(f"Snapshot rows: {len(all_rows)}")
     print(f"New historical rows appended: {len(new_rows)}")
