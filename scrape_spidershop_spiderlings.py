@@ -32,7 +32,7 @@ CSV_HEADER = [
 ]
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; spidershop-scraper/6.1)",
+    "User-Agent": "Mozilla/5.0 (compatible; spidershop-scraper/6.2)",
     "Accept-Language": "en-GB,en;q=0.9",
 }
 
@@ -167,66 +167,7 @@ def key(r):
     return (r["scientific_name"], r["size_cm"])
 
 # =====================
-# BREEDER MATRIX (Phase 1)
-# =====================
-
-def build_breeder_opportunity_table(rows):
-    by_run = group_by_run(rows)
-    runs = sorted(by_run)
-    if len(runs) < 2:
-        return []
-
-    current, prev = by_run[runs[-1]], by_run[runs[-2]]
-    prev_keys = {key(r) for r in prev}
-
-    table = []
-
-    for r in current:
-        k = key(r)
-        oos_runs = 0
-        oos = "IN"
-
-        if k not in prev_keys:
-            oos = "OUT"
-            for rt in reversed(runs[:-1]):
-                if any(key(x) == k for x in by_run[rt]):
-                    break
-                oos_runs += 1
-        elif any(k not in {key(x) for x in by_run[rt]} for rt in runs[-3:-1]):
-            oos = "IN/OUT"
-
-        if oos_runs >= 3:
-            pattern = "Sustained"
-            signal = "🔥"
-            rec = "Pair soon — sustained scarcity"
-        elif oos_runs == 2:
-            pattern = "Emerging"
-            signal = "🔥"
-            rec = "Consider pairing — monitor supply"
-        elif oos == "IN/OUT":
-            pattern = "Cyclical"
-            signal = "⚠️"
-            rec = "Breed cautiously — wave restocking"
-        else:
-            pattern = "Always"
-            signal = "❌"
-            rec = "Avoid for profit — oversupplied"
-
-        table.append({
-            "Species": r["scientific_name"],
-            "Size (cm)": r["size_cm"],
-            "OOS": oos,
-            "OOS Runs": str(oos_runs),
-            "Pattern": pattern,
-            "Signal": signal,
-            "Recommendation": rec,
-        })
-
-    table.sort(key=lambda r: ({"🔥":0,"⚠️":1,"❌":2}[r["Signal"]], -int(r["OOS Runs"])))
-    return table
-
-# =====================
-# DEALER MATRIX (Phase 2)
+# DEALER MATRIX (Phase 2 + Option B)
 # =====================
 
 def build_dealer_supply_risk_table(rows):
@@ -234,25 +175,48 @@ def build_dealer_supply_risk_table(rows):
     runs = sorted(by_run)
     total_runs = len(runs)
 
+    if total_runs < 2:
+        return []
+
+    # build per-key history
     history = {}
     for rt in runs:
         for r in by_run[rt]:
-            history.setdefault(key(r), []).append(rt)
+            history.setdefault(key(r), []).append(r)
+
+    prev_run = runs[-2]
+    cur_run = runs[-1]
+
+    prev_prices = {
+        key(r): r["price_gbp"]
+        for r in by_run.get(prev_run, [])
+        if r["price_gbp"]
+    }
+
+    cur_prices = {
+        key(r): r["price_gbp"]
+        for r in by_run.get(cur_run, [])
+        if r["price_gbp"]
+    }
 
     table = []
 
-    for (sci, size), seen_runs in history.items():
-        present_pct = len(seen_runs) / total_runs
+    for (sci, size), records in history.items():
+        present_runs = {r["scrape_datetime"] for r in records}
+        present_pct = len(present_runs) / total_runs
+
         reliability = (
             "High" if present_pct >= 0.8 else
             "Medium" if present_pct >= 0.4 else
             "Low"
         )
 
+        # OOS duration
         oos_events = []
         last_present = None
+
         for rt in runs:
-            present = rt in seen_runs
+            present = rt in present_runs
             if last_present is True and not present:
                 oos_events.append(1)
             elif last_present is False and not present:
@@ -262,6 +226,20 @@ def build_dealer_supply_risk_table(rows):
         avg_oos = round(sum(oos_events) / len(oos_events), 1) if oos_events else 0
         speed = "Slow" if avg_oos >= 3 else "Moderate" if avg_oos == 2 else "Fast"
 
+        # Price pressure (informational only)
+        pp = "→"
+        if (sci, size) in cur_prices and (sci, size) in prev_prices:
+            try:
+                cur_p = float(cur_prices[(sci, size)])
+                prev_p = float(prev_prices[(sci, size)])
+                if cur_p > prev_p:
+                    pp = "↑"
+                elif cur_p < prev_p:
+                    pp = "↓"
+            except ValueError:
+                pass
+
+        # Dealer risk (unchanged by price)
         if reliability == "Low" and speed == "Slow":
             risk = "🔥"
             rec = "Actively seek breeders"
@@ -278,6 +256,7 @@ def build_dealer_supply_risk_table(rows):
             "Stock Reliability": reliability,
             "Avg OOS Duration": avg_oos,
             "Restock Speed": speed,
+            "Price Pressure": pp,
             "Dealer Risk": risk,
             "Dealer Recommendation": rec,
         })
@@ -360,22 +339,23 @@ def main():
 
     history_rows.extend(dict(zip(CSV_HEADER, r)) for r in new_rows)
 
-    breeder = build_breeder_opportunity_table(history_rows)
     dealer = build_dealer_supply_risk_table(history_rows)
 
-    write_table_csv(BREEDER_TABLE_FILE, breeder)
     write_table_csv(DEALER_TABLE_FILE, dealer)
-
-    write_summary_table(
-        "🧬 Breeder Opportunity Matrix",
-        breeder,
-        ["Species","Size (cm)","OOS","OOS Runs","Pattern","Signal","Recommendation"]
-    )
 
     write_summary_table(
         "🏪 Dealer Supply Risk Matrix",
         dealer,
-        ["Species","Size (cm)","Stock Reliability","Avg OOS Duration","Restock Speed","Dealer Risk","Dealer Recommendation"]
+        [
+            "Species",
+            "Size (cm)",
+            "Stock Reliability",
+            "Avg OOS Duration",
+            "Restock Speed",
+            "Price Pressure",
+            "Dealer Risk",
+            "Dealer Recommendation",
+        ]
     )
 
     print(f"Snapshot rows: {len(all_rows)}")
