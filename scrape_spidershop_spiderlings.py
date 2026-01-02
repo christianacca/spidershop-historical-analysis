@@ -32,7 +32,7 @@ CSV_HEADER = [
 ]
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; spidershop-scraper/6.0)",
+    "User-Agent": "Mozilla/5.0 (compatible; spidershop-scraper/6.1)",
     "Accept-Language": "en-GB,en;q=0.9",
 }
 
@@ -92,7 +92,7 @@ def remove_size_parenthetical_only(text: str) -> str:
 def parse_price(text: str) -> str:
     if not text:
         return ""
-    s = text.replace("£", "").replace(",", "").strip()
+    s = text.replace("£", "").replace("\u00a3", "").replace(",", "").strip()
     try:
         return format(Decimal(s), "f")
     except InvalidOperation:
@@ -107,30 +107,32 @@ def extract_product_urls(category_html: str, category_url: str):
     urls, seen = [], set()
 
     for a in soup.select("a[href]"):
-        href = a.get("href", "")
+        href = a.get("href", "").strip()
         if "/product/" not in href:
             continue
         full = urljoin(category_url, href)
         if full not in seen:
             seen.add(full)
             urls.append(full)
+
     return urls
 
 def scrape_product(url: str):
     soup = BeautifulSoup(fetch(url), "html.parser")
 
-    sci = normalize_whitespace(soup.find("h1").get_text())
+    h1 = soup.find("h1")
+    scientific_name = normalize_whitespace(h1.get_text()) if h1 else ""
+
     h2 = soup.find("h2")
     common_line = normalize_whitespace(h2.get_text()) if h2 else ""
 
+    price_el = soup.select_one(".woocommerce-Price-amount")
+
     return (
-        sci,
+        scientific_name,
         remove_size_parenthetical_only(common_line),
         parse_size_cm(common_line),
-        parse_price(normalize_whitespace(
-            soup.select_one(".woocommerce-Price-amount").get_text()
-            if soup.select_one(".woocommerce-Price-amount") else ""
-        )),
+        parse_price(normalize_whitespace(price_el.get_text()) if price_el else ""),
     )
 
 # =====================
@@ -175,38 +177,40 @@ def build_breeder_opportunity_table(rows):
         return []
 
     current, prev = by_run[runs[-1]], by_run[runs[-2]]
-    cur = {key(r): r for r in current}
     prev_keys = {key(r) for r in prev}
 
     table = []
 
-    for k_, r in cur.items():
+    for r in current:
+        k = key(r)
         oos_runs = 0
         oos = "IN"
-        if k_ not in prev_keys:
+
+        if k not in prev_keys:
             oos = "OUT"
             for rt in reversed(runs[:-1]):
-                if any(key(x) == k_ for x in by_run[rt]):
+                if any(key(x) == k for x in by_run[rt]):
                     break
                 oos_runs += 1
-        elif any(k_ not in {key(x) for x in by_run[rt]} for rt in runs[-3:-1]):
+        elif any(k not in {key(x) for x in by_run[rt]} for rt in runs[-3:-1]):
             oos = "IN/OUT"
 
         if oos_runs >= 3:
             pattern = "Sustained"
+            signal = "🔥"
+            rec = "Pair soon — sustained scarcity"
         elif oos_runs == 2:
             pattern = "Emerging"
+            signal = "🔥"
+            rec = "Consider pairing — monitor supply"
         elif oos == "IN/OUT":
             pattern = "Cyclical"
+            signal = "⚠️"
+            rec = "Breed cautiously — wave restocking"
         else:
             pattern = "Always"
-
-        signal, rec = (
-            ("🔥", "Pair soon — sustained scarcity") if pattern == "Sustained" else
-            ("🔥", "Consider pairing — monitor supply") if pattern == "Emerging" else
-            ("⚠️", "Breed cautiously — wave restocking") if pattern == "Cyclical" else
-            ("❌", "Avoid for profit — oversupplied")
-        )
+            signal = "❌"
+            rec = "Avoid for profit — oversupplied"
 
         table.append({
             "Species": r["scientific_name"],
@@ -246,29 +250,27 @@ def build_dealer_supply_risk_table(rows):
         )
 
         oos_events = []
-        last = None
+        last_present = None
         for rt in runs:
             present = rt in seen_runs
-            if last is True and not present:
+            if last_present is True and not present:
                 oos_events.append(1)
-            elif last is False and not present:
+            elif last_present is False and not present:
                 oos_events[-1] += 1
-            last = present
+            last_present = present
 
         avg_oos = round(sum(oos_events) / len(oos_events), 1) if oos_events else 0
         speed = "Slow" if avg_oos >= 3 else "Moderate" if avg_oos == 2 else "Fast"
 
-        risk = (
-            "🔥" if reliability == "Low" and speed == "Slow" else
-            "⚠️" if reliability == "Medium" else
-            "❌"
-        )
-
-        rec = (
-            "Actively seek breeders" if risk == "🔥" else
-            "Buy opportunistically" if risk == "⚠️" else
-            "No urgency / oversupplied"
-        )
+        if reliability == "Low" and speed == "Slow":
+            risk = "🔥"
+            rec = "Actively seek breeders"
+        elif reliability == "Medium":
+            risk = "⚠️"
+            rec = "Buy opportunistically"
+        else:
+            risk = "❌"
+            rec = "No urgency / oversupplied"
 
         table.append({
             "Species": sci,
@@ -284,7 +286,7 @@ def build_dealer_supply_risk_table(rows):
     return table
 
 # =====================
-# OUTPUT HELPERS
+# OUTPUT
 # =====================
 
 def write_table_csv(path, table):
@@ -295,7 +297,7 @@ def write_table_csv(path, table):
         w.writeheader()
         w.writerows(table)
 
-def write_summary_table(title, table, cols):
+def write_summary_table(title, table, columns):
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if not summary or not table:
         return
@@ -303,10 +305,10 @@ def write_summary_table(title, table, cols):
     shown = min(10, len(table))
     with open(summary, "a", encoding="utf-8") as f:
         f.write(f"\n## {title}\n\n")
-        f.write("| " + " | ".join(cols) + " |\n")
-        f.write("|" + "|".join(["---"]*len(cols)) + "|\n")
+        f.write("| " + " | ".join(columns) + " |\n")
+        f.write("|" + "|".join(["---"]*len(columns)) + "|\n")
         for r in table[:shown]:
-            f.write("| " + " | ".join(str(r[c]) for c in cols) + " |\n")
+            f.write("| " + " | ".join(str(r[c]) for c in columns) + " |\n")
         if len(table) > shown:
             f.write(
                 f"\n_Showing top {shown} of {len(table)} entries — "
@@ -319,6 +321,7 @@ def write_summary_table(title, table, cols):
 
 def main():
     scrape_dt = datetime.now(timezone.utc).replace(second=0, microsecond=0).isoformat(timespec="minutes")
+
     all_rows = []
     page = 1
 
@@ -327,7 +330,7 @@ def main():
         try:
             html = fetch(url)
         except HTTPError as e:
-            if e.response.status_code == 404:
+            if e.response is not None and e.response.status_code == 404:
                 break
             raise
 
@@ -351,6 +354,7 @@ def main():
 
     history_rows = load_history(HISTORY_FILE)
     existing = {tuple(r[h] for h in CSV_HEADER) for r in history_rows}
+
     new_rows = [r for r in all_rows if tuple(r) not in existing]
     append_history(HISTORY_FILE, new_rows)
 
