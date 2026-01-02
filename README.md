@@ -2,4 +2,4 @@
 
 Website scrapper that captures pricing of Tarantula spiderlings
 
-The script was created via the following ChatGBT session: https://chatgpt.com/share/6958312b-65b4-8008-b1e9-08d9177fa3ff
+The script was created via the following ChatGBT session: [Tarantula Scraping Scheduler](https://chatgpt.com/share/69583ba1-0e20-8008-9898-c8024292a0a8)
