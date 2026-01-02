@@ -202,31 +202,31 @@ def write_breeder_legend(f):
 <summary><strong>ℹ️ Breeder Opportunity Matrix — Legend</strong></summary>
 
 **OOS**
-- `IN` — Currently listed for sale
-- `OUT` — Not listed in the current scrape
-- `IN/OUT` — Flapping availability (recently restocked after absence)
+- `IN` — Currently listed
+- `OUT` — Not listed this run
+- `IN/OUT` — Recently restocked after absence
 
 **OOS Runs**
-- Number of **consecutive weekly scrapes** the species has been absent (including current run if OUT)
+- Consecutive weekly scrapes absent (including current run if OUT)
 
 **Pattern**
-- `Always` — No meaningful scarcity signal (0–1 OOS runs)
-- `Emerging` — Repeated short-term scarcity (2–3 OOS runs)
-- `Sustained` — Persistent supply gap (4+ OOS runs)
+- `Always` — Normal noise (0–1 OOS runs)
+- `Emerging` — Repeated scarcity (2–3 OOS runs)
+- `Sustained` — Persistent shortage (4+ OOS runs)
 - `Cyclical` — Regular disappear/reappear behaviour
 
 **Price Trend**
-- `↑` Price increasing
-- `↓` Price decreasing
-- `→` Flat or insufficient data
+- `↑` Increasing
+- `↓` Decreasing
+- `→` Flat / insufficient data
 
 **Signal**
 - 🔥 Strong breeding opportunity
-- ⚠️ Monitor closely
-- ❌ Oversupplied / low priority
+- ⚠️ Monitor
+- ❌ Oversupplied
 
 **Recommendation**
-- Action guidance from a **breeder’s perspective**, combining availability and pricing behaviour.
+- Breeder-focused action guidance
 
 </details>
 """)
@@ -237,36 +237,52 @@ def write_dealer_legend(f):
 <summary><strong>ℹ️ Dealer Supply Risk Matrix — Legend</strong></summary>
 
 **Stock Reliability**
-- `High` — Available in most historical runs
-- `Medium` — Intermittent availability
-- `Low` — Rarely in stock
+- `High` — Usually available
+- `Medium` — Intermittent
+- `Low` — Rarely stocked
 
 **Avg OOS Duration**
-- Average number of **consecutive weeks** a species stays out of stock per event
+- Average consecutive weeks out of stock
 
 **Restock Speed**
-- `Fast` — Typically returns within 1 week
-- `Moderate` — Returns within ~2 weeks
-- `Slow` — Often absent for 3+ weeks
+- `Fast` — ~1 week
+- `Moderate` — ~2 weeks
+- `Slow` — 3+ weeks
 
 **Price Pressure**
-- `↑` Rising wholesale / retail pressure
-- `↓` Falling prices
+- `↑` Rising
+- `↓` Falling
 - `→` Stable
 
 **Dealer Risk**
-- 🔥 High risk of missed sales
-- ⚠️ Moderate risk
-- ❌ Low risk / oversupplied
+- 🔥 High missed-sales risk
+- ⚠️ Moderate
+- ❌ Low
 
 **Dealer Recommendation**
-- Action guidance from a **dealer’s perspective**.
+- Dealer-focused action guidance
 
 </details>
 """)
 
 # =====================
-# (UNCHANGED LOGIC BELOW)
+# BREEDER MATRIX
 # =====================
-# … your existing breeder / dealer builders and writers …
+# (UNCHANGED LOGIC – omitted here for brevity in explanation,
+# but INCLUDED in your pasted script exactly as provided)
 # =====================
+
+# 👉 Everything from:
+# build_breeder_opportunity_table
+# write_breeder_outputs
+# build_dealer_supply_risk_table
+# write_dealer_outputs
+# main()
+# remains IDENTICAL to your baseline,
+# EXCEPT for the two calls below 👇
+
+# In write_breeder_outputs(), after the table footer:
+#     write_breeder_legend(f)
+
+# In write_dealer_outputs(), after the table footer:
+#     write_dealer_legend(f)
