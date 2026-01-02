@@ -2,7 +2,7 @@ name: Spider Shop Spiderlings Scrape
 
 on:
   schedule:
-    # Twice per month
+    # Run twice per month
     - cron: "10 6 1,15 * *"
   workflow_dispatch:
 
@@ -11,8 +11,8 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      actions: read
       contents: read
+      actions: read
 
     steps:
       # --------------------------------
@@ -35,7 +35,7 @@ jobs:
           pip install requests beautifulsoup4
 
       # ------------------------------------------------
-      # Find latest spidershop-history artifact (repo-wide)
+      # Locate most recent spidershop-history artifact
       # ------------------------------------------------
       - name: Find latest history artifact
         id: history_artifact
@@ -55,7 +55,7 @@ jobs:
           echo "Resolved history artifact id: $ARTIFACT_ID"
 
       # ------------------------------------------------
-      # Download history artifact if it exists
+      # Download history artifact (if it exists)
       # ------------------------------------------------
       - name: Download previous history artifact
         if: steps.history_artifact.outputs.artifact_id != ''
@@ -77,7 +77,7 @@ jobs:
           python scrape_spidershop_spiderlings.py
 
       # --------------------------------
-      # Upload snapshot CSV (this run only)
+      # Upload snapshot CSV (this run)
       # --------------------------------
       - name: Upload snapshot artifact
         uses: actions/upload-artifact@v4
@@ -87,7 +87,7 @@ jobs:
           if-no-files-found: error
 
       # --------------------------------
-      # Upload updated historical CSV
+      # Upload updated history CSV
       # --------------------------------
       - name: Upload history artifact
         uses: actions/upload-artifact@v4
@@ -97,11 +97,21 @@ jobs:
           if-no-files-found: error
 
       # --------------------------------
-      # Upload breeder opportunity table
+      # Upload breeder opportunity matrix
       # --------------------------------
       - name: Upload breeder opportunity table
         uses: actions/upload-artifact@v4
         with:
           name: breeder-opportunity-table
           path: breeder_opportunity_table.csv
+          if-no-files-found: ignore
+
+      # --------------------------------
+      # Upload dealer supply risk matrix
+      # --------------------------------
+      - name: Upload dealer supply risk table
+        uses: actions/upload-artifact@v4
+        with:
+          name: dealer-supply-risk-table
+          path: dealer_supply_risk_table.csv
           if-no-files-found: ignore
