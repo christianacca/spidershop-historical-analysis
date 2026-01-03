@@ -111,7 +111,7 @@ def compute_wishlist_pressure(rows):
     # then the distribution is too flat to meaningfully rank.
     # Conservative interpretation: assign ⚠️ to all non-zero to avoid artificial 🔥.
     counts = [c for _, c in nonzero]
-    if max(counts) - min(counts) <= 1:
+    if counts and max(counts) - min(counts) <= 1:
         for k, _ in nonzero:
             result[k] = "⚠️"
         return result
@@ -163,7 +163,8 @@ def get_oos_wishlist_carryover(key, by_run, runs, cur_run, lookback_limit=3):
     
     # Look back through recent runs (excluding current)
     lookback_start = max(0, cur_idx - lookback_limit)
-    for rt in reversed(runs[lookback_start:cur_idx]):
+    for i in range(cur_idx - 1, lookback_start - 1, -1):
+        rt = runs[i]
         # Check if key exists in this run
         run_rows = by_run[rt]
         run_map = {(r.get("scientific_name", ""), r.get("size_cm", "")): r for r in run_rows}

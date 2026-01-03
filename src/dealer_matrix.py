@@ -24,6 +24,9 @@ def build_dealer_supply_risk_table(history_rows):
     # Compute wishlist pressure for current run
     wishlist_pressure_map = compute_wishlist_pressure(cur_rows)
 
+    # Precompute current run keys for OOS check
+    cur_keys = {k2(r) for r in cur_rows}
+
     prev_prices = {k2(r): r.get("price_gbp", "") for r in by_run[prev_run] if r.get("price_gbp")}
     cur_prices = {k2(r): r.get("price_gbp", "") for r in by_run[cur_run] if r.get("price_gbp")}
 
@@ -73,7 +76,7 @@ def build_dealer_supply_risk_table(history_rows):
         # Get wishlist pressure with OOS carryover
         # If species is OUT now, carry forward last known pressure (bounded lookback)
         key = (sci, size)
-        if key in {k2(r) for r in cur_rows}:
+        if key in cur_keys:
             # Species is IN current run
             wishlist_pressure = wishlist_pressure_map.get(key, "❌")
         else:
