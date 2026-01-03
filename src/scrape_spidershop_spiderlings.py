@@ -40,8 +40,8 @@ def main():
             break
 
         for pu in product_urls:
-            sci, com, size, price = scrape_product(pu)
-            all_rows.append([scrape_dt, sci, com, size, price, pu])
+            sci, com, size, price, wishlist = scrape_product(pu)
+            all_rows.append([scrape_dt, sci, com, size, price, wishlist, pu])
 
         page += 1
 

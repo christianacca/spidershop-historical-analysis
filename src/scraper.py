@@ -2,7 +2,7 @@
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from http_client import fetch
-from parsing import normalize_whitespace, remove_size_parenthetical_only, parse_size_cm, parse_price
+from parsing import normalize_whitespace, remove_size_parenthetical_only, parse_size_cm, parse_price, parse_wishlist_count
 
 # =====================
 # SCRAPING
@@ -38,4 +38,7 @@ def scrape_product(product_url: str):
     price_el = soup.select_one(".woocommerce-Price-amount")
     price_gbp = parse_price(normalize_whitespace(price_el.get_text()) if price_el else "")
 
-    return scientific_name, common_name, size_cm, price_gbp
+    wishlist_el = soup.select_one(".yith-wcwl-add-to-wishlist__counter")
+    wishlist_count = parse_wishlist_count(normalize_whitespace(wishlist_el.get_text()) if wishlist_el else "")
+
+    return scientific_name, common_name, size_cm, price_gbp, wishlist_count
