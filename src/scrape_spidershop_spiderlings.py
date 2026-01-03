@@ -41,7 +41,7 @@ def main():
 
         for pu in product_urls:
             sci, com, size, price = scrape_product(pu)
-            all_rows.append([scrape_dt, sci, com, size, price, category_url])
+            all_rows.append([scrape_dt, sci, com, size, price, pu])
 
         page += 1
 
