@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 from history import group_by_run, k3
-from assertions import get_summary_paths
+from assertions import get_summary_path
 
 # =====================
 # JOB SUMMARY — PRICING
 # =====================
 
 def write_pricing_summary(history_rows, scrape_datetime: str):
-    summary_paths = get_summary_paths()
-    if not summary_paths or not history_rows:
+    summary_path = get_summary_path()
+    if not summary_path or not history_rows:
         return
 
     by_run = group_by_run(history_rows)
@@ -57,23 +57,22 @@ def write_pricing_summary(history_rows, scrape_datetime: str):
     movers.sort(key=lambda x: abs(x[4]), reverse=True)
     top5 = movers[:5]
 
-    for summary_path in summary_paths:
-        with open(summary_path, "a", encoding="utf-8") as f:
-            f.write("## 🕷️ Spiderlings Pricing Summary\n\n")
-            f.write(f"**Scrape time (UTC):** `{scrape_datetime}`\n\n")
-            f.write("### 🔄 Changes Since Last Run\n")
-            f.write(f"- 🔼 Increases: **{inc}**\n")
-            f.write(f"- 🔽 Decreases: **{dec}**\n")
-            f.write(f"- ➖ Unchanged: **{same}**\n")
-            f.write(f"- 🆕 New: **{new}**\n")
-            f.write(f"- ❌ Removed: **{gone}**\n")
+    with open(summary_path, "a", encoding="utf-8") as f:
+        f.write("## 🕷️ Spiderlings Pricing Summary\n\n")
+        f.write(f"**Scrape time (UTC):** `{scrape_datetime}`\n\n")
+        f.write("### 🔄 Changes Since Last Run\n")
+        f.write(f"- 🔼 Increases: **{inc}**\n")
+        f.write(f"- 🔽 Decreases: **{dec}**\n")
+        f.write(f"- ➖ Unchanged: **{same}**\n")
+        f.write(f"- 🆕 New: **{new}**\n")
+        f.write(f"- ❌ Removed: **{gone}**\n")
 
-            f.write("\n### 🚀 Top 5 Price Movers\n")
-            if not top5:
-                f.write("_No comparable price changes detected._\n")
-            else:
-                f.write("| Species | Size | Old | New | Change |\n")
-                f.write("|---|---|---:|---:|---:|\n")
-                for s, size, o, n, p in top5:
-                    sign = "+" if p > 0 else ""
-                    f.write(f"| {s} | {size} | £{o:.2f} | £{n:.2f} | {sign}{p*100:.1f}% |\n")
+        f.write("\n### 🚀 Top 5 Price Movers\n")
+        if not top5:
+            f.write("_No comparable price changes detected._\n")
+        else:
+            f.write("| Species | Size | Old | New | Change |\n")
+            f.write("|---|---|---:|---:|---:|\n")
+            for s, size, o, n, p in top5:
+                sign = "+" if p > 0 else ""
+                f.write(f"| {s} | {size} | £{o:.2f} | £{n:.2f} | {sign}{p*100:.1f}% |\n")

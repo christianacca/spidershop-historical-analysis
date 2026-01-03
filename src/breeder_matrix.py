@@ -2,7 +2,7 @@
 import csv
 from history import group_by_run, k2
 from config import BREEDER_TABLE_FILE
-from assertions import get_summary_paths
+from assertions import get_summary_path
 
 # =====================
 # BREEDER MATRIX (PRICE AWARE) — FIXED TO INCLUDE OUT-OF-STOCK ITEMS
@@ -162,24 +162,23 @@ def write_breeder_outputs(table):
         w.writeheader()
         w.writerows(table)
 
-    summary_paths = get_summary_paths()
-    if not summary_paths:
+    summary_path = get_summary_path()
+    if not summary_path:
         return False
 
     total = len(table)
     shown = min(10, total)
 
-    for summary_path in summary_paths:
-        with open(summary_path, "a", encoding="utf-8") as f:
-            f.write("\n## 🧬 Breeder Opportunity Matrix\n\n")
-            f.write("| Species | Size (cm) | OOS | OOS Runs | Pattern | Price Trend | Signal | Recommendation |\n")
-            f.write("|---|---:|---|---:|---|---|---|---|\n")
-            for r in table[:shown]:
-                f.write(
-                    f"| {r['Species']} | {r['Size (cm)']} | {r['OOS']} | {r['OOS Runs']} | "
-                    f"{r['Pattern']} | {r['Price Trend']} | {r['Signal']} | {r['Recommendation']} |\n"
-                )
-            if total > shown:
-                f.write(f"\n_Showing top {shown} of {total} entries — see `{BREEDER_TABLE_FILE}` for full list._\n")
+    with open(summary_path, "a", encoding="utf-8") as f:
+        f.write("\n## 🧬 Breeder Opportunity Matrix\n\n")
+        f.write("| Species | Size (cm) | OOS | OOS Runs | Pattern | Price Trend | Signal | Recommendation |\n")
+        f.write("|---|---:|---|---:|---|---|---|---|\n")
+        for r in table[:shown]:
+            f.write(
+                f"| {r['Species']} | {r['Size (cm)']} | {r['OOS']} | {r['OOS Runs']} | "
+                f"{r['Pattern']} | {r['Price Trend']} | {r['Signal']} | {r['Recommendation']} |\n"
+            )
+        if total > shown:
+            f.write(f"\n_Showing top {shown} of {total} entries — see `{BREEDER_TABLE_FILE}` for full list._\n")
 
     return True

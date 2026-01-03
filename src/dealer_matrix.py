@@ -2,7 +2,7 @@
 import csv
 from history import group_by_run, k2
 from config import DEALER_TABLE_FILE
-from assertions import get_summary_paths
+from assertions import get_summary_path
 
 # =====================
 # DEALER MATRIX (Option B: Price Pressure informational)
@@ -97,24 +97,23 @@ def write_dealer_outputs(table):
         w.writeheader()
         w.writerows(table)
 
-    summary_paths = get_summary_paths()
-    if not summary_paths:
+    summary_path = get_summary_path()
+    if not summary_path:
         return False
 
     total = len(table)
     shown = min(10, total)
 
-    for summary_path in summary_paths:
-        with open(summary_path, "a", encoding="utf-8") as f:
-            f.write("\n## 🏪 Dealer Supply Risk Matrix\n\n")
-            f.write("| Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Dealer Risk | Dealer Recommendation |\n")
-            f.write("|---|---:|---|---:|---|---|---|---|\n")
-            for r in table[:shown]:
-                f.write(
-                    f"| {r['Species']} | {r['Size (cm)']} | {r['Stock Reliability']} | {r['Avg OOS Duration']} | "
-                    f"{r['Restock Speed']} | {r['Price Pressure']} | {r['Dealer Risk']} | {r['Dealer Recommendation']} |\n"
-                )
-            if total > shown:
-                f.write(f"\n_Showing top {shown} of {total} entries — see `{DEALER_TABLE_FILE}` for full list._\n")
+    with open(summary_path, "a", encoding="utf-8") as f:
+        f.write("\n## 🏪 Dealer Supply Risk Matrix\n\n")
+        f.write("| Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Dealer Risk | Dealer Recommendation |\n")
+        f.write("|---|---:|---|---:|---|---|---|---|\n")
+        for r in table[:shown]:
+            f.write(
+                f"| {r['Species']} | {r['Size (cm)']} | {r['Stock Reliability']} | {r['Avg OOS Duration']} | "
+                f"{r['Restock Speed']} | {r['Price Pressure']} | {r['Dealer Risk']} | {r['Dealer Recommendation']} |\n"
+            )
+        if total > shown:
+            f.write(f"\n_Showing top {shown} of {total} entries — see `{DEALER_TABLE_FILE}` for full list._\n")
 
     return True
