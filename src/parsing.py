@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import re
 from decimal import Decimal, InvalidOperation
-from config import PARENS_RE, SIZE_RE
+from config import PARENS_RE, SIZE_RE, WISHLIST_COUNT_RE
 
 # =====================
 # PARSING HELPERS
@@ -49,3 +49,12 @@ def parse_price(text: str) -> str:
         return format(Decimal(s), "f")
     except InvalidOperation:
         return ""
+
+def parse_wishlist_count(text: str) -> str:
+    if not text:
+        return "0"
+    text = normalize_whitespace(text)
+    m = WISHLIST_COUNT_RE.search(text)
+    if m:
+        return m.group(1)
+    return "0"

@@ -19,6 +19,7 @@ CSV_HEADER = [
     "common_name",
     "size_cm",
     "price_gbp",
+    "wishlist_count",
     "page_url",
 ]
 
@@ -32,3 +33,4 @@ SIZE_RE = re.compile(
     r"^\s*(\d+(?:\.\d+)?)\s*(?:[-–]\s*(\d+(?:\.\d+)?))?\s*cm\s*$",
     re.IGNORECASE,
 )
+WISHLIST_COUNT_RE = re.compile(r"(\d+)\s+users?\s+(?:has|have)\s+this\s+item\s+in\s+their\s+wishlists?", re.IGNORECASE)
