@@ -177,7 +177,7 @@ def get_oos_wishlist_carryover(key, by_run, runs, cur_run, lookback_limit=3):
     return None
 
 
-def compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=3):
+def compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=3, prev_lookback_limit=12):
     """
     Compute Wishlist Delta (momentum signal) for a species by comparing current vs
     previous IN-stock wishlist counts using conservative thresholds.
@@ -188,6 +188,7 @@ def compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=3):
         runs: sorted list of run datetimes
         cur_run: current run datetime
         lookback_limit: max number of recent runs to look back for OUT species (default 3)
+        prev_lookback_limit: max runs to look back for previous comparison value (default 12)
     
     Returns:
         Wishlist Delta symbol:
@@ -199,6 +200,8 @@ def compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=3):
         Conservative thresholds prevent false signals from noise.
         Uses ±5 as meaningful buyer movement threshold given observed distributions.
         Weekly cadence requires higher bar for momentum detection.
+        Both current and previous values are bounded in time to prevent noisy
+        comparisons against months-old baselines.
     """
     # Find the index of the current run
     try:
@@ -206,12 +209,14 @@ def compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=3):
     except ValueError:
         return "→"
     
-    # Get current wishlist count
+    # Get current wishlist count (the "current reference run")
     # First, check if species is IN current run
     cur_rows = by_run[cur_run]
     cur_map = {(r.get("scientific_name", ""), r.get("size_cm", "")): r for r in cur_rows}
     
     current_count = None
+    current_ref_idx = cur_idx  # Track which run we're using as the current reference
+    
     if key in cur_map:
         # Species is IN current run
         try:
@@ -219,7 +224,7 @@ def compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=3):
         except (ValueError, TypeError):
             current_count = 0
     else:
-        # Species is OUT - look back for last IN-stock wishlist count
+        # Species is OUT - look back for last IN-stock wishlist count (carryover run)
         lookback_start = max(0, cur_idx - lookback_limit)
         for i in range(cur_idx - 1, lookback_start - 1, -1):
             rt = runs[i]
@@ -229,8 +234,10 @@ def compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=3):
             if key in run_map:
                 try:
                     current_count = int(run_map[key].get("wishlist_count", "0") or "0")
+                    current_ref_idx = i  # Update reference index to the carryover run
                 except (ValueError, TypeError):
                     current_count = 0
+                    current_ref_idx = i
                 break
     
     # If we couldn't find a current count, return neutral
@@ -238,26 +245,14 @@ def compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=3):
         return "→"
     
     # Find previous comparable wishlist count (last run where species was IN)
+    # BOUNDED search: only look back prev_lookback_limit runs from current reference run
+    # This prevents comparing recent counts against months-old baselines, which creates
+    # noisy momentum signals for OUT-of-stock species.
     previous_count = None
-    lookback_start = max(0, cur_idx - lookback_limit)
+    prev_lookback_start = max(0, current_ref_idx - prev_lookback_limit)
     
-    # Start from the run before where we found current_count
-    # If species is IN now, start from prev run
-    # If species is OUT now and we found count in an older run, start from before that
-    search_start_idx = cur_idx - 1
-    if key not in cur_map:
-        # Species is OUT - we found current_count in an older run
-        # Need to search before that run
-        for i in range(cur_idx - 1, lookback_start - 1, -1):
-            rt = runs[i]
-            run_rows = by_run[rt]
-            run_map = {(r.get("scientific_name", ""), r.get("size_cm", "")): r for r in run_rows}
-            if key in run_map:
-                search_start_idx = i - 1
-                break
-    
-    # Now find the previous IN-stock occurrence
-    for i in range(search_start_idx, -1, -1):
+    # Search from the run before the current reference run, bounded by prev_lookback_limit
+    for i in range(current_ref_idx - 1, prev_lookback_start - 1, -1):
         rt = runs[i]
         run_rows = by_run[rt]
         run_map = {(r.get("scientific_name", ""), r.get("size_cm", "")): r for r in run_rows}
@@ -269,7 +264,7 @@ def compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=3):
                 previous_count = 0
             break
     
-    # If we couldn't find a previous count, return neutral
+    # If we couldn't find a previous count within the bounded window, return neutral
     if previous_count is None:
         return "→"
     
