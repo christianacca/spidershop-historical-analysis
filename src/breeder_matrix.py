@@ -3,7 +3,7 @@ import csv
 from history import group_by_run, k2
 from config import BREEDER_TABLE_FILE
 from assertions import get_summary_path
-from parsing import compute_wishlist_pressure
+from parsing import compute_wishlist_pressure, get_oos_wishlist_carryover
 
 # =====================
 # BREEDER MATRIX (PRICE AWARE) — FIXED TO INCLUDE OUT-OF-STOCK ITEMS
@@ -125,8 +125,14 @@ def build_breeder_opportunity_table(history_rows):
 
         price_trend = price_trend_for_key(key)
 
-        # Get wishlist pressure (default to ❌ if not in current run)
-        wishlist_pressure = wishlist_pressure_map.get(key, "❌")
+        # Get wishlist pressure with OOS carryover
+        # If species is OUT now, carry forward last known pressure (bounded lookback)
+        if in_current:
+            wishlist_pressure = wishlist_pressure_map.get(key, "❌")
+        else:
+            # Species is OUT - try to carry forward recent pressure
+            carried = get_oos_wishlist_carryover(key, by_run, runs, cur_run, lookback_limit=3)
+            wishlist_pressure = carried if carried else "❌"
 
         # Recommendation logic (conservative wishlist integration)
         # Base signal driven by Pattern + Price Trend (unchanged)
@@ -174,8 +180,12 @@ def build_breeder_opportunity_table(history_rows):
             "Recommendation": rec,
         })
 
-    # Sort: best signals first, then highest OOS streak
-    table.sort(key=lambda r: ({"🔥": 0, "⚠️": 1, "❌": 2}[r["Signal"]], -int(r["OOS Runs"])))
+    # Sort: Signal priority (🔥 > ⚠️ > ❌), then Wishlist Pressure (🔥 > ⚠️ > ❌), then OOS Runs (desc)
+    table.sort(key=lambda r: (
+        {"🔥": 0, "⚠️": 1, "❌": 2}[r["Signal"]],
+        {"🔥": 0, "⚠️": 1, "❌": 2}[r["Wishlist Pressure"]],
+        -int(r["OOS Runs"])
+    ))
     return table
 
 def write_breeder_outputs(table):

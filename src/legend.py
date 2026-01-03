@@ -43,6 +43,7 @@ def write_summary_legend():
 - `🔥` — High wishlist pressure (top tier of current interest)
 - `⚠️` — Moderate wishlist pressure (middle range)
 - `❌` — Low or no wishlist pressure (bottom tier or zero interest)
+- For **OUT-of-stock** species: carries forward the most recent pressure from when it was IN (up to 3 runs back)
 - Acts as a **confidence amplifier** for Pattern/Price signals, not a standalone trigger
 
 **Signal**
@@ -82,6 +83,7 @@ def write_summary_legend():
 - `🔥` — High wishlist pressure (top tier of current interest)
 - `⚠️` — Moderate wishlist pressure (middle range)
 - `❌` — Low or no wishlist pressure (bottom tier or zero interest)
+- For **OUT-of-stock** species: carries forward the most recent pressure from when it was IN (up to 3 runs back)
 - Escalates urgency where supply is unreliable; de-escalates where interest is weak
 
 **Dealer Risk**

@@ -70,6 +70,10 @@ def compute_wishlist_pressure(rows):
     - ⚠️ = Moderate wishlist pressure (middle range)
     - ❌ = Low or no wishlist pressure (bottom tier or zero)
     
+    IMPORTANT: Wishlist pressure is RELATIVE per run, not absolute.
+    🔥 does NOT mean high absolute count; it reflects ranking within the current distribution.
+    This prevents popularity bias and adapts to site growth or shrinkage.
+    
     Uses relative ranking to avoid site-growth drift and popularity bias.
     This is run per-scrape to ensure bands adapt to current distribution.
     """
@@ -103,6 +107,15 @@ def compute_wishlist_pressure(rows):
     # Sort non-zero by count descending
     nonzero.sort(key=lambda x: x[1], reverse=True)
     
+    # Small-N flattening: if all wishlist counts are very close (max - min ≤ 1),
+    # then the distribution is too flat to meaningfully rank.
+    # Conservative interpretation: assign ⚠️ to all non-zero to avoid artificial 🔥.
+    counts = [c for _, c in nonzero]
+    if max(counts) - min(counts) <= 1:
+        for k, _ in nonzero:
+            result[k] = "⚠️"
+        return result
+    
     # Use percentile-based bands:
     # Top 25% = 🔥 (high pressure)
     # Next 50% = ⚠️ (moderate)
@@ -120,3 +133,44 @@ def compute_wishlist_pressure(rows):
             result[k] = "❌"
     
     return result
+
+
+def get_oos_wishlist_carryover(key, by_run, runs, cur_run, lookback_limit=3):
+    """
+    For OUT-of-stock species, carry forward wishlist pressure from the most recent run
+    where it was IN stock, within a bounded lookback window.
+    
+    Args:
+        key: (scientific_name, size_cm) tuple
+        by_run: dict mapping run datetime -> list of rows
+        runs: sorted list of run datetimes
+        cur_run: current run datetime
+        lookback_limit: max number of recent runs to look back (default 3)
+    
+    Returns:
+        Wishlist pressure symbol (🔥/⚠️/❌) or None if not found
+    
+    Rationale:
+        Wishlist interest often peaks just before sell-out.
+        This prevents under-valuing OUT species with real latent demand.
+        Keeps behavior conservative and bounded.
+    """
+    # Find the index of the current run
+    try:
+        cur_idx = runs.index(cur_run)
+    except ValueError:
+        return None
+    
+    # Look back through recent runs (excluding current)
+    lookback_start = max(0, cur_idx - lookback_limit)
+    for rt in reversed(runs[lookback_start:cur_idx]):
+        # Check if key exists in this run
+        run_rows = by_run[rt]
+        run_map = {(r.get("scientific_name", ""), r.get("size_cm", "")): r for r in run_rows}
+        
+        if key in run_map:
+            # Found the species in this run - compute its pressure
+            pressure_map = compute_wishlist_pressure(run_rows)
+            return pressure_map.get(key, "❌")
+    
+    return None
