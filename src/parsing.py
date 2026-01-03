@@ -175,3 +175,110 @@ def get_oos_wishlist_carryover(key, by_run, runs, cur_run, lookback_limit=3):
             return pressure_map.get(key, "❌")
     
     return None
+
+
+def compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=3):
+    """
+    Compute Wishlist Delta (momentum signal) for a species by comparing current vs
+    previous IN-stock wishlist counts using conservative thresholds.
+    
+    Args:
+        key: (scientific_name, size_cm) tuple
+        by_run: dict mapping run datetime -> list of rows
+        runs: sorted list of run datetimes
+        cur_run: current run datetime
+        lookback_limit: max number of recent runs to look back for OUT species (default 3)
+    
+    Returns:
+        Wishlist Delta symbol:
+        - "↑" if Δ ≥ +5 (meaningful increase)
+        - "→" if −4 ≤ Δ ≤ +4 (stable or noise)
+        - "↓" if Δ ≤ −5 (meaningful decrease)
+    
+    Rationale:
+        Conservative thresholds prevent false signals from noise.
+        Uses ±5 as meaningful buyer movement threshold given observed distributions.
+        Weekly cadence requires higher bar for momentum detection.
+    """
+    # Find the index of the current run
+    try:
+        cur_idx = runs.index(cur_run)
+    except ValueError:
+        return "→"
+    
+    # Get current wishlist count
+    # First, check if species is IN current run
+    cur_rows = by_run[cur_run]
+    cur_map = {(r.get("scientific_name", ""), r.get("size_cm", "")): r for r in cur_rows}
+    
+    current_count = None
+    if key in cur_map:
+        # Species is IN current run
+        try:
+            current_count = int(cur_map[key].get("wishlist_count", "0") or "0")
+        except (ValueError, TypeError):
+            current_count = 0
+    else:
+        # Species is OUT - look back for last IN-stock wishlist count
+        lookback_start = max(0, cur_idx - lookback_limit)
+        for i in range(cur_idx - 1, lookback_start - 1, -1):
+            rt = runs[i]
+            run_rows = by_run[rt]
+            run_map = {(r.get("scientific_name", ""), r.get("size_cm", "")): r for r in run_rows}
+            
+            if key in run_map:
+                try:
+                    current_count = int(run_map[key].get("wishlist_count", "0") or "0")
+                except (ValueError, TypeError):
+                    current_count = 0
+                break
+    
+    # If we couldn't find a current count, return neutral
+    if current_count is None:
+        return "→"
+    
+    # Find previous comparable wishlist count (last run where species was IN)
+    previous_count = None
+    lookback_start = max(0, cur_idx - lookback_limit)
+    
+    # Start from the run before where we found current_count
+    # If species is IN now, start from prev run
+    # If species is OUT now and we found count in an older run, start from before that
+    search_start_idx = cur_idx - 1
+    if key not in cur_map:
+        # Species is OUT - we found current_count in an older run
+        # Need to search before that run
+        for i in range(cur_idx - 1, lookback_start - 1, -1):
+            rt = runs[i]
+            run_rows = by_run[rt]
+            run_map = {(r.get("scientific_name", ""), r.get("size_cm", "")): r for r in run_rows}
+            if key in run_map:
+                search_start_idx = i - 1
+                break
+    
+    # Now find the previous IN-stock occurrence
+    for i in range(search_start_idx, -1, -1):
+        rt = runs[i]
+        run_rows = by_run[rt]
+        run_map = {(r.get("scientific_name", ""), r.get("size_cm", "")): r for r in run_rows}
+        
+        if key in run_map:
+            try:
+                previous_count = int(run_map[key].get("wishlist_count", "0") or "0")
+            except (ValueError, TypeError):
+                previous_count = 0
+            break
+    
+    # If we couldn't find a previous count, return neutral
+    if previous_count is None:
+        return "→"
+    
+    # Calculate delta and apply thresholds
+    delta = current_count - previous_count
+    
+    if delta >= 5:
+        return "↑"
+    elif delta <= -5:
+        return "↓"
+    else:
+        return "→"

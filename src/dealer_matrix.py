@@ -3,7 +3,7 @@ import csv
 from history import group_by_run, k2
 from config import DEALER_TABLE_FILE
 from assertions import get_summary_path
-from parsing import compute_wishlist_pressure, get_oos_wishlist_carryover
+from parsing import compute_wishlist_pressure, get_oos_wishlist_carryover, compute_wishlist_delta
 
 # =====================
 # DEALER MATRIX (Option B: Price Pressure informational)
@@ -84,8 +84,12 @@ def build_dealer_supply_risk_table(history_rows):
             carried = get_oos_wishlist_carryover(key, by_run, runs, cur_run, lookback_limit=3)
             wishlist_pressure = carried if carried else "❌"
 
-        # Dealer risk logic (enhanced with wishlist pressure)
+        # Compute wishlist delta (momentum signal)
+        wishlist_delta = compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=3)
+
+        # Dealer risk logic (enhanced with wishlist pressure and delta)
         # Wishlist escalates urgency where supply is unreliable, de-escalates where interest is weak
+        # Wishlist Delta acts as momentum modifier
         if reliability == "Low" and speed == "Slow":
             # Low reliability + slow restock is already high risk
             if wishlist_pressure == "🔥":
@@ -98,6 +102,14 @@ def build_dealer_supply_risk_table(history_rows):
             # Low reliability + high wishlist even with faster restock
             risk = "🔥"
             rec = "Actively seek breeders — high demand, unreliable supply"
+        elif reliability == "Low" and wishlist_delta == "↑":
+            # NEW: Low reliability + rising delta -> reinforce 🔥
+            risk = "🔥"
+            rec = "Actively seek breeders — unreliable supply, surging interest"
+        elif reliability == "Medium" and wishlist_pressure == "🔥" and wishlist_delta == "↑":
+            # NEW: Medium reliability + high wishlist + rising delta -> escalate to 🔥
+            risk = "🔥"
+            rec = "Actively seek breeders — surging demand, variable supply"
         elif reliability == "Medium" and wishlist_pressure == "🔥":
             # Medium reliability + high wishlist
             risk = "⚠️"
@@ -109,6 +121,10 @@ def build_dealer_supply_risk_table(history_rows):
             # High reliability with low/moderate interest
             risk = "❌"
             rec = "No urgency / oversupplied"
+        elif reliability == "High" and wishlist_delta == "↓":
+            # NEW: High reliability + falling delta -> reinforce ❌
+            risk = "❌"
+            rec = "No urgency / oversupplied — interest declining"
         elif reliability == "High" and wishlist_pressure == "🔥":
             # High reliability but very high interest - slight watch
             risk = "❌"
@@ -125,14 +141,17 @@ def build_dealer_supply_risk_table(history_rows):
             "Restock Speed": speed,
             "Price Pressure": pp,
             "Wishlist Pressure": wishlist_pressure,
+            "Wishlist Δ": wishlist_delta,
             "Dealer Risk": risk,
             "Dealer Recommendation": rec,
         })
 
-    # Sort: Dealer Risk (🔥 > ⚠️ > ❌), then Wishlist Pressure (🔥 > ⚠️ > ❌), then Avg OOS Duration (desc)
+    # Sort: Dealer Risk (🔥 > ⚠️ > ❌), then Wishlist Pressure (🔥 > ⚠️ > ❌), 
+    # then Wishlist Δ (↑ > → > ↓), then Avg OOS Duration (desc)
     table.sort(key=lambda r: (
         {"🔥": 0, "⚠️": 1, "❌": 2}[r["Dealer Risk"]],
         {"🔥": 0, "⚠️": 1, "❌": 2}[r["Wishlist Pressure"]],
+        {"↑": 0, "→": 1, "↓": 2}[r["Wishlist Δ"]],
         -r["Avg OOS Duration"]
     ))
     return table
@@ -155,12 +174,12 @@ def write_dealer_outputs(table):
 
     with open(summary_path, "a", encoding="utf-8") as f:
         f.write("\n## 🏪 Dealer Supply Risk Matrix\n\n")
-        f.write("| Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Wishlist Pressure | Dealer Risk | Dealer Recommendation |\n")
-        f.write("|---|---:|---|---:|---|---|---|---|---|\n")
+        f.write("| Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Wishlist Pressure | Wishlist Δ | Dealer Risk | Dealer Recommendation |\n")
+        f.write("|---|---:|---|---:|---|---|---|---|---|---|\n")
         for r in table[:shown]:
             f.write(
                 f"| {r['Species']} | {r['Size (cm)']} | {r['Stock Reliability']} | {r['Avg OOS Duration']} | "
-                f"{r['Restock Speed']} | {r['Price Pressure']} | {r['Wishlist Pressure']} | {r['Dealer Risk']} | {r['Dealer Recommendation']} |\n"
+                f"{r['Restock Speed']} | {r['Price Pressure']} | {r['Wishlist Pressure']} | {r['Wishlist Δ']} | {r['Dealer Risk']} | {r['Dealer Recommendation']} |\n"
             )
         if total > shown:
             f.write(f"\n_Showing top {shown} of {total} entries — see `{DEALER_TABLE_FILE}` for full list._\n")
