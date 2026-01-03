@@ -3,7 +3,7 @@ import csv
 from history import group_by_run, k2
 from config import BREEDER_TABLE_FILE
 from assertions import get_summary_path
-from parsing import compute_wishlist_pressure, get_oos_wishlist_carryover
+from parsing import compute_wishlist_pressure, get_oos_wishlist_carryover, compute_wishlist_delta
 
 # =====================
 # BREEDER MATRIX (PRICE AWARE) — FIXED TO INCLUDE OUT-OF-STOCK ITEMS
@@ -134,12 +134,16 @@ def build_breeder_opportunity_table(history_rows):
             carried = get_oos_wishlist_carryover(key, by_run, runs, cur_run, lookback_limit=3)
             wishlist_pressure = carried if carried else "❌"
 
-        # Recommendation logic (conservative wishlist integration)
+        # Compute wishlist delta (momentum signal)
+        wishlist_delta = compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=3)
+
+        # Recommendation logic (conservative wishlist integration with delta)
         # Base signal driven by Pattern + Price Trend (unchanged)
         # Wishlist can upgrade confidence or escalate emerging signals
+        # Wishlist Delta acts as momentum modifier
         
         if pattern == "Sustained" and price_trend in ("↑", "→"):
-            # Sustained scarcity is already strong
+            # Sustained scarcity is already strong - never downgrade
             if wishlist_pressure == "🔥":
                 signal = "🔥"
                 rec = "Pair soon — sustained scarcity with strong buyer interest"
@@ -151,7 +155,12 @@ def build_breeder_opportunity_table(history_rows):
             rec = "Consider pairing — rising demand"
         elif pattern == "Emerging":
             # Emerging + high wishlist can escalate to warning
-            if wishlist_pressure == "🔥":
+            # NEW: Emerging + high wishlist + rising delta -> escalate to 🔥
+            # NEW: Emerging + falling delta -> do NOT escalate (remain ⚠️)
+            if wishlist_pressure == "🔥" and wishlist_delta == "↑":
+                signal = "🔥"
+                rec = "Consider pairing — emerging scarcity with surging interest"
+            elif wishlist_pressure == "🔥":
                 signal = "⚠️"
                 rec = "Monitor closely — emerging scarcity and rising interest"
             else:
@@ -162,8 +171,13 @@ def build_breeder_opportunity_table(history_rows):
             rec = "Breed cautiously — wave restocking"
         elif pattern == "Always" and wishlist_pressure == "🔥":
             # Always + high wishlist = early watch (NOT breeding signal yet)
-            signal = "⚠️"
-            rec = "Watch closely — high latent demand"
+            # NEW: Always + high wishlist + falling delta -> remain ❌
+            if wishlist_delta == "↓":
+                signal = "❌"
+                rec = "Avoid for profit — interest declining"
+            else:
+                signal = "⚠️"
+                rec = "Watch closely — high latent demand"
         else:
             signal = "❌"
             rec = "Avoid for profit — oversupplied"
@@ -176,14 +190,17 @@ def build_breeder_opportunity_table(history_rows):
             "Pattern": pattern,
             "Price Trend": price_trend,
             "Wishlist Pressure": wishlist_pressure,
+            "Wishlist Δ": wishlist_delta,
             "Signal": signal,
             "Recommendation": rec,
         })
 
-    # Sort: Signal priority (🔥 > ⚠️ > ❌), then Wishlist Pressure (🔥 > ⚠️ > ❌), then OOS Runs (desc)
+    # Sort: Signal priority (🔥 > ⚠️ > ❌), then Wishlist Pressure (🔥 > ⚠️ > ❌), 
+    # then Wishlist Δ (↑ > → > ↓), then OOS Runs (desc)
     table.sort(key=lambda r: (
         {"🔥": 0, "⚠️": 1, "❌": 2}[r["Signal"]],
         {"🔥": 0, "⚠️": 1, "❌": 2}[r["Wishlist Pressure"]],
+        {"↑": 0, "→": 1, "↓": 2}[r["Wishlist Δ"]],
         -int(r["OOS Runs"])
     ))
     return table
@@ -206,12 +223,12 @@ def write_breeder_outputs(table):
 
     with open(summary_path, "a", encoding="utf-8") as f:
         f.write("\n## 🧬 Breeder Opportunity Matrix\n\n")
-        f.write("| Species | Size (cm) | OOS | OOS Runs | Pattern | Price Trend | Wishlist Pressure | Signal | Recommendation |\n")
-        f.write("|---|---:|---|---:|---|---|---|---|---|\n")
+        f.write("| Species | Size (cm) | OOS | OOS Runs | Pattern | Price Trend | Wishlist Pressure | Wishlist Δ | Signal | Recommendation |\n")
+        f.write("|---|---:|---|---:|---|---|---|---|---|---|\n")
         for r in table[:shown]:
             f.write(
                 f"| {r['Species']} | {r['Size (cm)']} | {r['OOS']} | {r['OOS Runs']} | "
-                f"{r['Pattern']} | {r['Price Trend']} | {r['Wishlist Pressure']} | {r['Signal']} | {r['Recommendation']} |\n"
+                f"{r['Pattern']} | {r['Price Trend']} | {r['Wishlist Pressure']} | {r['Wishlist Δ']} | {r['Signal']} | {r['Recommendation']} |\n"
             )
         if total > shown:
             f.write(f"\n_Showing top {shown} of {total} entries — see `{BREEDER_TABLE_FILE}` for full list._\n")
