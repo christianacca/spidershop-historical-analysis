@@ -33,4 +33,4 @@ SIZE_RE = re.compile(
     r"^\s*(\d+(?:\.\d+)?)\s*(?:[-–]\s*(\d+(?:\.\d+)?))?\s*cm\s*$",
     re.IGNORECASE,
 )
-WISHLIST_COUNT_RE = re.compile(r"(\d+)\s+users?\s+have?\s+this\s+item\s+in\s+their\s+wishlists?", re.IGNORECASE)
+WISHLIST_COUNT_RE = re.compile(r"(\d+)\s+users?\s+(?:has|have)\s+this\s+item\s+in\s+their\s+wishlists?", re.IGNORECASE)
