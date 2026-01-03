@@ -3,6 +3,7 @@ import csv
 from history import group_by_run, k2
 from config import DEALER_TABLE_FILE
 from assertions import get_summary_path
+from parsing import compute_wishlist_pressure
 
 # =====================
 # DEALER MATRIX (Option B: Price Pressure informational)
@@ -17,6 +18,11 @@ def build_dealer_supply_risk_table(history_rows):
 
     prev_run = runs[-2]
     cur_run = runs[-1]
+    
+    cur_rows = by_run[cur_run]
+
+    # Compute wishlist pressure for current run
+    wishlist_pressure_map = compute_wishlist_pressure(cur_rows)
 
     prev_prices = {k2(r): r.get("price_gbp", "") for r in by_run[prev_run] if r.get("price_gbp")}
     cur_prices = {k2(r): r.get("price_gbp", "") for r in by_run[cur_run] if r.get("price_gbp")}
@@ -64,12 +70,38 @@ def build_dealer_supply_risk_table(history_rows):
             except ValueError:
                 pp = "→"
 
+        # Get wishlist pressure (default to ❌ if not in current run)
+        wishlist_pressure = wishlist_pressure_map.get((sci, size), "❌")
+
+        # Dealer risk logic (enhanced with wishlist pressure)
+        # Wishlist escalates urgency where supply is unreliable, de-escalates where interest is weak
         if reliability == "Low" and speed == "Slow":
+            # Low reliability + slow restock is already high risk
+            if wishlist_pressure == "🔥":
+                risk = "🔥"
+                rec = "Actively seek breeders — high demand, poor supply"
+            else:
+                risk = "🔥"
+                rec = "Actively seek breeders"
+        elif reliability == "Low" and wishlist_pressure == "🔥":
+            # Low reliability + high wishlist even with faster restock
             risk = "🔥"
-            rec = "Actively seek breeders"
+            rec = "Actively seek breeders — high demand, unreliable supply"
+        elif reliability == "Medium" and wishlist_pressure == "🔥":
+            # Medium reliability + high wishlist
+            risk = "⚠️"
+            rec = "Buy opportunistically — moderate demand, variable supply"
         elif reliability == "Medium":
             risk = "⚠️"
             rec = "Buy opportunistically"
+        elif reliability == "High" and wishlist_pressure in ("❌", "⚠️"):
+            # High reliability with low/moderate interest
+            risk = "❌"
+            rec = "No urgency / oversupplied"
+        elif reliability == "High" and wishlist_pressure == "🔥":
+            # High reliability but very high interest - slight watch
+            risk = "❌"
+            rec = "Well-supplied, but monitor demand"
         else:
             risk = "❌"
             rec = "No urgency / oversupplied"
@@ -81,6 +113,7 @@ def build_dealer_supply_risk_table(history_rows):
             "Avg OOS Duration": avg_oos,
             "Restock Speed": speed,
             "Price Pressure": pp,
+            "Wishlist Pressure": wishlist_pressure,
             "Dealer Risk": risk,
             "Dealer Recommendation": rec,
         })
@@ -106,12 +139,12 @@ def write_dealer_outputs(table):
 
     with open(summary_path, "a", encoding="utf-8") as f:
         f.write("\n## 🏪 Dealer Supply Risk Matrix\n\n")
-        f.write("| Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Dealer Risk | Dealer Recommendation |\n")
-        f.write("|---|---:|---|---:|---|---|---|---|\n")
+        f.write("| Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Wishlist Pressure | Dealer Risk | Dealer Recommendation |\n")
+        f.write("|---|---:|---|---:|---|---|---|---|---|\n")
         for r in table[:shown]:
             f.write(
                 f"| {r['Species']} | {r['Size (cm)']} | {r['Stock Reliability']} | {r['Avg OOS Duration']} | "
-                f"{r['Restock Speed']} | {r['Price Pressure']} | {r['Dealer Risk']} | {r['Dealer Recommendation']} |\n"
+                f"{r['Restock Speed']} | {r['Price Pressure']} | {r['Wishlist Pressure']} | {r['Dealer Risk']} | {r['Dealer Recommendation']} |\n"
             )
         if total > shown:
             f.write(f"\n_Showing top {shown} of {total} entries — see `{DEALER_TABLE_FILE}` for full list._\n")

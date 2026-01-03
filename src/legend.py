@@ -37,13 +37,21 @@ def write_summary_legend():
 - `→` — Price stable
 - `↓` — Price falling
 
+**Wishlist Pressure**
+- Represents **latent demand** (buyer interest, not sales)
+- Calculated using **relative ranking** within the current run (not absolute thresholds)
+- `🔥` — High wishlist pressure (top tier of current interest)
+- `⚠️` — Moderate wishlist pressure (middle range)
+- `❌` — Low or no wishlist pressure (bottom tier or zero interest)
+- Acts as a **confidence amplifier** for Pattern/Price signals, not a standalone trigger
+
 **Signal**
 - `🔥` — Strong breeding opportunity signal
 - `⚠️` — Monitor closely; opportunity may be forming
 - `❌` — Oversupplied or no meaningful scarcity
 
 **Recommendation**
-- Combines **Pattern + Price Trend**
+- Combines **Pattern + Price Trend + Wishlist Pressure**
 - Designed to be conservative to avoid reacting to short-term noise
 
 ---
@@ -67,6 +75,14 @@ def write_summary_legend():
 - `↑` — Prices increasing
 - `→` — Stable pricing
 - `↓` — Prices softening
+
+**Wishlist Pressure**
+- Represents **latent demand** (buyer interest, not sales)
+- Calculated using **relative ranking** within the current run (not absolute thresholds)
+- `🔥` — High wishlist pressure (top tier of current interest)
+- `⚠️` — Moderate wishlist pressure (middle range)
+- `❌` — Low or no wishlist pressure (bottom tier or zero interest)
+- Escalates urgency where supply is unreliable; de-escalates where interest is weak
 
 **Dealer Risk**
 - `🔥` — High risk of lost sales (supply constrained)

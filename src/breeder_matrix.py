@@ -3,6 +3,7 @@ import csv
 from history import group_by_run, k2
 from config import BREEDER_TABLE_FILE
 from assertions import get_summary_path
+from parsing import compute_wishlist_pressure
 
 # =====================
 # BREEDER MATRIX (PRICE AWARE) — FIXED TO INCLUDE OUT-OF-STOCK ITEMS
@@ -23,6 +24,9 @@ def build_breeder_opportunity_table(history_rows):
     # Index rows by (species,size) for quick lookup
     cur_map = {k2(r): r for r in cur_rows}
     prev_map = {k2(r): r for r in prev_rows}
+
+    # Compute wishlist pressure for current run only
+    wishlist_pressure_map = compute_wishlist_pressure(cur_rows)
 
     # Union of keys across ALL history so OUT items can appear in the breeder table
     all_keys = set()
@@ -121,19 +125,39 @@ def build_breeder_opportunity_table(history_rows):
 
         price_trend = price_trend_for_key(key)
 
-        # Recommendation logic (price-aware, unchanged)
+        # Get wishlist pressure (default to ❌ if not in current run)
+        wishlist_pressure = wishlist_pressure_map.get(key, "❌")
+
+        # Recommendation logic (conservative wishlist integration)
+        # Base signal driven by Pattern + Price Trend (unchanged)
+        # Wishlist can upgrade confidence or escalate emerging signals
+        
         if pattern == "Sustained" and price_trend in ("↑", "→"):
-            signal = "🔥"
-            rec = "Pair soon — sustained scarcity"
+            # Sustained scarcity is already strong
+            if wishlist_pressure == "🔥":
+                signal = "🔥"
+                rec = "Pair soon — sustained scarcity with strong buyer interest"
+            else:
+                signal = "🔥"
+                rec = "Pair soon — sustained scarcity"
         elif pattern == "Emerging" and price_trend == "↑":
             signal = "🔥"
             rec = "Consider pairing — rising demand"
         elif pattern == "Emerging":
-            signal = "⚠️"
-            rec = "Monitor closely — supply tightening"
+            # Emerging + high wishlist can escalate to warning
+            if wishlist_pressure == "🔥":
+                signal = "⚠️"
+                rec = "Monitor closely — emerging scarcity and rising interest"
+            else:
+                signal = "⚠️"
+                rec = "Monitor closely — supply tightening"
         elif pattern == "Cyclical":
             signal = "⚠️"
             rec = "Breed cautiously — wave restocking"
+        elif pattern == "Always" and wishlist_pressure == "🔥":
+            # Always + high wishlist = early watch (NOT breeding signal yet)
+            signal = "⚠️"
+            rec = "Watch closely — high latent demand"
         else:
             signal = "❌"
             rec = "Avoid for profit — oversupplied"
@@ -145,6 +169,7 @@ def build_breeder_opportunity_table(history_rows):
             "OOS Runs": str(oos_runs),
             "Pattern": pattern,
             "Price Trend": price_trend,
+            "Wishlist Pressure": wishlist_pressure,
             "Signal": signal,
             "Recommendation": rec,
         })
@@ -171,12 +196,12 @@ def write_breeder_outputs(table):
 
     with open(summary_path, "a", encoding="utf-8") as f:
         f.write("\n## 🧬 Breeder Opportunity Matrix\n\n")
-        f.write("| Species | Size (cm) | OOS | OOS Runs | Pattern | Price Trend | Signal | Recommendation |\n")
-        f.write("|---|---:|---|---:|---|---|---|---|\n")
+        f.write("| Species | Size (cm) | OOS | OOS Runs | Pattern | Price Trend | Wishlist Pressure | Signal | Recommendation |\n")
+        f.write("|---|---:|---|---:|---|---|---|---|---|\n")
         for r in table[:shown]:
             f.write(
                 f"| {r['Species']} | {r['Size (cm)']} | {r['OOS']} | {r['OOS Runs']} | "
-                f"{r['Pattern']} | {r['Price Trend']} | {r['Signal']} | {r['Recommendation']} |\n"
+                f"{r['Pattern']} | {r['Price Trend']} | {r['Wishlist Pressure']} | {r['Signal']} | {r['Recommendation']} |\n"
             )
         if total > shown:
             f.write(f"\n_Showing top {shown} of {total} entries — see `{BREEDER_TABLE_FILE}` for full list._\n")

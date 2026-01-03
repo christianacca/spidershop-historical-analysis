@@ -58,3 +58,65 @@ def parse_wishlist_count(text: str) -> str:
     if m:
         return m.group(1)
     return "0"
+
+def compute_wishlist_pressure(rows):
+    """
+    Compute relative wishlist pressure for rows in the current run.
+    
+    Returns a dict mapping (scientific_name, size_cm) -> pressure symbol.
+    
+    Pressure symbols:
+    - 🔥 = High wishlist pressure (top ~25% of non-zero wishlist counts)
+    - ⚠️ = Moderate wishlist pressure (middle range)
+    - ❌ = Low or no wishlist pressure (bottom tier or zero)
+    
+    Uses relative ranking to avoid site-growth drift and popularity bias.
+    This is run per-scrape to ensure bands adapt to current distribution.
+    """
+    # Extract wishlist counts, filtering to current rows only
+    wishlist_data = []
+    for r in rows:
+        try:
+            count = int(r.get("wishlist_count", "0") or "0")
+            key = (r.get("scientific_name", ""), r.get("size_cm", ""))
+            wishlist_data.append((key, count))
+        except (ValueError, TypeError):
+            key = (r.get("scientific_name", ""), r.get("size_cm", ""))
+            wishlist_data.append((key, 0))
+    
+    if not wishlist_data:
+        return {}
+    
+    # Separate zero and non-zero counts
+    zero_keys = {k for k, c in wishlist_data if c == 0}
+    nonzero = [(k, c) for k, c in wishlist_data if c > 0]
+    
+    result = {}
+    
+    # All zeros get ❌
+    for k in zero_keys:
+        result[k] = "❌"
+    
+    if not nonzero:
+        return result
+    
+    # Sort non-zero by count descending
+    nonzero.sort(key=lambda x: x[1], reverse=True)
+    
+    # Use percentile-based bands:
+    # Top 25% = 🔥 (high pressure)
+    # Next 50% = ⚠️ (moderate)
+    # Bottom 25% = ❌ (low)
+    n = len(nonzero)
+    high_cutoff = max(1, n // 4)  # top 25%
+    low_cutoff = max(1, (3 * n) // 4)  # bottom 25%
+    
+    for i, (k, _) in enumerate(nonzero):
+        if i < high_cutoff:
+            result[k] = "🔥"
+        elif i < low_cutoff:
+            result[k] = "⚠️"
+        else:
+            result[k] = "❌"
+    
+    return result
