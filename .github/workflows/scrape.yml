@@ -123,8 +123,16 @@ jobs:
       # Run scraper + analysis
       # --------------------------------
       - name: Run Spider Shop scraper
+        id: scraper
         run: |
           python src/scrape_spidershop_spiderlings.py
+          
+          # Capture the summary markdown as a step output
+          if [ -f "$GITHUB_STEP_SUMMARY" ]; then
+            echo "summary_content<<EOF" >> $GITHUB_OUTPUT
+            cat "$GITHUB_STEP_SUMMARY" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
 
       # --------------------------------
       # Save job summary as artifact
@@ -132,13 +140,10 @@ jobs:
       - name: Save analysis summary
         if: always()
         run: |
-          if [ -f "$GITHUB_STEP_SUMMARY" ]; then
-            cp "$GITHUB_STEP_SUMMARY" analysis_summary.md
-            echo "Analysis summary saved"
-          else
-            echo "No summary file found"
-            touch analysis_summary.md
-          fi
+          # Write the summary content from the previous step to analysis_summary.md
+          cat > analysis_summary.md << 'EOF'
+          ${{ steps.scraper.outputs.summary_content }}
+          EOF
 
       - name: Upload analysis summary
         uses: actions/upload-artifact@v4
