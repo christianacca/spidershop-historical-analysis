@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+from config import ANALYSIS_SUMMARY_FILE
 
 # =====================
 # ASSERTION HELPERS (ADDED)
@@ -11,6 +12,17 @@ def assert_condition(condition: bool, message: str):
 
 def get_summary_path():
     return os.environ.get("GITHUB_STEP_SUMMARY")
+
+def get_summary_paths():
+    """Returns list of paths to write summary markdown to.
+    Includes both GITHUB_STEP_SUMMARY (for workflow UI) and ANALYSIS_SUMMARY_FILE (for artifact upload).
+    """
+    paths = []
+    github_summary = os.environ.get("GITHUB_STEP_SUMMARY")
+    if github_summary:
+        paths.append(github_summary)
+    paths.append(ANALYSIS_SUMMARY_FILE)
+    return paths
 
 def read_summary_text() -> str:
     path = get_summary_path()

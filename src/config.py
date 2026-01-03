@@ -12,6 +12,7 @@ HISTORY_FILE = "spidershop_spiderlings_history.csv"
 
 BREEDER_TABLE_FILE = "breeder_opportunity_table.csv"
 DEALER_TABLE_FILE = "dealer_supply_risk_table.csv"
+ANALYSIS_SUMMARY_FILE = "analysis_summary.md"
 
 CSV_HEADER = [
     "scrape_datetime",

@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
-from assertions import get_summary_path
+from assertions import get_summary_paths
 
 # =====================
 # LEGEND
 # =====================
 
 def write_summary_legend():
-    summary_path = get_summary_path()
-    if not summary_path:
+    summary_paths = get_summary_paths()
+    if not summary_paths:
         return
 
-    with open(summary_path, "a", encoding="utf-8") as f:
-        f.write("""
+    for summary_path in summary_paths:
+        with open(summary_path, "a", encoding="utf-8") as f:
+            f.write("""
 <details>
 <summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>
 
