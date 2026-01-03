@@ -144,6 +144,7 @@ def build_breeder_opportunity_table(history_rows):
         
         if pattern == "Sustained" and price_trend in ("↑", "→"):
             # Sustained scarcity is already strong - never downgrade
+            # Wishlist Delta does NOT affect sustained signals (already high confidence)
             if wishlist_pressure == "🔥":
                 signal = "🔥"
                 rec = "Pair soon — sustained scarcity with strong buyer interest"
