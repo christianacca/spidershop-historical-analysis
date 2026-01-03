@@ -3,7 +3,7 @@ import csv
 from history import group_by_run, k2
 from config import DEALER_TABLE_FILE
 from assertions import get_summary_path
-from parsing import compute_wishlist_pressure
+from parsing import compute_wishlist_pressure, get_oos_wishlist_carryover
 
 # =====================
 # DEALER MATRIX (Option B: Price Pressure informational)
@@ -23,6 +23,9 @@ def build_dealer_supply_risk_table(history_rows):
 
     # Compute wishlist pressure for current run
     wishlist_pressure_map = compute_wishlist_pressure(cur_rows)
+
+    # Precompute current run keys for OOS check
+    cur_keys = {k2(r) for r in cur_rows}
 
     prev_prices = {k2(r): r.get("price_gbp", "") for r in by_run[prev_run] if r.get("price_gbp")}
     cur_prices = {k2(r): r.get("price_gbp", "") for r in by_run[cur_run] if r.get("price_gbp")}
@@ -70,8 +73,16 @@ def build_dealer_supply_risk_table(history_rows):
             except ValueError:
                 pp = "→"
 
-        # Get wishlist pressure (default to ❌ if not in current run)
-        wishlist_pressure = wishlist_pressure_map.get((sci, size), "❌")
+        # Get wishlist pressure with OOS carryover
+        # If species is OUT now, carry forward last known pressure (bounded lookback)
+        key = (sci, size)
+        if key in cur_keys:
+            # Species is IN current run
+            wishlist_pressure = wishlist_pressure_map.get(key, "❌")
+        else:
+            # Species is OUT - try to carry forward recent pressure
+            carried = get_oos_wishlist_carryover(key, by_run, runs, cur_run, lookback_limit=3)
+            wishlist_pressure = carried if carried else "❌"
 
         # Dealer risk logic (enhanced with wishlist pressure)
         # Wishlist escalates urgency where supply is unreliable, de-escalates where interest is weak
@@ -118,7 +129,12 @@ def build_dealer_supply_risk_table(history_rows):
             "Dealer Recommendation": rec,
         })
 
-    table.sort(key=lambda r: {"🔥": 0, "⚠️": 1, "❌": 2}[r["Dealer Risk"]])
+    # Sort: Dealer Risk (🔥 > ⚠️ > ❌), then Wishlist Pressure (🔥 > ⚠️ > ❌), then Avg OOS Duration (desc)
+    table.sort(key=lambda r: (
+        {"🔥": 0, "⚠️": 1, "❌": 2}[r["Dealer Risk"]],
+        {"🔥": 0, "⚠️": 1, "❌": 2}[r["Wishlist Pressure"]],
+        -r["Avg OOS Duration"]
+    ))
     return table
 
 def write_dealer_outputs(table):
