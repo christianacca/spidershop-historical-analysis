@@ -43,8 +43,6 @@ Provides:
 
 Updated automatically after each successful run.
 
----
-
 ### 📦 GitHub Actions Artifacts
 
 Each workflow run publishes:
