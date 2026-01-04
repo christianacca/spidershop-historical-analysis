@@ -90,8 +90,6 @@ Each species is classified into one of four patterns:
 
 These patterns are the foundation of all analysis.
 
----
-
 ### Price Trend
 
 A simple directional indicator comparing recent prices:
@@ -101,8 +99,6 @@ A simple directional indicator comparing recent prices:
 - `↓` decreasing
 
 Price trend **confirms or weakens** supply signals but never overrides them.
-
----
 
 ### Wishlist Pressure (Latent Demand)
 
@@ -119,8 +115,6 @@ Values:
 - `❌` low or no interest
 
 Wishlist pressure **amplifies confidence**; it is never a trigger on its own.
-
----
 
 ### Wishlist Delta (Momentum)
 
@@ -151,8 +145,6 @@ Logic summary:
 - Sustained scarcity is never downgraded
 
 Strong signals are rare by design.
-
----
 
 ### 🏪 Dealer Supply Risk Matrix
 
