@@ -1,70 +1,198 @@
 # spidershop-historical-analysis
 
-A Python web scraper that captures and tracks pricing data for tarantula spiderlings from [The Spider Shop UK](https://thespidershop.co.uk/).
+A conservative, supply-first market analysis system for UK tarantula spiderlings, built on weekly historical data scraped from  
+[The Spider Shop UK](https://thespidershop.co.uk/).
 
-## Purpose
+This project is **not a price-tracking dashboard** or a hype detector.  
+It is designed to surface **meaningful, explainable signals** for breeders and dealers while deliberately avoiding noise.
 
-This project automatically scrapes tarantula spiderling listings from The Spider Shop UK website on a weekly schedule, capturing:
-- **Scientific name** (Genus + species)
-- **Common name** (descriptive name)
-- **Size** (in centimeters)
-- **Price** (in GBP)
+---
 
-The scraped data is used to:
-- Track pricing history over time for market analysis
-- Generate **Breeder Opportunity Matrices** that identify species with growing demand or favorable pricing trends
-- Generate **Dealer Supply Risk Tables** that highlight inventory availability patterns
+## What This Project Does
 
-## How to Access the Scraped Data
+On a **weekly schedule**, the scraper captures all listed tarantula spiderlings and records:
 
-The scraper runs automatically every **Wednesday at 06:10 UTC** via GitHub Actions. You can access the data in two ways:
+- Scientific name (Genus + species)
+- Common name
+- Size (cm)
+- Price (GBP)
+- Wishlist count (number of users who have wish-listed the species)
 
-### 🌐 Option 1: View on GitHub Pages (Recommended)
+Each run appends to a growing historical dataset.  
+That history is then analysed to produce two conservative decision-support tables:
 
-Visit the live website at: **[https://christianacca.github.io/spidershop-historical-analysis/](https://christianacca.github.io/spidershop-historical-analysis/)**
+1. **Breeder Opportunity Matrix**
+2. **Dealer Supply Risk Matrix**
 
-The GitHub Pages site provides:
-- **Interactive HTML tables** with sortable columns and search functionality
-- **Latest snapshot** of all available spiderlings
-- **Historical data** showing pricing trends over time
-- **Breeder opportunity analysis** for market insights
-- **Dealer supply risk analysis** for inventory patterns
-- **Download links** for all CSV files
+All outputs are published as CSV artifacts and rendered on GitHub Pages.
 
-The website is automatically updated after each successful scrape run.
+---
 
-### 📦 Option 2: Download Artifacts Directly
+## Core Design Philosophy
 
-Alternatively, you can download the raw CSV files from GitHub Actions:
+This project follows a few strict principles:
 
-1. **Navigate to "Spider Shop Spiderlings Scrape"** workflow runs [here](https://github.com/christianacca/spidershop-historical-analysis/actions/workflows/scrape.yml?query=branch%3Amaster)
-2. **Select the most recent workflow run** (the one at the top of the list)
-3. **Scroll down to the "Artifacts" section** at the bottom of the workflow run page
+### 1. Supply Comes First
+Out-of-stock behaviour, persistence, and restock speed matter more than demand alone.
 
-### Available Artifacts
+### 2. Conservative by Default
+Neutral signals are preferred over guessing.  
+Single-run changes are treated as noise unless confirmed.
 
-Each workflow run generates the following artifacts:
+### 3. Weekly Cadence Awareness
+All thresholds and comparisons assume **weekly execution**.
 
-- **`spidershop-snapshot`** - Current scrape results for this run (CSV format)
-- **`spidershop-history`** - Accumulated historical data across all runs (CSV format)
-- **`breeder-opportunity-table`** - Analysis showing breeding opportunities based on market trends (CSV format)
-- **`dealer-supply-risk-table`** - Analysis showing supply availability patterns (CSV format)
+### 4. No Inference of Missing Data
+If a signal cannot be derived confidently, it remains neutral.
 
-Simply click on any artifact name to download it as a ZIP file, then extract the CSV file(s) inside.
+The goal is **decision support**, not prediction.
 
-### Manual Workflow Execution
+---
 
-You can also trigger a scrape manually:
+## Key Concepts Explained
 
-1. Go to the **Actions** tab
-2. Select **"Spider Shop Spiderlings Scrape"** workflow
-3. Click **"Run workflow"** button
-4. Select the branch and click **"Run workflow"**
+### Out-of-Stock Patterns (Supply)
 
-## Technical Details
+Each species is classified into one of four patterns:
 
-The script was created via the following ChatGPT session: [Tarantula Scraping Scheduler](https://chatgpt.com/share/69583ba1-0e20-8008-9898-c8024292a0a8)
+- **Always** — normally available; short absences treated as noise
+- **Emerging** — missing for multiple consecutive runs
+- **Sustained** — missing for many weeks (strong scarcity signal)
+- **Cyclical** — repeated disappear / reappear behaviour (batch supply)
 
-- **Language**: Python 3.11
-- **Key Dependencies**: requests, beautifulsoup4
-- **Architecture**: Modular design with separate modules for scraping, parsing, analysis, and data management
+These patterns are the foundation of all analysis.
+
+---
+
+### Price Trend
+
+A simple directional indicator comparing recent prices:
+
+- `↑` increasing
+- `→` stable
+- `↓` decreasing
+
+Price trend **confirms or weakens** supply signals but never overrides them.
+
+---
+
+### Wishlist Pressure (Latent Demand)
+
+Wishlist pressure represents **relative buyer interest within a single run**.
+
+- Calculated per-run using ranking (not absolute thresholds)
+- Includes safeguards:
+  - small-N flattening
+  - bounded carryover for out-of-stock species (≤ 3 runs)
+
+Values:
+- `🔥` high relative interest
+- `⚠️` moderate interest
+- `❌` low or no interest
+
+Wishlist pressure **amplifies confidence**; it is never a trigger on its own.
+
+---
+
+### Wishlist Delta (Momentum)
+
+Wishlist Delta measures **meaningful change in buyer interest** over time.
+
+- Compares two recent *in-stock* observations
+- Both values are **time-bounded** to avoid stale comparisons
+- Conservative thresholds:
+  - `↑` Δ ≥ +5
+  - `→` −4 ≤ Δ ≤ +4
+  - `↓` Δ ≤ −5
+
+Wishlist Delta acts as a **momentum modifier**, not a standalone signal.
+
+---
+
+## Analysis Outputs
+
+### 🧬 Breeder Opportunity Matrix
+
+**Audience:** Breeders  
+**Question answered:** *“Is it worth pairing this species soon?”*
+
+Logic summary:
+- Supply pattern is primary
+- Price trend confirms or weakens
+- Wishlist metrics only escalate **emerging** opportunities
+- Sustained scarcity is never downgraded
+
+Strong signals are rare by design.
+
+---
+
+### 🏪 Dealer Supply Risk Matrix
+
+**Audience:** Dealers  
+**Question answered:** *“Am I at risk of lost sales?”*
+
+Logic summary:
+- Stock reliability and restock speed dominate
+- Wishlist metrics adjust urgency, not classification
+- Healthy supply cannot be overridden by demand alone
+
+---
+
+## Accessing the Data
+
+### 🌐 GitHub Pages (Recommended)
+
+**https://christianacca.github.io/spidershop-historical-analysis/**
+
+Provides:
+- Latest snapshot
+- Historical data
+- Interactive tables
+- CSV downloads
+- Breeder & dealer analyses
+
+Updated automatically after each successful run.
+
+---
+
+### 📦 GitHub Actions Artifacts
+
+Each workflow run publishes:
+
+- `spidershop-snapshot.csv`
+- `spidershop-history.csv`
+- `breeder_opportunity_table.csv`
+- `dealer_supply_risk_table.csv`
+
+Available via the **Actions** tab on GitHub.
+
+---
+
+## Automation & Technical Details
+
+- **Schedule:** Weekly (Wednesday, 06:10 UTC)
+- **Language:** Python 3.11
+- **Dependencies:** requests, beautifulsoup4
+- **Architecture:** Modular (`src/` directory)
+- **Testing:** Runtime assertions (fail fast, descriptive)
+
+No machine learning.  
+No black boxes.  
+Every signal is explainable in plain English.
+
+---
+
+## What This Project Is Not
+
+- ❌ A prediction engine  
+- ❌ A hype tracker  
+- ❌ A real-time sales proxy  
+
+It is a **calm, conservative signal system** designed to be trusted over time.
+
+---
+
+## License & Disclaimer
+
+This project is for research and analysis purposes only.  
+It is not affiliated with or endorsed by The Spider Shop UK.
