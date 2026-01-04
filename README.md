@@ -28,6 +28,36 @@ All outputs are published as CSV artifacts and rendered on GitHub Pages.
 
 ---
 
+## Accessing the Data
+
+### 🌐 GitHub Pages (Recommended)
+
+**https://christianacca.github.io/spidershop-historical-analysis/**
+
+Provides:
+- Latest snapshot
+- Historical data
+- Interactive tables
+- CSV downloads
+- Breeder & dealer analyses
+
+Updated automatically after each successful run.
+
+---
+
+### 📦 GitHub Actions Artifacts
+
+Each workflow run publishes:
+
+- `spidershop-snapshot.csv`
+- `spidershop-history.csv`
+- `breeder_opportunity_table.csv`
+- `dealer_supply_risk_table.csv`
+
+Available via the **Actions** tab on GitHub.
+
+---
+
 ## Core Design Philosophy
 
 This project follows a few strict principles:
@@ -135,36 +165,6 @@ Logic summary:
 - Stock reliability and restock speed dominate
 - Wishlist metrics adjust urgency, not classification
 - Healthy supply cannot be overridden by demand alone
-
----
-
-## Accessing the Data
-
-### 🌐 GitHub Pages (Recommended)
-
-**https://christianacca.github.io/spidershop-historical-analysis/**
-
-Provides:
-- Latest snapshot
-- Historical data
-- Interactive tables
-- CSV downloads
-- Breeder & dealer analyses
-
-Updated automatically after each successful run.
-
----
-
-### 📦 GitHub Actions Artifacts
-
-Each workflow run publishes:
-
-- `spidershop-snapshot.csv`
-- `spidershop-history.csv`
-- `breeder_opportunity_table.csv`
-- `dealer_supply_risk_table.csv`
-
-Available via the **Actions** tab on GitHub.
 
 ---
 
