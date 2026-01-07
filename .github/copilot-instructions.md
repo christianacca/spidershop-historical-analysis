@@ -39,7 +39,11 @@ This project uses minimal external dependencies:
 - **selenium**: Browser automation for JavaScript-rendered content (wishlist counters)
 - Standard library: csv, datetime, urllib, decimal, re, os, time, pathlib
 
-No requirements.txt or pyproject.toml file currently exists. Dependencies are installed directly in the GitHub Actions workflow.
+Dependencies are defined in:
+- **requirements.txt**: Production dependencies
+- **requirements-dev.txt**: Development/testing dependencies (pytest)
+
+Install with: `pip install -r requirements.txt` and `pip install -r requirements-dev.txt`
 
 ## Coding Conventions
 

@@ -3,7 +3,7 @@ import csv
 from history import group_by_run, k2
 from config import DEALER_TABLE_FILE
 from assertions import get_summary_path
-from parsing import compute_wishlist_pressure, get_oos_wishlist_carryover, compute_wishlist_delta
+from wishlist_analysis import compute_wishlist_pressure, get_oos_wishlist_carryover, compute_wishlist_delta
 
 # =====================
 # DEALER MATRIX (Option B: Price Pressure informational)
