@@ -2,6 +2,9 @@
 
 This guide walks you through setting up a local development environment from scratch, even if you've never used Python before.
 
+**Quick Links:**
+- 🧪 [Running Tests & Coverage](#running-tests) - Jump directly to testing
+
 **Choose your operating system below and follow all steps in order:**
 
 - [macOS Setup](#macos-setup)
@@ -244,14 +247,50 @@ pytest -v
 
 ### Run a specific test file
 ```sh
-pytest tests/test_example.py
+pytest tests/test_breeder_matrix.py
 ```
 
-### Run tests with coverage (if pytest-cov is installed)
+### Run tests with coverage
 ```sh
-pip install pytest-cov
 pytest --cov=src --cov-report=term-missing
 ```
+
+This shows in the terminal:
+- Overall coverage percentage
+- Coverage per module
+- **Missing column**: Specific line numbers that aren't tested (e.g., "15-22, 34-40")
+
+### View interactive HTML coverage report
+```sh
+# Generate HTML report
+pytest --cov=src --cov-report=html
+
+# Open in browser
+open htmlcov/index.html  # macOS
+start htmlcov/index.html  # Windows
+xdg-open htmlcov/index.html  # Linux
+```
+
+The HTML report provides:
+- Visual coverage with color-coded lines (green = tested, red = not tested)
+- Module-by-module breakdown
+- Easy navigation through source files
+
+### Check coverage for a specific module
+```sh
+# Using built-in coverage tool
+pytest tests/test_breeder_matrix.py --cov=src.breeder_matrix --cov-report=term-missing
+
+# Using helper script (faster)
+python check_coverage.py --module=breeder_matrix.py --verbose
+```
+
+### View coverage summary
+```sh
+python view_coverage.py
+```
+
+This displays a formatted table showing coverage for all modules.
 
 ---
 
@@ -337,7 +376,8 @@ spidershop-historical-analysis/
 ├── .github/workflows/            # CI/CD workflows
 ├── pytest.ini                    # pytest configuration
 ├── requirements-dev.txt          # Development dependencies
-└── CONTRIBUTING.md               # This file
+└── docs/
+    └── CONTRIBUTING.md           # This file
 ```
 
 ---

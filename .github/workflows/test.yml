@@ -1,0 +1,133 @@
+name: Tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      pull-requests: write  # For PR comments with coverage
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run tests with coverage
+        run: |
+          pytest tests/ \
+            --cov=src \
+            --cov-report=html \
+            --cov-report=json \
+            --cov-report=term \
+            --cov-report=term-missing \
+            -v
+
+      - name: Generate coverage summary
+        if: always()
+        run: |
+          echo "# Test Coverage Report" > coverage-summary.md
+          echo "" >> coverage-summary.md
+          echo "## Coverage Summary" >> coverage-summary.md
+          echo "" >> coverage-summary.md
+          
+          # Extract coverage percentage from JSON
+          COVERAGE=$(python -c "import json; data=json.load(open('coverage.json')); print(f\"{data['totals']['percent_covered']:.2f}\")")
+          echo "**Total Coverage: ${COVERAGE}%**" >> coverage-summary.md
+          echo "" >> coverage-summary.md
+          
+          echo "## Coverage by Module" >> coverage-summary.md
+          echo "" >> coverage-summary.md
+          echo "| File | Statements | Missing | Excluded | Coverage |" >> coverage-summary.md
+          echo "|------|-----------|---------|----------|----------|" >> coverage-summary.md
+          
+          python -c "
+          import json
+          data = json.load(open('coverage.json'))
+          for file, stats in sorted(data['files'].items()):
+              if 'src/' in file:
+                  name = file.split('/')[-1]
+                  stmts = stats['summary']['num_statements']
+                  missing = stats['summary']['missing_lines']
+                  excluded = stats['summary']['excluded_lines']
+                  cov = stats['summary']['percent_covered']
+                  print(f'| {name} | {stmts} | {missing} | {excluded} | {cov:.2f}% |')
+          " >> coverage-summary.md
+          
+          echo "" >> coverage-summary.md
+          echo "## Detailed HTML Report" >> coverage-summary.md
+          echo "" >> coverage-summary.md
+          echo "Download the \`test-coverage-report\` artifact to view the full HTML coverage report." >> coverage-summary.md
+          
+          cat coverage-summary.md
+
+      - name: Upload coverage summary as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-summary
+          path: coverage-summary.md
+          retention-days: 90
+
+      - name: Upload HTML coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-coverage-report
+          path: htmlcov/
+          retention-days: 90
+
+      - name: Upload coverage JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-json
+          path: coverage.json
+          retention-days: 90
+
+      - name: Add coverage comment to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('coverage-summary.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+      - name: Check coverage threshold
+        run: |
+          COVERAGE=$(python -c "import json; data=json.load(open('coverage.json')); print(data['totals']['percent_covered'])")
+          THRESHOLD=80
+          
+          echo "Coverage: ${COVERAGE}%"
+          echo "Threshold: ${THRESHOLD}%"
+          
+          if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
+            echo "❌ Coverage ${COVERAGE}% is below threshold ${THRESHOLD}%"
+            exit 1
+          else
+            echo "✅ Coverage ${COVERAGE}% meets threshold ${THRESHOLD}%"
+          fi
