@@ -118,13 +118,60 @@ scrape_datetime, scientific_name, common_name, size_cm, price_gbp, wishlist_coun
 
 ## Testing
 
-Currently, the project uses runtime assertions for validation:
+The project uses pytest for testing with comprehensive coverage tracking.
 
-- Use assertions.py utilities for validation
-- Check row counts, data presence, and expected values
-- Assertions should fail fast with descriptive error messages
+### Running Tests
 
-No formal test suite (pytest, unittest) currently exists.
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=src --cov-report=html --cov-report=term-missing
+
+# Check specific module coverage
+python check_coverage.py --module=breeder_matrix.py
+```
+
+### Test Coverage for Agent Mode
+
+When making code changes, agents should:
+
+1. **Run tests before changes** to establish baseline:
+   ```bash
+   pytest --cov=src --cov-report=json -v
+   ```
+
+2. **Write tests for new code** following patterns in `tests/test_breeder_matrix.py`:
+   - Use synthetic data to simulate scraping results
+   - Cover all code branches
+   - Test edge cases
+   - Use descriptive test names
+
+3. **Verify coverage after changes**:
+   ```bash
+   # Check if new module meets 80% threshold
+   python check_coverage.py --module=your_new_module.py --threshold=80
+   
+   # Parse coverage.json programmatically
+   import json
+   with open('coverage.json') as f:
+       data = json.load(f)
+       coverage = data['totals']['percent_covered']
+       print(f"Overall: {coverage:.2f}%")
+   ```
+
+4. **Coverage artifacts**:
+   - `coverage.json` - Machine-readable coverage data
+   - `htmlcov/` - Visual HTML report
+   - Use `view_coverage.py` for formatted summary
+
+### Coverage Requirements
+
+- Minimum threshold: 80% per module
+- New code should include tests
+- Tests should use synthetic data, not live web scraping
+- Follow patterns in existing test files
 
 ## Common Tasks
 

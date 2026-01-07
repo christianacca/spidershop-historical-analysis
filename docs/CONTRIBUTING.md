@@ -235,6 +235,17 @@ pip list           # Should show installed packages
 
 ## Running Tests
 
+> **⚠️ Important:** Make sure your virtual environment is activated before running tests!
+> 
+> ```sh
+> # Activate virtual environment first
+> source .venv/bin/activate          # macOS/Linux
+> .venv\Scripts\activate.bat         # Windows (CMD)
+> .venv\Scripts\Activate.ps1         # Windows (PowerShell)
+> ```
+> 
+> Your terminal prompt should show `(.venv)` at the beginning when activated.
+
 ### Run all tests
 ```sh
 pytest
