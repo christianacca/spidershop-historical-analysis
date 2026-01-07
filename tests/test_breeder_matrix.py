@@ -521,3 +521,50 @@ class TestBuildBreederOpportunityTable:
         # With only 1 historical price, should default to neutral
         assert seemanni_entry["Price Trend"] == "→"
 
+    def test_sustained_scarcity_with_high_wishlist_pressure(self):
+        """
+        Test the previously unreachable code: sustained scarcity (4+ OOS runs) 
+        with high wishlist pressure from last IN-stock run (within 5-run lookback).
+        
+        This verifies that Option A (lookback_limit=5) successfully makes the 
+        differentiated signal reachable: "sustained scarcity with strong buyer interest"
+        """
+        history = [
+            # Run 1: Species present with very high wishlist (will be 🔥 pressure)
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "50"),
+            make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "3"),
+            make_row("2025-01-01", "Brachypelma hamorii", "1.5", "30.00", "2"),
+            
+            # Run 2: seemanni goes OUT (OOS run 1)
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "3"),
+            make_row("2025-01-08", "Brachypelma hamorii", "1.5", "30.00", "2"),
+            
+            # Run 3: seemanni still OUT (OOS run 2)
+            make_row("2025-01-15", "Grammostola pulchra", "2.0", "42.00", "3"),
+            make_row("2025-01-15", "Brachypelma hamorii", "1.5", "30.00", "2"),
+            
+            # Run 4: seemanni still OUT (OOS run 3)
+            make_row("2025-01-22", "Grammostola pulchra", "2.0", "42.00", "3"),
+            make_row("2025-01-22", "Brachypelma hamorii", "1.5", "30.00", "2"),
+            
+            # Run 5: seemanni still OUT (OOS run 4 - triggers "Sustained" pattern)
+            make_row("2025-01-29", "Grammostola pulchra", "2.0", "43.00", "3"),
+            make_row("2025-01-29", "Brachypelma hamorii", "1.5", "31.00", "2"),
+        ]
+        
+        table = build_breeder_opportunity_table(history)
+        seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+        
+        # Verify sustained pattern classification
+        assert seemanni_entry["OOS"] == "OUT"
+        assert seemanni_entry["OOS Runs"] == "4"
+        assert seemanni_entry["Pattern"] == "Sustained"
+        
+        # With lookback_limit=5, the high wishlist from run 1 should be carried forward
+        # (run 1 is 4 runs back from run 5, which is within the 5-run lookback window)
+        assert seemanni_entry["Wishlist Pressure"] == "🔥"
+        
+        # Signal should be 🔥 with enhanced recommendation
+        assert seemanni_entry["Signal"] == "🔥"
+        assert "strong buyer interest" in seemanni_entry["Recommendation"].lower()
+        assert "sustained scarcity" in seemanni_entry["Recommendation"].lower()
