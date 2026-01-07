@@ -145,6 +145,31 @@ def build_breeder_opportunity_table(history_rows):
         if pattern == "Sustained" and price_trend in ("↑", "→"):
             # Sustained scarcity is already strong - never downgrade
             # Wishlist Delta does NOT affect sustained signals (already high confidence)
+            
+            # DEAD CODE WARNING (lines 174-175): The following if-block is UNREACHABLE
+            # 
+            # Why unreachable:
+            # - Sustained pattern requires: oos_runs >= 4 (line 117)
+            # - This means 4+ consecutive OUT-of-stock runs
+            # - Wishlist carryover looks back only 3 runs (line 132)
+            # - Therefore: A sustained OOS species can NEVER have wishlist_pressure == "🔥"
+            #   because its last IN-stock appearance is > 3 runs ago (outside carryover window)
+            #
+            # Design change required to make this code reachable:
+            # - Option A: Increase lookback_limit to 4+ in get_oos_wishlist_carryover() call (line 132)
+            # - Option B: Change sustained threshold to oos_runs >= 3 (line 117)
+            #
+            # RECOMMENDATION: Option A - Increase lookback_limit to 5
+            # 
+            # Rationale:
+            # 1. Sustained scarcity (4+ weeks OOS) with historical high demand IS valuable signal
+            # 2. Wishlist interest often persists 4-5 weeks after sell-out for popular species
+            # 3. Provides breeders with differentiated signal: "pair soon" vs "pair soon + high demand"
+            # 4. Conservative 5-run window (vs 3) still prevents stale data drift
+            # 5. Aligns with project philosophy: supply signals + demand amplifiers
+            #
+            # Alternative: Remove lines 174-175 if this distinction is deemed unnecessary
+            #
             if wishlist_pressure == "🔥":
                 signal = "🔥"
                 rec = "Pair soon — sustained scarcity with strong buyer interest"

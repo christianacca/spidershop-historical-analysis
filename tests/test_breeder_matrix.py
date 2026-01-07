@@ -74,8 +74,6 @@ class TestBuildBreederOpportunityTable:
         ]
         
         table = build_breeder_opportunity_table(history)
-        
-        # Find the sustained scarcity species
         seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
         
         assert seemanni_entry["OOS"] == "OUT"
@@ -183,7 +181,8 @@ class TestBuildBreederOpportunityTable:
 
     def test_price_trend_for_oos_species(self):
         """Should compute price trend for OUT species using last two known prices."""
-        history = [
+        # Test rising price trend
+        history_rising = [
             # Run 1: Present at £25
             make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "5"),
             
@@ -194,10 +193,29 @@ class TestBuildBreederOpportunityTable:
             make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "8"),
         ]
         
-        table = build_breeder_opportunity_table(history)
+        table = build_breeder_opportunity_table(history_rising)
         seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
-        
         assert seemanni_entry["Price Trend"] == "↑"
+        
+        # Test falling price trend (covers line 79)
+        history_falling = [
+            # Run 1: Present at £30
+            make_row("2025-01-01", "Brachypelma hamorii", "1.5", "30.00", "5"),
+            make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "5"),
+            
+            # Run 2: Present at £25 (price decreased)
+            make_row("2025-01-08", "Brachypelma hamorii", "1.5", "25.00", "6"),
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "5"),
+            
+            # Runs 3-5: OUT (should show ↓ based on last two prices)
+            make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "7"),
+            make_row("2025-01-22", "Grammostola pulchra", "2.0", "41.00", "8"),
+            make_row("2025-01-29", "Grammostola pulchra", "2.0", "42.00", "9"),
+        ]
+        
+        table = build_breeder_opportunity_table(history_falling)
+        hamorii_entry = [r for r in table if r["Species"] == "Brachypelma hamorii"][0]
+        assert hamorii_entry["Price Trend"] == "↓"
 
     def test_emerging_with_rising_price_gets_fire_signal(self):
         """Emerging scarcity + rising price should get 🔥 signal."""
@@ -446,3 +464,60 @@ class TestBuildBreederOpportunityTable:
         species_c = [r for r in table if r["Species"] == "Species C"][0]
         assert species_c["Pattern"] == "Always"
         assert species_c["Price Trend"] == "→"
+
+    def test_price_trend_with_invalid_price_values(self):
+        """Should handle invalid price values gracefully (ValueError exception)."""
+        history = [
+            # Run 1: Present with invalid price
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "invalid", "5"),
+            
+            # Run 2: Present with valid price
+            make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "25.00", "6"),
+        ]
+        
+        table = build_breeder_opportunity_table(history)
+        entry = table[0]
+        
+        # Should default to stable when prices can't be parsed
+        assert entry["Price Trend"] == "→"
+
+    def test_price_trend_oos_species_with_invalid_historical_prices(self):
+        """Should handle invalid historical prices for OUT species."""
+        history = [
+            # Run 1: Present with invalid price
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "not-a-number", "5"),
+            make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "5"),
+            
+            # Run 2: Present with another invalid price
+            make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "also-invalid", "6"),
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "5"),
+            
+            # Runs 3-5: Species goes OUT (need 5 runs minimum)
+            make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "5"),
+            make_row("2025-01-22", "Grammostola pulchra", "2.0", "41.00", "6"),
+            make_row("2025-01-29", "Grammostola pulchra", "2.0", "42.00", "7"),
+        ]
+        
+        table = build_breeder_opportunity_table(history)
+        seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+        
+        # Should default to stable when historical prices can't be parsed (hits line 79)
+        assert seemanni_entry["Price Trend"] == "→"
+
+    def test_price_trend_only_one_historical_price_for_oos_species(self):
+        """Should default to neutral when only one historical price exists for OUT species."""
+        history = [
+            # Run 1: Species present with price
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "5"),
+            make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "5"),
+            
+            # Run 2: seemanni goes OUT (only 1 price point)
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "5"),
+        ]
+        
+        table = build_breeder_opportunity_table(history)
+        seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+        
+        # With only 1 historical price, should default to neutral
+        assert seemanni_entry["Price Trend"] == "→"
+

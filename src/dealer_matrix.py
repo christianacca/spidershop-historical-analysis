@@ -53,6 +53,11 @@ def build_dealer_supply_risk_table(history_rows):
                     if oos_events:
                         oos_events[-1] += 1
                     else:
+                        # UNREACHABLE: This else branch is logically unreachable because:
+                        # - last_present starts as None
+                        # - First OOS (when last_present=None) hits the final else and appends 1
+                        # - Subsequent OOS (when last_present=False) will always have non-empty oos_events
+                        # Design recommendation: (2) Remove this dead code - the logic is correct without it
                         oos_events.append(1)
                 else:  # last_present is None
                     oos_events.append(1)
@@ -103,7 +108,13 @@ def build_dealer_supply_risk_table(history_rows):
             risk = "🔥"
             rec = "Actively seek breeders — high demand, unreliable supply"
         elif reliability == "Low" and wishlist_delta == "↑":
-            # NEW: Low reliability + rising delta -> reinforce 🔥
+            # RARELY REACHED: Low reliability + rising delta (without Slow speed or high wishlist)
+            # Hard to synthesize because:
+            # - Low reliability (<40% presence) often correlates with long OOS periods (Slow speed)
+            # - Rising delta typically coincides with high wishlist pressure
+            # - The previous two branches (Low+Slow and Low+🔥) are checked first
+            # Design recommendation: (1) Keep this code - it's theoretically reachable with specific data patterns
+            # where a rarely-stocked species shows rising interest without yet reaching high pressure
             risk = "🔥"
             rec = "Actively seek breeders — unreliable supply, surging interest"
         elif reliability == "Medium" and wishlist_pressure == "🔥" and wishlist_delta == "↑":
@@ -122,7 +133,14 @@ def build_dealer_supply_risk_table(history_rows):
             risk = "❌"
             rec = "No urgency / oversupplied"
         elif reliability == "High" and wishlist_delta == "↓":
-            # NEW: High reliability + falling delta -> reinforce ❌
+            # UNREACHABLE: High reliability + falling delta cannot be reached because:
+            # - Previous branch matches when wishlist_pressure in ("❌", "⚠️")
+            # - Falling delta typically occurs when wishlist starts high and falls
+            # - If wishlist is currently high (🔥), next branch (High + 🔥) matches instead
+            # - If wishlist is low/moderate (❌/⚠️), previous branch already matched
+            # Design recommendation: (2) Remove this dead code - the logic is redundant
+            # The falling delta signal for High reliability is already handled by the
+            # previous catch-all "High + low/moderate" branch
             risk = "❌"
             rec = "No urgency / oversupplied — interest declining"
         elif reliability == "High" and wishlist_pressure == "🔥":
