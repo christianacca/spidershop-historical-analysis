@@ -41,7 +41,7 @@ def build_dealer_supply_risk_table(history_rows):
         present_pct = len(present_runs) / total_runs
         reliability = "High" if present_pct >= 0.8 else "Medium" if present_pct >= 0.4 else "Low"
 
-        # safe OOS event counting even if the series starts with "absent"
+        # Safe OOS event counting even if the series starts with "absent"
         oos_events = []
         last_present = None
         for rt in runs:
@@ -50,16 +50,8 @@ def build_dealer_supply_risk_table(history_rows):
                 if last_present is True:
                     oos_events.append(1)
                 elif last_present is False:
-                    if oos_events:
-                        oos_events[-1] += 1
-                    else:
-                        # UNREACHABLE: This else branch is logically unreachable because:
-                        # - last_present starts as None
-                        # - First OOS (when last_present=None) hits the final else and appends 1
-                        # - Subsequent OOS (when last_present=False) will always have non-empty oos_events
-                        # Design recommendation: (2) Remove this dead code - the logic is correct without it
-                        oos_events.append(1)
-                else:  # last_present is None
+                    oos_events[-1] += 1
+                else:  # last_present is None (first run)
                     oos_events.append(1)
             last_present = present
 
@@ -92,11 +84,12 @@ def build_dealer_supply_risk_table(history_rows):
         # Compute wishlist delta (momentum signal)
         wishlist_delta = compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=3)
 
-        # Dealer risk logic (enhanced with wishlist pressure and delta)
-        # Wishlist escalates urgency where supply is unreliable, de-escalates where interest is weak
-        # Wishlist Delta acts as momentum modifier
+        # Dealer risk logic: Supply-first hierarchy with demand as modifier
+        # Low reliability species escalate to 🔥 based on supply failure + demand signals
+        # Medium reliability varies between ⚠️ and 🔥 based on demand context
+        # High reliability defaults to ❌ (well-supplied) unless exceptional demand
         if reliability == "Low" and speed == "Slow":
-            # Low reliability + slow restock is already high risk
+            # Low reliability + slow restock = high risk regardless of demand
             if wishlist_pressure == "🔥":
                 risk = "🔥"
                 rec = "Actively seek breeders — high demand, poor supply"
@@ -108,24 +101,21 @@ def build_dealer_supply_risk_table(history_rows):
             risk = "🔥"
             rec = "Actively seek breeders — high demand, unreliable supply"
         elif reliability == "Low" and wishlist_delta == "↑":
-            # RARELY REACHED: Low reliability + rising delta (without Slow speed or high wishlist)
-            # Hard to synthesize because:
-            # - Low reliability (<40% presence) often correlates with long OOS periods (Slow speed)
-            # - Rising delta typically coincides with high wishlist pressure
-            # - The previous two branches (Low+Slow and Low+🔥) are checked first
-            # Design recommendation: (1) Keep this code - it's theoretically reachable with specific data patterns
-            # where a rarely-stocked species shows rising interest without yet reaching high pressure
+            # Low reliability + rising delta (early-stage demand growth on unreliable species)
+            # Rarely reached: most Low reliability cases are caught by previous branches
+            # Kept for edge case where interest is accelerating but not yet at high pressure
             risk = "🔥"
             rec = "Actively seek breeders — unreliable supply, surging interest"
         elif reliability == "Medium" and wishlist_pressure == "🔥" and wishlist_delta == "↑":
-            # NEW: Medium reliability + high wishlist + rising delta -> escalate to 🔥
+            # Medium reliability + high wishlist + rising delta -> escalate to 🔥
             risk = "🔥"
             rec = "Actively seek breeders — surging demand, variable supply"
         elif reliability == "Medium" and wishlist_pressure == "🔥":
-            # Medium reliability + high wishlist
+            # Medium reliability + high wishlist (without rising delta)
             risk = "⚠️"
             rec = "Buy opportunistically — moderate demand, variable supply"
         elif reliability == "Medium":
+            # Medium reliability with lower demand signals
             risk = "⚠️"
             rec = "Buy opportunistically"
         elif reliability == "High" and wishlist_pressure in ("❌", "⚠️"):
@@ -133,14 +123,7 @@ def build_dealer_supply_risk_table(history_rows):
             risk = "❌"
             rec = "No urgency / oversupplied"
         elif reliability == "High" and wishlist_delta == "↓":
-            # UNREACHABLE: High reliability + falling delta cannot be reached because:
-            # - Previous branch matches when wishlist_pressure in ("❌", "⚠️")
-            # - Falling delta typically occurs when wishlist starts high and falls
-            # - If wishlist is currently high (🔥), next branch (High + 🔥) matches instead
-            # - If wishlist is low/moderate (❌/⚠️), previous branch already matched
-            # Design recommendation: (2) Remove this dead code - the logic is redundant
-            # The falling delta signal for High reliability is already handled by the
-            # previous catch-all "High + low/moderate" branch
+            # High reliability + falling delta (interest declining even if currently high)
             risk = "❌"
             rec = "No urgency / oversupplied — interest declining"
         elif reliability == "High" and wishlist_pressure == "🔥":
@@ -148,6 +131,7 @@ def build_dealer_supply_risk_table(history_rows):
             risk = "❌"
             rec = "Well-supplied, but monitor demand"
         else:
+            # Fallback for any remaining cases
             risk = "❌"
             rec = "No urgency / oversupplied"
 

@@ -527,7 +527,7 @@ class TestBuildDealerSupplyRiskTable:
         """High reliability + falling wishlist delta = ❌ with declining interest message."""
         history = [
             # 5 runs: present in all 5 = 100% (High reliability)
-            # Wishlist falling from 30 to 20
+            # Wishlist falling from 30 to 15
             make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "30"),
             make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "5"),
             
