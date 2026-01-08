@@ -12,28 +12,9 @@ Tests cover all branches including:
 - All risk classification branches
 """
 
-import sys
-from pathlib import Path
-
-# Add src directory to Python path to enable imports
-src_path = Path(__file__).parent.parent / "src"
-sys.path.insert(0, str(src_path))
-
 import pytest
 from dealer_matrix import build_dealer_supply_risk_table, write_dealer_outputs
-
-
-def make_row(scrape_datetime, scientific_name, size_cm, price_gbp, wishlist_count="0"):
-    """Helper to create a synthetic history row matching CSV schema."""
-    return {
-        "scrape_datetime": scrape_datetime,
-        "scientific_name": scientific_name,
-        "common_name": "Test Spider",
-        "size_cm": size_cm,
-        "price_gbp": price_gbp,
-        "wishlist_count": wishlist_count,
-        "page_url": "https://example.com"
-    }
+from conftest import make_row
 
 
 class TestBuildDealerSupplyRiskTable:

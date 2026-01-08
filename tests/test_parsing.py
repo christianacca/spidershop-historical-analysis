@@ -10,13 +10,6 @@ Tests cover all parsing functions including:
 - Edge cases and error handling
 """
 
-import sys
-from pathlib import Path
-
-# Add src directory to Python path to enable imports
-src_path = Path(__file__).parent.parent / "src"
-sys.path.insert(0, str(src_path))
-
 import pytest
 from parsing import (
     normalize_whitespace,
