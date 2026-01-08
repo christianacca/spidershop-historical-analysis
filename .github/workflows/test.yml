@@ -1,0 +1,20 @@
+name: Tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      pull-requests: write  # For PR comments with coverage
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
