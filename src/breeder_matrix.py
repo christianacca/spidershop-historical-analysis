@@ -133,12 +133,12 @@ def build_breeder_opportunity_table(history_rows):
             wishlist_pressure = wishlist_pressure_map.get(key, "❌")
         else:
             # Species is OUT - try to carry forward recent pressure
-            carried = get_oos_wishlist_carryover(key, by_run, runs, cur_run, lookback_limit=5)
+            carried = get_oos_wishlist_carryover(key, by_run, runs, cur_run)
             wishlist_pressure = carried if carried else "❌"
 
         # Compute wishlist delta (momentum signal)
         # Keep lookback_limit=3 for delta per philosophy: "OUT carryover ≤ 3 runs" for momentum
-        wishlist_delta = compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=3)
+        wishlist_delta = compute_wishlist_delta(key, by_run, runs, cur_run)
 
         # Recommendation logic (conservative wishlist integration with delta)
         # Base signal driven by Pattern + Price Trend (unchanged)

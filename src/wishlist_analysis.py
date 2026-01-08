@@ -86,7 +86,7 @@ def compute_wishlist_pressure(rows):
     return result
 
 
-def get_oos_wishlist_carryover(key, by_run, runs, cur_run, lookback_limit=3):
+def get_oos_wishlist_carryover(key, by_run, runs, cur_run, lookback_limit=5):
     """
     For OUT-of-stock species, carry forward wishlist pressure from the most recent run
     where it was IN stock, within a bounded lookback window.
@@ -96,7 +96,7 @@ def get_oos_wishlist_carryover(key, by_run, runs, cur_run, lookback_limit=3):
         by_run: dict mapping run datetime -> list of rows
         runs: sorted list of run datetimes
         cur_run: current run datetime
-        lookback_limit: max number of recent runs to look back (default 3)
+        lookback_limit: max number of recent runs to look back (default 5)
     
     Returns:
         Wishlist pressure symbol (🔥/⚠️/❌) or None if not found

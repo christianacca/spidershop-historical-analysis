@@ -72,17 +72,18 @@ def build_dealer_supply_risk_table(history_rows):
 
         # Get wishlist pressure with OOS carryover
         # If species is OUT now, carry forward last known pressure (bounded lookback)
+        # Use lookback_limit=5 to capture historical demand within reasonable window (same as breeder matrix)
         key = (sci, size)
         if key in cur_keys:
             # Species is IN current run
             wishlist_pressure = wishlist_pressure_map.get(key, "❌")
         else:
             # Species is OUT - try to carry forward recent pressure
-            carried = get_oos_wishlist_carryover(key, by_run, runs, cur_run, lookback_limit=3)
+            carried = get_oos_wishlist_carryover(key, by_run, runs, cur_run)
             wishlist_pressure = carried if carried else "❌"
 
         # Compute wishlist delta (momentum signal)
-        wishlist_delta = compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=3)
+        wishlist_delta = compute_wishlist_delta(key, by_run, runs, cur_run)
 
         # Dealer risk logic: Supply-first hierarchy with demand as modifier
         # Low reliability species escalate to 🔥 based on supply failure + demand signals

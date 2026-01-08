@@ -270,9 +270,9 @@ class TestBuildDealerSupplyRiskTable:
     def test_low_reliability_slow_restock_high_wishlist_escalates_message(self):
         """Low reliability + slow restock + high wishlist pressure enhances recommendation."""
         history = [
-            # 5 runs: IN once with high wishlist, then OUT for 4 runs
-            # Reliability = 1/5 = 20% (Low), OOS = 4 (Slow)
-            # High wishlist pressure in run 1
+            # 6 runs: IN once with high wishlist, then OUT for 5 runs
+            # Reliability = 1/6 = 17% (Low), OOS = 5 (Slow)
+            # High wishlist pressure in run 1, carryover expires after run 6 (5 runs OUT)
             make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "50"),
             make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "5"),
             
@@ -280,15 +280,16 @@ class TestBuildDealerSupplyRiskTable:
             make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "5"),
             make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "5"),
             make_row("2025-01-29", "Grammostola pulchra", "2.0", "40.00", "5"),
+            make_row("2025-02-05", "Grammostola pulchra", "2.0", "40.00", "5"),
         ]
         
         table = build_dealer_supply_risk_table(history)
         seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
         
         assert seemanni_entry["Dealer Risk"] == "🔥"
-        # Species is OUT for 4 runs, beyond 3-run carryover, so wishlist defaults to ❌
-        assert seemanni_entry["Wishlist Pressure"] == "❌"
-        assert "Actively seek breeders" in seemanni_entry["Dealer Recommendation"]
+        # Species is OUT for 5 runs, within 5-run carryover, so wishlist is still 🔥
+        assert seemanni_entry["Wishlist Pressure"] == "🔥"
+        assert "high demand" in seemanni_entry["Dealer Recommendation"].lower()
 
     def test_low_reliability_fast_restock_high_wishlist_fire_risk(self):
         """Low reliability + fast restock + high wishlist pressure = 🔥 risk."""
@@ -584,7 +585,7 @@ class TestBuildDealerSupplyRiskTable:
         assert "monitor demand" in seemanni_entry["Dealer Recommendation"].lower()
 
     def test_oos_carryover_for_out_of_stock_species(self):
-        """OUT species should carry forward last known wishlist pressure (bounded to 3 runs)."""
+        """OUT species should carry forward last known wishlist pressure (bounded to 5 runs)."""
         history = [
             # Run 1: Species IN with high wishlist
             make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "40"),
@@ -593,22 +594,128 @@ class TestBuildDealerSupplyRiskTable:
             # Run 2: OUT - should carry forward from run 1
             make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "5"),
             
-            # Run 3: OUT - still within 3-run lookback
+            # Run 3: OUT - still within 5-run lookback
             make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "5"),
             
-            # Run 4: OUT - still within 3-run lookback
+            # Run 4: OUT - still within 5-run lookback
             make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "5"),
             
-            # Run 5: OUT - beyond 3-run lookback, should default to ❌
+            # Run 5: OUT - still within 5-run lookback
             make_row("2025-01-29", "Grammostola pulchra", "2.0", "40.00", "5"),
+            
+            # Run 6: OUT - still within 5-run lookback (just barely)
+            make_row("2025-02-05", "Grammostola pulchra", "2.0", "40.00", "5"),
+            
+            # Run 7: OUT - beyond 5-run lookback, should default to ❌
+            make_row("2025-02-12", "Grammostola pulchra", "2.0", "40.00", "5"),
         ]
         
         table = build_dealer_supply_risk_table(history)
         seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
         
-        # Should carry forward wishlist pressure for first 3 OOS runs
-        # By run 5, it's been OUT for 4 runs, so carryover should expire
+        # Should carry forward wishlist pressure for first 5 OOS runs
+        # By run 7, it's been OUT for 6 runs, so carryover should expire
         assert seemanni_entry["Wishlist Pressure"] == "❌"
+
+    def test_low_reliability_fast_restock_high_wishlist_covers_line_102(self):
+        """
+        Low reliability + Fast/Moderate restock + high wishlist = 🔥 risk.
+        This specifically covers lines 102-103: the case where Low reliability has
+        high wishlist but NOT slow restock (so line 93 doesn't catch it).
+        """
+        history = [
+            # 12 runs: present in 4 runs = 33% (Low reliability)
+            # Pattern: runs 1, 3, 5, 12 present (short gaps except final)
+            # OOS events: [1, 1, 6] = avg ~2.67 (Moderate, not Slow)
+            # High wishlist throughout
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "50"),  # High wishlist
+            make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "5"),
+            
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "5"),  # Seemanni OUT (1 run)
+            
+            make_row("2025-01-15", "Aphonopelma seemanni", "1.0", "25.00", "52"),
+            make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "5"),
+            
+            make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "5"),  # Seemanni OUT (1 run)
+            
+            make_row("2025-01-29", "Aphonopelma seemanni", "1.0", "25.00", "55"),
+            make_row("2025-01-29", "Grammostola pulchra", "2.0", "40.00", "5"),
+            
+            # Seemanni OUT for runs 6-11 (6 runs)
+            make_row("2025-02-05", "Grammostola pulchra", "2.0", "40.00", "5"),
+            make_row("2025-02-12", "Grammostola pulchra", "2.0", "40.00", "5"),
+            make_row("2025-02-19", "Grammostola pulchra", "2.0", "40.00", "5"),
+            make_row("2025-02-26", "Grammostola pulchra", "2.0", "40.00", "5"),
+            make_row("2025-03-05", "Grammostola pulchra", "2.0", "40.00", "5"),
+            make_row("2025-03-12", "Grammostola pulchra", "2.0", "40.00", "5"),
+            
+            # Final run 12: back in stock
+            make_row("2025-03-19", "Aphonopelma seemanni", "1.0", "25.00", "60"),
+            make_row("2025-03-19", "Grammostola pulchra", "2.0", "40.00", "5"),
+        ]
+        
+        table = build_dealer_supply_risk_table(history)
+        seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+        
+        # 4/12 = 33% < 40% = Low reliability
+        assert seemanni_entry["Stock Reliability"] == "Low"
+        # OOS events: [1, 1, 6] = avg 2.67 which rounds to 2.7, so Moderate (not Slow, not Fast)
+        # Actually avg might be calculated differently - let's verify it's NOT Slow
+        assert seemanni_entry["Restock Speed"] != "Slow"
+        assert seemanni_entry["Wishlist Pressure"] == "🔥"
+        assert seemanni_entry["Dealer Risk"] == "🔥"
+        # This should hit line 102-103 (Low + not-Slow + high wishlist)
+        assert "high demand" in seemanni_entry["Dealer Recommendation"].lower()
+        assert "unreliable supply" in seemanni_entry["Dealer Recommendation"].lower()
+
+    def test_low_reliability_moderate_restock_rising_delta_covers_line_108(self):
+        """
+        Low reliability + Moderate restock + rising delta (without high wishlist) = 🔥 risk.
+        This specifically covers lines 108-109: Low + rising delta without hitting
+        previous branches (not Slow, not high wishlist).
+        """
+        history = [
+            # 12 runs: present in 4 runs = 33% (Low reliability)
+            # Pattern: runs 1, 3, 5, 12 present
+            # OOS events: [1, 1, 6] = avg ~2.67 (Moderate, not Slow)
+            # Lower wishlist (5-8-19) that rises but doesn't reach 🔥 threshold
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "5"),
+            make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "30"),
+            
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "30"),
+            
+            make_row("2025-01-15", "Aphonopelma seemanni", "1.0", "25.00", "6"),
+            make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "30"),
+            
+            make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "30"),
+            
+            make_row("2025-01-29", "Aphonopelma seemanni", "1.0", "25.00", "8"),
+            make_row("2025-01-29", "Grammostola pulchra", "2.0", "40.00", "30"),
+            
+            make_row("2025-02-05", "Grammostola pulchra", "2.0", "40.00", "30"),
+            make_row("2025-02-12", "Grammostola pulchra", "2.0", "40.00", "30"),
+            make_row("2025-02-19", "Grammostola pulchra", "2.0", "40.00", "30"),
+            make_row("2025-02-26", "Grammostola pulchra", "2.0", "40.00", "30"),
+            make_row("2025-03-05", "Grammostola pulchra", "2.0", "40.00", "30"),
+            make_row("2025-03-12", "Grammostola pulchra", "2.0", "40.00", "30"),
+            
+            # Final run: back with higher wishlist (8 → 19 = +11 = ↑)
+            # But 19 is NOT high enough for 🔥 when pulchra has 30
+            make_row("2025-03-19", "Aphonopelma seemanni", "1.0", "25.00", "19"),
+            make_row("2025-03-19", "Grammostola pulchra", "2.0", "40.00", "30"),
+        ]
+        
+        table = build_dealer_supply_risk_table(history)
+        seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+        
+        assert seemanni_entry["Stock Reliability"] == "Low"
+        assert seemanni_entry["Restock Speed"] != "Slow"  # Should be Fast or Moderate
+        assert seemanni_entry["Wishlist Pressure"] != "🔥"  # NOT high pressure
+        assert seemanni_entry["Wishlist Δ"] == "↑"  # Rising delta
+        assert seemanni_entry["Dealer Risk"] == "🔥"
+        # This should hit line 108-109 (Low + rising delta without Slow or high wishlist)
+        assert "unreliable supply" in seemanni_entry["Dealer Recommendation"].lower()
+        assert "surging interest" in seemanni_entry["Dealer Recommendation"].lower()
 
     def test_sorting_priority_risk_then_wishlist_then_delta(self):
         """Table should sort by: Dealer Risk > Wishlist Pressure > Wishlist Δ > Avg OOS Duration."""

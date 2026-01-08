@@ -250,7 +250,7 @@ All analysis must prioritise **signal stability over early detection**.
 - Must be computed per-run (no absolute thresholds)
 - Includes:
   - Small-N flattening (flat distributions → ⚠️)
-  - Bounded carryover for OUT species (≤ 3 runs)
+  - Bounded carryover for OUT species (≤ 5 runs)
 - Acts as a **confidence amplifier**, never a trigger
 
 ### Wishlist Delta (Momentum)
