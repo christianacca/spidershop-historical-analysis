@@ -103,7 +103,7 @@ def extract_analysis_sections(markdown_file):
     
     # Extract breeder section
     breeder_match = re.search(
-        r'## 🧬 Breeder Opportunity Matrix\n\n(.*?)(?=\n## |\n<details>|$)',
+        r'## 🧬 Breeder Opportunity Matrix \(Top 10\)\n\n(.*?)(?=\n## |\n<details>|$)',
         content,
         re.DOTALL
     )
@@ -111,7 +111,7 @@ def extract_analysis_sections(markdown_file):
     
     # Extract dealer section
     dealer_match = re.search(
-        r'## 🏪 Dealer Supply Risk Matrix\n\n(.*?)(?=\n<details>|$)',
+        r'## 🏪 Dealer Supply Risk Matrix \(Top 10\)\n\n(.*?)(?=\n<details>|$)',
         content,
         re.DOTALL
     )

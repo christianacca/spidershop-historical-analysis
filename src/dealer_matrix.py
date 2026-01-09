@@ -176,7 +176,7 @@ def write_dealer_outputs(table):
     shown = min(10, total)
 
     with open(summary_path, "a", encoding="utf-8") as f:
-        f.write("\n## 🏪 Dealer Supply Risk Matrix\n\n")
+        f.write("\n## 🏪 Dealer Supply Risk Matrix (Top 10)\n\n")
         f.write("| Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Wishlist Pressure | Wishlist Δ | Dealer Risk | Dealer Recommendation |\n")
         f.write("|---|---:|---|---:|---|---|---|---|---|---|\n")
         for r in table[:shown]:

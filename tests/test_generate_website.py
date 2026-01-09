@@ -156,11 +156,11 @@ class TestExtractAnalysisSections:
     def test_extract_breeder_section(self):
         """Should extract breeder opportunity matrix section."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, encoding='utf-8') as f:
-            f.write("""## 🧬 Breeder Opportunity Matrix
+            f.write("""## 🧬 Breeder Opportunity Matrix (Top 10)
 
 Some analysis text here.
 
-## 🏪 Dealer Supply Risk Matrix
+## 🏪 Dealer Supply Risk Matrix (Top 10)
 
 Other content.""")
             filename = f.name
@@ -168,7 +168,7 @@ Other content.""")
         try:
             breeder, dealer, legend = extract_analysis_sections(filename)
             assert breeder is not None
-            assert "## 🧬 Breeder Opportunity Matrix" in breeder
+            assert "## 🧬 Breeder Opportunity Matrix (Top 10)" in breeder
             assert "Some analysis text here." in breeder
         finally:
             os.unlink(filename)
@@ -176,7 +176,7 @@ Other content.""")
     def test_extract_dealer_section(self):
         """Should extract dealer supply risk matrix section."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, encoding='utf-8') as f:
-            f.write("""## 🏪 Dealer Supply Risk Matrix
+            f.write("""## 🏪 Dealer Supply Risk Matrix (Top 10)
 
 Dealer analysis here.
 
@@ -188,7 +188,7 @@ Dealer analysis here.
         try:
             breeder, dealer, legend = extract_analysis_sections(filename)
             assert dealer is not None
-            assert "## 🏪 Dealer Supply Risk Matrix" in dealer
+            assert "## 🏪 Dealer Supply Risk Matrix (Top 10)" in dealer
             assert "Dealer analysis here." in dealer
         finally:
             os.unlink(filename)
@@ -226,7 +226,7 @@ Legend content here.
     def test_partial_sections(self):
         """Should extract only the sections that exist."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, encoding='utf-8') as f:
-            f.write("""## 🧬 Breeder Opportunity Matrix
+            f.write("""## 🧬 Breeder Opportunity Matrix (Top 10)
 
 Breeder content only.""")
             filename = f.name
@@ -944,8 +944,8 @@ This is the **analysis** section with *formatting*.
                     f.write("Aphonopelma seemanni,Low\n")
                 
                 with open("analysis_summary.md", "w", encoding="utf-8") as f:
-                    f.write("## 🧬 Breeder Opportunity Matrix\n\nBreeder content\n\n")
-                    f.write("## 🏪 Dealer Supply Risk Matrix\n\nDealer content\n\n")
+                    f.write("## 🧬 Breeder Opportunity Matrix (Top 10)\n\nBreeder content\n\n")
+                    f.write("## 🏪 Dealer Supply Risk Matrix (Top 10)\n\nDealer content\n\n")
                     f.write("<details><summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>\nLegend content\n</details>")
                 
                 # Run main function

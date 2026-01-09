@@ -131,7 +131,7 @@ class TestMainOrchestration:
         # Mock file existence checks
         mock_file_system['exists'].return_value = True
         mock_file_system['csv_count'].return_value = 1
-        mock_file_system['read_summary'].return_value = "## 🧬 Breeder Opportunity Matrix\n## 🏪 Dealer Supply Risk Matrix"
+        mock_file_system['read_summary'].return_value = "## 🧬 Breeder Opportunity Matrix (Top 10)\n## 🏪 Dealer Supply Risk Matrix (Top 10)"
         
         # Execute
         main()
@@ -184,7 +184,7 @@ class TestMainOrchestration:
         # Mock file checks
         mock_file_system['exists'].return_value = True
         mock_file_system['csv_count'].return_value = 3
-        mock_file_system['read_summary'].return_value = "## 🧬 Breeder Opportunity Matrix\n## 🏪 Dealer Supply Risk Matrix"
+        mock_file_system['read_summary'].return_value = "## 🧬 Breeder Opportunity Matrix (Top 10)\n## 🏪 Dealer Supply Risk Matrix (Top 10)"
         
         # Execute
         main()
@@ -240,7 +240,7 @@ class TestMainOrchestration:
         mock_analysis['write_dealer'].return_value = True
         mock_file_system['exists'].return_value = True
         mock_file_system['csv_count'].return_value = 1
-        mock_file_system['read_summary'].return_value = "## 🧬 Breeder Opportunity Matrix\n## 🏪 Dealer Supply Risk Matrix"
+        mock_file_system['read_summary'].return_value = "## 🧬 Breeder Opportunity Matrix (Top 10)\n## 🏪 Dealer Supply Risk Matrix (Top 10)"
         
         # Execute
         main()
@@ -290,7 +290,7 @@ class TestMainOrchestration:
             mock_analysis['write_dealer'].return_value = True
             mock_file_system['exists'].return_value = True
             mock_file_system['csv_count'].return_value = 1
-            mock_file_system['read_summary'].return_value = "## 🧬 Breeder Opportunity Matrix\n## 🏪 Dealer Supply Risk Matrix"
+            mock_file_system['read_summary'].return_value = "## 🧬 Breeder Opportunity Matrix (Top 10)\n## 🏪 Dealer Supply Risk Matrix (Top 10)"
             
             main()
         
@@ -330,7 +330,7 @@ class TestMainOrchestration:
         mock_file_system['csv_count'].return_value = 1
         
         # Execute and expect SystemExit (from assert_condition)
-        with pytest.raises(SystemExit, match="Breeder Opportunity Matrix was not written"):
+        with pytest.raises(SystemExit, match="Breeder Opportunity Matrix \\(Top 10\\) was not written"):
             main()
         
         assert mock_browser.called
@@ -355,10 +355,10 @@ class TestMainOrchestration:
         
         # Mock read_summary_text to return content missing breeder section
         with patch('scrape_spidershop_spiderlings.read_summary_text') as mock_read_summary:
-            mock_read_summary.return_value = "## 🏪 Dealer Supply Risk Matrix"
+            mock_read_summary.return_value = "## 🏪 Dealer Supply Risk Matrix (Top 10)"
             
             # Execute and expect SystemExit (from assert_condition)
-            with pytest.raises(SystemExit, match="Breeder Opportunity Matrix heading missing"):
+            with pytest.raises(SystemExit, match="Breeder Opportunity Matrix \\(Top 10\\) heading missing"):
                 main()
         
         assert mock_browser.called

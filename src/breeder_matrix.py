@@ -229,7 +229,7 @@ def write_breeder_outputs(table):
     shown = min(10, total)
 
     with open(summary_path, "a", encoding="utf-8") as f:
-        f.write("\n## 🧬 Breeder Opportunity Matrix\n\n")
+        f.write("\n## 🧬 Breeder Opportunity Matrix (Top 10)\n\n")
         f.write("| Species | Size (cm) | OOS | OOS Runs | Pattern | Price Trend | Wishlist Pressure | Wishlist Δ | Signal | Recommendation |\n")
         f.write("|---|---:|---|---:|---|---|---|---|---|---|\n")
         for r in table[:shown]:
