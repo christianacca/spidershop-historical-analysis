@@ -150,25 +150,25 @@ class TestExtractAnalysisSections:
     def test_nonexistent_file_returns_none(self):
         """Should return None for breeder and dealer if file doesn't exist."""
         result = extract_analysis_sections("/nonexistent/file.md")
-        # Function returns (None, None) when file doesn't exist
-        assert result == (None, None)
+        # Function returns (None, None, None, None) when file doesn't exist
+        assert result == (None, None, None, None)
 
     def test_extract_breeder_section(self):
         """Should extract breeder opportunity matrix section."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, encoding='utf-8') as f:
-            f.write("""## 🧬 Breeder Opportunity Matrix
+            f.write("""## 🧬 Breeder Opportunity Matrix (Top 10)
 
 Some analysis text here.
 
-## 🏪 Dealer Supply Risk Matrix
+## 🏪 Dealer Supply Risk Matrix (Top 10)
 
 Other content.""")
             filename = f.name
         
         try:
-            breeder, dealer, legend = extract_analysis_sections(filename)
+            breeder, dealer, breeder_legend, dealer_legend = extract_analysis_sections(filename)
             assert breeder is not None
-            assert "## 🧬 Breeder Opportunity Matrix" in breeder
+            assert "## 🧬 Breeder Opportunity Matrix (Top 10)" in breeder
             assert "Some analysis text here." in breeder
         finally:
             os.unlink(filename)
@@ -176,7 +176,7 @@ Other content.""")
     def test_extract_dealer_section(self):
         """Should extract dealer supply risk matrix section."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, encoding='utf-8') as f:
-            f.write("""## 🏪 Dealer Supply Risk Matrix
+            f.write("""## 🏪 Dealer Supply Risk Matrix (Top 10)
 
 Dealer analysis here.
 
@@ -186,9 +186,9 @@ Dealer analysis here.
             filename = f.name
         
         try:
-            breeder, dealer, legend = extract_analysis_sections(filename)
+            breeder, dealer, breeder_legend, dealer_legend = extract_analysis_sections(filename)
             assert dealer is not None
-            assert "## 🏪 Dealer Supply Risk Matrix" in dealer
+            assert "## 🏪 Dealer Supply Risk Matrix (Top 10)" in dealer
             assert "Dealer analysis here." in dealer
         finally:
             os.unlink(filename)
@@ -198,14 +198,19 @@ Dealer analysis here.
         with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, encoding='utf-8') as f:
             f.write("""<details>
 <summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>
-Legend content here.
+### 🧬 Breeder Opportunity Matrix — Legend
+Breeder legend content here.
+### 🏪 Dealer Supply Risk Matrix — Legend
+Dealer legend content here.
 </details>""")
             filename = f.name
         
         try:
-            breeder, dealer, legend = extract_analysis_sections(filename)
-            assert legend is not None
-            assert "Legend content here." in legend
+            breeder, dealer, breeder_legend, dealer_legend = extract_analysis_sections(filename)
+            assert breeder_legend is not None
+            assert "Breeder legend content here." in breeder_legend
+            assert dealer_legend is not None
+            assert "Dealer legend content here." in dealer_legend
         finally:
             os.unlink(filename)
 
@@ -216,26 +221,28 @@ Legend content here.
             filename = f.name
         
         try:
-            breeder, dealer, legend = extract_analysis_sections(filename)
+            breeder, dealer, breeder_legend, dealer_legend = extract_analysis_sections(filename)
             assert breeder is None
             assert dealer is None
-            assert legend is None
+            assert breeder_legend is None
+            assert dealer_legend is None
         finally:
             os.unlink(filename)
 
     def test_partial_sections(self):
         """Should extract only the sections that exist."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, encoding='utf-8') as f:
-            f.write("""## 🧬 Breeder Opportunity Matrix
+            f.write("""## 🧬 Breeder Opportunity Matrix (Top 10)
 
 Breeder content only.""")
             filename = f.name
         
         try:
-            breeder, dealer, legend = extract_analysis_sections(filename)
+            breeder, dealer, breeder_legend, dealer_legend = extract_analysis_sections(filename)
             assert breeder is not None
             assert dealer is None
-            assert legend is None
+            assert breeder_legend is None
+            assert dealer_legend is None
         finally:
             os.unlink(filename)
 
@@ -723,6 +730,7 @@ class TestGenerateDataPage:
                 "test-table",
                 "snapshot"
             )
+            assert "<h3>Full Data Table</h3>" in html
             assert "<table" in html
             assert "Species A" in html
             assert "25.00" in html
@@ -944,8 +952,8 @@ This is the **analysis** section with *formatting*.
                     f.write("Aphonopelma seemanni,Low\n")
                 
                 with open("analysis_summary.md", "w", encoding="utf-8") as f:
-                    f.write("## 🧬 Breeder Opportunity Matrix\n\nBreeder content\n\n")
-                    f.write("## 🏪 Dealer Supply Risk Matrix\n\nDealer content\n\n")
+                    f.write("## 🧬 Breeder Opportunity Matrix (Top 10)\n\nBreeder content\n\n")
+                    f.write("## 🏪 Dealer Supply Risk Matrix (Top 10)\n\nDealer content\n\n")
                     f.write("<details><summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>\nLegend content\n</details>")
                 
                 # Run main function

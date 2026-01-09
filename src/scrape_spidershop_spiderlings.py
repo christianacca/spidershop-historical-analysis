@@ -102,14 +102,14 @@ def main():
         assert_condition(os.path.exists(DEALER_TABLE_FILE), f"Missing dealer table CSV: {DEALER_TABLE_FILE}")
         assert_condition(csv_row_count(DEALER_TABLE_FILE) > 0, "Dealer table CSV has 0 data rows")
 
-        assert_condition(breeder_written, "Breeder Opportunity Matrix was not written (writer returned False)")
-        assert_condition(dealer_written, "Dealer Supply Risk Matrix was not written (writer returned False)")
+        assert_condition(breeder_written, "Breeder Opportunity Matrix (Top 10) was not written (writer returned False)")
+        assert_condition(dealer_written, "Dealer Supply Risk Matrix (Top 10) was not written (writer returned False)")
 
         summary_text = read_summary_text()
-        assert_condition("## 🧬 Breeder Opportunity Matrix" in summary_text,
-                         "Breeder Opportunity Matrix heading missing from Job Summary")
-        assert_condition("## 🏪 Dealer Supply Risk Matrix" in summary_text,
-                         "Dealer Supply Risk Matrix heading missing from Job Summary")
+        assert_condition("## 🧬 Breeder Opportunity Matrix (Top 10)" in summary_text,
+                         "Breeder Opportunity Matrix (Top 10) heading missing from Job Summary")
+        assert_condition("## 🏪 Dealer Supply Risk Matrix (Top 10)" in summary_text,
+                         "Dealer Supply Risk Matrix (Top 10) heading missing from Job Summary")
 
         print(f"Snapshot rows: {len(all_rows)}")
         print(f"New historical rows appended: {len(new_rows)}")

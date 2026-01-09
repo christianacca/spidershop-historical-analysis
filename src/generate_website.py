@@ -96,14 +96,14 @@ def parse_markdown_to_html(markdown_text):
 def extract_analysis_sections(markdown_file):
     """Extract breeder and dealer analysis sections from markdown file."""
     if not os.path.exists(markdown_file):
-        return None, None
+        return None, None, None, None
     
     with open(markdown_file, 'r', encoding='utf-8') as f:
         content = f.read()
     
     # Extract breeder section
     breeder_match = re.search(
-        r'## 🧬 Breeder Opportunity Matrix\n\n(.*?)(?=\n## |\n<details>|$)',
+        r'## 🧬 Breeder Opportunity Matrix \(Top 10\)\n\n(.*?)(?=\n## |\n<details>|$)',
         content,
         re.DOTALL
     )
@@ -111,21 +111,36 @@ def extract_analysis_sections(markdown_file):
     
     # Extract dealer section
     dealer_match = re.search(
-        r'## 🏪 Dealer Supply Risk Matrix\n\n(.*?)(?=\n<details>|$)',
+        r'## 🏪 Dealer Supply Risk Matrix \(Top 10\)\n\n(.*?)(?=\n<details>|$)',
         content,
         re.DOTALL
     )
     dealer_md = dealer_match.group(0) if dealer_match else None
     
-    # Extract legend
+    # Extract full legend content
     legend_match = re.search(
         r'<details>.*?<summary><strong>ℹ️ How to read these tables \(Legend\)</strong></summary>(.*?)</details>',
         content,
         re.DOTALL
     )
-    legend_md = legend_match.group(1) if legend_match else None
+    legend_full = legend_match.group(1) if legend_match else None
     
-    return breeder_md, dealer_md, legend_md
+    # Extract breeder legend only (from start to before Dealer legend)
+    breeder_legend = None
+    dealer_legend = None
+    
+    if legend_full:
+        # Split at the dealer legend heading
+        dealer_split = re.split(r'### 🏪 Dealer Supply Risk Matrix — Legend', legend_full)
+        if len(dealer_split) == 2:
+            breeder_legend = dealer_split[0].strip()
+            dealer_legend = '### 🏪 Dealer Supply Risk Matrix — Legend' + dealer_split[1]
+        else:
+            # If split didn't work as expected, use the full legend
+            breeder_legend = legend_full
+            dealer_legend = legend_full
+    
+    return breeder_md, dealer_md, breeder_legend, dealer_legend
 
 
 def read_csv_file(filepath):
@@ -716,6 +731,9 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
     headers, rows = read_csv_file(csv_filename)
     
     if headers and rows:
+        # Add full table header
+        html += '            <h3>Full Data Table</h3>\n'
+        
         if search_filter:
             html += f'            <div class="table-controls">\n'
             html += f'                <label for="search-{table_id}">Search:</label>\n'
@@ -762,11 +780,12 @@ def main():
     # Extract analysis sections from markdown summary
     breeder_analysis = None
     dealer_analysis = None
-    legend_content = None
+    breeder_legend = None
+    dealer_legend = None
     
     if os.path.exists("analysis_summary.md"):
         print("  Extracting analysis from summary...")
-        breeder_analysis, dealer_analysis, legend_content = extract_analysis_sections("analysis_summary.md")
+        breeder_analysis, dealer_analysis, breeder_legend, dealer_legend = extract_analysis_sections("analysis_summary.md")
     
     # Generate homepage
     print("  Generating index.html...")
@@ -805,7 +824,7 @@ def main():
             "breeder-table",
             "breeder",
             analysis_markdown=breeder_analysis,
-            legend_markdown=legend_content
+            legend_markdown=breeder_legend
         ))
     
     # Generate dealer supply risk page
@@ -818,7 +837,7 @@ def main():
             "dealer-table",
             "dealer",
             analysis_markdown=dealer_analysis,
-            legend_markdown=legend_content
+            legend_markdown=dealer_legend
         ))
     
     # Copy CSV files to output directory
