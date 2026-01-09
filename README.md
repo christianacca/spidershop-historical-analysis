@@ -107,7 +107,7 @@ Wishlist pressure represents **relative buyer interest within a single run**.
 - Calculated per-run using ranking (not absolute thresholds)
 - Includes safeguards:
   - small-N flattening
-  - bounded carryover for out-of-stock species (≤ 3 runs)
+  - bounded carryover for out-of-stock species (≤ 5 runs)
 
 Values:
 - `🔥` high relative interest

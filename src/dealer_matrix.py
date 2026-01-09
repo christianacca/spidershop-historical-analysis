@@ -41,7 +41,7 @@ def build_dealer_supply_risk_table(history_rows):
         present_pct = len(present_runs) / total_runs
         reliability = "High" if present_pct >= 0.8 else "Medium" if present_pct >= 0.4 else "Low"
 
-        # safe OOS event counting even if the series starts with "absent"
+        # Safe OOS event counting even if the series starts with "absent"
         oos_events = []
         last_present = None
         for rt in runs:
@@ -50,11 +50,8 @@ def build_dealer_supply_risk_table(history_rows):
                 if last_present is True:
                     oos_events.append(1)
                 elif last_present is False:
-                    if oos_events:
-                        oos_events[-1] += 1
-                    else:
-                        oos_events.append(1)
-                else:  # last_present is None
+                    oos_events[-1] += 1
+                else:  # last_present is None (first run)
                     oos_events.append(1)
             last_present = present
 
@@ -75,23 +72,25 @@ def build_dealer_supply_risk_table(history_rows):
 
         # Get wishlist pressure with OOS carryover
         # If species is OUT now, carry forward last known pressure (bounded lookback)
+        # Use lookback_limit=5 to capture historical demand within reasonable window (same as breeder matrix)
         key = (sci, size)
         if key in cur_keys:
             # Species is IN current run
             wishlist_pressure = wishlist_pressure_map.get(key, "❌")
         else:
             # Species is OUT - try to carry forward recent pressure
-            carried = get_oos_wishlist_carryover(key, by_run, runs, cur_run, lookback_limit=3)
+            carried = get_oos_wishlist_carryover(key, by_run, runs, cur_run)
             wishlist_pressure = carried if carried else "❌"
 
         # Compute wishlist delta (momentum signal)
-        wishlist_delta = compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=3)
+        wishlist_delta = compute_wishlist_delta(key, by_run, runs, cur_run)
 
-        # Dealer risk logic (enhanced with wishlist pressure and delta)
-        # Wishlist escalates urgency where supply is unreliable, de-escalates where interest is weak
-        # Wishlist Delta acts as momentum modifier
+        # Dealer risk logic: Supply-first hierarchy with demand as modifier
+        # Low reliability species escalate to 🔥 based on supply failure + demand signals
+        # Medium reliability varies between ⚠️ and 🔥 based on demand context
+        # High reliability defaults to ❌ (well-supplied) unless exceptional demand
         if reliability == "Low" and speed == "Slow":
-            # Low reliability + slow restock is already high risk
+            # Low reliability + slow restock = high risk regardless of demand
             if wishlist_pressure == "🔥":
                 risk = "🔥"
                 rec = "Actively seek breeders — high demand, poor supply"
@@ -103,18 +102,21 @@ def build_dealer_supply_risk_table(history_rows):
             risk = "🔥"
             rec = "Actively seek breeders — high demand, unreliable supply"
         elif reliability == "Low" and wishlist_delta == "↑":
-            # NEW: Low reliability + rising delta -> reinforce 🔥
+            # Low reliability + rising delta (early-stage demand growth on unreliable species)
+            # Rarely reached: most Low reliability cases are caught by previous branches
+            # Kept for edge case where interest is accelerating but not yet at high pressure
             risk = "🔥"
             rec = "Actively seek breeders — unreliable supply, surging interest"
         elif reliability == "Medium" and wishlist_pressure == "🔥" and wishlist_delta == "↑":
-            # NEW: Medium reliability + high wishlist + rising delta -> escalate to 🔥
+            # Medium reliability + high wishlist + rising delta -> escalate to 🔥
             risk = "🔥"
             rec = "Actively seek breeders — surging demand, variable supply"
         elif reliability == "Medium" and wishlist_pressure == "🔥":
-            # Medium reliability + high wishlist
+            # Medium reliability + high wishlist (without rising delta)
             risk = "⚠️"
             rec = "Buy opportunistically — moderate demand, variable supply"
         elif reliability == "Medium":
+            # Medium reliability with lower demand signals
             risk = "⚠️"
             rec = "Buy opportunistically"
         elif reliability == "High" and wishlist_pressure in ("❌", "⚠️"):
@@ -122,7 +124,7 @@ def build_dealer_supply_risk_table(history_rows):
             risk = "❌"
             rec = "No urgency / oversupplied"
         elif reliability == "High" and wishlist_delta == "↓":
-            # NEW: High reliability + falling delta -> reinforce ❌
+            # High reliability + falling delta (interest declining even if currently high)
             risk = "❌"
             rec = "No urgency / oversupplied — interest declining"
         elif reliability == "High" and wishlist_pressure == "🔥":
@@ -130,6 +132,7 @@ def build_dealer_supply_risk_table(history_rows):
             risk = "❌"
             rec = "Well-supplied, but monitor demand"
         else:
+            # Fallback for any remaining cases
             risk = "❌"
             rec = "No urgency / oversupplied"
 
