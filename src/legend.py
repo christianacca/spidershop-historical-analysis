@@ -52,7 +52,7 @@ def write_summary_legend():
 - `→` — Interest stable or within noise threshold (−4 ≤ Δ ≤ +4)
 - `↓` — Buyer interest declining meaningfully (Δ ≤ −5)
 - Calculated conservatively to avoid false signals from minor fluctuations
-- Uses bounded carryover for OUT-of-stock species (≤ 3 runs)
+- Uses bounded carryover for OUT-of-stock species (up to 3 runs back)
 - Acts as a **momentum modifier**, not a standalone signal
 - Can escalate or prevent escalation of emerging opportunities
 
@@ -102,7 +102,7 @@ def write_summary_legend():
 - `→` — Interest stable or within noise threshold (−4 ≤ Δ ≤ +4)
 - `↓` — Buyer interest declining meaningfully (Δ ≤ −5)
 - Calculated conservatively to avoid false signals from minor fluctuations
-- Uses bounded carryover for OUT-of-stock species (≤ 3 runs)
+- Uses bounded carryover for OUT-of-stock species (up to 3 runs back)
 - Acts as a **momentum modifier**, not a standalone signal
 - Reinforces risk assessments based on supply reliability
 
