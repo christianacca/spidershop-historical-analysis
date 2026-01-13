@@ -46,11 +46,11 @@ def write_summary_legend():
 - For **OUT-of-stock** species: carries forward the most recent pressure from when it was IN (up to 5 runs back)
 - Acts as a **confidence amplifier** for Pattern/Price signals, not a standalone trigger
 
-**Wishlist Δ**
+**Wishlist Delta**
 - Measures **meaningful change in wishlist interest** between current and previous IN-stock observations
-- `↑` — Buyer interest increasing meaningfully (Δ ≥ +5)
-- `→` — Interest stable or within noise threshold (−4 ≤ Δ ≤ +4)
-- `↓` — Buyer interest declining meaningfully (Δ ≤ −5)
+- `↑` — Buyer interest increasing meaningfully (Delta ≥ +5)
+- `→` — Interest stable or within noise threshold (−4 ≤ Delta ≤ +4)
+- `↓` — Buyer interest declining meaningfully (Delta ≤ −5)
 - Calculated conservatively to avoid false signals from minor fluctuations
 - Uses bounded carryover for OUT-of-stock species (up to 3 runs back)
 - Acts as a **momentum modifier**, not a standalone signal
@@ -96,11 +96,11 @@ def write_summary_legend():
 - For **OUT-of-stock** species: carries forward the most recent pressure from when it was IN (up to 5 runs back)
 - Escalates urgency where supply is unreliable; de-escalates where interest is weak
 
-**Wishlist Δ**
+**Wishlist Delta**
 - Measures **meaningful change in wishlist interest** between current and previous IN-stock observations
-- `↑` — Buyer interest increasing meaningfully (Δ ≥ +5)
-- `→` — Interest stable or within noise threshold (−4 ≤ Δ ≤ +4)
-- `↓` — Buyer interest declining meaningfully (Δ ≤ −5)
+- `↑` — Buyer interest increasing meaningfully (Delta ≥ +5)
+- `→` — Interest stable or within noise threshold (−4 ≤ Delta ≤ +4)
+- `↓` — Buyer interest declining meaningfully (Delta ≤ −5)
 - Calculated conservatively to avoid false signals from minor fluctuations
 - Uses bounded carryover for OUT-of-stock species (up to 3 runs back)
 - Acts as a **momentum modifier**, not a standalone signal

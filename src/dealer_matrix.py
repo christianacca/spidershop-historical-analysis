@@ -144,17 +144,17 @@ def build_dealer_supply_risk_table(history_rows):
             "Restock Speed": speed,
             "Price Pressure": pp,
             "Wishlist Pressure": wishlist_pressure,
-            "Wishlist Δ": wishlist_delta,
+            "Wishlist Delta": wishlist_delta,
             "Dealer Risk": risk,
             "Dealer Recommendation": rec,
         })
 
     # Sort: Dealer Risk (🔥 > ⚠️ > ❌), then Wishlist Pressure (🔥 > ⚠️ > ❌), 
-    # then Wishlist Δ (↑ > → > ↓), then Avg OOS Duration (desc)
+    # then Wishlist Delta (↑ > → > ↓), then Avg OOS Duration (desc)
     table.sort(key=lambda r: (
         {"🔥": 0, "⚠️": 1, "❌": 2}[r["Dealer Risk"]],
         {"🔥": 0, "⚠️": 1, "❌": 2}[r["Wishlist Pressure"]],
-        {"↑": 0, "→": 1, "↓": 2}[r["Wishlist Δ"]],
+        {"↑": 0, "→": 1, "↓": 2}[r["Wishlist Delta"]],
         -r["Avg OOS Duration"]
     ))
     return table
@@ -177,12 +177,12 @@ def write_dealer_outputs(table):
 
     with open(summary_path, "a", encoding="utf-8") as f:
         f.write("\n## 🏪 Dealer Supply Risk Matrix (Top 10)\n\n")
-        f.write("| Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Wishlist Pressure | Wishlist Δ | Dealer Risk | Dealer Recommendation |\n")
+        f.write("| Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Wishlist Pressure | Wishlist Delta | Dealer Risk | Dealer Recommendation |\n")
         f.write("|---|---:|---|---:|---|---|---|---|---|---|\n")
         for r in table[:shown]:
             f.write(
                 f"| {r['Species']} | {r['Size (cm)']} | {r['Stock Reliability']} | {r['Avg OOS Duration']} | "
-                f"{r['Restock Speed']} | {r['Price Pressure']} | {r['Wishlist Pressure']} | {r['Wishlist Δ']} | {r['Dealer Risk']} | {r['Dealer Recommendation']} |\n"
+                f"{r['Restock Speed']} | {r['Price Pressure']} | {r['Wishlist Pressure']} | {r['Wishlist Delta']} | {r['Dealer Risk']} | {r['Dealer Recommendation']} |\n"
             )
         if total > shown:
             f.write(f"\n_Showing top {shown} of {total} entries — see `{DEALER_TABLE_FILE}` for full list._\n")

@@ -295,7 +295,7 @@ class TestBuildBreederOpportunityTable:
         
         assert seemanni_entry["Pattern"] == "Always"
         # Falling delta should keep it as ❌
-        if seemanni_entry["Wishlist Δ"] == "↓":
+        if seemanni_entry["Wishlist Delta"] == "↓":
             assert seemanni_entry["Signal"] == "❌"
 
     def test_sorting_priority_signal_then_wishlist_pressure(self):
@@ -376,7 +376,7 @@ class TestBuildBreederOpportunityTable:
         seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
         
         # No previous in-stock value to compare
-        assert seemanni_entry["Wishlist Δ"] == "→"
+        assert seemanni_entry["Wishlist Delta"] == "→"
 
     def test_result_structure_has_all_required_columns(self):
         """Result should have all expected columns in correct format."""
@@ -393,7 +393,7 @@ class TestBuildBreederOpportunityTable:
         # Verify all expected keys exist
         expected_keys = {
             "Species", "Size (cm)", "OOS", "OOS Runs", "Pattern",
-            "Price Trend", "Wishlist Pressure", "Wishlist Δ", 
+            "Price Trend", "Wishlist Pressure", "Wishlist Delta", 
             "Signal", "Recommendation"
         }
         assert set(entry.keys()) == expected_keys
