@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from assertions import get_summary_path
+from legend_examples import generate_breeder_examples, generate_dealer_examples
 
 # =====================
 # LEGEND
@@ -67,6 +68,13 @@ def write_summary_legend():
 
 ---
 
+""")
+        
+        # Write generated Breeder examples
+        f.write(generate_breeder_examples())
+        f.write("\n\n---\n\n")
+        
+        f.write("""
 ### 🏪 Dealer Supply Risk Matrix — Legend
 
 **Stock Reliability**
@@ -114,5 +122,14 @@ def write_summary_legend():
 **Dealer Recommendation**
 - Indicates whether a dealer should actively seek stock, buy opportunistically, or wait
 
+---
+
+""")
+        
+        # Write generated Dealer examples
+        f.write(generate_dealer_examples())
+        f.write("\n\n")
+        
+        f.write("""
 </details>
 """)

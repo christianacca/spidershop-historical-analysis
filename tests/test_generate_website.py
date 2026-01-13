@@ -172,8 +172,8 @@ class TestExtractAnalysisSections:
     def test_nonexistent_file_returns_none(self):
         """Should return None for breeder and dealer if file doesn't exist."""
         result = extract_analysis_sections("/nonexistent/file.md")
-        # Function returns (None, None, None, None) when file doesn't exist
-        assert result == (None, None, None, None)
+        # Function returns (None, None, None, None, None, None) when file doesn't exist
+        assert result == (None, None, None, None, None, None)
 
     def test_extract_breeder_section(self):
         """Should extract breeder opportunity matrix section."""
@@ -188,7 +188,7 @@ Other content.""")
             filename = f.name
         
         try:
-            breeder, dealer, breeder_legend, dealer_legend = extract_analysis_sections(filename)
+            breeder, dealer, breeder_legend, dealer_legend, breeder_examples, dealer_examples = extract_analysis_sections(filename)
             assert breeder is not None
             assert "## 🧬 Breeder Opportunity Matrix (Top 10)" in breeder
             assert "Some analysis text here." in breeder
@@ -208,7 +208,7 @@ Dealer analysis here.
             filename = f.name
         
         try:
-            breeder, dealer, breeder_legend, dealer_legend = extract_analysis_sections(filename)
+            breeder, dealer, breeder_legend, dealer_legend, breeder_examples, dealer_examples = extract_analysis_sections(filename)
             assert dealer is not None
             assert "## 🏪 Dealer Supply Risk Matrix (Top 10)" in dealer
             assert "Dealer analysis here." in dealer
@@ -222,17 +222,25 @@ Dealer analysis here.
 <summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>
 ### 🧬 Breeder Opportunity Matrix — Legend
 Breeder legend content here.
+### 📖 Breeder Matrix — Practical Examples
+Breeder example 1 here.
 ### 🏪 Dealer Supply Risk Matrix — Legend
 Dealer legend content here.
+### 📖 Dealer Matrix — Practical Examples
+Dealer example 1 here.
 </details>""")
             filename = f.name
         
         try:
-            breeder, dealer, breeder_legend, dealer_legend = extract_analysis_sections(filename)
+            breeder, dealer, breeder_legend, dealer_legend, breeder_examples, dealer_examples = extract_analysis_sections(filename)
             assert breeder_legend is not None
             assert "Breeder legend content here." in breeder_legend
             assert dealer_legend is not None
             assert "Dealer legend content here." in dealer_legend
+            assert breeder_examples is not None
+            assert "Breeder example 1 here." in breeder_examples
+            assert dealer_examples is not None
+            assert "Dealer example 1 here." in dealer_examples
         finally:
             os.unlink(filename)
 
@@ -243,11 +251,13 @@ Dealer legend content here.
             filename = f.name
         
         try:
-            breeder, dealer, breeder_legend, dealer_legend = extract_analysis_sections(filename)
+            breeder, dealer, breeder_legend, dealer_legend, breeder_examples, dealer_examples = extract_analysis_sections(filename)
             assert breeder is None
             assert dealer is None
             assert breeder_legend is None
             assert dealer_legend is None
+            assert breeder_examples is None
+            assert dealer_examples is None
         finally:
             os.unlink(filename)
 
@@ -260,11 +270,13 @@ Breeder content only.""")
             filename = f.name
         
         try:
-            breeder, dealer, breeder_legend, dealer_legend = extract_analysis_sections(filename)
+            breeder, dealer, breeder_legend, dealer_legend, breeder_examples, dealer_examples = extract_analysis_sections(filename)
             assert breeder is not None
             assert dealer is None
             assert breeder_legend is None
             assert dealer_legend is None
+            assert breeder_examples is None
+            assert dealer_examples is None
         finally:
             os.unlink(filename)
 
@@ -976,7 +988,11 @@ This is the **analysis** section with *formatting*.
                 with open("analysis_summary.md", "w", encoding="utf-8") as f:
                     f.write("## 🧬 Breeder Opportunity Matrix (Top 10)\n\nBreeder content\n\n")
                     f.write("## 🏪 Dealer Supply Risk Matrix (Top 10)\n\nDealer content\n\n")
-                    f.write("<details><summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>\nLegend content\n</details>")
+                    f.write("<details><summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>\n")
+                    f.write("### 🧬 Breeder Opportunity Matrix — Legend\nLegend content\n")
+                    f.write("### 📖 Breeder Matrix — Practical Examples\nExample content\n")
+                    f.write("### 🏪 Dealer Supply Risk Matrix — Legend\nLegend content\n")
+                    f.write("### 📖 Dealer Matrix — Practical Examples\nExample content\n</details>")
                 
                 # Run main function
                 main()

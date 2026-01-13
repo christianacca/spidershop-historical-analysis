@@ -134,7 +134,7 @@ def parse_markdown_to_html(markdown_text):
 def extract_analysis_sections(markdown_file):
     """Extract breeder and dealer analysis sections from markdown file."""
     if not os.path.exists(markdown_file):
-        return None, None, None, None
+        return None, None, None, None, None, None
     
     with open(markdown_file, 'r', encoding='utf-8') as f:
         content = f.read()
@@ -163,22 +163,29 @@ def extract_analysis_sections(markdown_file):
     )
     legend_full = legend_match.group(1) if legend_match else None
     
-    # Extract breeder legend only (from start to before Dealer legend)
+    # Extract breeder legend and examples
     breeder_legend = None
+    breeder_examples = None
     dealer_legend = None
+    dealer_examples = None
     
     if legend_full:
-        # Split at the dealer legend heading
-        dealer_split = re.split(r'### 🏪 Dealer Supply Risk Matrix — Legend', legend_full)
-        if len(dealer_split) == 2:
-            breeder_legend = dealer_split[0].strip()
-            dealer_legend = '### 🏪 Dealer Supply Risk Matrix — Legend' + dealer_split[1]
-        else:
-            # If split didn't work as expected, use the full legend
-            breeder_legend = legend_full
-            dealer_legend = legend_full
+        # Split at breeder examples heading
+        breeder_examples_split = re.split(r'### 📖 Breeder Matrix — Practical Examples', legend_full)
+        breeder_legend = breeder_examples_split[0].strip()
+        remaining = breeder_examples_split[1]
+        
+        # Split remaining at dealer legend heading
+        dealer_split = re.split(r'### 🏪 Dealer Supply Risk Matrix — Legend', remaining)
+        breeder_examples = '### 📖 Breeder Matrix — Practical Examples' + dealer_split[0]
+        remaining_dealer = dealer_split[1]
+        
+        # Split dealer remaining at dealer examples heading
+        dealer_examples_split = re.split(r'### 📖 Dealer Matrix — Practical Examples', remaining_dealer)
+        dealer_legend = '### 🏪 Dealer Supply Risk Matrix — Legend' + dealer_examples_split[0].strip()
+        dealer_examples = '### 📖 Dealer Matrix — Practical Examples' + dealer_examples_split[1]
     
-    return breeder_md, dealer_md, breeder_legend, dealer_legend
+    return breeder_md, dealer_md, breeder_legend, dealer_legend, breeder_examples, dealer_examples
 
 
 def read_csv_file(filepath):
@@ -748,7 +755,7 @@ def generate_homepage(last_scrape_time=None):
     return html
 
 
-def generate_data_page(title, description, csv_filename, table_id, active_page, search_filter=True, analysis_markdown=None, legend_markdown=None):
+def generate_data_page(title, description, csv_filename, table_id, active_page, search_filter=True, analysis_markdown=None, legend_markdown=None, examples_markdown=None):
     """Generate a data page with table from CSV and optional analysis."""
     html = get_base_html_template(title, active_page)
     
@@ -796,6 +803,15 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
         html += '                </div>\n'
         html += '            </details>\n'
     
+    # Add examples section if provided (separate from legend)
+    if examples_markdown:
+        html += '            <details open>\n'
+        html += '                <summary><strong>📖 Practical Examples</strong></summary>\n'
+        html += '                <div style="padding: 15px;">\n'
+        html += parse_markdown_to_html(examples_markdown)
+        html += '                </div>\n'
+        html += '            </details>\n'
+    
     html += '        </div>\n'
     html += get_html_footer()
     return html
@@ -820,10 +836,12 @@ def main():
     dealer_analysis = None
     breeder_legend = None
     dealer_legend = None
+    breeder_examples = None
+    dealer_examples = None
     
     if os.path.exists("analysis_summary.md"):
         print("  Extracting analysis from summary...")
-        breeder_analysis, dealer_analysis, breeder_legend, dealer_legend = extract_analysis_sections("analysis_summary.md")
+        breeder_analysis, dealer_analysis, breeder_legend, dealer_legend, breeder_examples, dealer_examples = extract_analysis_sections("analysis_summary.md")
     
     # Generate homepage
     print("  Generating index.html...")
@@ -862,7 +880,8 @@ def main():
             "breeder-table",
             "breeder",
             analysis_markdown=breeder_analysis,
-            legend_markdown=breeder_legend
+            legend_markdown=breeder_legend,
+            examples_markdown=breeder_examples
         ))
     
     # Generate dealer supply risk page
@@ -875,7 +894,8 @@ def main():
             "dealer-table",
             "dealer",
             analysis_markdown=dealer_analysis,
-            legend_markdown=dealer_legend
+            legend_markdown=dealer_legend,
+            examples_markdown=dealer_examples
         ))
     
     # Copy CSV files to output directory
