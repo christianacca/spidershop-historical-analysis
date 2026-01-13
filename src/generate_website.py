@@ -37,12 +37,20 @@ def parse_markdown_to_html(markdown_text):
     # Convert markdown tables to HTML tables
     lines = html.split('\n')
     in_table = False
+    in_list = False
+    current_list_header = None
     new_lines = []
     
     for i, line in enumerate(lines):
         # Check if this is a table row
         if '|' in line and line.strip().startswith('|'):
             if not in_table:
+                # Close any open list
+                if in_list:
+                    new_lines.append('</ul>')
+                    in_list = False
+                    current_list_header = None
+                
                 new_lines.append('<table class="data-table markdown-table">')
                 in_table = True
                 # Check if next line is separator
@@ -74,13 +82,40 @@ def parse_markdown_to_html(markdown_text):
                 new_lines.append('</table>')
                 in_table = False
             
-            # Convert lists
-            if line.strip().startswith('- '):
-                item = line.strip()[2:]
-                new_lines.append(f'<li>{item}</li>')
+            # Check for list header pattern: line with just <strong> tag
+            # followed by list items
+            stripped = line.strip()
+            
+            # Check if this is a potential list header (just strong tag on its own line)
+            # Pattern: <strong>Text</strong> followed by list items
+            if (re.match(r'^<strong>.+</strong>$', stripped) and
+                i + 1 < len(lines) and lines[i + 1].strip().startswith('- ')):
+                # Close any previous list
+                if in_list:
+                    new_lines.append('</ul>')
+                
+                # Wrap the strong tag in a paragraph
+                new_lines.append(f'<p>{stripped}</p>')
+                new_lines.append('<ul>')
+                in_list = True
+                continue
+            
+            # Convert list items
+            if stripped.startswith('- '):
+                if not in_list:
+                    new_lines.append('<ul>')
+                    in_list = True
+                
+                item = stripped[2:]
+                new_lines.append(f'  <li>{item}</li>')
             else:
+                # If we were in a list and hit a non-list line, close the list
+                if in_list and stripped:
+                    new_lines.append('</ul>')
+                    in_list = False
+                    current_list_header = None
+                
                 # Regular text - wrap in paragraph if not empty and not already HTML
-                stripped = line.strip()
                 if stripped and not stripped.startswith('<'):
                     new_lines.append(f'<p>{line}</p>')
                 else:
@@ -89,6 +124,9 @@ def parse_markdown_to_html(markdown_text):
     if in_table:
         new_lines.append('  </tbody>')
         new_lines.append('</table>')
+    
+    if in_list:
+        new_lines.append('</ul>')
     
     return '\n'.join(new_lines)
 

@@ -111,6 +111,28 @@ class TestParseMarkdownToHtml:
         assert "<li>Item 2</li>" in html
         assert "<li>Item 3</li>" in html
 
+    def test_legend_column_header_with_list(self):
+        """Should convert each column header to <p><strong> followed by its own <ul>."""
+        markdown = """**OOS**
+- `IN` — Species is currently listed for sale
+- `OUT` — Species is not listed this run
+
+**Pattern**
+- `Always` — Normal availability
+- `Emerging` — Missing for multiple runs"""
+        
+        html = parse_markdown_to_html(markdown)
+        
+        # Verify structure: each column header gets <p><strong> followed by <ul>
+        assert "<p><strong>OOS</strong></p>\n<ul>" in html
+        assert "<p><strong>Pattern</strong></p>\n<ul>" in html
+        
+        # Verify list items are properly formatted
+        assert "<li><code>IN</code> — Species is currently listed for sale</li>" in html
+        assert "<li><code>OUT</code> — Species is not listed this run</li>" in html
+        assert "<li><code>Always</code> — Normal availability</li>" in html
+        assert "<li><code>Emerging</code> — Missing for multiple runs</li>" in html
+
     def test_paragraph_wrapping(self):
         """Should wrap non-HTML text in <p> tags."""
         markdown = "This is a paragraph."
