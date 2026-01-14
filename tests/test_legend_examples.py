@@ -44,14 +44,14 @@ class TestGeneratedBreederExamples:
         assert "#### Example 1: Sustained Scarcity (Strong Opportunity)" in example
         assert "**OOS:** OUT" in example
         assert "**OOS Runs:** 4" in example
-        assert "**Pattern:** Sustained" in example
+        assert "**Stock Pattern:** Sustained" in example
         assert "**Signal:** 🔥" in example
     
     def test_breeder_example_2_emerging_with_price_rise(self):
         """Example 2 should demonstrate emerging scarcity with rising price."""
         example = generate_breeder_example_2()
         assert "#### Example 2: Emerging Scarcity with Rising Price" in example
-        assert "**Pattern:** Emerging" in example
+        assert "**Stock Pattern:** Emerging" in example
         assert "**Price Trend:** ↑" in example
         assert "**Signal:** 🔥" in example
     
@@ -60,7 +60,7 @@ class TestGeneratedBreederExamples:
         example = generate_breeder_example_3()
         assert "#### Example 3: Cyclical Pattern (Batch Supply)" in example
         assert "**OOS:** IN/OUT" in example
-        assert "**Pattern:** Cyclical" in example
+        assert "**Stock Pattern:** Cyclical" in example
         assert "**Signal:** ⚠️" in example
     
     def test_breeder_example_4_always_available(self):
@@ -68,14 +68,14 @@ class TestGeneratedBreederExamples:
         example = generate_breeder_example_4()
         assert "#### Example 4: Always Available (Oversupplied)" in example
         assert "**OOS:** IN" in example
-        assert "**Pattern:** Always" in example
+        assert "**Stock Pattern:** Always" in example
         assert "**Signal:** ❌" in example
     
     def test_breeder_example_5_emerging_with_high_demand(self):
         """Example 5 should demonstrate emerging scarcity with wishlist surge."""
         example = generate_breeder_example_5()
         assert "#### Example 5: Emerging Opportunity with High Demand" in example
-        assert "**Pattern:** Emerging" in example
+        assert "**Stock Pattern:** Emerging" in example
         assert "**Wishlist Delta:** ↑" in example
         assert "**Signal:** 🔥" in example
     
@@ -83,7 +83,7 @@ class TestGeneratedBreederExamples:
         """Example 6 should demonstrate oversupplied market with declining interest."""
         example = generate_breeder_example_6()
         assert "#### Example 6: Always Available with Falling Interest" in example
-        assert "**Pattern:** Always" in example
+        assert "**Stock Pattern:** Always" in example
         assert "**Wishlist Delta:** ↓" in example
         assert "**Signal:** ❌" in example
 

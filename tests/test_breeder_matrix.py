@@ -59,7 +59,7 @@ class TestBuildBreederOpportunityTable:
         
         assert seemanni_entry["OOS"] == "OUT"
         assert seemanni_entry["OOS Runs"] == "4"
-        assert seemanni_entry["Pattern"] == "Sustained"
+        assert seemanni_entry["Stock Pattern"] == "Sustained"
         assert seemanni_entry["Signal"] == "🔥"
         assert "sustained scarcity" in seemanni_entry["Recommendation"].lower()
 
@@ -82,7 +82,7 @@ class TestBuildBreederOpportunityTable:
         
         assert seemanni_entry["OOS"] == "OUT"
         assert seemanni_entry["OOS Runs"] == "2"
-        assert seemanni_entry["Pattern"] == "Emerging"
+        assert seemanni_entry["Stock Pattern"] == "Emerging"
         assert seemanni_entry["Signal"] in ["🔥", "⚠️"]
 
     def test_cyclical_pattern_in_out_flapping(self):
@@ -103,7 +103,7 @@ class TestBuildBreederOpportunityTable:
         seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
         
         assert seemanni_entry["OOS"] == "IN/OUT"
-        assert seemanni_entry["Pattern"] == "Cyclical"
+        assert seemanni_entry["Stock Pattern"] == "Cyclical"
         assert seemanni_entry["Signal"] == "⚠️"
         assert "wave restocking" in seemanni_entry["Recommendation"].lower()
 
@@ -120,7 +120,7 @@ class TestBuildBreederOpportunityTable:
         
         assert seemanni_entry["OOS"] == "IN"
         assert seemanni_entry["OOS Runs"] == "0"
-        assert seemanni_entry["Pattern"] == "Always"
+        assert seemanni_entry["Stock Pattern"] == "Always"
         # Without high wishlist pressure, should be ❌
         assert seemanni_entry["Signal"] == "❌"
 
@@ -219,7 +219,7 @@ class TestBuildBreederOpportunityTable:
         table = build_breeder_opportunity_table(history)
         seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
         
-        assert seemanni_entry["Pattern"] == "Emerging"
+        assert seemanni_entry["Stock Pattern"] == "Emerging"
         assert seemanni_entry["Price Trend"] == "↑"
         assert seemanni_entry["Signal"] == "🔥"
         assert "rising demand" in seemanni_entry["Recommendation"].lower()
@@ -242,7 +242,7 @@ class TestBuildBreederOpportunityTable:
         seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
         
         # Should show sustained pattern with signal
-        assert seemanni_entry["Pattern"] == "Sustained"
+        assert seemanni_entry["Stock Pattern"] == "Sustained"
         assert seemanni_entry["Signal"] == "🔥"
 
     def test_emerging_with_high_wishlist_and_rising_delta_escalates_to_fire(self):
@@ -270,7 +270,7 @@ class TestBuildBreederOpportunityTable:
         table = build_breeder_opportunity_table(history)
         seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
         
-        assert seemanni_entry["Pattern"] == "Emerging"
+        assert seemanni_entry["Stock Pattern"] == "Emerging"
         # High wishlist from carryover + positive delta should escalate
         assert seemanni_entry["Signal"] == "🔥"
 
@@ -293,7 +293,7 @@ class TestBuildBreederOpportunityTable:
         table = build_breeder_opportunity_table(history)
         seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
         
-        assert seemanni_entry["Pattern"] == "Always"
+        assert seemanni_entry["Stock Pattern"] == "Always"
         # Falling delta should keep it as ❌
         if seemanni_entry["Wishlist Delta"] == "↓":
             assert seemanni_entry["Signal"] == "❌"
@@ -392,7 +392,7 @@ class TestBuildBreederOpportunityTable:
         
         # Verify all expected keys exist
         expected_keys = {
-            "Species", "Size (cm)", "OOS", "OOS Runs", "Pattern",
+            "Species", "Size (cm)", "OOS", "OOS Runs", "Stock Pattern",
             "Price Trend", "Wishlist Pressure", "Wishlist Delta", 
             "Signal", "Recommendation"
         }
@@ -402,7 +402,7 @@ class TestBuildBreederOpportunityTable:
         assert isinstance(entry["Species"], str)
         assert isinstance(entry["OOS Runs"], str)  # Stored as string
         assert entry["Signal"] in ["🔥", "⚠️", "❌"]
-        assert entry["Pattern"] in ["Sustained", "Emerging", "Cyclical", "Always"]
+        assert entry["Stock Pattern"] in ["Sustained", "Emerging", "Cyclical", "Always"]
         assert entry["Price Trend"] in ["↑", "↓", "→"]
 
     def test_complex_multi_species_scenario(self):
@@ -433,17 +433,17 @@ class TestBuildBreederOpportunityTable:
         
         # Species A should show emerging pattern (3 OOS runs)
         species_a = [r for r in table if r["Species"] == "Species A"][0]
-        assert species_a["Pattern"] == "Emerging"
+        assert species_a["Stock Pattern"] == "Emerging"
         assert species_a["OOS Runs"] == "3"
         
         # Species B should show always available with rising price
         species_b = [r for r in table if r["Species"] == "Species B"][0]
-        assert species_b["Pattern"] == "Always"
+        assert species_b["Stock Pattern"] == "Always"
         assert species_b["Price Trend"] == "↑"
         
         # Species C should show always available with stable price
         species_c = [r for r in table if r["Species"] == "Species C"][0]
-        assert species_c["Pattern"] == "Always"
+        assert species_c["Stock Pattern"] == "Always"
         assert species_c["Price Trend"] == "→"
 
     def test_price_trend_with_invalid_price_values(self):
@@ -539,7 +539,7 @@ class TestBuildBreederOpportunityTable:
         # Verify sustained pattern classification
         assert seemanni_entry["OOS"] == "OUT"
         assert seemanni_entry["OOS Runs"] == "4"
-        assert seemanni_entry["Pattern"] == "Sustained"
+        assert seemanni_entry["Stock Pattern"] == "Sustained"
         
         # With lookback_limit=5, the high wishlist from run 1 should be carried forward
         # (run 1 is 4 runs back from run 5, which is within the 5-run lookback window)
