@@ -37,12 +37,20 @@ def parse_markdown_to_html(markdown_text):
     # Convert markdown tables to HTML tables
     lines = html.split('\n')
     in_table = False
+    in_list = False
+    current_list_header = None
     new_lines = []
     
     for i, line in enumerate(lines):
         # Check if this is a table row
         if '|' in line and line.strip().startswith('|'):
             if not in_table:
+                # Close any open list
+                if in_list:
+                    new_lines.append('</ul>')
+                    in_list = False
+                    current_list_header = None
+                
                 new_lines.append('<table class="data-table markdown-table">')
                 in_table = True
                 # Check if next line is separator
@@ -74,13 +82,40 @@ def parse_markdown_to_html(markdown_text):
                 new_lines.append('</table>')
                 in_table = False
             
-            # Convert lists
-            if line.strip().startswith('- '):
-                item = line.strip()[2:]
-                new_lines.append(f'<li>{item}</li>')
+            # Check for list header pattern: line with just <strong> tag
+            # followed by list items
+            stripped = line.strip()
+            
+            # Check if this is a potential list header (just strong tag on its own line)
+            # Pattern: <strong>Text</strong> followed by list items
+            if (re.match(r'^<strong>.+</strong>$', stripped) and
+                i + 1 < len(lines) and lines[i + 1].strip().startswith('- ')):
+                # Close any previous list
+                if in_list:
+                    new_lines.append('</ul>')
+                
+                # Wrap the strong tag in a paragraph
+                new_lines.append(f'<p>{stripped}</p>')
+                new_lines.append('<ul>')
+                in_list = True
+                continue
+            
+            # Convert list items
+            if stripped.startswith('- '):
+                if not in_list:
+                    new_lines.append('<ul>')
+                    in_list = True
+                
+                item = stripped[2:]
+                new_lines.append(f'  <li>{item}</li>')
             else:
+                # If we were in a list and hit a non-list line, close the list
+                if in_list and stripped:
+                    new_lines.append('</ul>')
+                    in_list = False
+                    current_list_header = None
+                
                 # Regular text - wrap in paragraph if not empty and not already HTML
-                stripped = line.strip()
                 if stripped and not stripped.startswith('<'):
                     new_lines.append(f'<p>{line}</p>')
                 else:
@@ -90,13 +125,16 @@ def parse_markdown_to_html(markdown_text):
         new_lines.append('  </tbody>')
         new_lines.append('</table>')
     
+    if in_list:
+        new_lines.append('</ul>')
+    
     return '\n'.join(new_lines)
 
 
 def extract_analysis_sections(markdown_file):
     """Extract breeder and dealer analysis sections from markdown file."""
     if not os.path.exists(markdown_file):
-        return None, None, None, None
+        return None, None, None, None, None, None
     
     with open(markdown_file, 'r', encoding='utf-8') as f:
         content = f.read()
@@ -125,22 +163,29 @@ def extract_analysis_sections(markdown_file):
     )
     legend_full = legend_match.group(1) if legend_match else None
     
-    # Extract breeder legend only (from start to before Dealer legend)
+    # Extract breeder legend and examples
     breeder_legend = None
+    breeder_examples = None
     dealer_legend = None
+    dealer_examples = None
     
     if legend_full:
-        # Split at the dealer legend heading
-        dealer_split = re.split(r'### 🏪 Dealer Supply Risk Matrix — Legend', legend_full)
-        if len(dealer_split) == 2:
-            breeder_legend = dealer_split[0].strip()
-            dealer_legend = '### 🏪 Dealer Supply Risk Matrix — Legend' + dealer_split[1]
-        else:
-            # If split didn't work as expected, use the full legend
-            breeder_legend = legend_full
-            dealer_legend = legend_full
+        # Split at breeder examples heading
+        breeder_examples_split = re.split(r'### 📖 Breeder Matrix — Practical Examples', legend_full)
+        breeder_legend = breeder_examples_split[0].strip()
+        remaining = breeder_examples_split[1]
+        
+        # Split remaining at dealer legend heading
+        dealer_split = re.split(r'### 🏪 Dealer Supply Risk Matrix — Legend', remaining)
+        breeder_examples = '### 📖 Breeder Matrix — Practical Examples' + dealer_split[0]
+        remaining_dealer = dealer_split[1]
+        
+        # Split dealer remaining at dealer examples heading
+        dealer_examples_split = re.split(r'### 📖 Dealer Matrix — Practical Examples', remaining_dealer)
+        dealer_legend = '### 🏪 Dealer Supply Risk Matrix — Legend' + dealer_examples_split[0].strip()
+        dealer_examples = '### 📖 Dealer Matrix — Practical Examples' + dealer_examples_split[1]
     
-    return breeder_md, dealer_md, breeder_legend, dealer_legend
+    return breeder_md, dealer_md, breeder_legend, dealer_legend, breeder_examples, dealer_examples
 
 
 def read_csv_file(filepath):
@@ -710,7 +755,7 @@ def generate_homepage(last_scrape_time=None):
     return html
 
 
-def generate_data_page(title, description, csv_filename, table_id, active_page, search_filter=True, analysis_markdown=None, legend_markdown=None):
+def generate_data_page(title, description, csv_filename, table_id, active_page, search_filter=True, analysis_markdown=None, legend_markdown=None, examples_markdown=None):
     """Generate a data page with table from CSV and optional analysis."""
     html = get_base_html_template(title, active_page)
     
@@ -758,6 +803,15 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
         html += '                </div>\n'
         html += '            </details>\n'
     
+    # Add examples section if provided (separate from legend)
+    if examples_markdown:
+        html += '            <details open>\n'
+        html += '                <summary><strong>📖 Practical Examples</strong></summary>\n'
+        html += '                <div style="padding: 15px;">\n'
+        html += parse_markdown_to_html(examples_markdown)
+        html += '                </div>\n'
+        html += '            </details>\n'
+    
     html += '        </div>\n'
     html += get_html_footer()
     return html
@@ -782,10 +836,12 @@ def main():
     dealer_analysis = None
     breeder_legend = None
     dealer_legend = None
+    breeder_examples = None
+    dealer_examples = None
     
     if os.path.exists("analysis_summary.md"):
         print("  Extracting analysis from summary...")
-        breeder_analysis, dealer_analysis, breeder_legend, dealer_legend = extract_analysis_sections("analysis_summary.md")
+        breeder_analysis, dealer_analysis, breeder_legend, dealer_legend, breeder_examples, dealer_examples = extract_analysis_sections("analysis_summary.md")
     
     # Generate homepage
     print("  Generating index.html...")
@@ -824,7 +880,8 @@ def main():
             "breeder-table",
             "breeder",
             analysis_markdown=breeder_analysis,
-            legend_markdown=breeder_legend
+            legend_markdown=breeder_legend,
+            examples_markdown=breeder_examples
         ))
     
     # Generate dealer supply risk page
@@ -837,7 +894,8 @@ def main():
             "dealer-table",
             "dealer",
             analysis_markdown=dealer_analysis,
-            legend_markdown=dealer_legend
+            legend_markdown=dealer_legend,
+            examples_markdown=dealer_examples
         ))
     
     # Copy CSV files to output directory

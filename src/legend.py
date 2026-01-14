@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from assertions import get_summary_path
+from legend_examples import generate_breeder_examples, generate_dealer_examples
 
 # =====================
 # LEGEND
@@ -46,13 +47,13 @@ def write_summary_legend():
 - For **OUT-of-stock** species: carries forward the most recent pressure from when it was IN (up to 5 runs back)
 - Acts as a **confidence amplifier** for Pattern/Price signals, not a standalone trigger
 
-**Wishlist Δ**
+**Wishlist Delta**
 - Measures **meaningful change in wishlist interest** between current and previous IN-stock observations
-- `↑` — Buyer interest increasing meaningfully (Δ ≥ +5)
-- `→` — Interest stable or within noise threshold (−4 ≤ Δ ≤ +4)
-- `↓` — Buyer interest declining meaningfully (Δ ≤ −5)
+- `↑` — Buyer interest increasing meaningfully (Delta ≥ +5)
+- `→` — Interest stable or within noise threshold (−4 ≤ Delta ≤ +4)
+- `↓` — Buyer interest declining meaningfully (Delta ≤ −5)
 - Calculated conservatively to avoid false signals from minor fluctuations
-- Uses bounded carryover for OUT-of-stock species (≤ 3 runs)
+- Uses bounded carryover for OUT-of-stock species (up to 3 runs back)
 - Acts as a **momentum modifier**, not a standalone signal
 - Can escalate or prevent escalation of emerging opportunities
 
@@ -67,6 +68,13 @@ def write_summary_legend():
 
 ---
 
+""")
+        
+        # Write generated Breeder examples
+        f.write(generate_breeder_examples())
+        f.write("\n\n---\n\n")
+        
+        f.write("""
 ### 🏪 Dealer Supply Risk Matrix — Legend
 
 **Stock Reliability**
@@ -96,13 +104,13 @@ def write_summary_legend():
 - For **OUT-of-stock** species: carries forward the most recent pressure from when it was IN (up to 5 runs back)
 - Escalates urgency where supply is unreliable; de-escalates where interest is weak
 
-**Wishlist Δ**
+**Wishlist Delta**
 - Measures **meaningful change in wishlist interest** between current and previous IN-stock observations
-- `↑` — Buyer interest increasing meaningfully (Δ ≥ +5)
-- `→` — Interest stable or within noise threshold (−4 ≤ Δ ≤ +4)
-- `↓` — Buyer interest declining meaningfully (Δ ≤ −5)
+- `↑` — Buyer interest increasing meaningfully (Delta ≥ +5)
+- `→` — Interest stable or within noise threshold (−4 ≤ Delta ≤ +4)
+- `↓` — Buyer interest declining meaningfully (Delta ≤ −5)
 - Calculated conservatively to avoid false signals from minor fluctuations
-- Uses bounded carryover for OUT-of-stock species (≤ 3 runs)
+- Uses bounded carryover for OUT-of-stock species (up to 3 runs back)
 - Acts as a **momentum modifier**, not a standalone signal
 - Reinforces risk assessments based on supply reliability
 
@@ -114,5 +122,14 @@ def write_summary_legend():
 **Dealer Recommendation**
 - Indicates whether a dealer should actively seek stock, buy opportunistically, or wait
 
+---
+
+""")
+        
+        # Write generated Dealer examples
+        f.write(generate_dealer_examples())
+        f.write("\n\n")
+        
+        f.write("""
 </details>
 """)

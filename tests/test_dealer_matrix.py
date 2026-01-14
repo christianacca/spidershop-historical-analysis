@@ -376,7 +376,7 @@ class TestBuildDealerSupplyRiskTable:
         # Seems the calculation gave Fast, not Moderate
         assert seemanni_entry["Restock Speed"] in ["Fast", "Moderate"]
         assert seemanni_entry["Wishlist Pressure"] != "🔥"  # Not high
-        assert seemanni_entry["Wishlist Δ"] == "↑"
+        assert seemanni_entry["Wishlist Delta"] == "↑"
         # Medium + not-high wishlist + rising delta doesn't automatically get 🔥
         # Only Medium + high wishlist + rising delta gets 🔥 (line 104-107)
         # So this will fall through to Medium alone = ⚠️
@@ -418,7 +418,7 @@ class TestBuildDealerSupplyRiskTable:
         
         assert seemanni_entry["Stock Reliability"] == "Medium"
         assert seemanni_entry["Wishlist Pressure"] == "🔥"
-        assert seemanni_entry["Wishlist Δ"] == "↑"
+        assert seemanni_entry["Wishlist Delta"] == "↑"
         assert seemanni_entry["Dealer Risk"] == "🔥"
         assert "surging demand" in seemanni_entry["Dealer Recommendation"].lower()
 
@@ -457,7 +457,7 @@ class TestBuildDealerSupplyRiskTable:
         
         assert seemanni_entry["Stock Reliability"] == "Medium"
         assert seemanni_entry["Wishlist Pressure"] == "🔥"
-        assert seemanni_entry["Wishlist Δ"] == "→"
+        assert seemanni_entry["Wishlist Delta"] == "→"
         assert seemanni_entry["Dealer Risk"] == "⚠️"
         assert "moderate demand" in seemanni_entry["Dealer Recommendation"].lower()
 
@@ -531,7 +531,7 @@ class TestBuildDealerSupplyRiskTable:
         seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
         
         assert seemanni_entry["Stock Reliability"] == "High"
-        assert seemanni_entry["Wishlist Δ"] == "↓"
+        assert seemanni_entry["Wishlist Delta"] == "↓"
         assert seemanni_entry["Dealer Risk"] == "❌"
         assert "interest declining" in seemanni_entry["Dealer Recommendation"].lower()
 
@@ -692,14 +692,14 @@ class TestBuildDealerSupplyRiskTable:
         assert seemanni_entry["Stock Reliability"] == "Low"
         assert seemanni_entry["Restock Speed"] != "Slow"  # Should be Fast or Moderate
         assert seemanni_entry["Wishlist Pressure"] != "🔥"  # NOT high pressure
-        assert seemanni_entry["Wishlist Δ"] == "↑"  # Rising delta
+        assert seemanni_entry["Wishlist Delta"] == "↑"  # Rising delta
         assert seemanni_entry["Dealer Risk"] == "🔥"
         # This should hit line 108-109 (Low + rising delta without Slow or high wishlist)
         assert "unreliable supply" in seemanni_entry["Dealer Recommendation"].lower()
         assert "surging interest" in seemanni_entry["Dealer Recommendation"].lower()
 
     def test_sorting_priority_risk_then_wishlist_then_delta(self):
-        """Table should sort by: Dealer Risk > Wishlist Pressure > Wishlist Δ > Avg OOS Duration."""
+        """Table should sort by: Dealer Risk > Wishlist Pressure > Wishlist Delta > Avg OOS Duration."""
         history = [
             # 10 runs total
             # Species A: Low reliability (20%), 🔥 risk, lower wishlist
@@ -761,7 +761,7 @@ class TestBuildDealerSupplyRiskTable:
         
         expected_keys = {
             "Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration",
-            "Restock Speed", "Price Pressure", "Wishlist Pressure", "Wishlist Δ",
+            "Restock Speed", "Price Pressure", "Wishlist Pressure", "Wishlist Delta",
             "Dealer Risk", "Dealer Recommendation"
         }
         assert set(entry.keys()) == expected_keys

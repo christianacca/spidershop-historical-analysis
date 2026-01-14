@@ -197,17 +197,17 @@ def build_breeder_opportunity_table(history_rows):
             "Pattern": pattern,
             "Price Trend": price_trend,
             "Wishlist Pressure": wishlist_pressure,
-            "Wishlist Δ": wishlist_delta,
+            "Wishlist Delta": wishlist_delta,
             "Signal": signal,
             "Recommendation": rec,
         })
 
     # Sort: Signal priority (🔥 > ⚠️ > ❌), then Wishlist Pressure (🔥 > ⚠️ > ❌), 
-    # then Wishlist Δ (↑ > → > ↓), then OOS Runs (desc)
+    # then Wishlist Delta (↑ > → > ↓), then OOS Runs (desc)
     table.sort(key=lambda r: (
         {"🔥": 0, "⚠️": 1, "❌": 2}[r["Signal"]],
         {"🔥": 0, "⚠️": 1, "❌": 2}[r["Wishlist Pressure"]],
-        {"↑": 0, "→": 1, "↓": 2}[r["Wishlist Δ"]],
+        {"↑": 0, "→": 1, "↓": 2}[r["Wishlist Delta"]],
         -int(r["OOS Runs"])
     ))
     return table
@@ -230,12 +230,12 @@ def write_breeder_outputs(table):
 
     with open(summary_path, "a", encoding="utf-8") as f:
         f.write("\n## 🧬 Breeder Opportunity Matrix (Top 10)\n\n")
-        f.write("| Species | Size (cm) | OOS | OOS Runs | Pattern | Price Trend | Wishlist Pressure | Wishlist Δ | Signal | Recommendation |\n")
+        f.write("| Species | Size (cm) | OOS | OOS Runs | Pattern | Price Trend | Wishlist Pressure | Wishlist Delta | Signal | Recommendation |\n")
         f.write("|---|---:|---|---:|---|---|---|---|---|---|\n")
         for r in table[:shown]:
             f.write(
                 f"| {r['Species']} | {r['Size (cm)']} | {r['OOS']} | {r['OOS Runs']} | "
-                f"{r['Pattern']} | {r['Price Trend']} | {r['Wishlist Pressure']} | {r['Wishlist Δ']} | {r['Signal']} | {r['Recommendation']} |\n"
+                f"{r['Pattern']} | {r['Price Trend']} | {r['Wishlist Pressure']} | {r['Wishlist Delta']} | {r['Signal']} | {r['Recommendation']} |\n"
             )
         if total > shown:
             f.write(f"\n_Showing top {shown} of {total} entries — see `{BREEDER_TABLE_FILE}` for full list._\n")

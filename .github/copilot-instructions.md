@@ -120,6 +120,16 @@ scrape_datetime, scientific_name, common_name, size_cm, price_gbp, wishlist_coun
 
 The project uses pytest for testing with comprehensive coverage tracking.
 
+### Critical Testing Rules for Agents
+
+**ALWAYS run tests after making ANY file changes** - including documentation, legend text, configuration, or any other files. Tests validate not just code logic but also:
+- Content structure and formatting
+- Generated output (HTML, CSV, markdown)
+- Data extraction and parsing
+- Integration between components
+
+**No exceptions:** Even "text-only" changes must be validated. Tests run in < 1 second and catch assumptions. Do not skip testing based on perceived low risk.
+
 ### Running Tests
 
 > **⚠️ Important:** Make sure your virtual environment is activated before running tests!
