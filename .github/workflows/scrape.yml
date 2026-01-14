@@ -72,11 +72,11 @@ jobs:
           ARTIFACT_ID=$(gh api \
             repos/${{ github.repository }}/actions/artifacts \
             --paginate \
-            -q '.artifacts
-                | map(select(.name == "'"${{ steps.artifact_names.outputs.history_name }}"'" and .expired == false))
+            -q '.artifacts[]' \
+            | jq -s 'map(select(.name == "'"${{ steps.artifact_names.outputs.history_name }}"'" and .expired == false))
                 | sort_by(.created_at)
                 | last
-                | .id' || true)
+                | .id // empty' || true)
 
           echo "artifact_id=$ARTIFACT_ID" >> $GITHUB_OUTPUT
           echo "Resolved branch history artifact id: $ARTIFACT_ID"
@@ -93,11 +93,11 @@ jobs:
           ARTIFACT_ID=$(gh api \
             repos/${{ github.repository }}/actions/artifacts \
             --paginate \
-            -q '.artifacts
-                | map(select(.name == "'"${{ steps.artifact_names.outputs.default_history_name }}"'" and .expired == false))
+            -q '.artifacts[]' \
+            | jq -s 'map(select(.name == "'"${{ steps.artifact_names.outputs.default_history_name }}"'" and .expired == false))
                 | sort_by(.created_at)
                 | last
-                | .id' || true)
+                | .id // empty' || true)
 
           echo "artifact_id=$ARTIFACT_ID" >> $GITHUB_OUTPUT
           echo "Resolved default history artifact id: $ARTIFACT_ID"
