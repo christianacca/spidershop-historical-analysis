@@ -57,6 +57,30 @@ class TestParseMarkdownToHtml:
         assert "<h2>Header 2</h2>" in html
         assert "<h3>Header 3</h3>" in html
 
+    def test_h4_headers(self):
+        """Should convert h4 markdown headers to HTML."""
+        markdown = "#### Example 1: Sustained Scarcity"
+        result = parse_markdown_to_html(markdown)
+        assert "<h4>Example 1: Sustained Scarcity</h4>" in result
+        # Ensure it's not wrapped in <p> tags
+        assert "<p>####" not in result
+
+    def test_horizontal_rules(self):
+        """Should convert markdown horizontal rules to HTML."""
+        # Test all three markdown horizontal rule syntaxes
+        markdown1 = "Some text\n---\nMore text"
+        result1 = parse_markdown_to_html(markdown1)
+        assert "<hr>" in result1
+        assert "<p>---</p>" not in result1
+        
+        markdown2 = "Some text\n***\nMore text"
+        result2 = parse_markdown_to_html(markdown2)
+        assert "<hr>" in result2
+        
+        markdown3 = "Some text\n___\nMore text"
+        result3 = parse_markdown_to_html(markdown3)
+        assert "<hr>" in result3
+
     def test_bold_text_conversion(self):
         """Should convert **bold** to <strong>bold</strong>."""
         markdown = "This is **bold text** here"
@@ -147,6 +171,68 @@ class TestParseMarkdownToHtml:
         assert "<strong>bold</strong>" in html
         assert "<em>italic</em>" in html
         assert "<code>code</code>" in html
+
+    def test_legend_example_structure(self):
+        """Should convert complete legend example structure correctly."""
+        markdown = """#### Example 1: Sustained Scarcity (Strong Opportunity)
+**Scenario:** A species that has been unavailable for 4+ consecutive weeks
+
+| Week | Listed? | Price | Wishlist Count |
+|------|---------|-------|----------------|
+| Jan 1 | ✅ Yes | £25.00 | 10 |
+| Jan 8 | ❌ No | - | - |
+
+**Analysis Result:**
+- **OOS:** OUT
+- **OOS Runs:** 4
+- **Pattern:** Sustained
+- **Signal:** 🔥
+
+**Why:** When a species disappears for 4+ weeks in a row, this indicates persistent market scarcity.
+
+---"""
+        
+        expected_html = """<h4>Example 1: Sustained Scarcity (Strong Opportunity)</h4>
+<p><strong>Scenario:</strong> A species that has been unavailable for 4+ consecutive weeks</p>
+
+<table class="data-table markdown-table">
+  <thead>
+    <tr>
+      <th>Week</th>
+      <th>Listed?</th>
+      <th>Price</th>
+      <th>Wishlist Count</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Jan 1</td>
+      <td>✅ Yes</td>
+      <td>£25.00</td>
+      <td>10</td>
+    </tr>
+    <tr>
+      <td>Jan 8</td>
+      <td>❌ No</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><strong>Analysis Result:</strong></p>
+<ul>
+  <li><strong>OOS:</strong> OUT</li>
+  <li><strong>OOS Runs:</strong> 4</li>
+  <li><strong>Pattern:</strong> Sustained</li>
+  <li><strong>Signal:</strong> 🔥</li>
+
+</ul>
+<p><strong>Why:</strong> When a species disappears for 4+ weeks in a row, this indicates persistent market scarcity.</p>
+<hr>"""
+        
+        html = parse_markdown_to_html(markdown)
+        assert html == expected_html
 
     def test_multiple_tables(self):
         """Should handle multiple tables in markdown."""

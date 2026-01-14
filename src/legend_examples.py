@@ -113,7 +113,7 @@ def generate_breeder_example_1():
 **Analysis Result:**
 - **OOS:** {entry["OOS"]}
 - **OOS Runs:** {entry["OOS Runs"]}
-- **Pattern:** {entry["Pattern"]}
+- **Stock Pattern:** {entry["Stock Pattern"]}
 - **Signal:** {entry["Signal"]}
 - **Recommendation:** {entry["Recommendation"]}
 
@@ -144,7 +144,7 @@ def generate_breeder_example_2():
 **Analysis Result:**
 - **OOS:** {entry["OOS"]}
 - **OOS Runs:** {entry["OOS Runs"]}
-- **Pattern:** {entry["Pattern"]}
+- **Stock Pattern:** {entry["Stock Pattern"]}
 - **Price Trend:** {entry["Price Trend"]} (£25 → £30)
 - **Signal:** {entry["Signal"]}
 - **Recommendation:** {entry["Recommendation"]}
@@ -174,7 +174,7 @@ def generate_breeder_example_3():
 
 **Analysis Result:**
 - **OOS:** {entry["OOS"]}
-- **Pattern:** {entry["Pattern"]}
+- **Stock Pattern:** {entry["Stock Pattern"]}
 - **Signal:** {entry["Signal"]}
 - **Recommendation:** {entry["Recommendation"]}
 
@@ -202,7 +202,7 @@ def generate_breeder_example_4():
 **Analysis Result:**
 - **OOS:** {entry["OOS"]}
 - **OOS Runs:** {entry["OOS Runs"]}
-- **Pattern:** {entry["Pattern"]}
+- **Stock Pattern:** {entry["Stock Pattern"]}
 - **Wishlist Pressure:** {entry["Wishlist Pressure"]}
 - **Signal:** {entry["Signal"]}
 - **Recommendation:** {entry["Recommendation"]}
@@ -238,7 +238,7 @@ def generate_breeder_example_5():
 **Analysis Result:**
 - **OOS:** {entry["OOS"]}
 - **OOS Runs:** {entry["OOS Runs"]}
-- **Pattern:** {entry["Pattern"]}
+- **Stock Pattern:** {entry["Stock Pattern"]}
 - **Wishlist Pressure:** {entry["Wishlist Pressure"]} (carried from last seen)
 - **Wishlist Delta:** {entry["Wishlist Delta"]} (+10)
 - **Signal:** {entry["Signal"]}
@@ -271,7 +271,7 @@ def generate_breeder_example_6():
 **Analysis Result:**
 - **OOS:** {entry["OOS"]}
 - **OOS Runs:** {entry["OOS Runs"]}
-- **Pattern:** {entry["Pattern"]}
+- **Stock Pattern:** {entry["Stock Pattern"]}
 - **Wishlist Delta:** {entry["Wishlist Delta"]} (20 → 15 → 8)
 - **Signal:** {entry["Signal"]}
 - **Recommendation:** {entry["Recommendation"]}

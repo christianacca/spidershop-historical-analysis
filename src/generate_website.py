@@ -20,12 +20,13 @@ def parse_markdown_to_html(markdown_text):
     
     html = markdown_text
     
-    # Convert headers
-    html = re.sub(r'^### (.+)$', r'<h3>\1</h3>', html, flags=re.MULTILINE)
-    html = re.sub(r'^## (.+)$', r'<h2>\1</h2>', html, flags=re.MULTILINE)
-    html = re.sub(r'^# (.+)$', r'<h1>\1</h1>', html, flags=re.MULTILINE)
+    # Convert horizontal rules FIRST (before bold/italic which use same characters)
+    # Must be on their own line
+    html = re.sub(r'^\s*---\s*$', '<HR_PLACEHOLDER>', html, flags=re.MULTILINE)
+    html = re.sub(r'^\s*\*\*\*\s*$', '<HR_PLACEHOLDER>', html, flags=re.MULTILINE)
+    html = re.sub(r'^\s*___\s*$', '<HR_PLACEHOLDER>', html, flags=re.MULTILINE)
     
-    # Convert bold
+    # Convert bold (before processing lines)
     html = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', html)
     
     # Convert italic
@@ -108,6 +109,35 @@ def parse_markdown_to_html(markdown_text):
                 
                 item = stripped[2:]
                 new_lines.append(f'  <li>{item}</li>')
+            # Check for horizontal rule placeholder
+            elif stripped == '<HR_PLACEHOLDER>':
+                # Close list if needed
+                if in_list:
+                    new_lines.append('</ul>')
+                    in_list = False
+                new_lines.append('<hr>')
+            # Check for headers (must come before paragraph wrapping)
+            elif stripped.startswith('#### '):
+                # Close list if needed
+                if in_list:
+                    new_lines.append('</ul>')
+                    in_list = False
+                new_lines.append(f'<h4>{stripped[5:]}</h4>')
+            elif stripped.startswith('### '):
+                if in_list:
+                    new_lines.append('</ul>')
+                    in_list = False
+                new_lines.append(f'<h3>{stripped[4:]}</h3>')
+            elif stripped.startswith('## '):
+                if in_list:
+                    new_lines.append('</ul>')
+                    in_list = False
+                new_lines.append(f'<h2>{stripped[3:]}</h2>')
+            elif stripped.startswith('# '):
+                if in_list:
+                    new_lines.append('</ul>')
+                    in_list = False
+                new_lines.append(f'<h1>{stripped[2:]}</h1>')
             else:
                 # If we were in a list and hit a non-list line, close the list
                 if in_list and stripped:
@@ -115,10 +145,22 @@ def parse_markdown_to_html(markdown_text):
                     in_list = False
                     current_list_header = None
                 
-                # Regular text - wrap in paragraph if not empty and not already HTML
-                if stripped and not stripped.startswith('<'):
-                    new_lines.append(f'<p>{line}</p>')
+                # Regular text - wrap in paragraph if not empty
+                # Exception: lines that are ONLY a strong tag followed by list items (handled earlier)
+                if stripped:
+                    # Check if this is a list header: strong tag only, followed by list items
+                    if (re.match(r'^<strong>.+</strong>$', stripped) and
+                        i + 1 < len(lines) and lines[i + 1].strip().startswith('- ')):
+                        # This was already handled earlier, skip it
+                        pass
+                    # Check if line starts with table/ul/h tags (block-level HTML)
+                    elif stripped.startswith(('<table', '<ul>', '<h1>', '<h2>', '<h3>', '<h4>', '<h5>', '<h6>', '<hr>')):
+                        new_lines.append(line)
+                    else:
+                        # Wrap everything else in <p> tags
+                        new_lines.append(f'<p>{line}</p>')
                 else:
+                    # Empty line
                     new_lines.append(line)
     
     if in_table:
