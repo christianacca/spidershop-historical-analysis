@@ -111,6 +111,7 @@ def generate_breeder_example_1():
 {data_table}
 
 **Analysis Result:**
+
 - **OOS:** {entry["OOS"]}
 - **OOS Runs:** {entry["OOS Runs"]}
 - **Stock Pattern:** {entry["Stock Pattern"]}
@@ -142,6 +143,7 @@ def generate_breeder_example_2():
 {data_table}
 
 **Analysis Result:**
+
 - **OOS:** {entry["OOS"]}
 - **OOS Runs:** {entry["OOS Runs"]}
 - **Stock Pattern:** {entry["Stock Pattern"]}
@@ -173,6 +175,7 @@ def generate_breeder_example_3():
 {data_table}
 
 **Analysis Result:**
+
 - **OOS:** {entry["OOS"]}
 - **Stock Pattern:** {entry["Stock Pattern"]}
 - **Signal:** {entry["Signal"]}
@@ -200,6 +203,7 @@ def generate_breeder_example_4():
 {data_table}
 
 **Analysis Result:**
+
 - **OOS:** {entry["OOS"]}
 - **OOS Runs:** {entry["OOS Runs"]}
 - **Stock Pattern:** {entry["Stock Pattern"]}
@@ -236,6 +240,7 @@ def generate_breeder_example_5():
 {data_table}
 
 **Analysis Result:**
+
 - **OOS:** {entry["OOS"]}
 - **OOS Runs:** {entry["OOS Runs"]}
 - **Stock Pattern:** {entry["Stock Pattern"]}
@@ -269,6 +274,7 @@ def generate_breeder_example_6():
 {data_table}
 
 **Analysis Result:**
+
 - **OOS:** {entry["OOS"]}
 - **OOS Runs:** {entry["OOS Runs"]}
 - **Stock Pattern:** {entry["Stock Pattern"]}
@@ -345,6 +351,7 @@ def generate_dealer_example_1():
 **Scenario:** A species available in 9 out of 10 weeks with stable demand
 
 **Analysis Result:**
+
 - **Stock Reliability:** {entry["Stock Reliability"]} (9/10 weeks = 90%)
 - **Restock Speed:** {entry["Restock Speed"]}
 - **Wishlist Pressure:** {entry["Wishlist Pressure"]}
@@ -378,6 +385,7 @@ def generate_dealer_example_2():
 **Scenario:** A species present in 5 out of 10 weeks (50% availability)
 
 **Analysis Result:**
+
 - **Stock Reliability:** {entry["Stock Reliability"]}
 - **Dealer Risk:** {entry["Dealer Risk"]}
 - **Recommendation:** {entry["Dealer Recommendation"]}
@@ -404,6 +412,7 @@ def generate_dealer_example_3():
 **Scenario:** A species rarely available (3 out of 10 weeks), taking 4+ weeks to restock
 
 **Analysis Result:**
+
 - **Stock Reliability:** {entry["Stock Reliability"]} (<40% availability)
 - **Avg OOS Duration:** {entry["Avg OOS Duration"]} runs
 - **Restock Speed:** {entry["Restock Speed"]}
@@ -431,6 +440,7 @@ def generate_dealer_example_4():
 **Scenario:** A rarely available species with strong buyer interest
 
 **Analysis Result:**
+
 - **Stock Reliability:** {entry["Stock Reliability"]} (1/6 weeks)
 - **Wishlist Pressure:** {entry["Wishlist Pressure"]} (carried from last seen)
 - **Dealer Risk:** {entry["Dealer Risk"]}
@@ -460,6 +470,7 @@ def generate_dealer_example_5():
 **Scenario:** A moderately available species with rapidly increasing wishlist interest
 
 **Analysis Result:**
+
 - **Stock Reliability:** {entry["Stock Reliability"]}
 - **Wishlist Pressure:** {entry["Wishlist Pressure"]}
 - **Wishlist Delta:** {entry["Wishlist Delta"]} (+14 from first to last)
@@ -487,6 +498,7 @@ def generate_dealer_example_6():
 **Scenario:** A consistently available species with declining buyer interest
 
 **Analysis Result:**
+
 - **Stock Reliability:** {entry["Stock Reliability"]}
 - **Wishlist Pressure:** {entry["Wishlist Pressure"]}
 - **Wishlist Delta:** {entry["Wishlist Delta"]}
@@ -515,6 +527,7 @@ def generate_dealer_example_7():
 **Scenario:** An unreliable species showing early-stage demand growth
 
 **Analysis Result:**
+
 - **Stock Reliability:** {entry["Stock Reliability"]}
 - **Wishlist Delta:** {entry["Wishlist Delta"]} (+7)
 - **Dealer Risk:** {entry["Dealer Risk"]}

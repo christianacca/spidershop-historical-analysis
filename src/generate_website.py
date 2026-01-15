@@ -6,6 +6,7 @@ Generate a static HTML website from scraped CSV data for GitHub Pages deployment
 import csv
 import os
 import re
+import markdown
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -14,163 +15,24 @@ OUTPUT_DIR = Path("website")
 
 
 def parse_markdown_to_html(markdown_text):
-    """Convert markdown to simple HTML (supports basic formatting)."""
+    """Convert markdown to HTML using the markdown library.
+    
+    Uses the 'tables' and 'fenced_code' extensions for enhanced support.
+    """
     if not markdown_text:
         return ""
     
-    html = markdown_text
+    # Configure markdown with extensions
+    md = markdown.Markdown(extensions=['tables', 'fenced_code'])
     
-    # Convert horizontal rules FIRST (before bold/italic which use same characters)
-    # Must be on their own line
-    html = re.sub(r'^\s*---\s*$', '<HR_PLACEHOLDER>', html, flags=re.MULTILINE)
-    html = re.sub(r'^\s*\*\*\*\s*$', '<HR_PLACEHOLDER>', html, flags=re.MULTILINE)
-    html = re.sub(r'^\s*___\s*$', '<HR_PLACEHOLDER>', html, flags=re.MULTILINE)
+    # Convert markdown to HTML
+    html = md.convert(markdown_text)
     
-    # Convert bold (before processing lines)
-    html = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', html)
+    # Add our custom class to tables for styling consistency
+    html = html.replace('<table>', '<table class="data-table markdown-table">')
     
-    # Convert italic
-    html = re.sub(r'\*(.+?)\*', r'<em>\1</em>', html)
-    
-    # Convert inline code
-    html = re.sub(r'`(.+?)`', r'<code>\1</code>', html)
-    
-    # Convert markdown tables to HTML tables
-    lines = html.split('\n')
-    in_table = False
-    in_list = False
-    current_list_header = None
-    new_lines = []
-    
-    for i, line in enumerate(lines):
-        # Check if this is a table row
-        if '|' in line and line.strip().startswith('|'):
-            if not in_table:
-                # Close any open list
-                if in_list:
-                    new_lines.append('</ul>')
-                    in_list = False
-                    current_list_header = None
-                
-                new_lines.append('<table class="data-table markdown-table">')
-                in_table = True
-                # Check if next line is separator
-                if i + 1 < len(lines) and re.match(r'^\|[\s\-:|]+\|', lines[i + 1]):
-                    # This is a header row
-                    cells = [c.strip() for c in line.split('|')[1:-1]]
-                    new_lines.append('  <thead>')
-                    new_lines.append('    <tr>')
-                    for cell in cells:
-                        new_lines.append(f'      <th>{cell}</th>')
-                    new_lines.append('    </tr>')
-                    new_lines.append('  </thead>')
-                    new_lines.append('  <tbody>')
-                    continue
-            
-            # Skip separator line
-            if re.match(r'^\|[\s\-:|]+\|', line):
-                continue
-            
-            # Regular table row
-            cells = [c.strip() for c in line.split('|')[1:-1]]
-            new_lines.append('    <tr>')
-            for cell in cells:
-                new_lines.append(f'      <td>{cell}</td>')
-            new_lines.append('    </tr>')
-        else:
-            if in_table:
-                new_lines.append('  </tbody>')
-                new_lines.append('</table>')
-                in_table = False
-            
-            # Check for list header pattern: line with just <strong> tag
-            # followed by list items
-            stripped = line.strip()
-            
-            # Check if this is a potential list header (just strong tag on its own line)
-            # Pattern: <strong>Text</strong> followed by list items
-            if (re.match(r'^<strong>.+</strong>$', stripped) and
-                i + 1 < len(lines) and lines[i + 1].strip().startswith('- ')):
-                # Close any previous list
-                if in_list:
-                    new_lines.append('</ul>')
-                
-                # Wrap the strong tag in a paragraph
-                new_lines.append(f'<p>{stripped}</p>')
-                new_lines.append('<ul>')
-                in_list = True
-                continue
-            
-            # Convert list items
-            if stripped.startswith('- '):
-                if not in_list:
-                    new_lines.append('<ul>')
-                    in_list = True
-                
-                item = stripped[2:]
-                new_lines.append(f'  <li>{item}</li>')
-            # Check for horizontal rule placeholder
-            elif stripped == '<HR_PLACEHOLDER>':
-                # Close list if needed
-                if in_list:
-                    new_lines.append('</ul>')
-                    in_list = False
-                new_lines.append('<hr>')
-            # Check for headers (must come before paragraph wrapping)
-            elif stripped.startswith('#### '):
-                # Close list if needed
-                if in_list:
-                    new_lines.append('</ul>')
-                    in_list = False
-                new_lines.append(f'<h4>{stripped[5:]}</h4>')
-            elif stripped.startswith('### '):
-                if in_list:
-                    new_lines.append('</ul>')
-                    in_list = False
-                new_lines.append(f'<h3>{stripped[4:]}</h3>')
-            elif stripped.startswith('## '):
-                if in_list:
-                    new_lines.append('</ul>')
-                    in_list = False
-                new_lines.append(f'<h2>{stripped[3:]}</h2>')
-            elif stripped.startswith('# '):
-                if in_list:
-                    new_lines.append('</ul>')
-                    in_list = False
-                new_lines.append(f'<h1>{stripped[2:]}</h1>')
-            else:
-                # If we were in a list and hit a non-list line, close the list
-                if in_list and stripped:
-                    new_lines.append('</ul>')
-                    in_list = False
-                    current_list_header = None
-                
-                # Regular text - wrap in paragraph if not empty
-                # Exception: lines that are ONLY a strong tag followed by list items (handled earlier)
-                if stripped:
-                    # Check if this is a list header: strong tag only, followed by list items
-                    if (re.match(r'^<strong>.+</strong>$', stripped) and
-                        i + 1 < len(lines) and lines[i + 1].strip().startswith('- ')):
-                        # This was already handled earlier, skip it
-                        pass
-                    # Check if line starts with table/ul/h tags (block-level HTML)
-                    elif stripped.startswith(('<table', '<ul>', '<h1>', '<h2>', '<h3>', '<h4>', '<h5>', '<h6>', '<hr>')):
-                        new_lines.append(line)
-                    else:
-                        # Wrap everything else in <p> tags
-                        new_lines.append(f'<p>{line}</p>')
-                else:
-                    # Empty line
-                    new_lines.append(line)
-    
-    if in_table:
-        new_lines.append('  </tbody>')
-        new_lines.append('</table>')
-    
-    if in_list:
-        new_lines.append('</ul>')
-    
-    return '\n'.join(new_lines)
+    return html
+
 
 
 def extract_analysis_sections(markdown_file):
