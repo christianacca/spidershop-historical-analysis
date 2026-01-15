@@ -50,13 +50,13 @@ class TestParseMarkdownToHtml:
         assert parse_markdown_to_html(None) == ""
 
     def test_headers_h1_h2_h3(self):
-        """Should convert markdown headers to HTML tags."""
+        """Should convert markdown headers to HTML tags with heading downgrade."""
         markdown = """# Header 1
 ## Header 2
 ### Header 3"""
         expected_html = """<h1>Header 1</h1>
-<h2>Header 2</h2>
-<h3>Header 3</h3>"""
+<h3>Header 2</h3>
+<h4>Header 3</h4>"""
         html = parse_markdown_to_html(markdown)
         assert html == expected_html
 
@@ -123,7 +123,7 @@ class TestParseMarkdownToHtml:
         markdown = """## Title
 
 This is **bold** and *italic* with `code`."""
-        expected_html = """<h2>Title</h2>
+        expected_html = """<h3>Title</h3>
 <p>This is <strong>bold</strong> and <em>italic</em> with <code>code</code>.</p>"""
         html = parse_markdown_to_html(markdown)
         assert html == expected_html
@@ -150,7 +150,7 @@ This is **bold** and *italic* with `code`."""
 
 ---"""
         
-        expected_html = """<h4>Example 1: Sustained Scarcity (Strong Opportunity)</h4>
+        expected_html = """<h5>Example 1: Sustained Scarcity (Strong Opportunity)</h5>
 <p><strong>Scenario:</strong> A species that has been unavailable for 4+ consecutive weeks</p>
 <table class="data-table markdown-table">
 <thead>
@@ -934,7 +934,8 @@ class TestGenerateDataPage:
                 analysis_markdown=analysis_md
             )
             assert 'class="analysis-section"' in html
-            assert "<h2>Analysis</h2>" in html
+            # h2 is downgraded to h3 for proper heading hierarchy
+            assert "<h3>Analysis</h3>" in html
             assert "<strong>important</strong>" in html
         finally:
             os.unlink(filename)

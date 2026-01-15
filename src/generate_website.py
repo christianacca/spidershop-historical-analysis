@@ -18,6 +18,7 @@ def parse_markdown_to_html(markdown_text):
     """Convert markdown to HTML using the markdown library.
     
     Uses the 'tables' and 'fenced_code' extensions for enhanced support.
+    Downgrades heading levels (h2→h3, h3→h4) to maintain proper hierarchy.
     """
     if not markdown_text:
         return ""
@@ -30,6 +31,14 @@ def parse_markdown_to_html(markdown_text):
     
     # Add our custom class to tables for styling consistency
     html = html.replace('<table>', '<table class="data-table markdown-table">')
+    
+    # Downgrade heading levels to maintain semantic hierarchy
+    # h2 → h3, h3 → h4, h4 → h5, h5 → h6
+    # Process in reverse order to avoid double-replacements
+    html = html.replace('<h5>', '<h6>').replace('</h5>', '</h6>')
+    html = html.replace('<h4>', '<h5>').replace('</h4>', '</h5>')
+    html = html.replace('<h3>', '<h4>').replace('</h3>', '</h4>')
+    html = html.replace('<h2>', '<h3>').replace('</h2>', '</h3>')
     
     return html
 
@@ -428,12 +437,12 @@ def get_base_html_template(title, active_page=""):
             border-left: 4px solid #3498db;
         }}
         
-        .analysis-section h2 {{
+        .analysis-section h3 {{
             margin-top: 0;
             color: #2c3e50;
         }}
         
-        .analysis-section h3 {{
+        .analysis-section h4 {{
             color: #34495e;
             margin-top: 25px;
         }}
@@ -460,6 +469,12 @@ def get_base_html_template(title, active_page=""):
         }}
         
         .analysis-section hr {{
+            margin: 30px 0;
+            border: none;
+            border-top: 2px solid #dee2e6;
+        }}
+        
+        details hr {{
             margin: 30px 0;
             border: none;
             border-top: 2px solid #dee2e6;
