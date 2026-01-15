@@ -121,6 +121,15 @@ def generate_table_html(headers, rows, table_id, sortable=True):
     if not headers or not rows:
         return "<p>No data available.</p>"
     
+    # Find column indices for special rendering
+    page_url_idx = None
+    scientific_name_idx = None
+    try:
+        page_url_idx = headers.index('page_url')
+        scientific_name_idx = headers.index('scientific_name')
+    except ValueError:
+        pass  # Columns not found, render normally
+    
     html = f'<table id="{table_id}" class="data-table">\n'
     html += "  <thead>\n    <tr>\n"
     
@@ -135,8 +144,18 @@ def generate_table_html(headers, rows, table_id, sortable=True):
     
     for row in rows:
         html += "    <tr>\n"
-        for cell in row:
-            html += f"      <td>{escape_html(cell)}</td>\n"
+        for i, cell in enumerate(row):
+            # Special rendering for page_url column
+            if i == page_url_idx and page_url_idx is not None and scientific_name_idx is not None:
+                url = cell.strip() if cell else ""
+                scientific_name = row[scientific_name_idx] if scientific_name_idx < len(row) else ""
+                
+                if url:
+                    html += f'      <td><a href="{escape_html(url)}" target="_blank" rel="noopener noreferrer">{escape_html(scientific_name)}</a></td>\n'
+                else:
+                    html += f"      <td>{escape_html(cell)}</td>\n"
+            else:
+                html += f"      <td>{escape_html(cell)}</td>\n"
         html += "    </tr>\n"
     
     html += "  </tbody>\n</table>\n"
@@ -438,6 +457,12 @@ def get_base_html_template(title, active_page=""):
             border-radius: 3px;
             font-family: 'Courier New', monospace;
             font-size: 0.9em;
+        }}
+        
+        .analysis-section hr {{
+            margin: 30px 0;
+            border: none;
+            border-top: 2px solid #dee2e6;
         }}
         
         .markdown-table {{

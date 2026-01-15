@@ -530,6 +530,74 @@ class TestGenerateTableHtml:
         assert "</tbody>" in html
         assert "</table>" in html
 
+    def test_table_renders_page_url_as_link(self):
+        """Should render page_url column as clickable link with scientific name as text."""
+        headers = ["scientific_name", "common_name", "price_gbp", "page_url"]
+        rows = [
+            ["Brachypelma hamorii", "Mexican Red Knee", "25.00", "https://example.com/species1"],
+            ["Grammostola rosea", "Chilean Rose", "15.00", "https://example.com/species2"]
+        ]
+        html = generate_table_html(headers, rows, "test-table")
+        
+        # Check that links are created with scientific names as text
+        assert '<a href="https://example.com/species1" target="_blank" rel="noopener noreferrer">Brachypelma hamorii</a>' in html
+        assert '<a href="https://example.com/species2" target="_blank" rel="noopener noreferrer">Grammostola rosea</a>' in html
+        
+        # Verify links open in new tab with security attributes
+        assert 'target="_blank"' in html
+        assert 'rel="noopener noreferrer"' in html
+
+    def test_table_handles_empty_page_url(self):
+        """Should handle empty page_url gracefully without creating a link."""
+        headers = ["scientific_name", "common_name", "page_url"]
+        rows = [
+            ["Brachypelma hamorii", "Mexican Red Knee", "https://example.com/species1"],
+            ["Grammostola rosea", "Chilean Rose", ""],  # Empty URL
+            ["Aphonopelma seemanni", "Costa Rican Zebra", "   "]  # Whitespace only
+        ]
+        html = generate_table_html(headers, rows, "test-table")
+        
+        # First row should have link
+        assert '<a href="https://example.com/species1"' in html
+        assert '>Brachypelma hamorii</a>' in html
+        
+        # Empty URL rows should not have links - just render the cell value
+        assert html.count('<a href=') == 1  # Only one link should exist
+
+    def test_table_without_page_url_column(self):
+        """Should render normally when page_url column doesn't exist."""
+        headers = ["scientific_name", "common_name", "price_gbp"]
+        rows = [
+            ["Brachypelma hamorii", "Mexican Red Knee", "25.00"],
+            ["Grammostola rosea", "Chilean Rose", "15.00"]
+        ]
+        html = generate_table_html(headers, rows, "test-table")
+        
+        # Should not create any links
+        assert '<a href=' not in html
+        assert 'target="_blank"' not in html
+        
+        # Should render data normally
+        assert "Brachypelma hamorii" in html
+        assert "Mexican Red Knee" in html
+
+    def test_table_with_page_url_but_no_scientific_name(self):
+        """Should render normally when scientific_name column is missing."""
+        headers = ["common_name", "price_gbp", "page_url"]
+        rows = [
+            ["Mexican Red Knee", "25.00", "https://example.com/species1"],
+            ["Chilean Rose", "15.00", "https://example.com/species2"]
+        ]
+        html = generate_table_html(headers, rows, "test-table")
+        
+        # Should not create links without scientific_name column
+        assert '<a href=' not in html
+        assert 'target="_blank"' not in html
+        
+        # Should render URLs as plain text
+        assert "https://example.com/species1" in html
+        assert "https://example.com/species2" in html
+
 
 class TestGetBaseHtmlTemplate:
     """Test suite for base HTML template generation."""

@@ -1,5 +1,31 @@
 # Copilot Instructions for spidershop-historical-analysis
 
+## ⚠️ CRITICAL: Testing Requirements - READ FIRST ⚠️
+
+**MANDATORY WORKFLOW FOR EVERY CODE CHANGE:**
+
+1. **Write tests FIRST** for new functionality before or immediately after implementation
+2. **Run tests with coverage** after EVERY file change (no exceptions):
+   ```bash
+   pytest --cov=src --cov-report=html --cov-report=term-missing --cov-report=json
+   ```
+3. **Check module-specific coverage**:
+   ```bash
+   python check_coverage.py --module=<your_module>.py
+   ```
+
+**TESTING PRINCIPLES:**
+
+- **New functionality = New tests. Always.** Never rely on "existing tests will probably cover it"
+- **Tests validate not just code logic but also content, structure, formatting, and generated output**
+- Coverage thresholds are minimums, not targets - always write explicit tests for new behavior
+- Tests run in < 1 second and catch hidden assumptions - there is NO excuse to skip them
+- Even "text-only" or "documentation" changes must be validated with tests
+
+**If you skip these steps, you are violating project standards.**
+
+---
+
 ## Project Overview
 
 This is a Python web scraper that captures pricing data for tarantula spiderlings from The Spider Shop UK website. The scraper runs on a weekly schedule via GitHub Actions and maintains historical pricing data as artifacts.
@@ -120,16 +146,6 @@ scrape_datetime, scientific_name, common_name, size_cm, price_gbp, wishlist_coun
 
 The project uses pytest for testing with comprehensive coverage tracking.
 
-### Critical Testing Rules for Agents
-
-**ALWAYS run tests after making ANY file changes** - including documentation, legend text, configuration, or any other files. Tests validate not just code logic but also:
-- Content structure and formatting
-- Generated output (HTML, CSV, markdown)
-- Data extraction and parsing
-- Integration between components
-
-**No exceptions:** Even "text-only" changes must be validated. Tests run in < 1 second and catch assumptions. Do not skip testing based on perceived low risk.
-
 ### Running Tests
 
 > **⚠️ Important:** Make sure your virtual environment is activated before running tests!
@@ -147,8 +163,8 @@ The project uses pytest for testing with comprehensive coverage tracking.
 # Run all tests
 pytest
 
-# Run with coverage
-pytest --cov=src --cov-report=html --cov-report=term-missing
+# Run with coverage (REQUIRED after any code change)
+pytest --cov=src --cov-report=html --cov-report=term-missing --cov-report=json
 
 # Check specific module coverage
 python check_coverage.py --module=breeder_matrix.py
@@ -156,33 +172,17 @@ python check_coverage.py --module=breeder_matrix.py
 
 ### Test Coverage for Agent Mode
 
-When making code changes, agents should:
-
-1. **Run tests before changes** to establish baseline:
-   ```bash
-   pytest --cov=src --cov-report=json -v
-   ```
-
-2. **Write tests for new code** following patterns in `tests/test_breeder_matrix.py`:
+1. **Write tests for new code** following patterns in existing test files:
    - Use synthetic data to simulate scraping results
-   - Cover all code branches
-   - Test edge cases
+   - Cover all code branches and edge cases
    - Use descriptive test names
 
-3. **Verify coverage after changes**:
+2. **Verify coverage after changes**:
    ```bash
-   # Check if new module meets 80% threshold
    python check_coverage.py --module=your_new_module.py --threshold=80
-   
-   # Parse coverage.json programmatically
-   import json
-   with open('coverage.json') as f:
-       data = json.load(f)
-       coverage = data['totals']['percent_covered']
-       print(f"Overall: {coverage:.2f}%")
    ```
 
-4. **Coverage artifacts**:
+3. **Coverage artifacts**:
    - `coverage.json` - Machine-readable coverage data
    - `htmlcov/` - Visual HTML report
    - Use `view_coverage.py` for formatted summary
@@ -190,7 +190,7 @@ When making code changes, agents should:
 ### Coverage Requirements
 
 - Minimum threshold: 80% per module
-- New code should include tests
+- New code must include explicit tests (never assume existing tests cover it)
 - Tests should use synthetic data, not live web scraping
 - Follow patterns in existing test files
 
