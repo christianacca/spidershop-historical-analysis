@@ -162,13 +162,33 @@ Logic summary:
 
 - **Schedule:** Weekly (Wednesday, 06:10 UTC)
 - **Language:** Python 3.11
-- **Dependencies:** requests, beautifulsoup4
+- **Dependencies:** requests, beautifulsoup4, selenium
 - **Architecture:** Modular (`src/` directory)
 - **Testing:** Runtime assertions (fail fast, descriptive)
 
 No machine learning.  
 No black boxes.  
 Every signal is explainable in plain English.
+
+### Local Development & Testing
+
+Want to test website changes locally without pushing to GitHub?
+
+See **[Local Testing Guide](docs/LOCAL_TESTING.md)** for details on:
+- Testing `generate_website.py` changes locally
+- Downloading artifacts from GitHub Actions
+- Running a local preview server
+- Platform-specific setup (macOS, Windows, Linux)
+
+**Quick start** (requires virtual environment and GitHub CLI):
+```bash
+# macOS/Linux/Git Bash
+make test-website-serve
+
+# Or use Python directly (all platforms)
+python3 test_website_locally.py --serve  # macOS/Linux
+python test_website_locally.py --serve   # Windows
+```
 
 ---
 

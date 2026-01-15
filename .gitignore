@@ -44,10 +44,8 @@ coverage.json
 coverage.xml
 .pytest_cache/
 
-# Generated website
+# Generated website (CI/CD output)
 website/
 
-# Scraper outputs
-*.csv
-
+# Temporary files and local testing
 tmp/
