@@ -49,3 +49,5 @@ website/
 
 # Scraper outputs
 *.csv
+
+tmp/

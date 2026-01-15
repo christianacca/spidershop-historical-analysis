@@ -26,6 +26,17 @@
 
 ---
 
+## GitHub Workflows Troubleshooting
+- **Fetching Workflow Logs**: Use the GitHub API to download logs as a zip file, not `gh run view` which opens a pager:
+  ```bash
+  gh api repos/christianacca/web-api-starter/actions/runs/<RUN_ID>/logs > /tmp/workflow-logs.zip
+  unzip -o /tmp/workflow-logs.zip -d /tmp
+  cat /tmp/<job-log-file>.txt
+  ```
+  Search for errors: `cat /tmp/<job-log-file>.txt | grep -A 20 -i "error\|fail"`
+
+---
+
 ## Project Overview
 
 This is a Python web scraper that captures pricing data for tarantula spiderlings from The Spider Shop UK website. The scraper runs on a weekly schedule via GitHub Actions and maintains historical pricing data as artifacts.
