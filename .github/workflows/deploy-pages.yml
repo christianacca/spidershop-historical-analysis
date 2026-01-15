@@ -46,6 +46,11 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
       # --------------------------------
       # Download artifacts from scrape workflow
       # --------------------------------
