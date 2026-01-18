@@ -270,62 +270,52 @@ pip list           # Should show installed packages
 > 
 > Your terminal prompt should show `(.venv)` at the beginning when activated.
 
-### Run all tests
+### Run all tests with coverage (recommended)
 ```sh
-pytest
+make test
 ```
 
-### Run with verbose output
-```sh
-pytest -v
-```
-
-### Run a specific test file
-```sh
-pytest tests/test_breeder_matrix.py
-```
-
-### Run tests with coverage
-```sh
-pytest --cov=src --cov-report=term-missing
-```
-
-This shows in the terminal:
+This runs pytest with full coverage reporting, showing:
 - Overall coverage percentage
 - Coverage per module
 - **Missing column**: Specific line numbers that aren't tested (e.g., "15-22, 34-40")
 
 ### View interactive HTML coverage report
 ```sh
-# Generate HTML report
-pytest --cov=src --cov-report=html
-
-# Open in browser
-open htmlcov/index.html  # macOS
-start htmlcov/index.html  # Windows
-xdg-open htmlcov/index.html  # Linux
+make coverage
 ```
 
-The HTML report provides:
+Opens the HTML coverage report in your browser, providing:
 - Visual coverage with color-coded lines (green = tested, red = not tested)
 - Module-by-module breakdown
 - Easy navigation through source files
 
-### Check coverage for a specific module
-```sh
-# Using built-in coverage tool
-pytest tests/test_breeder_matrix.py --cov=src.breeder_matrix --cov-report=term-missing
+### Additional Testing Options
 
-# Using helper script (faster)
+If you need more control, you can use pytest directly:
+
+```sh
+# Run specific test file
+pytest tests/test_breeder_matrix.py
+
+# Run with verbose output
+pytest -v
+
+# Check coverage for specific module
+pytest tests/test_breeder_matrix.py --cov=src.breeder_matrix --cov-report=term-missing
+```
+
+### Advanced Coverage Tools
+
+For detailed coverage analysis, use the helper scripts:
+
+```sh
+# View formatted coverage summary
+python scripts/view_coverage.py
+
+# Check specific module coverage with threshold
 python scripts/check_coverage.py --module=breeder_matrix.py --verbose
 ```
-
-### View coverage summary
-```sh
-python scripts/view_coverage.py
-```
-
-This displays a formatted table showing coverage for all modules.
 
 ---
 

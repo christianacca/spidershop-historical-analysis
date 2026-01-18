@@ -185,8 +185,8 @@ python scripts/check_coverage.py --module=breeder_matrix.py
    ```
 
 3. **Coverage artifacts**:
-   - `coverage.json` - Machine-readable coverage data
-   - `htmlcov/` - Visual HTML report
+   - `tmp/coverage/coverage.json` - Machine-readable coverage data
+   - `tmp/coverage/html/` - Visual HTML report
    - Use `scripts/view_coverage.py` for formatted summary
 
 ### Coverage Requirements

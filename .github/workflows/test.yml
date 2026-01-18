@@ -49,7 +49,7 @@ jobs:
           echo "" >> coverage-summary.md
           
           # Extract coverage percentage from JSON
-          COVERAGE=$(python -c "import json; data=json.load(open('coverage.json')); print(f\"{data['totals']['percent_covered']:.2f}\")")
+          COVERAGE=$(python -c "import json; data=json.load(open('tmp/coverage/coverage.json')); print(f\"{data['totals']['percent_covered']:.2f}\")")
           echo "**Total Coverage: ${COVERAGE}%**" >> coverage-summary.md
           echo "" >> coverage-summary.md
           
@@ -60,7 +60,7 @@ jobs:
           
           python -c "
           import json
-          data = json.load(open('coverage.json'))
+          data = json.load(open('tmp/coverage/coverage.json'))
           for file, stats in sorted(data['files'].items()):
               if 'src/' in file:
                   name = file.split('/')[-1]
@@ -91,7 +91,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-coverage-report
-          path: htmlcov/
+          path: tmp/coverage/html/
           retention-days: 90
 
       - name: Upload coverage JSON
@@ -99,7 +99,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-json
-          path: coverage.json
+          path: tmp/coverage/coverage.json
           retention-days: 90
 
       - name: Add coverage comment to PR
@@ -119,7 +119,7 @@ jobs:
 
       - name: Check coverage threshold
         run: |
-          COVERAGE=$(python -c "import json; data=json.load(open('coverage.json')); print(data['totals']['percent_covered'])")
+          COVERAGE=$(python -c "import json; data=json.load(open('tmp/coverage/coverage.json')); print(data['totals']['percent_covered'])")
           THRESHOLD=80
           
           echo "Coverage: ${COVERAGE}%"

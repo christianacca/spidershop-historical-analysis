@@ -132,7 +132,7 @@ test: .check-venv
 
 coverage:
 	@echo "Opening coverage report in browser..."
-	open htmlcov/index.html
+	open tmp/coverage/html/index.html
 
 clean-artifacts:
 	@echo "🧹 Cleaning artifacts and generated website..."
@@ -140,6 +140,6 @@ clean-artifacts:
 
 clean-all: clean-artifacts
 	@echo "🧹 Cleaning test cache and coverage..."
-	rm -rf .pytest_cache/ htmlcov/ .coverage coverage.json
+	rm -rf .pytest_cache/ tmp/coverage/
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	@echo "✅ Cleanup complete"

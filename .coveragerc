@@ -2,6 +2,9 @@
 # Source code to measure coverage for
 source = src
 
+# Coverage data file
+data_file = tmp/coverage/.coverage
+
 # Omit files from coverage measurement
 omit =
     */tests/*
@@ -41,11 +44,11 @@ exclude_lines =
 
 [html]
 # Directory for HTML output
-directory = htmlcov
+directory = tmp/coverage/html
 
 [json]
 # Output file for JSON report
-output = coverage.json
+output = tmp/coverage/coverage.json
 
 [xml]
 # Output file for XML report (for CI tools)
