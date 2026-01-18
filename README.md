@@ -170,25 +170,18 @@ No machine learning.
 No black boxes.  
 Every signal is explainable in plain English.
 
-### Local Development & Testing
+---
 
-Want to test website changes locally without pushing to GitHub?
+## Contributing
 
-See **[Local Testing Guide](docs/LOCAL_TESTING.md)** for details on:
-- Testing `generate_website.py` changes locally
-- Downloading artifacts from GitHub Actions
-- Running a local preview server
-- Platform-specific setup (macOS, Windows, Linux)
+Interested in contributing or running the project locally?
 
-**Quick start** (requires virtual environment and GitHub CLI):
-```bash
-# macOS/Linux/Git Bash
-make test-website-serve
-
-# Or use Python directly (all platforms)
-python3 test_website_locally.py --serve  # macOS/Linux
-python test_website_locally.py --serve   # Windows
-```
+See **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** for:
+- Setting up your development environment
+- Running tests and checking coverage
+- Testing website changes locally
+- Running the scraper
+- Code style guidelines
 
 ---
 

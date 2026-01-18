@@ -2,81 +2,43 @@
 
 This guide explains how to test `generate_website.py` changes locally without pushing to GitHub.
 
-## Prerequisites
+> **Prerequisites:** This guide assumes you've already completed the setup in [CONTRIBUTING.md](CONTRIBUTING.md) (Python, virtual environment, Git, Make, and project dependencies installed).
 
-1. **Virtual Environment (Required)** - Activate the project's virtual environment:
+## Additional Tool Required
 
-   ```bash
-   # Activate virtual environment
-   source .venv/bin/activate          # macOS/Linux
-   .venv\Scripts\activate.bat         # Windows (CMD)
-   .venv\Scripts\Activate.ps1         # Windows (PowerShell)
-   ```
+### GitHub CLI (`gh`)
 
-   Your terminal prompt should show `(.venv)` when activated.
+Required to download artifacts from GitHub Actions workflow runs.
 
-2. **GitHub CLI (`gh`)** - Required to download artifacts from GitHub Actions
+```bash
+# macOS
+brew install gh
 
-   ```bash
-   # macOS
-   brew install gh
-   
-   # Windows (using winget)
-   winget install --id GitHub.cli
-   
-   # Windows (using Chocolatey)
-   choco install gh
-   
-   # Linux (Debian/Ubuntu)
-   sudo apt install gh
-   
-   # Authenticate (all platforms)
-   gh auth login
-   ```
+# Windows (using winget)
+winget install --id GitHub.cli
 
-3. **GNU Make (Optional but Recommended)** - For convenient shortcuts
+# Windows (using Chocolatey)
+choco install gh
 
-   **macOS**: Usually pre-installed! Try `make --version` to check. If not found, macOS will prompt you to install Command Line Tools automatically, or run:
-   ```bash
-   xcode-select --install
-   ```
+# Linux (Debian/Ubuntu)
+sudo apt install gh
 
-   **Windows**: Install via one of these methods:
-   ```bash
-   # Git for Windows (includes make in Git Bash)
-   # Download from: https://git-scm.com/download/win
-   
-   # Or use Chocolatey:
-   choco install make
-   
-   # Or use WSL (Windows Subsystem for Linux)
-   wsl --install
-   ```
+# Authenticate (all platforms)
+gh auth login
+```
 
-   **Linux**: Usually pre-installed. If not:
-   ```bash
-   sudo apt install make  # Debian/Ubuntu
-   ```
-
-   **Note:** If you don't have/want `make`, you can use the Python commands directly (see below).
-
-4. **Python dependencies** - Should already be installed in `.venv`:
-   ```bash
-   # Verify (with virtual environment activated)
-   pip list | grep markdown
-   ```
+---
 
 ## Quick Start
 
-> **⚠️ Important:** Always activate the virtual environment first!
+> **⚠️ Remember:** Activate your virtual environment first!
 > ```bash
 > source .venv/bin/activate          # macOS/Linux
 > .venv\Scripts\activate.bat         # Windows (CMD)
 > .venv\Scripts\Activate.ps1         # Windows (PowerShell)
 > ```
-> Your prompt should show `(.venv)` at the beginning.
 
-### Using Makefile (Recommended - macOS/Linux/WSL)
+### Using Makefile (macOS/Linux/Git Bash)
 
 ```bash
 # Download artifacts and generate website

@@ -33,7 +33,18 @@ python3 --version
 brew install git
 ```
 
-### Step 3: Install Chrome
+### Step 3: Install Make (Optional but Recommended)
+
+Make provides convenient shortcuts for common tasks.
+
+**macOS**: Usually pre-installed! Try `make --version` to check. If not found, macOS will prompt you to install Command Line Tools automatically, or run:
+```sh
+xcode-select --install
+```
+
+**Note:** If you don't have `make`, you can use the Python commands directly throughout this guide.
+
+### Step 4: Install Chrome
 
 Download from [google.com/chrome](https://www.google.com/chrome/)
 
@@ -180,7 +191,18 @@ python3 --version
 sudo apt install git
 ```
 
-### Step 3: Install Chrome/Chromium
+### Step 3: Install Make (Optional but Recommended)
+
+Make provides convenient shortcuts for common tasks.
+
+**Linux**: Usually pre-installed! Try `make --version` to check. If not:
+```sh
+sudo apt install make  # Debian/Ubuntu
+```
+
+**Note:** If you don't have `make`, you can use the Python commands directly throughout this guide.
+
+### Step 4: Install Chrome/Chromium
 
 ```sh
 sudo apt install chromium-browser
@@ -305,6 +327,37 @@ This displays a formatted table showing coverage for all modules.
 
 ---
 
+## Testing Website Changes Locally
+
+Want to test website changes without pushing to GitHub and waiting for CI/CD?
+
+See the comprehensive **[Local Testing Guide](LOCAL_TESTING.md)** for:
+- Installing GitHub CLI to download workflow artifacts
+- Testing `generate_website.py` changes locally
+- Running a local preview server
+- Detailed usage examples and troubleshooting
+
+> **Note:** The Local Testing Guide assumes you've completed the setup steps above (Python, virtual environment, dependencies).
+
+**Quick start:**
+
+```sh
+# Activate virtual environment first
+source .venv/bin/activate  # macOS/Linux
+.venv\Scripts\activate.bat  # Windows (CMD)
+
+# Using Makefile (macOS/Linux/Git Bash)
+make test-website-serve
+
+# Or use Python directly (all platforms)
+python3 test_website_locally.py --serve  # macOS/Linux
+python test_website_locally.py --serve   # Windows
+```
+
+This downloads the latest scrape results from GitHub Actions, generates the static website in `tmp/local-testing/website/`, and starts a local server at http://localhost:8000.
+
+---
+
 ## Running the Scraper
 
 ### Full scraper execution
@@ -318,12 +371,7 @@ This will:
 3. Generate analysis matrices
 4. Output CSV files and markdown summaries
 
-### Generate website locally
-```sh
-python src/generate_website.py
-```
-
-The static website will be generated in the `website/` directory.
+**Note:** The scraper does **not** generate the website - that happens automatically in CI/CD via GitHub Actions. To test website changes locally, use `test_website_locally.py` (see section above), which downloads real data from GitHub Actions and lets you regenerate the site quickly in an isolated `tmp/` directory.
 
 ---
 
