@@ -14,13 +14,11 @@ Options:
 
 import argparse
 import http.server
-import json
 import os
 import shutil
 import socketserver
 import subprocess
 import sys
-import zipfile
 from pathlib import Path
 
 
@@ -28,7 +26,6 @@ REPO_OWNER = "christianacca"
 REPO_NAME = "spidershop-historical-analysis"
 WORKFLOW_NAME = "Spider Shop Spiderlings Scrape"
 TESTING_DIR = Path("tmp/local-testing")
-ARTIFACTS_DIR = TESTING_DIR / "artifacts_temp"
 WEBSITE_DIR = TESTING_DIR / "website"
 
 
@@ -120,43 +117,27 @@ def download_artifact(run_id, artifact_name):
     """Download a specific artifact from a workflow run."""
     print(f"  Downloading {artifact_name}...")
     
-    # Create temp directory
-    ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
-    
-    # Download the artifact
+    # Use the shared download script
     cmd = [
-        "gh", "api",
-        f"repos/{REPO_OWNER}/{REPO_NAME}/actions/runs/{run_id}/artifacts",
-        "-q", f'.artifacts[] | select(.name == "{artifact_name}") | .id'
+        "./scripts/download_artifact.sh",
+        REPO_OWNER,
+        REPO_NAME,
+        artifact_name,
+        str(TESTING_DIR),
+        run_id
     ]
-    artifact_id = run_command(cmd)
     
-    if not artifact_id:
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    
+    if result.returncode == 0:
+        print(f"    ✅ Downloaded and extracted {artifact_name}")
+        return True
+    elif result.returncode == 1:
         print(f"    ⚠️  Artifact '{artifact_name}' not found (skipping)")
         return False
-    
-    # Download the zip file
-    zip_path = ARTIFACTS_DIR / f"{artifact_name}.zip"
-    cmd = [
-        "gh", "api",
-        f"repos/{REPO_OWNER}/{REPO_NAME}/actions/artifacts/{artifact_id}/zip"
-    ]
-    result = subprocess.run(cmd, capture_output=True)
-    
-    if result.returncode != 0:
-        print(f"    ⚠️  Failed to download '{artifact_name}' (skipping)")
+    else:
+        print(f"    ⚠️  Failed to download '{artifact_name}': {result.stderr.strip()}")
         return False
-    
-    # Save the zip file
-    with open(zip_path, "wb") as f:
-        f.write(result.stdout)
-    
-    # Extract the zip file to testing directory
-    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-        zip_ref.extractall(TESTING_DIR)
-    
-    print(f"    ✅ Downloaded and extracted {artifact_name}")
-    return True
 
 
 def download_all_artifacts(run_id):
@@ -177,10 +158,6 @@ def download_all_artifacts(run_id):
             success_count += 1
     
     print(f"\n✅ Downloaded {success_count}/{len(artifacts)} artifacts")
-    
-    # Clean up temp directory
-    if ARTIFACTS_DIR.exists():
-        shutil.rmtree(ARTIFACTS_DIR)
     
     # Verify required files exist in testing directory
     required_files = [
