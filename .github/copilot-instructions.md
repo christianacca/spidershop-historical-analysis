@@ -11,7 +11,7 @@
    ```
 3. **Check module-specific coverage**:
    ```bash
-   python check_coverage.py --module=<your_module>.py
+   python scripts/check_coverage.py --module=<your_module>.py
    ```
 
 **TESTING PRINCIPLES:**
@@ -169,7 +169,7 @@ pytest
 pytest --cov=src --cov-report=html --cov-report=term-missing --cov-report=json
 
 # Check specific module coverage
-python check_coverage.py --module=breeder_matrix.py
+python scripts/check_coverage.py --module=breeder_matrix.py
 ```
 
 ### Test Coverage for Agent Mode
@@ -181,13 +181,13 @@ python check_coverage.py --module=breeder_matrix.py
 
 2. **Verify coverage after changes**:
    ```bash
-   python check_coverage.py --module=your_new_module.py --threshold=80
+   python scripts/check_coverage.py --module=your_new_module.py --threshold=80
    ```
 
 3. **Coverage artifacts**:
    - `coverage.json` - Machine-readable coverage data
    - `htmlcov/` - Visual HTML report
-   - Use `view_coverage.py` for formatted summary
+   - Use `scripts/view_coverage.py` for formatted summary
 
 ### Coverage Requirements
 

@@ -110,7 +110,7 @@ generate-website: .check-venv
 		echo "Run 'make download-artifacts' or 'make scrape-local' first"; \
 		exit 1; \
 	fi
-	source $(VENV)/bin/activate && python test_website_locally.py
+	source $(VENV)/bin/activate && python scripts/test_website_locally.py
 	@echo "✅ Website generated in $(TESTING_DIR)/website/"
 
 local-website: scrape-local generate-website
@@ -118,14 +118,14 @@ local-website: scrape-local generate-website
 
 local-website-serve: local-website
 	@echo "🌐 Starting local server..."
-	source $(VENV)/bin/activate && python test_website_locally.py --serve
+	source $(VENV)/bin/activate && python scripts/test_website_locally.py --serve
 
 remote-website: download-artifacts generate-website
 	@echo "✅ Remote website ready"
 
 remote-website-serve: remote-website
 	@echo "🌐 Starting local server..."
-	source $(VENV)/bin/activate && python test_website_locally.py --serve
+	source $(VENV)/bin/activate && python scripts/test_website_locally.py --serve
 
 test: .check-venv
 	source $(VENV)/bin/activate && pytest --cov=src --cov-report=html --cov-report=term-missing --cov-report=json

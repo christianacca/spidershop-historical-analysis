@@ -317,12 +317,12 @@ The HTML report provides:
 pytest tests/test_breeder_matrix.py --cov=src.breeder_matrix --cov-report=term-missing
 
 # Using helper script (faster)
-python check_coverage.py --module=breeder_matrix.py --verbose
+python scripts/check_coverage.py --module=breeder_matrix.py --verbose
 ```
 
 ### View coverage summary
 ```sh
-python view_coverage.py
+python scripts/view_coverage.py
 ```
 
 This displays a formatted table showing coverage for all modules.
@@ -451,7 +451,7 @@ cd tmp/local-testing/website && python3 -m http.server 8000
 **Using a custom port:**
 
 ```bash
-python3 test_website_locally.py --serve --port 3000
+python3 scripts/test_website_locally.py --serve --port 3000
 ```
 
 **Compare local vs remote data:**
@@ -485,7 +485,7 @@ All local development files are stored in `tmp/local-testing/` (gitignored):
 - `website/` - Generated HTML files
 
 **Scripts:**
-- `test_website_locally.py` - Website generation script
+- `scripts/test_website_locally.py` - Website generation script
 - `scripts/download_artifact.sh` - GitHub artifact downloader (called by Makefile)
 - `Makefile` - Orchestrates all workflows
 
@@ -512,7 +512,7 @@ deactivate
 #### `python3: command not found` (Windows)
 On Windows, use `python` instead of `python3`:
 ```cmd
-python test_website_locally.py --serve
+python scripts/test_website_locally.py --serve
 ```
 
 Or add a Python 3 alias in PowerShell:
@@ -621,7 +621,7 @@ make generate-website
 
 Change the port:
 ```bash
-python3 test_website_locally.py --serve --port 3000
+python3 scripts/test_website_locally.py --serve --port 3000
 ```
 
 ---
