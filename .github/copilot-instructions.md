@@ -51,36 +51,27 @@ This is a Python web scraper that captures pricing data for tarantula spiderling
 
 ## Project Structure
 
-The project uses a modular architecture with focused modules in the `src/` directory:
+The project uses a modular architecture with focused modules in the `src/` directory. Key modules include:
+- Main scraper orchestration and entry point
+- HTTP and browser clients for web scraping
+- Text parsing and data extraction utilities
+- Historical data management
+- Analysis engines (breeder/dealer opportunity matrices)
+- Static website generation
 
-- **scrape_spidershop_spiderlings.py**: Main entry point that orchestrates the scraping workflow
-- **scraper.py**: Core scraping logic for extracting product URLs and product details
-- **http_client.py**: HTTP request handling with proper headers
-- **browser_client.py**: Selenium WebDriver wrapper for JavaScript-rendered content
-- **parsing.py**: Text parsing utilities (whitespace normalization, size/price/wishlist extraction, wishlist pressure/delta calculations)
-- **config.py**: Configuration constants (URLs, file names, regex patterns)
-- **history.py**: Historical data management (loading and appending history)
-- **pricing_summary.py**: Pricing analysis and summary generation
-- **breeder_matrix.py**: Breeder opportunity table generation
-- **dealer_matrix.py**: Dealer supply risk table generation
-- **legend.py**: Summary legend generation
-- **generate_website.py**: Static HTML website generator for GitHub Pages
-- **assertions.py**: Validation and assertion utilities
+Explore the `src/` directory for the complete list of modules.
 
 ## Dependencies
 
-This project uses minimal external dependencies:
-
-- **requests**: HTTP requests for web scraping
-- **beautifulsoup4**: HTML parsing and data extraction
-- **selenium**: Browser automation for JavaScript-rendered content (wishlist counters)
-- Standard library: csv, datetime, urllib, decimal, re, os, time, pathlib
-
 Dependencies are defined in:
-- **requirements.txt**: Production dependencies
-- **requirements-dev.txt**: Development/testing dependencies (pytest)
+- **requirements.txt**: Production dependencies (HTTP client, HTML parsing, browser automation, markdown)
+- **requirements-dev.txt**: Development/testing dependencies (pytest, coverage tools)
 
-Install with: `pip install -r requirements.txt` and `pip install -r requirements-dev.txt`
+Install with:
+```bash
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+```
 
 ## Coding Conventions
 
