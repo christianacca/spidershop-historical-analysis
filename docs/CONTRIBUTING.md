@@ -2,20 +2,23 @@
 
 This guide walks you through setting up a local development environment from scratch, even if you've never used Python before.
 
-**Quick Links:**
-- 🧪 [Running Tests & Coverage](#running-tests)
-- 🌐 [Local Development Workflows](#local-development-workflows) - Website testing and scraper usage
-- 🐛 [Troubleshooting](#troubleshooting)
+## Table of Contents
 
-**Choose your operating system below and follow all steps in order:**
-
-- [macOS Setup](#macos-setup)
-- [Windows Setup](#windows-setup)
-- [Linux Setup](#linux-setup)
+- [Setup by Operating System](#setup-by-operating-system)
+- [Running Tests](#running-tests)
+- [Local Development Workflows](#local-development-workflows)
+- [Deactivating the Virtual Environment](#deactivating-the-virtual-environment)
+- [Troubleshooting](#troubleshooting)
+- [Project Structure](#project-structure)
+- [Code Style](#code-style)
+- [Questions or Issues?](#questions-or-issues)
 
 ---
 
-## macOS Setup
+## Setup by Operating System
+
+<details>
+<summary><strong>🍎 macOS Setup</strong></summary>
 
 ### Step 1: Install Python
 
@@ -95,9 +98,10 @@ pip list           # Should show installed packages
 
 ✅ You're ready! Continue to [Running Tests](#running-tests)
 
----
+</details>
 
-## Windows Setup
+<details>
+<summary><strong>🪟 Windows Setup</strong></summary>
 
 ### Step 1: Install Python
 
@@ -171,9 +175,10 @@ pip list           # Should show installed packages
 
 ✅ You're ready! Continue to [Running Tests](#running-tests)
 
----
+</details>
 
-## Linux Setup
+<details>
+<summary><strong>🐧 Linux Setup</strong></summary>
 
 ### Step 1: Install Python
 
@@ -255,20 +260,11 @@ pip list           # Should show installed packages
 
 ✅ You're ready! Continue to [Running Tests](#running-tests)
 
+</details>
+
 ---
 
 ## Running Tests
-
-> **⚠️ Important:** Make sure your virtual environment is activated before running tests!
-> 
-> ```sh
-> # Activate virtual environment first
-> source .venv/bin/activate          # macOS/Linux
-> .venv\Scripts\activate.bat         # Windows (CMD)
-> .venv\Scripts\Activate.ps1         # Windows (PowerShell)
-> ```
-> 
-> Your terminal prompt should show `(.venv)` at the beginning when activated.
 
 ### Run all tests with coverage (recommended)
 ```sh
@@ -292,7 +288,16 @@ Opens the HTML coverage report in your browser, providing:
 
 ### Additional Testing Options
 
-If you need more control, you can use pytest directly:
+If you need more control, you can use pytest directly.
+
+> **⚠️ Important:** Make sure your virtual environment is activated when running pytest directly!
+> 
+> ```sh
+> # Activate virtual environment first
+> source .venv/bin/activate          # macOS/Linux
+> .venv\Scripts\activate.bat         # Windows (CMD)
+> .venv\Scripts\Activate.ps1         # Windows (PowerShell)
+> ```
 
 ```sh
 # Run specific test file
@@ -323,23 +328,19 @@ python scripts/check_coverage.py --module=breeder_matrix.py --verbose
 
 This section covers testing website changes and running the scraper locally without pushing to GitHub.
 
-> **⚠️ Remember:** Activate your virtual environment before running any commands!
-> ```sh
-> source .venv/bin/activate          # macOS/Linux
-> .venv\Scripts\activate.bat         # Windows (CMD)
-> .venv\Scripts\Activate.ps1         # Windows (PowerShell)
-> ```
-
 ### Quick Start
 
-Choose your workflow based on your needs:
+Choose your complete workflow:
 
 ```sh
-# Using GitHub Actions data (fast, requires GitHub CLI)
-make remote-website-serve
+# Option 1: Fresh scrape + build + serve (requires Chrome)
+make scrape-website-serve
 
-# Using local scraper (no GitHub dependency, requires Chrome)
-make local-website-serve
+# Option 2: Download from GitHub + build + serve (requires GitHub CLI)
+make download-website-serve
+
+# Option 3: Rebuild from existing data + serve (data must already exist)
+make website-serve
 
 # Just run tests
 make test
@@ -366,11 +367,15 @@ gh auth login
 **Workflow:**
 
 ```bash
-# Download artifacts and generate website
-make remote-website
+# Download from GitHub Actions and generate website
+make download-website
 
-# Download artifacts, generate website, and serve locally at http://localhost:8000
-make remote-website-serve
+# Or: Download, generate, and serve locally at http://localhost:8000
+make download-website-serve
+
+# Individual steps (if needed):
+make download-artifacts  # Just download
+make website             # Just build from existing data
 ```
 
 This downloads the latest scrape results from GitHub Actions, generates the static website in `tmp/local-testing/website/`, and optionally starts a local server.
@@ -383,39 +388,36 @@ This downloads the latest scrape results from GitHub Actions, generates the stat
 
 ```bash
 # Scrape locally and generate website
-make local-website
+make scrape-website
 
 # Scrape locally, generate website, and serve at http://localhost:8000
-make local-website-serve
+make scrape-website-serve
 
 # Or just run the scraper without generating the website
-make scrape-local
+make scrape-only
 ```
 
 This runs the scraper to generate fresh data, creates the website, and optionally serves it locally.
 
-### Available Makefile Commands
+> **💡 Note on historical data:** When scraping locally, the historical CSV will either:
+> - Append to existing history in `tmp/local-testing/` (if present from a previous scrape or download)
+> - Create a new history file with just the current scrape
+> 
+> To maintain continuity with production history, download it first:
+> ```bash
+> make download-artifacts  # Get production history
+> make scrape-website      # Append new scrape to downloaded history
+> ```
 
-Run `make help` to see all available commands:
+### Available Commands
 
-**Main Workflows:**
-- `make local-website` - Run scraper locally → generate website
-- `make local-website-serve` - Run scraper locally → generate website → serve
-- `make remote-website` - Download from GitHub Actions → generate website
-- `make remote-website-serve` - Download from GitHub Actions → generate website → serve
+For a complete list of available commands, run:
 
-**Individual Steps:**
-- `make scrape-local` - Run scraper locally (outputs CSV to `tmp/local-testing/`)
-- `make download-artifacts` - Download latest artifacts from GitHub Actions
-- `make generate-website` - Generate website from existing CSV files
+```bash
+make help
+```
 
-**Testing:**
-- `make test` - Run pytest with coverage
-- `make coverage` - View coverage report in browser
-
-**Cleanup:**
-- `make clean-artifacts` - Remove `tmp/local-testing/` directory
-- `make clean-all` - Clean artifacts + test cache + coverage reports
+This displays all workflow commands with descriptions.
 
 ### Advanced Usage
 
@@ -423,49 +425,52 @@ Run `make help` to see all available commands:
 
 ```bash
 # 1. Get data (only needed once)
-make download-artifacts  # OR: make scrape-local
+make download-artifacts  # OR: make scrape-only
 
-# 2. Make changes to src/generate_website.py
-# ... edit files ...
-
-# 3. Regenerate website (CSV files already exist)
-make generate-website
-
-# 4. Preview in browser
-cd tmp/local-testing/website && python3 -m http.server 8000
+# 2. Start server (keep running in this terminal)
+make website-serve
 # Open http://localhost:8000
 
-# 5. Repeat steps 2-4 as needed
+# 3. In a NEW terminal: make changes to src/generate_website.py
+# ... edit files ...
+
+# 4. Regenerate website (in the new terminal)
+make generate-website
+
+# 5. Refresh browser to see changes
+
+# 6. Repeat steps 3-5 as needed
 ```
 
-**Using a custom port:**
+**Using a custom port** (requires active virtual environment):
 
 ```bash
+source .venv/bin/activate  # Activate first
 python3 scripts/test_website_locally.py --serve --port 3000
 ```
 
-**Compare local vs remote data:**
+**Compare downloaded vs scraped data:**
 
 ```bash
-make remote-website
-mv tmp/local-testing/website tmp/local-testing/website-remote
+make download-website
+mv tmp/local-testing/website tmp/local-testing/website-downloaded
 
-make local-website
-mv tmp/local-testing/website tmp/local-testing/website-local
+make scrape-website
+mv tmp/local-testing/website tmp/local-testing/website-scraped
 
-diff -r tmp/local-testing/website-remote tmp/local-testing/website-local
+diff -r tmp/local-testing/website-downloaded tmp/local-testing/website-scraped
 ```
 
 ### Workflow Comparison
 
-| Task | Remote (GitHub Actions) | Local (Scraper) |
-|------|------------------------|-----------------|
+| Task | Download (GitHub Actions) | Scrape (Local) |
+|------|--------------------------|----------------|
 | **Data Source** | Latest successful workflow run | Fresh scrape from website |
 | **Speed** | Fast (download only) | Slower (full scrape) |
 | **Requirements** | GitHub CLI (`gh`) | Chrome/Chromium (already installed) |
 | **Network** | GitHub API only | Full website scraping |
 | **Use Case** | Quick testing with real data | Testing scraper changes, no GitHub dependency |
-| **Command** | `make remote-website-serve` | `make local-website-serve` |
+| **Command** | `make download-website-serve` | `make scrape-website-serve` |
 
 ### Files and Directories
 

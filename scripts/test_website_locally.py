@@ -11,7 +11,7 @@ Options:
 
 Note:
     CSV files must exist in tmp/local-testing/ before running this script.
-    Use 'make download-artifacts' or 'make scrape-local' to obtain them.
+    Use 'make download-artifacts' or 'make scrape-only' to obtain them.
 """
 
 import argparse
@@ -69,7 +69,7 @@ def verify_csv_files():
         print(f"\n🔧 Generate CSV files first:")
         print(f"   make download-artifacts  # Download from GitHub Actions")
         print(f"   # OR")
-        print(f"   make scrape-local        # Run scraper locally")
+        print(f"   make scrape-only         # Run scraper locally")
         sys.exit(1)
 
 
@@ -158,8 +158,8 @@ def main():
         serve_website(args.port)
     else:
         print(f"\n💡 To preview the website, run:")
-        print(f"   make local-website-serve    # If using local scraper")
-        print(f"   make remote-website-serve   # If using GitHub Actions data")
+        print(f"   make scrape-website-serve   # Scrape + build + serve")
+        print(f"   make website-serve          # Build from existing data + serve")
         print(f"\n   Or directly:")
         print(f"   python3 test_website_locally.py --serve")
         print(f"\n   Or manually:")

@@ -12,7 +12,7 @@
 #   All commands automatically activate the .venv virtual environment
 #   Ensure .venv exists and has dependencies installed first
 
-.PHONY: help local-website local-website-serve remote-website remote-website-serve download-artifacts scrape-local generate-website clean-artifacts clean-all .check-venv
+.PHONY: help website website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website clean-artifacts clean-all test coverage .check-venv .check-gh
 
 # Shell configuration
 SHELL := /bin/bash
@@ -32,23 +32,25 @@ help:
 	@echo "Spider Shop Historical Analysis - Makefile Commands"
 	@echo ""
 	@echo "Website Workflows:"
-	@echo "  make local-website          Scrape locally + generate website"
-	@echo "  make local-website-serve    Scrape locally + generate website + serve"
-	@echo "  make remote-website         Download from GitHub Actions + generate website"
-	@echo "  make remote-website-serve   Download from GitHub Actions + generate + serve"
+	@echo "  make website                Generate website from existing data"
+	@echo "  make website-serve          Generate website from existing data + serve"
+	@echo "  make scrape-website         Run new scrape + generate website"
+	@echo "  make scrape-website-serve   Run new scrape + generate website + serve"
+	@echo "  make download-website       Download from GitHub + generate website"
+	@echo "  make download-website-serve Download from GitHub + generate website + serve"
 	@echo ""
-	@echo "Individual Steps:"
-	@echo "  make scrape-local           Run scraper locally to generate CSV files"
-	@echo "  make download-artifacts     Download latest artifacts from GitHub Actions"
+	@echo "Data Management:"
+	@echo "  make download-artifacts     Download latest data from GitHub Actions"
+	@echo "  make scrape-only            Run scraper only (no website generation)"
 	@echo "  make generate-website       Generate website from existing CSV files"
+	@echo ""
+	@echo "Testing:"
+	@echo "  make test                   Run pytest with coverage"
+	@echo "  make coverage               View coverage report in browser"
 	@echo ""
 	@echo "Cleanup:"
 	@echo "  make clean-artifacts        Remove downloaded artifacts and generated website"
 	@echo "  make clean-all              Clean everything including test cache and coverage"
-	@echo ""
-	@echo "Other:"
-	@echo "  make test                   Run pytest with coverage"
-	@echo "  make coverage               View coverage report in browser"
 	@echo ""
 	@echo "⚠️  Note: These commands automatically use the virtual environment (.venv)"
 
@@ -96,7 +98,7 @@ download-artifacts: .check-venv .check-gh
 	done
 	@echo "✅ Download complete"
 
-scrape-local: .check-venv
+scrape-only: .check-venv
 	@echo "🕷️  Running scraper locally..."
 	@mkdir -p $(TESTING_DIR)
 	@source $(VENV)/bin/activate && cd $(TESTING_DIR) && \
@@ -107,23 +109,30 @@ generate-website: .check-venv
 	@echo "🌐 Generating website..."
 	@if [ ! -f "$(TESTING_DIR)/spidershop_spiderlings_scrape.csv" ]; then \
 		echo "❌ CSV files not found in $(TESTING_DIR)/"; \
-		echo "Run 'make download-artifacts' or 'make scrape-local' first"; \
+		echo "Run 'make download-artifacts' or 'make scrape-only' first"; \
 		exit 1; \
 	fi
 	source $(VENV)/bin/activate && python scripts/test_website_locally.py
 	@echo "✅ Website generated in $(TESTING_DIR)/website/"
 
-local-website: scrape-local generate-website
-	@echo "✅ Local website ready"
+website: generate-website
+	@echo "✅ Website ready at $(TESTING_DIR)/website/"
 
-local-website-serve: local-website
+website-serve: generate-website
 	@echo "🌐 Starting local server..."
 	source $(VENV)/bin/activate && python scripts/test_website_locally.py --serve
 
-remote-website: download-artifacts generate-website
-	@echo "✅ Remote website ready"
+scrape-website: scrape-only generate-website
+	@echo "✅ Scrape complete and website generated"
 
-remote-website-serve: remote-website
+scrape-website-serve: scrape-website
+	@echo "🌐 Starting local server..."
+	source $(VENV)/bin/activate && python scripts/test_website_locally.py --serve
+
+download-website: download-artifacts generate-website
+	@echo "✅ Download complete and website generated"
+
+download-website-serve: download-website
 	@echo "🌐 Starting local server..."
 	source $(VENV)/bin/activate && python scripts/test_website_locally.py --serve
 
