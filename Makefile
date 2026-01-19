@@ -102,6 +102,8 @@ scrape-only: .check-venv
 	@echo "🕷️  Running scraper locally..."
 	@mkdir -p $(TESTING_DIR)
 	@source $(VENV)/bin/activate && cd $(TESTING_DIR) && \
+		touch analysis_summary.md && \
+		export GITHUB_STEP_SUMMARY="$$PWD/analysis_summary.md" && \
 		python ../../src/scrape_spidershop_spiderlings.py
 	@echo "✅ Scrape complete. CSV files saved to $(TESTING_DIR)/"
 
