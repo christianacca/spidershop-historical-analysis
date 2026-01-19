@@ -195,5 +195,6 @@ def write_dealer_outputs(table):
                     )
                 if total > shown:
                     f.write(f"\n_Showing top {shown} of {total} entries — see `{DEALER_TABLE_FILE}` for full list._\n")
-
-    return True
+        return True
+    
+    return False

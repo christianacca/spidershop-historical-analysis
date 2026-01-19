@@ -794,10 +794,16 @@ class TestBuildDealerSupplyRiskTable:
 class TestWriteDealerOutputs:
     """Test suite for dealer output writing functions."""
 
-    def test_write_dealer_outputs_empty_table(self):
+    def test_write_dealer_outputs_empty_table(self, tmp_path):
         """Should return False for empty table."""
-        result = write_dealer_outputs([])
-        assert result is False
+        import os
+        original_cwd = os.getcwd()
+        os.chdir(tmp_path)
+        try:
+            result = write_dealer_outputs([])
+            assert result is False
+        finally:
+            os.chdir(original_cwd)
 
     def test_write_dealer_outputs_creates_csv_file(self, tmp_path, monkeypatch):
         """Should create CSV file with correct headers and data."""
