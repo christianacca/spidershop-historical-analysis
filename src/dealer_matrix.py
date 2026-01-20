@@ -177,24 +177,24 @@ def write_dealer_outputs(table):
 
     # Write summary to GitHub Actions step summary if available
     summary_path = get_summary_path()
-    if summary_path:
-        total = len(table) if table else 0
-        shown = min(10, total)
+    if not summary_path:
+        return False
 
-        with open(summary_path, "a", encoding="utf-8") as f:
-            f.write("\n## 🏪 Dealer Supply Risk Matrix (Top 10)\n\n")
-            if total == 0:
-                f.write("_No supply risks detected (conservative analysis requires sufficient historical data)._\n")
-            else:
-                f.write("| Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Wishlist Pressure | Wishlist Delta | Dealer Risk | Dealer Recommendation |\n")
-                f.write("|---|---:|---|---:|---|---|---|---|---|---|\n")
-                for r in table[:shown]:
-                    f.write(
-                        f"| {r['Species']} | {r['Size (cm)']} | {r['Stock Reliability']} | {r['Avg OOS Duration']} | "
-                        f"{r['Restock Speed']} | {r['Price Pressure']} | {r['Wishlist Pressure']} | {r['Wishlist Delta']} | {r['Dealer Risk']} | {r['Dealer Recommendation']} |\n"
-                    )
-                if total > shown:
-                    f.write(f"\n_Showing top {shown} of {total} entries — see `{DEALER_TABLE_FILE}` for full list._\n")
-        return True
-    
-    return False
+    total = len(table) if table else 0
+    shown = min(10, total)
+
+    with open(summary_path, "a", encoding="utf-8") as f:
+        f.write("\n## 🏪 Dealer Supply Risk Matrix (Top 10)\n\n")
+        if total == 0:
+            f.write("_No supply risks detected (conservative analysis requires sufficient historical data)._\n")
+        else:
+            f.write("| Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Wishlist Pressure | Wishlist Delta | Dealer Risk | Dealer Recommendation |\n")
+            f.write("|---|---:|---|---:|---|---|---|---|---|\n")
+            for r in table[:shown]:
+                f.write(
+                    f"| {r['Species']} | {r['Size (cm)']} | {r['Stock Reliability']} | {r['Avg OOS Duration']} | "
+                    f"{r['Restock Speed']} | {r['Price Pressure']} | {r['Wishlist Pressure']} | {r['Wishlist Delta']} | {r['Dealer Risk']} | {r['Dealer Recommendation']} |\n"
+                )
+            if total > shown:
+                f.write(f"\n_Showing top {shown} of {total} entries — see `{DEALER_TABLE_FILE}` for full list._\n")
+    return True
