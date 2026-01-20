@@ -12,7 +12,7 @@
 #   All commands automatically activate the .venv virtual environment
 #   Ensure .venv exists and has dependencies installed first
 
-.PHONY: help website website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website clean-artifacts clean-all test coverage .check-venv .check-gh
+.PHONY: help website website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website clean-cache clean-artifacts clean-all test coverage .check-venv .check-gh
 
 # Shell configuration
 SHELL := /bin/bash
@@ -49,6 +49,7 @@ help:
 	@echo "  make coverage               View coverage report in browser"
 	@echo ""
 	@echo "Cleanup:"
+	@echo "  make clean-cache            Clear Python bytecode cache (.pyc, __pycache__)"
 	@echo "  make clean-artifacts        Remove downloaded artifacts and generated website"
 	@echo "  make clean-all              Clean everything including test cache and coverage"
 	@echo ""
@@ -98,7 +99,7 @@ download-artifacts: .check-venv .check-gh
 	done
 	@echo "✅ Download complete"
 
-scrape-only: .check-venv
+scrape-only: .check-venv clean-cache
 	@echo "🕷️  Running scraper locally..."
 	@mkdir -p $(TESTING_DIR)
 	@source $(VENV)/bin/activate && cd $(TESTING_DIR) && \
@@ -107,7 +108,7 @@ scrape-only: .check-venv
 		python ../../src/scrape_spidershop_spiderlings.py
 	@echo "✅ Scrape complete. CSV files saved to $(TESTING_DIR)/"
 
-generate-website: .check-venv
+generate-website: .check-venv clean-cache
 	@echo "🌐 Generating website..."
 	@if [ ! -f "$(TESTING_DIR)/spidershop_spiderlings_scrape.csv" ]; then \
 		echo "❌ CSV files not found in $(TESTING_DIR)/"; \
@@ -144,6 +145,12 @@ test: .check-venv
 coverage:
 	@echo "Opening coverage report in browser..."
 	open tmp/coverage/html/index.html
+
+clean-cache:
+	@echo "🧹 Cleaning Python bytecode cache..."
+	@find . -path ./.venv -prune -o -type f -name "*.pyc" -exec rm -f {} + 2>/dev/null || true
+	@find . -path ./.venv -prune -o -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	@echo "✅ Cache cleared"
 
 clean-artifacts:
 	@echo "🧹 Cleaning artifacts and generated website..."

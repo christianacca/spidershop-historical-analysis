@@ -442,6 +442,19 @@ make generate-website
 # 6. Repeat steps 3-5 as needed
 ```
 
+**Python bytecode cache:** Python automatically generates `.pyc` files and `__pycache__/` directories to speed up module loading. During development, this cache can sometimes prevent updated code from running. All Python-executing targets (`make scrape-only`, `make generate-website`, and their dependent workflows) automatically clear the cache before execution. If you encounter issues where code changes aren't reflected:
+
+```bash
+# Clear cache manually
+make clean-cache
+
+# Or use any workflow - they all clear cache automatically
+make scrape-only         # Clears cache before scraping
+make generate-website    # Clears cache before website generation
+make website             # Clears cache (via generate-website)
+make download-website    # Clears cache (via generate-website)
+```
+
 **Using a custom port** (requires active virtual environment):
 
 ```bash
