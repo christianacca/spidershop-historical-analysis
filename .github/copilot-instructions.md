@@ -1,28 +1,19 @@
 # Copilot Instructions for spidershop-historical-analysis
 
-## ⚠️ CRITICAL: Testing Requirements - READ FIRST ⚠️
+## ⚠️ CRITICAL: Testing Workflow (BLOCKING) ⚠️
 
-**MANDATORY WORKFLOW FOR EVERY CODE CHANGE:**
+**A CODE CHANGE IS NOT COMPLETE UNTIL ALL STEPS BELOW PASS.**
 
-1. **Write tests FIRST** for new functionality before or immediately after implementation
-2. **Run tests with coverage** after EVERY file change (no exceptions):
-   ```bash
-   pytest --cov=src --cov-report=html --cov-report=term-missing --cov-report=json
-   ```
-3. **Check module-specific coverage**:
-   ```bash
-   python scripts/check_coverage.py --module=<your_module>.py
-   ```
+For ANY file edit in `src/`, you MUST immediately execute:
 
-**TESTING PRINCIPLES:**
+1. `.venv/bin/python -m pytest --cov=src --cov-report=html --cov-report=term-missing --cov-report=json`
+2. `.venv/bin/python scripts/check_coverage.py --module=<edited_file>.py`
 
-- **New functionality = New tests. Always.** Never rely on "existing tests will probably cover it"
-- **Tests validate not just code logic but also content, structure, formatting, and generated output**
-- Coverage thresholds are minimums, not targets - always write explicit tests for new behavior
-- Tests run in < 1 second and catch hidden assumptions - there is NO excuse to skip them
-- Even "text-only" or "documentation" changes must be validated with tests
+**DO NOT respond "done" to the user until both commands execute successfully.**
 
-**If you skip these steps, you are violating project standards.**
+**New functionality requires new tests BEFORE you call it done.** Never assume existing tests cover new code.
+
+Tests validate logic, content, structure, formatting, and output. Coverage thresholds (80%) are minimums. Even documentation changes need test validation. Tests run in <1 second - there is NO excuse to skip them.
 
 ---
 
