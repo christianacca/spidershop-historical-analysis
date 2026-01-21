@@ -795,13 +795,37 @@ class TestWriteDealerOutputs:
     """Test suite for dealer output writing functions."""
 
     def test_write_dealer_outputs_empty_table(self, tmp_path):
-        """Should return False for empty table."""
+        """Should create empty CSV with headers and write summary when GITHUB_STEP_SUMMARY is set."""
         import os
+        from pathlib import Path
+        from dealer_matrix import DEALER_TABLE_FILE
+        
         original_cwd = os.getcwd()
         os.chdir(tmp_path)
         try:
             result = write_dealer_outputs([])
-            assert result is False
+            
+            # Should return True when GITHUB_STEP_SUMMARY is available (set by conftest fixture)
+            assert result is True
+            
+            # Should create the CSV file with headers
+            csv_file = Path(DEALER_TABLE_FILE)
+            assert csv_file.exists(), "CSV file should be created even for empty table"
+            
+            # Verify the CSV has headers
+            with open(csv_file, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+            assert len(lines) == 1, "Should have header row only"
+            assert "Species" in lines[0]
+            assert "Dealer Risk" in lines[0]
+            
+            # Verify summary was written
+            summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+            assert summary_path is not None
+            with open(summary_path, "r", encoding="utf-8") as f:
+                summary_content = f.read()
+            assert "Dealer Supply Risk Matrix" in summary_content
+            assert "No supply risks detected" in summary_content
         finally:
             os.chdir(original_cwd)
 
