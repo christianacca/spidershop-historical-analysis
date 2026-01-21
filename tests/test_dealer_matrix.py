@@ -829,6 +829,77 @@ class TestWriteDealerOutputs:
         finally:
             os.chdir(original_cwd)
 
+    def test_markdown_table_has_correct_column_count(self, tmp_path):
+        """
+        Verify that the markdown table separator line has the same number 
+        of columns as the header line (regression test for commit 6fb7307).
+        """
+        import sys
+        from pathlib import Path
+        src_path = Path(__file__).parent.parent / "src"
+        sys.path.insert(0, str(src_path))
+        
+        import os
+        
+        # Create test data with multiple species
+        history = [
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "5"),
+            make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "30.00", "6"),
+            make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "10"),
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "42.00", "12"),
+        ]
+        
+        table = build_dealer_supply_risk_table(history)
+        
+        # Temporarily change to tmp directory
+        original_cwd = os.getcwd()
+        os.chdir(tmp_path)
+        
+        try:
+            # Write outputs which will generate the markdown summary
+            result = write_dealer_outputs(table)
+            
+            # Should return True when GITHUB_STEP_SUMMARY is available
+            assert result is True
+            
+            # Read the summary
+            summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+            assert summary_path is not None
+            with open(summary_path, "r", encoding="utf-8") as f:
+                summary_content = f.read()
+            
+            # Find the markdown table
+            lines = summary_content.split('\n')
+            table_start = None
+            for i, line in enumerate(lines):
+                if line.startswith("| Species |"):
+                    table_start = i
+                    break
+            
+            assert table_start is not None, "Table header not found in summary"
+            
+            # Extract header and separator
+            header_line = lines[table_start]
+            separator_line = lines[table_start + 1]
+            
+            # Count columns in header (count pipe symbols - 1)
+            header_columns = header_line.count('|') - 1
+            separator_columns = separator_line.count('|') - 1
+            
+            # Verify they match
+            assert header_columns == separator_columns, (
+                f"Markdown table has {header_columns} header columns but "
+                f"{separator_columns} separator columns. This is invalid markdown!\n"
+                f"Header: {header_line}\n"
+                f"Separator: {separator_line}"
+            )
+            
+            # Verify expected column count (10 columns for dealer matrix)
+            assert header_columns == 10, f"Expected 10 columns, got {header_columns}"
+            
+        finally:
+            os.chdir(original_cwd)
+
     def test_write_dealer_outputs_creates_csv_file(self, tmp_path, monkeypatch):
         """Should create CSV file with correct headers and data."""
         import sys
