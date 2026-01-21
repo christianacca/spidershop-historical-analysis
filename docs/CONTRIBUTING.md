@@ -2,18 +2,23 @@
 
 This guide walks you through setting up a local development environment from scratch, even if you've never used Python before.
 
-**Quick Links:**
-- 🧪 [Running Tests & Coverage](#running-tests) - Jump directly to testing
+## Table of Contents
 
-**Choose your operating system below and follow all steps in order:**
-
-- [macOS Setup](#macos-setup)
-- [Windows Setup](#windows-setup)
-- [Linux Setup](#linux-setup)
+- [Setup by Operating System](#setup-by-operating-system)
+- [Running Tests](#running-tests)
+- [Local Development Workflows](#local-development-workflows)
+- [Deactivating the Virtual Environment](#deactivating-the-virtual-environment)
+- [Troubleshooting](#troubleshooting)
+- [Project Structure](#project-structure)
+- [Code Style](#code-style)
+- [Questions or Issues?](#questions-or-issues)
 
 ---
 
-## macOS Setup
+## Setup by Operating System
+
+<details>
+<summary><strong>🍎 macOS Setup</strong></summary>
 
 ### Step 1: Install Python
 
@@ -33,11 +38,22 @@ python3 --version
 brew install git
 ```
 
-### Step 3: Install Chrome
+### Step 3: Install Make (Optional but Recommended)
+
+Make provides convenient shortcuts for common tasks.
+
+**macOS**: Usually pre-installed! Try `make --version` to check. If not found, macOS will prompt you to install Command Line Tools automatically, or run:
+```sh
+xcode-select --install
+```
+
+**Note:** If you don't have `make`, you can use the Python commands directly throughout this guide.
+
+### Step 4: Install Chrome
 
 Download from [google.com/chrome](https://www.google.com/chrome/)
 
-### Step 4: Clone the Repository
+### Step 5: Clone the Repository
 
 ```sh
 cd ~/Documents  # or wherever you keep projects
@@ -45,7 +61,7 @@ git clone https://github.com/christianacca/spidershop-historical-analysis.git
 cd spidershop-historical-analysis
 ```
 
-### Step 5: Create a Virtual Environment
+### Step 6: Create a Virtual Environment
 
 A virtual environment isolates this project's dependencies from your system Python.
 
@@ -55,7 +71,7 @@ python3 -m venv .venv
 
 This creates a `.venv/` directory (which is gitignored).
 
-### Step 6: Activate the Virtual Environment
+### Step 7: Activate the Virtual Environment
 
 ```sh
 source .venv/bin/activate
@@ -63,17 +79,17 @@ source .venv/bin/activate
 
 After activation, your terminal prompt should show `(.venv)` at the beginning.
 
-### Step 7: Install Dependencies
+### Step 8: Install Dependencies
 
 ```sh
-# Install production dependencies
-pip install requests beautifulsoup4 selenium
+# Install all production dependencies
+pip install -r requirements.txt
 
 # Install development dependencies (for testing)
 pip install -r requirements-dev.txt
 ```
 
-### Step 8: Verify Installation
+### Step 9: Verify Installation
 
 ```sh
 python --version   # Should show 3.11+
@@ -82,9 +98,10 @@ pip list           # Should show installed packages
 
 ✅ You're ready! Continue to [Running Tests](#running-tests)
 
----
+</details>
 
-## Windows Setup
+<details>
+<summary><strong>🪟 Windows Setup</strong></summary>
 
 ### Step 1: Install Python
 
@@ -158,9 +175,10 @@ pip list           # Should show installed packages
 
 ✅ You're ready! Continue to [Running Tests](#running-tests)
 
----
+</details>
 
-## Linux Setup
+<details>
+<summary><strong>🐧 Linux Setup</strong></summary>
 
 ### Step 1: Install Python
 
@@ -180,13 +198,24 @@ python3 --version
 sudo apt install git
 ```
 
-### Step 3: Install Chrome/Chromium
+### Step 3: Install Make (Optional but Recommended)
+
+Make provides convenient shortcuts for common tasks.
+
+**Linux**: Usually pre-installed! Try `make --version` to check. If not:
+```sh
+sudo apt install make  # Debian/Ubuntu
+```
+
+**Note:** If you don't have `make`, you can use the Python commands directly throughout this guide.
+
+### Step 4: Install Chrome/Chromium
 
 ```sh
 sudo apt install chromium-browser
 ```
 
-### Step 4: Clone the Repository
+### Step 5: Clone the Repository
 
 ```sh
 cd ~/Documents  # or wherever you keep projects
@@ -194,7 +223,7 @@ git clone https://github.com/christianacca/spidershop-historical-analysis.git
 cd spidershop-historical-analysis
 ```
 
-### Step 5: Create a Virtual Environment
+### Step 6: Create a Virtual Environment
 
 A virtual environment isolates this project's dependencies from your system Python.
 
@@ -204,7 +233,7 @@ python3 -m venv .venv
 
 This creates a `.venv/` directory (which is gitignored).
 
-### Step 6: Activate the Virtual Environment
+### Step 7: Activate the Virtual Environment
 
 ```sh
 source .venv/bin/activate
@@ -212,7 +241,7 @@ source .venv/bin/activate
 
 After activation, your terminal prompt should show `(.venv)` at the beginning.
 
-### Step 7: Install Dependencies
+### Step 8: Install Dependencies
 
 ```sh
 # Install all production dependencies
@@ -222,7 +251,7 @@ pip install -r requirements.txt
 pip install -r requirements-dev.txt
 ```
 
-### Step 8: Verify Installation
+### Step 9: Verify Installation
 
 ```sh
 python --version   # Should show 3.11+
@@ -231,11 +260,37 @@ pip list           # Should show installed packages
 
 ✅ You're ready! Continue to [Running Tests](#running-tests)
 
+</details>
+
 ---
 
 ## Running Tests
 
-> **⚠️ Important:** Make sure your virtual environment is activated before running tests!
+### Run all tests with coverage (recommended)
+```sh
+make test
+```
+
+This runs pytest with full coverage reporting, showing:
+- Overall coverage percentage
+- Coverage per module
+- **Missing column**: Specific line numbers that aren't tested (e.g., "15-22, 34-40")
+
+### View interactive HTML coverage report
+```sh
+make coverage
+```
+
+Opens the HTML coverage report in your browser, providing:
+- Visual coverage with color-coded lines (green = tested, red = not tested)
+- Module-by-module breakdown
+- Easy navigation through source files
+
+### Additional Testing Options
+
+If you need more control, you can use pytest directly.
+
+> **⚠️ Important:** Make sure your virtual environment is activated when running pytest directly!
 > 
 > ```sh
 > # Activate virtual environment first
@@ -243,87 +298,204 @@ pip list           # Should show installed packages
 > .venv\Scripts\activate.bat         # Windows (CMD)
 > .venv\Scripts\Activate.ps1         # Windows (PowerShell)
 > ```
-> 
-> Your terminal prompt should show `(.venv)` at the beginning when activated.
 
-### Run all tests
 ```sh
-pytest
-```
-
-### Run with verbose output
-```sh
-pytest -v
-```
-
-### Run a specific test file
-```sh
+# Run specific test file
 pytest tests/test_breeder_matrix.py
-```
 
-### Run tests with coverage
-```sh
-pytest --cov=src --cov-report=term-missing
-```
+# Run with verbose output
+pytest -v
 
-This shows in the terminal:
-- Overall coverage percentage
-- Coverage per module
-- **Missing column**: Specific line numbers that aren't tested (e.g., "15-22, 34-40")
-
-### View interactive HTML coverage report
-```sh
-# Generate HTML report
-pytest --cov=src --cov-report=html
-
-# Open in browser
-open htmlcov/index.html  # macOS
-start htmlcov/index.html  # Windows
-xdg-open htmlcov/index.html  # Linux
-```
-
-The HTML report provides:
-- Visual coverage with color-coded lines (green = tested, red = not tested)
-- Module-by-module breakdown
-- Easy navigation through source files
-
-### Check coverage for a specific module
-```sh
-# Using built-in coverage tool
+# Check coverage for specific module
 pytest tests/test_breeder_matrix.py --cov=src.breeder_matrix --cov-report=term-missing
-
-# Using helper script (faster)
-python check_coverage.py --module=breeder_matrix.py --verbose
 ```
 
-### View coverage summary
+### Advanced Coverage Tools
+
+For detailed coverage analysis, use the helper scripts:
+
 ```sh
-python view_coverage.py
-```
+# View formatted coverage summary
+python scripts/view_coverage.py
 
-This displays a formatted table showing coverage for all modules.
+# Check specific module coverage with threshold
+python scripts/check_coverage.py --module=breeder_matrix.py --verbose
+```
 
 ---
 
-## Running the Scraper
+## Local Development Workflows
 
-### Full scraper execution
+This section covers testing website changes and running the scraper locally without pushing to GitHub.
+
+### Quick Start
+
+Choose your complete workflow:
+
 ```sh
-python src/scrape_spidershop_spiderlings.py
+# Option 1: Fresh scrape + build + serve (requires Chrome)
+make scrape-website-serve
+
+# Option 2: Download from GitHub + build + serve (requires GitHub CLI)
+make download-website-serve
+
+# Option 3: Rebuild from existing data + serve (data must already exist)
+make website-serve
+
+# Just run tests
+make test
 ```
 
-This will:
-1. Scrape current spiderling listings
-2. Update historical data
-3. Generate analysis matrices
-4. Output CSV files and markdown summaries
+### Option 1: Using Remote Data (GitHub Actions)
 
-### Generate website locally
-```sh
-python src/generate_website.py
+**Prerequisites:** Install GitHub CLI (`gh`)
+
+```bash
+# macOS
+brew install gh
+
+# Windows (using winget)
+winget install --id GitHub.cli
+
+# Linux (Debian/Ubuntu)
+sudo apt install gh
+
+# Authenticate (all platforms)
+gh auth login
 ```
 
-The static website will be generated in the `website/` directory.
+**Workflow:**
+
+```bash
+# Download from GitHub Actions and generate website
+make download-website
+
+# Or: Download, generate, and serve locally at http://localhost:8000
+make download-website-serve
+
+# Individual steps (if needed):
+make download-artifacts  # Just download
+make website             # Just build from existing data
+```
+
+This downloads the latest scrape results from GitHub Actions, generates the static website in `tmp/local-testing/website/`, and optionally starts a local server.
+
+### Option 2: Using Local Data (Run Scraper)
+
+**Prerequisites:** Chrome already installed (from setup section above)
+
+**Workflow:**
+
+```bash
+# Scrape locally and generate website
+make scrape-website
+
+# Scrape locally, generate website, and serve at http://localhost:8000
+make scrape-website-serve
+
+# Or just run the scraper without generating the website
+make scrape-only
+```
+
+This runs the scraper to generate fresh data, creates the website, and optionally serves it locally.
+
+> **💡 Note on historical data:** When scraping locally, the historical CSV will either:
+> - Append to existing history in `tmp/local-testing/` (if present from a previous scrape or download)
+> - Create a new history file with just the current scrape
+> 
+> To maintain continuity with production history, download it first:
+> ```bash
+> make download-artifacts  # Get production history
+> make scrape-website      # Append new scrape to downloaded history
+> ```
+
+### Available Commands
+
+For a complete list of available commands, run:
+
+```bash
+make help
+```
+
+This displays all workflow commands with descriptions.
+
+### Advanced Usage
+
+**Iterative development workflow** - When making changes to `generate_website.py`:
+
+```bash
+# 1. Get data (only needed once)
+make download-artifacts  # OR: make scrape-only
+
+# 2. Start server (keep running in this terminal)
+make website-serve
+# Open http://localhost:8000
+
+# 3. In a NEW terminal: make changes to src/generate_website.py
+# ... edit files ...
+
+# 4. Regenerate website (in the new terminal)
+make generate-website
+
+# 5. Refresh browser to see changes
+
+# 6. Repeat steps 3-5 as needed
+```
+
+**Python bytecode cache:** Python automatically generates `.pyc` files and `__pycache__/` directories to speed up module loading. During development, this cache can sometimes prevent updated code from running. All Python-executing targets (`make scrape-only`, `make generate-website`, and their dependent workflows) automatically clear the cache before execution. If you encounter issues where code changes aren't reflected:
+
+```bash
+# Clear cache manually
+make clean-cache
+
+# Or use any workflow - they all clear cache automatically
+make scrape-only         # Clears cache before scraping
+make generate-website    # Clears cache before website generation
+make website             # Clears cache (via generate-website)
+make download-website    # Clears cache (via generate-website)
+```
+
+**Using a custom port** (requires active virtual environment):
+
+```bash
+source .venv/bin/activate  # Activate first
+python3 scripts/test_website_locally.py --serve --port 3000
+```
+
+**Compare downloaded vs scraped data:**
+
+```bash
+make download-website
+mv tmp/local-testing/website tmp/local-testing/website-downloaded
+
+make scrape-website
+mv tmp/local-testing/website tmp/local-testing/website-scraped
+
+diff -r tmp/local-testing/website-downloaded tmp/local-testing/website-scraped
+```
+
+### Workflow Comparison
+
+| Task | Download (GitHub Actions) | Scrape (Local) |
+|------|--------------------------|----------------|
+| **Data Source** | Latest successful workflow run | Fresh scrape from website |
+| **Speed** | Fast (download only) | Slower (full scrape) |
+| **Requirements** | GitHub CLI (`gh`) | Chrome/Chromium (already installed) |
+| **Network** | GitHub API only | Full website scraping |
+| **Use Case** | Quick testing with real data | Testing scraper changes, no GitHub dependency |
+| **Command** | `make download-website-serve` | `make scrape-website-serve` |
+
+### Files and Directories
+
+All local development files are stored in `tmp/local-testing/` (gitignored):
+- `*.csv` - Scraper output or downloaded CSV files
+- `analysis_summary.md` - Analysis summary (downloaded or generated)
+- `website/` - Generated HTML files
+
+**Scripts:**
+- `scripts/test_website_locally.py` - Website generation script
+- `scripts/download_artifact.sh` - GitHub artifact downloader (called by Makefile)
+- `Makefile` - Orchestrates all workflows
 
 ---
 
@@ -339,22 +511,24 @@ deactivate
 
 ## Troubleshooting
 
-### `command not found: python`
+### Python Issues
+
+#### `command not found: python`
 - **macOS/Linux**: Try `python3` instead of `python`
 - **Windows**: Reinstall Python and ensure "Add Python to PATH" is checked
 
-### Chrome/ChromeDriver version mismatch
-Selenium should auto-download the correct ChromeDriver. If you encounter issues:
-```sh
-pip install --upgrade selenium
+#### `python3: command not found` (Windows)
+On Windows, use `python` instead of `python3`:
+```cmd
+python scripts/test_website_locally.py --serve
 ```
 
-### Permission denied when activating virtual environment (macOS/Linux)
-```sh
-chmod +x .venv/bin/activate
+Or add a Python 3 alias in PowerShell:
+```powershell
+Set-Alias python3 python
 ```
 
-### ModuleNotFoundError
+#### ModuleNotFoundError
 Make sure your virtual environment is activated **before** running scripts.
 
 **Activate command:**
@@ -362,34 +536,119 @@ Make sure your virtual environment is activated **before** running scripts.
 - **Windows CMD**: `.venv\Scripts\activate.bat`
 - **Windows PowerShell**: `.venv\Scripts\Activate.ps1`
 
+### Chrome and Selenium Issues
+
+#### Chrome/ChromeDriver version mismatch
+Selenium should auto-download the correct ChromeDriver. If you encounter issues:
+```sh
+pip install --upgrade selenium
+```
+
+#### Permission denied when activating virtual environment (macOS/Linux)
+```sh
+chmod +x .venv/bin/activate
+```
+
+### Make and Command Issues
+
+#### `make: command not found` (Windows)
+
+You have several options:
+
+1. **Use Git Bash** (recommended):
+   - Install Git for Windows from https://git-scm.com/download/win
+   - Git Bash includes `make` and a Unix-like environment
+   - Run commands in Git Bash instead of CMD/PowerShell
+
+2. **Install make via Chocolatey**:
+   ```powershell
+   choco install make
+   ```
+
+3. **Use WSL** (Windows Subsystem for Linux):
+   ```powershell
+   wsl --install
+   ```
+
+4. **Use Python commands directly** (no `make` needed) - see individual workflow sections above
+
+### GitHub and Workflow Issues
+
+#### "GitHub CLI (gh) is not installed"
+
+Install and authenticate:
+```bash
+# macOS
+brew install gh
+
+# Windows (using winget or Chocolatey - see above)
+
+# Linux (Debian/Ubuntu)
+sudo apt install gh
+
+# Authenticate (all platforms)
+gh auth login
+```
+
+#### "No successful runs found"
+
+Make sure the scrape workflow has run successfully at least once. You can trigger it manually:
+```bash
+gh workflow run "Spider Shop Spiderlings Scrape" --repo christianacca/spidershop-historical-analysis
+```
+
+Or use local scraper instead:
+```bash
+make local-website-serve
+```
+
+#### "Artifact not found"
+
+Some artifacts may not exist on older runs. The script will skip missing artifacts and continue. For guaranteed fresh data:
+```bash
+make local-website-serve
+```
+
+### Website Generation Issues
+
+#### "CSV files not found"
+
+If you see this when running `make generate-website`, you need to obtain CSV files first:
+```bash
+# Option 1: Download from GitHub Actions
+make download-artifacts
+
+# Option 2: Run scraper locally
+make scrape-local
+
+# Then generate website
+make generate-website
+```
+
+#### Port already in use
+
+Change the port:
+```bash
+python3 scripts/test_website_locally.py --serve --port 3000
+```
+
 ---
 
 ## Project Structure
 
 ```
 spidershop-historical-analysis/
-├── src/                          # Source code modules
-│   ├── scrape_spidershop_spiderlings.py  # Main entry point
-│   ├── scraper.py               # Core scraping logic
-│   ├── browser_client.py        # Selenium wrapper
-│   ├── http_client.py           # HTTP requests
-│   ├── parsing.py               # Text parsing utilities
-│   ├── config.py                # Configuration constants
-│   ├── history.py               # Historical data management
-│   ├── breeder_matrix.py        # Breeder analysis
-│   ├── dealer_matrix.py         # Dealer analysis
-│   ├── pricing_summary.py       # Pricing summaries
-│   ├── legend.py                # Legend generation
-│   ├── wishlist_analysis.py     # Wishlist metrics
-│   └── generate_website.py      # Static site generator
-├── tests/                        # Test suite
-│   └── test_example.py
-├── .github/workflows/            # CI/CD workflows
-├── pytest.ini                    # pytest configuration
-├── requirements-dev.txt          # Development dependencies
-└── docs/
-    └── CONTRIBUTING.md           # This file
+├── src/                   # Source code modules
+├── tests/                 # Test suite
+├── .github/workflows/     # CI/CD workflows
+├── docs/                  # Documentation
+├── requirements.txt       # Production dependencies
+├── requirements-dev.txt   # Development dependencies
+├── pytest.ini            # Pytest configuration
+└── Makefile              # Build automation
 ```
+
+For a complete list of modules and their purposes, see the project's main README or explore the `src/` directory.
 
 ---
 

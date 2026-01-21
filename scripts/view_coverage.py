@@ -19,9 +19,9 @@ from pathlib import Path
 
 def load_coverage_data():
     """Load coverage data from coverage.json."""
-    coverage_file = Path("coverage.json")
+    coverage_file = Path("tmp/coverage/coverage.json")
     if not coverage_file.exists():
-        print("❌ coverage.json not found. Run tests with coverage first:")
+        print("❌ tmp/coverage/coverage.json not found. Run tests with coverage first:")
         print("   pytest tests/ --cov=src --cov-report=json")
         sys.exit(1)
     

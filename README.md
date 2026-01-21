@@ -162,13 +162,26 @@ Logic summary:
 
 - **Schedule:** Weekly (Wednesday, 06:10 UTC)
 - **Language:** Python 3.11
-- **Dependencies:** requests, beautifulsoup4
+- **Dependencies:** requests, beautifulsoup4, selenium
 - **Architecture:** Modular (`src/` directory)
 - **Testing:** Runtime assertions (fail fast, descriptive)
 
 No machine learning.  
 No black boxes.  
 Every signal is explainable in plain English.
+
+---
+
+## Contributing
+
+Interested in contributing or running the project locally?
+
+See **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** for:
+- Setting up your development environment
+- Running tests and checking coverage
+- Testing website changes locally
+- Running the scraper
+- Code style guidelines
 
 ---
 

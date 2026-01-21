@@ -62,67 +62,31 @@ jobs:
           echo "Resolved history artifact name: $HISTORY_NAME"
 
       # ------------------------------------------------
-      # Locate latest branch-scoped history artifact
-      # ------------------------------------------------
-      - name: Find branch history artifact
-        id: branch_history
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          ARTIFACT_ID=$(gh api \
-            repos/${{ github.repository }}/actions/artifacts \
-            --paginate \
-            -q '.artifacts[]' \
-            | jq -s 'map(select(.name == "'"${{ steps.artifact_names.outputs.history_name }}"'" and .expired == false))
-                | sort_by(.created_at)
-                | last
-                | .id // empty' || true)
-
-          echo "artifact_id=$ARTIFACT_ID" >> $GITHUB_OUTPUT
-          echo "Resolved branch history artifact id: $ARTIFACT_ID"
-
-      # ------------------------------------------------
-      # Locate default-branch history artifact (fallback)
-      # ------------------------------------------------
-      - name: Find default branch history artifact
-        id: default_history
-        if: steps.branch_history.outputs.artifact_id == '' && github.ref_name != 'master'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          ARTIFACT_ID=$(gh api \
-            repos/${{ github.repository }}/actions/artifacts \
-            --paginate \
-            -q '.artifacts[]' \
-            | jq -s 'map(select(.name == "'"${{ steps.artifact_names.outputs.default_history_name }}"'" and .expired == false))
-                | sort_by(.created_at)
-                | last
-                | .id // empty' || true)
-
-          echo "artifact_id=$ARTIFACT_ID" >> $GITHUB_OUTPUT
-          echo "Resolved default history artifact id: $ARTIFACT_ID"
-
-      # ------------------------------------------------
-      # Download history artifact (branch or fallback)
+      # Download history artifact (branch-scoped with fallback)
       # ------------------------------------------------
       - name: Download previous history artifact
-        if: steps.branch_history.outputs.artifact_id != '' || steps.default_history.outputs.artifact_id != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          ARTIFACT_ID="${{ steps.branch_history.outputs.artifact_id }}"
-          if [ -z "$ARTIFACT_ID" ]; then
-            ARTIFACT_ID="${{ steps.default_history.outputs.artifact_id }}"
+          REPO_OWNER="$(echo '${{ github.repository }}' | cut -d'/' -f1)"
+          REPO_NAME="$(echo '${{ github.repository }}' | cut -d'/' -f2)"
+          
+          # Try branch-scoped history first
+          if ./scripts/download_artifact.sh "$REPO_OWNER" "$REPO_NAME" \
+              "${{ steps.artifact_names.outputs.history_name }}" "."; then
+            echo "✅ Downloaded branch history: ${{ steps.artifact_names.outputs.history_name }}"
+          # Fallback to default branch history (if not on default branch)
+          elif [ "${{ github.ref_name }}" != "master" ]; then
+            echo "⚠️  Branch history not found, trying default branch..."
+            if ./scripts/download_artifact.sh "$REPO_OWNER" "$REPO_NAME" \
+                "${{ steps.artifact_names.outputs.default_history_name }}" "."; then
+              echo "✅ Downloaded default history: ${{ steps.artifact_names.outputs.default_history_name }}"
+            else
+              echo "ℹ️  No previous history found (this may be the first run)"
+            fi
+          else
+            echo "ℹ️  No previous history found (this may be the first run)"
           fi
-
-          echo "Downloading history artifact id: $ARTIFACT_ID"
-
-          gh api \
-            repos/${{ github.repository }}/actions/artifacts/$ARTIFACT_ID/zip \
-            > history.zip
-
-          unzip -o history.zip
-          rm history.zip
 
       # --------------------------------
       # Run scraper + analysis

@@ -38,14 +38,10 @@ ENV/
 Thumbs.db
 
 # Test coverage
-htmlcov/
-.coverage
-coverage.json
-coverage.xml
 .pytest_cache/
 
-# Generated website
+# Generated website (CI/CD output)
 website/
 
-# Scraper outputs
-*.csv
+# Temporary files and local testing (includes coverage, local-testing, etc.)
+tmp/

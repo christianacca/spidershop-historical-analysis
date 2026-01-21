@@ -1,28 +1,30 @@
 # Copilot Instructions for spidershop-historical-analysis
 
-## ⚠️ CRITICAL: Testing Requirements - READ FIRST ⚠️
+## ⚠️ CRITICAL: Testing Workflow (BLOCKING) ⚠️
 
-**MANDATORY WORKFLOW FOR EVERY CODE CHANGE:**
+**A CODE CHANGE IS NOT COMPLETE UNTIL ALL STEPS BELOW PASS.**
 
-1. **Write tests FIRST** for new functionality before or immediately after implementation
-2. **Run tests with coverage** after EVERY file change (no exceptions):
-   ```bash
-   pytest --cov=src --cov-report=html --cov-report=term-missing --cov-report=json
-   ```
-3. **Check module-specific coverage**:
-   ```bash
-   python check_coverage.py --module=<your_module>.py
-   ```
+For ANY file edit in `src/`, you MUST immediately execute:
 
-**TESTING PRINCIPLES:**
+1. `.venv/bin/python -m pytest --cov=src --cov-report=html --cov-report=term-missing --cov-report=json`
+2. `.venv/bin/python scripts/check_coverage.py --module=<edited_file>.py`
 
-- **New functionality = New tests. Always.** Never rely on "existing tests will probably cover it"
-- **Tests validate not just code logic but also content, structure, formatting, and generated output**
-- Coverage thresholds are minimums, not targets - always write explicit tests for new behavior
-- Tests run in < 1 second and catch hidden assumptions - there is NO excuse to skip them
-- Even "text-only" or "documentation" changes must be validated with tests
+**DO NOT respond "done" to the user until both commands execute successfully.**
 
-**If you skip these steps, you are violating project standards.**
+**New functionality requires new tests BEFORE you call it done.** Never assume existing tests cover new code.
+
+Tests validate logic, content, structure, formatting, and output. Coverage thresholds (80%) are minimums. Even documentation changes need test validation. Tests run in <1 second - there is NO excuse to skip them.
+
+---
+
+## GitHub Workflows Troubleshooting
+- **Fetching Workflow Logs**: Use the GitHub API to download logs as a zip file, not `gh run view` which opens a pager:
+  ```bash
+  gh api repos/christianacca/web-api-starter/actions/runs/<RUN_ID>/logs > /tmp/workflow-logs.zip
+  unzip -o /tmp/workflow-logs.zip -d /tmp
+  cat /tmp/<job-log-file>.txt
+  ```
+  Search for errors: `cat /tmp/<job-log-file>.txt | grep -A 20 -i "error\|fail"`
 
 ---
 
@@ -40,36 +42,27 @@ This is a Python web scraper that captures pricing data for tarantula spiderling
 
 ## Project Structure
 
-The project uses a modular architecture with focused modules in the `src/` directory:
+The project uses a modular architecture with focused modules in the `src/` directory. Key modules include:
+- Main scraper orchestration and entry point
+- HTTP and browser clients for web scraping
+- Text parsing and data extraction utilities
+- Historical data management
+- Analysis engines (breeder/dealer opportunity matrices)
+- Static website generation
 
-- **scrape_spidershop_spiderlings.py**: Main entry point that orchestrates the scraping workflow
-- **scraper.py**: Core scraping logic for extracting product URLs and product details
-- **http_client.py**: HTTP request handling with proper headers
-- **browser_client.py**: Selenium WebDriver wrapper for JavaScript-rendered content
-- **parsing.py**: Text parsing utilities (whitespace normalization, size/price/wishlist extraction, wishlist pressure/delta calculations)
-- **config.py**: Configuration constants (URLs, file names, regex patterns)
-- **history.py**: Historical data management (loading and appending history)
-- **pricing_summary.py**: Pricing analysis and summary generation
-- **breeder_matrix.py**: Breeder opportunity table generation
-- **dealer_matrix.py**: Dealer supply risk table generation
-- **legend.py**: Summary legend generation
-- **generate_website.py**: Static HTML website generator for GitHub Pages
-- **assertions.py**: Validation and assertion utilities
+Explore the `src/` directory for the complete list of modules.
 
 ## Dependencies
 
-This project uses minimal external dependencies:
-
-- **requests**: HTTP requests for web scraping
-- **beautifulsoup4**: HTML parsing and data extraction
-- **selenium**: Browser automation for JavaScript-rendered content (wishlist counters)
-- Standard library: csv, datetime, urllib, decimal, re, os, time, pathlib
-
 Dependencies are defined in:
-- **requirements.txt**: Production dependencies
-- **requirements-dev.txt**: Development/testing dependencies (pytest)
+- **requirements.txt**: Production dependencies (HTTP client, HTML parsing, browser automation, markdown)
+- **requirements-dev.txt**: Development/testing dependencies (pytest, coverage tools)
 
-Install with: `pip install -r requirements.txt` and `pip install -r requirements-dev.txt`
+Install with:
+```bash
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+```
 
 ## Coding Conventions
 
@@ -167,7 +160,7 @@ pytest
 pytest --cov=src --cov-report=html --cov-report=term-missing --cov-report=json
 
 # Check specific module coverage
-python check_coverage.py --module=breeder_matrix.py
+python scripts/check_coverage.py --module=breeder_matrix.py
 ```
 
 ### Test Coverage for Agent Mode
@@ -179,13 +172,13 @@ python check_coverage.py --module=breeder_matrix.py
 
 2. **Verify coverage after changes**:
    ```bash
-   python check_coverage.py --module=your_new_module.py --threshold=80
+   python scripts/check_coverage.py --module=your_new_module.py --threshold=80
    ```
 
 3. **Coverage artifacts**:
-   - `coverage.json` - Machine-readable coverage data
-   - `htmlcov/` - Visual HTML report
-   - Use `view_coverage.py` for formatted summary
+   - `tmp/coverage/coverage.json` - Machine-readable coverage data
+   - `tmp/coverage/html/` - Visual HTML report
+   - Use `scripts/view_coverage.py` for formatted summary
 
 ### Coverage Requirements
 

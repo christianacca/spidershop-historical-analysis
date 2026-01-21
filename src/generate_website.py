@@ -17,19 +17,29 @@ OUTPUT_DIR = Path("website")
 def parse_markdown_to_html(markdown_text):
     """Convert markdown to HTML using the markdown library.
     
-    Uses the 'tables' and 'fenced_code' extensions for enhanced support.
+    Uses the 'tables', 'fenced_code', and 'md_in_html' extensions.
+    Downgrades heading levels (h2→h3, h3→h4) to maintain proper hierarchy.
     """
     if not markdown_text:
         return ""
     
     # Configure markdown with extensions
-    md = markdown.Markdown(extensions=['tables', 'fenced_code'])
+    # md_in_html allows markdown parsing inside HTML blocks like <details>
+    md = markdown.Markdown(extensions=['tables', 'fenced_code', 'md_in_html'])
     
     # Convert markdown to HTML
     html = md.convert(markdown_text)
     
     # Add our custom class to tables for styling consistency
     html = html.replace('<table>', '<table class="data-table markdown-table">')
+    
+    # Downgrade heading levels to maintain semantic hierarchy
+    # h2 → h3, h3 → h4, h4 → h5, h5 → h6
+    # Process in reverse order to avoid double-replacements
+    html = html.replace('<h5>', '<h6>').replace('</h5>', '</h6>')
+    html = html.replace('<h4>', '<h5>').replace('</h4>', '</h5>')
+    html = html.replace('<h3>', '<h4>').replace('</h3>', '</h4>')
+    html = html.replace('<h2>', '<h3>').replace('</h2>', '</h3>')
     
     return html
 
@@ -61,7 +71,7 @@ def extract_analysis_sections(markdown_file):
     
     # Extract full legend content
     legend_match = re.search(
-        r'<details>.*?<summary><strong>ℹ️ How to read these tables \(Legend\)</strong></summary>(.*?)</details>',
+        r'<details(?:\s+markdown="1")?>\s*<summary><strong>ℹ️ How to read these tables \(Legend\)</strong></summary>(.*?)</details>',
         content,
         re.DOTALL
     )
@@ -428,12 +438,12 @@ def get_base_html_template(title, active_page=""):
             border-left: 4px solid #3498db;
         }}
         
-        .analysis-section h2 {{
+        .analysis-section h3 {{
             margin-top: 0;
             color: #2c3e50;
         }}
         
-        .analysis-section h3 {{
+        .analysis-section h4 {{
             color: #34495e;
             margin-top: 25px;
         }}
@@ -460,6 +470,12 @@ def get_base_html_template(title, active_page=""):
         }}
         
         .analysis-section hr {{
+            margin: 30px 0;
+            border: none;
+            border-top: 2px solid #dee2e6;
+        }}
+        
+        details hr {{
             margin: 30px 0;
             border: none;
             border-top: 2px solid #dee2e6;
@@ -725,12 +741,10 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
     
     # Add legend if provided
     if legend_markdown:
-        html += '            <details>\n'
-        html += '                <summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>\n'
-        html += '                <div style="padding: 15px;">\n'
-        html += parse_markdown_to_html(legend_markdown)
-        html += '                </div>\n'
-        html += '            </details>\n'
+        # Wrap legend markdown in details tag BEFORE converting to HTML
+        # This ensures markdown inside the details block is properly converted
+        legend_with_wrapper = f'<details markdown="1">\n<summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>\n\n{legend_markdown}\n\n</details>'
+        html += parse_markdown_to_html(legend_with_wrapper)
     
     # Add examples section if provided (separate from legend)
     if examples_markdown:

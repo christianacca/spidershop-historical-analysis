@@ -19,15 +19,18 @@ def write_summary_legend():
 ### 🧬 Breeder Opportunity Matrix — Legend
 
 **OOS**
+
 - `IN` — Species is currently listed for sale
 - `OUT` — Species is not listed this run
 - `IN/OUT` — Species recently disappeared and reappeared (cyclical supply)
 
 **OOS Runs**
+
 - Number of **consecutive runs** the species has been out of stock  
 - With weekly runs, `4+` weeks indicates persistent scarcity
 
 **Stock Pattern** (Primary Signal)
+
 - `Always` — Normal availability or a single short-term sell-out (noise)
 - `Emerging` — Missing for multiple consecutive runs (early scarcity)
 - `Sustained` — Missing for many runs (strong breeding signal)
@@ -35,6 +38,7 @@ def write_summary_legend():
 - This is the **foundation** of all recommendations — modifiers can only refine, not override
 
 **Price Trend** (Confidence Modifier)
+
 - `↑` — Price rising vs last observed price
 - `→` — Price stable
 - `↓` — Price falling
@@ -42,6 +46,7 @@ def write_summary_legend():
 - Does not affect `Sustained` signals (already high-confidence) or downgrade any patterns
 
 **Wishlist Pressure** (Demand Amplifier)
+
 - Represents **latent demand** (buyer interest, not sales)
 - Calculated using **relative ranking** within the current run (not absolute thresholds)
 - `🔥` — High wishlist pressure (top tier of current interest)
@@ -53,6 +58,7 @@ def write_summary_legend():
 - Never overrides `Sustained` scarcity signals (already definitive)
 
 **Wishlist Delta**
+
 - Measures **meaningful change in wishlist interest** between current and previous IN-stock observations
 - `↑` — Buyer interest increasing meaningfully (Delta ≥ +5)
 - `→` — Interest stable or within noise threshold (−4 ≤ Delta ≤ +4)
@@ -63,11 +69,13 @@ def write_summary_legend():
 - Can escalate or prevent escalation of emerging opportunities
 
 **Signal**
+
 - `🔥` — Strong breeding opportunity signal
 - `⚠️` — Monitor closely; opportunity may be forming
 - `❌` — Oversupplied or no meaningful scarcity
 
 **Recommendation** (Final Assessment)
+
 - Combines **Stock Pattern + Price Trend + Wishlist Pressure**
 - **Hierarchy:** Stock Pattern is primary (~70% influence), Price Trend and Wishlist together provide ~30% refinement
 - Modifiers can escalate signals but never override the base pattern category
@@ -87,28 +95,33 @@ def write_summary_legend():
 ### 🏪 Dealer Supply Risk Matrix — Legend
 
 **Stock Reliability** (Primary Signal)
+
 - `High` — Listed in most runs
 - `Medium` — Intermittent availability
 - `Low` — Rarely listed
 - This is the **foundation** of all dealer risk assessments — demand modifiers refine but cannot override supply constraints
 
 **Avg OOS Duration**
+
 - Average number of runs a species stays out of stock once it disappears
 - Provides context for understanding supply volatility
 
 **Restock Speed** (Supply Confidence)
+
 - `Fast` — Typically returns quickly
 - `Moderate` — Takes several runs
 - `Slow` — Prolonged absence after sell-out
 - **Influence:** Combines with Stock Reliability to define supply stability; slow restock amplifies low reliability risks
 
 **Price Pressure** (Informational)
+
 - `↑` — Prices increasing
 - `→` — Stable pricing
 - `↓` — Prices softening
 - **Influence:** Informational only; does not affect risk classification (supply and demand signals take precedence)
 
 **Wishlist Pressure** (Demand Amplifier)
+
 - Represents **latent demand** (buyer interest, not sales)
 - Calculated using **relative ranking** within the current run (not absolute thresholds)
 - `🔥` — High wishlist pressure (top tier of current interest)
@@ -120,6 +133,7 @@ def write_summary_legend():
 - Never overrides `High` reliability (already well-supplied)
 
 **Wishlist Delta** (Momentum Modifier)
+
 - Measures **meaningful change in wishlist interest** between current and previous IN-stock observations
 - `↑` — Buyer interest increasing meaningfully (Delta ≥ +5)
 - `→` — Interest stable or within noise threshold (−4 ≤ Delta ≤ +4)
@@ -131,11 +145,13 @@ def write_summary_legend():
 - Acts as a **momentum modifier**, not a standalone signal
 
 **Dealer Risk** (Supply Signal)
+
 - `🔥` — High risk of lost sales (supply constrained)
 - `⚠️` — Manage carefully
 - `❌` — No urgency; supply is healthy
 
 **Dealer Recommendation** (Final Assessment)
+
 - Combines **Stock Reliability + Restock Speed + Wishlist Pressure + Wishlist Delta**
 - **Hierarchy:** Supply metrics (Reliability + Restock Speed) are primary (~75% influence), demand signals provide ~25% refinement
 - Demand modifiers escalate urgency for supply-constrained species but cannot override healthy supply
