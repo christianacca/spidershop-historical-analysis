@@ -6,6 +6,7 @@ Focuses on the main() workflow without duplicating tests for individual
 modules (scraper, breeder_matrix, dealer_matrix, etc.).
 """
 
+import os
 import pytest
 from unittest.mock import patch, mock_open, MagicMock
 from scrape_spidershop_spiderlings import main
@@ -391,3 +392,64 @@ class TestMainOrchestration:
         # Verify we only fetched once before stopping
         assert mock_scraping['fetch'].call_count == 1
         assert mock_browser.called
+
+    def test_full_analysis_summary_snapshot(
+        self, mock_scraping, mock_browser, tmp_path, snapshot
+    ):
+        """
+        Integration snapshot test capturing the complete analysis_summary.md output.
+        Tests the full pipeline: scraping → history → matrices → summary generation.
+        """
+        # Mock scraping - page 1 returns URLs, page 2 returns empty (end pagination)
+        mock_scraping["fetch"].side_effect = [
+            MagicMock(),  # Page 1 HTML
+            MagicMock(),  # Page 2 HTML
+        ]
+        mock_scraping["extract_urls"].side_effect = [
+            ["url1", "url2"],  # Page 1 has products
+            [],  # Page 2 is empty (triggers stop)
+        ]
+        mock_scraping["scrape_product"].side_effect = [
+            ("Aphonopelma seemanni", "Costa Rican Zebra", "1.0", "25.00", "5"),
+            ("Grammostola pulchra", "Brazilian Black", "2.0", "40.00", "15"),
+        ]
+        
+        # Create history with multiple runs for interesting analysis
+        history_content = (
+            "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+            "2025-01-01T10:00:00,Aphonopelma seemanni,Costa Rican Zebra,1.0,20.00,3,https://example.com/1\n"
+            "2025-01-01T10:00:00,Cyriocosmus elegans,Trinidad Dwarf,0.5,25.00,15,https://example.com/2\n"
+            "2025-01-08T10:00:00,Aphonopelma seemanni,Costa Rican Zebra,1.0,22.00,4,https://example.com/1\n"
+            "2025-01-15T10:00:00,Aphonopelma seemanni,Costa Rican Zebra,1.0,23.00,4,https://example.com/1\n"
+            "2025-01-22T10:00:00,Aphonopelma seemanni,Costa Rican Zebra,1.0,24.00,5,https://example.com/1\n"
+        )
+        (tmp_path / "spidershop_spiderlings_history.csv").write_text(history_content)
+        
+        # Set up environment
+        os.chdir(tmp_path)
+        summary_file = tmp_path / "analysis_summary.md"
+        os.environ["GITHUB_STEP_SUMMARY"] = str(summary_file)
+        
+        try:
+            main()
+            
+            # Read the generated summary
+            assert summary_file.exists()
+            summary_content = summary_file.read_text(encoding="utf-8")
+            
+            # Normalize timestamps to avoid snapshot mismatches
+            # Replace actual timestamp with placeholder
+            import re
+            summary_content = re.sub(
+                r'\*\*Scrape time \(UTC\):\*\* `\d{4}-\d{2}-\d{2}T\d{2}:\d{2}\+\d{2}:\d{2}`',
+                '**Scrape time (UTC):** `YYYY-MM-DDTHH:MM+00:00`',
+                summary_content
+            )
+            
+            # Snapshot the complete summary
+            assert summary_content == snapshot
+            
+        finally:
+            if "GITHUB_STEP_SUMMARY" in os.environ:
+                del os.environ["GITHUB_STEP_SUMMARY"]
+

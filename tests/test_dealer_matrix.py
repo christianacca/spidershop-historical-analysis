@@ -944,3 +944,59 @@ class TestWriteDealerOutputs:
                 assert "Dealer Risk" in rows[0]
         finally:
             os.chdir(original_cwd)
+
+    def test_dealer_markdown_table_snapshot(self, tmp_path, snapshot):
+        """
+        Snapshot test for dealer matrix markdown table format.
+        Captures the complete markdown output to catch any unintended changes.
+        """
+        import sys
+        from pathlib import Path
+        src_path = Path(__file__).parent.parent / "src"
+        sys.path.insert(0, str(src_path))
+        
+        import os
+        from assertions import extract_markdown_section
+        
+        # Create comprehensive test data with varied scenarios
+        history = [
+            # Low reliability, slow restock, high demand
+            make_row("2025-01-01", "Cyriocosmus elegans", "0.5", "25.00", "15"),
+            make_row("2025-01-15", "Cyriocosmus elegans", "0.5", "25.00", "20"),
+            
+            # Medium reliability, moderate pressure
+            make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "8"),
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "8"),
+            make_row("2025-01-15", "Grammostola pulchra", "2.0", "42.00", "9"),
+            
+            # High reliability, always in stock
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "20.00", "3"),
+            make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "20.00", "3"),
+            make_row("2025-01-15", "Aphonopelma seemanni", "1.0", "20.00", "2"),
+        ]
+        
+        table = build_dealer_supply_risk_table(history)
+        
+        # Temporarily change to tmp directory
+        original_cwd = os.getcwd()
+        os.chdir(tmp_path)
+        
+        try:
+            # Write outputs which will generate the markdown summary
+            result = write_dealer_outputs(table)
+            assert result is True
+            
+            # Read the summary
+            summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+            assert summary_path is not None
+            with open(summary_path, "r", encoding="utf-8") as f:
+                summary_content = f.read()
+            
+            # Extract the dealer matrix section using helper function
+            markdown_section = extract_markdown_section(summary_content, "## 🏪 Dealer Supply Risk Matrix")
+            
+            # Snapshot the markdown section
+            assert markdown_section == snapshot
+            
+        finally:
+            os.chdir(original_cwd)
