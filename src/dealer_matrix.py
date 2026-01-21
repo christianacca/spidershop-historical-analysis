@@ -189,7 +189,7 @@ def write_dealer_outputs(table):
             f.write("_No supply risks detected (conservative analysis requires sufficient historical data)._\n")
         else:
             f.write("| Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Wishlist Pressure | Wishlist Delta | Dealer Risk | Dealer Recommendation |\n")
-            f.write("|---|---:|---|---:|---|---|---|---|---|\n")
+            f.write("|---|---:|---|---:|---|---|---|---|---|---|\n")
             for r in table[:shown]:
                 f.write(
                     f"| {r['Species']} | {r['Size (cm)']} | {r['Stock Reliability']} | {r['Avg OOS Duration']} | "

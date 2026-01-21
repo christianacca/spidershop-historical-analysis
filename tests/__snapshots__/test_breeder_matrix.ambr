@@ -1,0 +1,12 @@
+# serializer version: 1
+# name: TestBuildBreederOpportunityTable.test_breeder_markdown_table_snapshot
+  '''
+  ## 🧬 Breeder Opportunity Matrix (Top 10)
+  
+  | Species | Size (cm) | OOS | OOS Runs | Stock Pattern | Price Trend | Wishlist Pressure | Wishlist Delta | Signal | Recommendation |
+  |---|---:|---|---:|---|---|---|---|---|---|
+  | Cyriocosmus elegans | 0.5 | IN/OUT | 0 | Cyclical | ↑ | 🔥 | ↑ | ⚠️ | Breed cautiously — wave restocking |
+  | Davus sp. "Panama" | 1.0 | IN/OUT | 0 | Cyclical | → | ⚠️ | → | ⚠️ | Breed cautiously — wave restocking |
+  | Aphonopelma seemanni | 1.0 | IN | 0 | Always | → | ❌ | → | ❌ | Avoid for profit — oversupplied |
+  '''
+# ---

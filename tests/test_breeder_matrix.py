@@ -549,3 +549,64 @@ class TestBuildBreederOpportunityTable:
         assert seemanni_entry["Signal"] == "🔥"
         assert "strong buyer interest" in seemanni_entry["Recommendation"].lower()
         assert "sustained scarcity" in seemanni_entry["Recommendation"].lower()
+
+    def test_breeder_markdown_table_snapshot(self, tmp_path, snapshot):
+        """
+        Snapshot test for breeder matrix markdown table format.
+        Captures the complete markdown output to catch any unintended changes.
+        """
+        import sys
+        from pathlib import Path
+        import os
+        
+        src_path = Path(__file__).parent.parent / "src"
+        sys.path.insert(0, str(src_path))
+        
+        from breeder_matrix import write_breeder_outputs
+        from assertions import extract_markdown_section
+        
+        # Create comprehensive test data with varied scenarios
+        history = [
+            # Sustained scarcity - high OOS count
+            make_row("2025-01-01", "Cyriocosmus elegans", "0.5", "25.00", "15"),
+            make_row("2025-01-29", "Cyriocosmus elegans", "0.5", "30.00", "20"),
+            
+            # Emerging scarcity - moderate OOS
+            make_row("2025-01-01", "Davus sp. \"Panama\"", "1.0", "20.00", "10"),
+            make_row("2025-01-15", "Davus sp. \"Panama\"", "1.0", "22.00", "12"),
+            make_row("2025-01-29", "Davus sp. \"Panama\"", "1.0", "22.00", "13"),
+            
+            # Always available
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "18.00", "2"),
+            make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "18.00", "2"),
+            make_row("2025-01-15", "Aphonopelma seemanni", "1.0", "18.00", "2"),
+            make_row("2025-01-22", "Aphonopelma seemanni", "1.0", "18.00", "2"),
+            make_row("2025-01-29", "Aphonopelma seemanni", "1.0", "18.00", "1"),
+        ]
+        
+        table = build_breeder_opportunity_table(history)
+        
+        # Temporarily change to tmp directory
+        original_cwd = os.getcwd()
+        os.chdir(tmp_path)
+        
+        try:
+            # Write outputs which will generate the markdown summary
+            result = write_breeder_outputs(table)
+            assert result is True
+            
+            # Read the summary
+            summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+            assert summary_path is not None
+            with open(summary_path, "r", encoding="utf-8") as f:
+                summary_content = f.read()
+            
+            # Extract the breeder matrix section using helper function
+            markdown_section = extract_markdown_section(summary_content, "## 🧬 Breeder Opportunity Matrix")
+            
+            # Snapshot the markdown section
+            assert markdown_section == snapshot
+            
+        finally:
+            os.chdir(original_cwd)
+
