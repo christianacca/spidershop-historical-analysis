@@ -185,29 +185,142 @@ pytest --cov=src --cov-report=html --cov-report=term-missing --cov-report=json
 python scripts/check_coverage.py --module=breeder_matrix.py
 ```
 
+### Test-Driven Development (TDD) Protocol — MANDATORY
+
+**RED-GREEN CYCLE REQUIRED**
+
+For ANY feature or bug fix, follow this exact sequence:
+
+1. **RED Phase — Write Failing Test First**:
+   - Write the test for the feature/fix BEFORE implementing the code
+   - Run the test to confirm it FAILS with the expected failure message
+   - Document what failure you expect to see (e.g., "AttributeError", "AssertionError with specific message")
+   - **DO NOT proceed to implementation until you have confirmed the test fails correctly**
+
+2. **GREEN Phase — Implement Quality Code**:
+   - Write clean, idiomatic code to make the test pass
+   - Aim for the best implementation from the start (no "quick hacks")
+   - Run the test again to confirm it now PASSES
+   - Verify coverage meets threshold (80%)
+
+3. **REFACTOR Phase — Optional**:
+   - Only needed if the initial implementation has structural issues
+   - Re-run tests after any refactoring to ensure they remain green
+
+**Example TDD workflow:**
+```bash
+# 1. RED: Write test, confirm it fails
+pytest tests/test_new_feature.py::test_my_new_feature -v
+# Expected: FAILED - AttributeError: 'MyClass' has no attribute 'new_method'
+
+# 2. GREEN: Implement clean, quality code
+# ... edit src/my_module.py ...
+
+# 3. Confirm test passes and verify coverage
+pytest tests/test_new_feature.py::test_my_new_feature -v
+# Expected: PASSED
+
+make coverage
+```
+
+### Test Style Selection Guide
+
+Choose the appropriate test style based on what you're validating:
+
+#### 1. **HTML Snapshot Testing** (`syrupy` fixtures)
+- **Use when**: Testing complete HTML output for regressions (prefer small, focused snapshots)
+- **Best for**: Small HTML fragments, specific components, targeted HTML sections
+- **Pattern**: Capture minimal necessary HTML as snapshot, detect any change
+- **Example**: `test_generate_website.py` — validates focused page sections
+- **Pros**: Catches unintended changes, easy to write
+- **Cons**: Can be brittle, requires manual review on updates, large snapshots are hard to maintain
+- **Update protocol**: MUST follow "Snapshot Test Protocol" above
+- **IMPORTANT**: Keep snapshots small and focused. If snapshot would be large or complex, favor HTML Structure Validation instead
+
+#### 2. **CSS Validation Tests** (Targeted checks)
+- **Use when**: Verifying specific CSS classes, styles, or attributes
+- **Best for**: Ensuring specific visual elements exist (e.g., risk badges, table classes)
+- **Pattern**: Parse HTML, assert specific class names or styles present
+- **Example**: `test_generate_website.py` — checks for `risk-high`, `table-container`
+- **Pros**: Focused, less brittle than snapshots
+- **Cons**: Requires explicit assertions for each element
+
+#### 3. **HTML Structure Validation** (Classic unit tests)
+- **Use when**: Testing logical correctness of data processing OR when snapshots would be too large
+- **Best for**: Business logic, data transformations, calculations, validating HTML structure without full snapshots
+- **Pattern**: Arrange data → Act (call function) → Assert expected output
+- **Example**: `test_breeder_matrix.py` — validates opportunity signals from data
+- **Pros**: Tests logic independent of presentation, most maintainable, no snapshot brittleness
+- **Cons**: Doesn't catch visual/formatting issues (but CSS validation can supplement)
+
+**Decision tree:**
+```
+Are you testing HTML generation?
+  ├─ YES: Small/focused HTML fragment? → Snapshot Test
+  │       Large/complex HTML output? → Structure Validation + CSS Validation
+  │       Only care about specific elements? → CSS Validation
+  └─ NO: Testing data transformation/logic? → Structure Validation
+```
+
+### Modifying vs. Creating Tests
+
+**Default approach: MODIFY existing tests**
+
+Before creating a new test function, ask:
+1. Does an existing test already cover this code path?
+2. Can I add a test case to an existing parametrized test?
+3. Would adding assertions to an existing test be clearer?
+
+**Create a NEW test only when:**
+- Testing a genuinely new code path or module
+- Existing test has a fundamentally different setup or fixture
+- New test would make the existing test too complex
+
+**Example — prefer to modify:**
+```python
+# ❌ DON'T create duplicate test
+def test_parse_price_with_pence():
+    assert parse_price("£12.99") == 12.99
+
+def test_parse_price_with_whole_pounds():  # NEW - duplicates above
+    assert parse_price("£15.00") == 15.00
+
+# ✅ DO extend existing parametrized test
+@pytest.mark.parametrize("input,expected", [
+    ("£12.99", 12.99),
+    ("£15.00", 15.00),  # ADD to existing test
+])
+def test_parse_price(input, expected):
+    assert parse_price(input) == expected
+```
+
 ### Test Coverage for Agent Mode
 
-1. **Write tests for new code** following patterns in existing test files:
-   - Use synthetic data to simulate scraping results
-   - Cover all code branches and edge cases
-   - Use descriptive test names
+1. **Write tests FIRST** following TDD protocol above (RED → GREEN)
+2. **Choose test style** based on what you're validating (snapshot/CSS/structure)
+3. **Modify existing tests** when possible instead of creating duplicates
+4. **Use synthetic data** to simulate scraping results, not live web scraping
+5. **Cover all code branches** and edge cases
+6. **Use descriptive test names** that explain what is being validated
 
-2. **Verify coverage after changes**:
-   ```bash
-   python scripts/check_coverage.py --module=your_new_module.py --threshold=80
-   ```
+**Verify coverage after changes:**
+```bash
+python scripts/check_coverage.py --module=your_module.py --threshold=80
+```
 
-3. **Coverage artifacts**:
-   - `tmp/coverage/coverage.json` - Machine-readable coverage data
-   - `tmp/coverage/html/` - Visual HTML report
-   - Use `scripts/view_coverage.py` for formatted summary
+**Coverage artifacts:**
+- `tmp/coverage/coverage.json` - Machine-readable coverage data
+- `tmp/coverage/html/` - Visual HTML report
+- Use `scripts/view_coverage.py` for formatted summary
 
 ### Coverage Requirements
 
 - Minimum threshold: 80% per module
-- New code must include explicit tests (never assume existing tests cover it)
-- Tests should use synthetic data, not live web scraping
-- Follow patterns in existing test files
+- RED-GREEN-REFACTOR cycle is mandatory for all new functionality
+- Test must cycle is mandatory for all new functionality
+- Test must fail FIRST, then pass after implementation
+- Write quality code from the start (refactoring should rarely be needed)ng
+- Favor modifying existing tests over creating duplicates
 
 ## Common Tasks
 
