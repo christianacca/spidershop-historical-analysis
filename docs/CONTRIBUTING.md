@@ -286,6 +286,28 @@ Opens the HTML coverage report in your browser, providing:
 - Module-by-module breakdown
 - Easy navigation through source files
 
+### Snapshot Testing
+
+This project uses [pytest-syrupy](https://github.com/tophat/syrupy) for snapshot testing. Snapshots capture expected outputs and detect regressions.
+
+**When a snapshot test fails:**
+
+1. **Review the diff** - See what changed:
+   ```sh
+   make test-snapshots-diff
+   ```
+
+2. **Investigate** - Determine if changes are intentional or indicate a bug
+
+3. **Update if correct** - Regenerate snapshots only after verifying changes:
+   ```sh
+   make test-update-snapshots
+   ```
+
+**⚠️ Critical:** Never blindly update snapshots. Always review diffs first. See [Snapshot Test Protocol](.github/copilot-instructions.md#snapshot-test-protocol-mandatory) for detailed guidelines.
+
+**Learn more:** [pytest-syrupy documentation](https://github.com/tophat/syrupy)
+
 ### Additional Testing Options
 
 If you need more control, you can use pytest directly.

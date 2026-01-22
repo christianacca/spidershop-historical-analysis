@@ -26,6 +26,7 @@ import pytest
 import tempfile
 import os
 from pathlib import Path
+from bs4 import BeautifulSoup
 from generate_website import (
     parse_markdown_to_html,
     extract_analysis_sections,
@@ -42,38 +43,27 @@ from generate_website import (
 
 
 class TestParseMarkdownToHtml:
-    """Characterization test for markdown to HTML conversion.
+    """Snapshot tests for markdown to HTML conversion.
     
     This test verifies that the markdown library continues to produce
     consistent HTML output. If the markdown library is upgraded and this
-    test fails, review the changes to ensure they're acceptable, then
-    regenerate the expected HTML fixture by running:
+    test fails, review the changes in the diff to ensure they're acceptable,
+    then regenerate the snapshot by running:
     
-        python -c "
-        from src.generate_website import parse_markdown_to_html
-        with open('tests/fixtures/analysis_summary.md', 'r', encoding='utf-8') as f:
-            md = f.read()
-        html = parse_markdown_to_html(md)
-        with open('tests/fixtures/analysis_summary_expected.html', 'w', encoding='utf-8') as f:
-            f.write(html)
-        "
+        pytest --snapshot-update
     """
 
-    def test_markdown_conversion_matches_expected_output(self):
-        """Should convert full analysis_summary.md to HTML exactly as captured in fixture."""
+    def test_markdown_conversion_matches_expected_output(self, snapshot):
+        """Should convert full analysis_summary.md to HTML exactly as captured in snapshot."""
         fixtures_dir = Path(__file__).parent / "fixtures"
         
         # Load the real analysis_summary.md fixture
         with open(fixtures_dir / "analysis_summary.md", "r", encoding="utf-8") as f:
             markdown_text = f.read()
         
-        # Load the expected HTML fixture
-        with open(fixtures_dir / "analysis_summary_expected.html", "r", encoding="utf-8") as f:
-            expected_html = f.read()
-        
-        # Convert and compare
+        # Convert and compare with snapshot
         actual_html = parse_markdown_to_html(markdown_text)
-        assert actual_html == expected_html
+        assert actual_html == snapshot
 
 
 class TestExtractAnalysisSections:
@@ -330,20 +320,41 @@ class TestGenerateTableHtml:
         headers = ["Name", "Price", "Size"]
         rows = [["Species A", "25.00", "1.0"]]
         html = generate_table_html(headers, rows, "test-table", sortable=True)
+        soup = BeautifulSoup(html, 'html.parser')
         
-        assert '<table id="test-table" class="data-table">' in html
-        assert 'onclick="sortTable(0, \'test-table\')"' in html
-        assert '<span class="sort-indicator">⇅</span>' in html
+        # Verify table structure
+        table = soup.find('table', id='test-table', class_='data-table')
+        assert table is not None
+        
+        # Verify sortable headers have onclick
+        headers_elements = table.select('thead th')
+        assert len(headers_elements) == 3
+        for i, th in enumerate(headers_elements):
+            assert 'onclick' in th.attrs
+            assert f"sortTable({i}, 'test-table')" in th['onclick']
+            # Verify sort indicator present
+            indicator = th.find('span', class_='sort-indicator')
+            assert indicator is not None
+            assert indicator.text == '⇅'
 
     def test_table_without_sortable_headers(self):
         """Should generate non-sortable table headers when sortable=False."""
         headers = ["Name", "Price"]
         rows = [["Species A", "25.00"]]
         html = generate_table_html(headers, rows, "test-table", sortable=False)
+        soup = BeautifulSoup(html, 'html.parser')
         
-        assert '<table id="test-table" class="data-table">' in html
-        assert 'onclick=' not in html
-        assert 'sort-indicator' not in html
+        # Verify table structure
+        table = soup.find('table', id='test-table', class_='data-table')
+        assert table is not None
+        
+        # Verify headers do NOT have onclick or sort indicators
+        headers_elements = table.select('thead th')
+        assert len(headers_elements) == 2
+        for th in headers_elements:
+            assert 'onclick' not in th.attrs
+            indicator = th.find('span', class_='sort-indicator')
+            assert indicator is None
 
     def test_table_escapes_html_in_cells(self):
         """Should escape HTML special characters in table cells."""
@@ -359,22 +370,51 @@ class TestGenerateTableHtml:
         headers = ["A", "B"]
         rows = [["1", "2"], ["3", "4"], ["5", "6"]]
         html = generate_table_html(headers, rows, "test-table")
+        soup = BeautifulSoup(html, 'html.parser')
         
-        assert html.count("<tr>") == 4  # 1 header + 3 data rows
-        assert "<td>1</td>" in html
-        assert "<td>6</td>" in html
+        # Verify table structure
+        table = soup.find('table', id='test-table')
+        assert table is not None
+        
+        # Count rows: 1 header row + 3 data rows
+        all_rows = table.find_all('tr')
+        assert len(all_rows) == 4
+        
+        # Verify data rows
+        data_rows = table.select('tbody tr')
+        assert len(data_rows) == 3
+        
+        # Verify first and last cell content
+        first_cell = data_rows[0].find('td')
+        assert first_cell.text == '1'
+        last_cell = data_rows[-1].find_all('td')[-1]
+        assert last_cell.text == '6'
 
     def test_table_structure_complete(self):
         """Should generate complete table structure with thead and tbody."""
         headers = ["Col"]
         rows = [["Val"]]
         html = generate_table_html(headers, rows, "test-table")
+        soup = BeautifulSoup(html, 'html.parser')
         
-        assert "<thead>" in html
-        assert "</thead>" in html
-        assert "<tbody>" in html
-        assert "</tbody>" in html
-        assert "</table>" in html
+        # Verify table exists
+        table = soup.find('table', id='test-table')
+        assert table is not None
+        
+        # Verify table has proper structure
+        thead = table.find('thead')
+        tbody = table.find('tbody')
+        assert thead is not None
+        assert tbody is not None
+        
+        # Verify header and data
+        th = thead.find('th')
+        assert th is not None
+        assert th.text.strip().startswith('Col')
+        
+        td = tbody.find('td')
+        assert td is not None
+        assert td.text == 'Val'
 
     def test_table_renders_page_url_as_link(self):
         """Should render page_url column as clickable link with scientific name as text."""
@@ -384,14 +424,30 @@ class TestGenerateTableHtml:
             ["Grammostola rosea", "Chilean Rose", "15.00", "https://example.com/species2"]
         ]
         html = generate_table_html(headers, rows, "test-table")
+        soup = BeautifulSoup(html, 'html.parser')
         
-        # Check that links are created with scientific names as text
-        assert '<a href="https://example.com/species1" target="_blank" rel="noopener noreferrer">Brachypelma hamorii</a>' in html
-        assert '<a href="https://example.com/species2" target="_blank" rel="noopener noreferrer">Grammostola rosea</a>' in html
+        # Find all data rows
+        data_rows = soup.select('tbody tr')
+        assert len(data_rows) == 2
         
-        # Verify links open in new tab with security attributes
-        assert 'target="_blank"' in html
-        assert 'rel="noopener noreferrer"' in html
+        # Check first row link
+        first_row_cells = data_rows[0].find_all('td')
+        page_url_cell = first_row_cells[3]  # Fourth column
+        link = page_url_cell.find('a')
+        assert link is not None
+        assert link['href'] == 'https://example.com/species1'
+        assert link.text == 'Brachypelma hamorii'
+        assert link['target'] == '_blank'
+        assert 'noopener' in link['rel']
+        assert 'noreferrer' in link['rel']
+        
+        # Check second row link
+        second_row_cells = data_rows[1].find_all('td')
+        page_url_cell = second_row_cells[3]
+        link = page_url_cell.find('a')
+        assert link is not None
+        assert link['href'] == 'https://example.com/species2'
+        assert link.text == 'Grammostola rosea'
 
     def test_table_handles_empty_page_url(self):
         """Should handle empty page_url gracefully without creating a link."""
@@ -402,13 +458,28 @@ class TestGenerateTableHtml:
             ["Aphonopelma seemanni", "Costa Rican Zebra", "   "]  # Whitespace only
         ]
         html = generate_table_html(headers, rows, "test-table")
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Find all data rows
+        data_rows = soup.select('tbody tr')
+        assert len(data_rows) == 3
         
         # First row should have link
-        assert '<a href="https://example.com/species1"' in html
-        assert '>Brachypelma hamorii</a>' in html
+        first_row_url_cell = data_rows[0].find_all('td')[2]
+        first_link = first_row_url_cell.find('a')
+        assert first_link is not None
+        assert first_link['href'] == 'https://example.com/species1'
+        assert first_link.text == 'Brachypelma hamorii'
         
-        # Empty URL rows should not have links - just render the cell value
-        assert html.count('<a href=') == 1  # Only one link should exist
+        # Second row should NOT have link (empty URL)
+        second_row_url_cell = data_rows[1].find_all('td')[2]
+        second_link = second_row_url_cell.find('a')
+        assert second_link is None
+        
+        # Third row should NOT have link (whitespace URL)
+        third_row_url_cell = data_rows[2].find_all('td')[2]
+        third_link = third_row_url_cell.find('a')
+        assert third_link is None
 
     def test_table_without_page_url_column(self):
         """Should render normally when page_url column doesn't exist."""
@@ -418,14 +489,15 @@ class TestGenerateTableHtml:
             ["Grammostola rosea", "Chilean Rose", "15.00"]
         ]
         html = generate_table_html(headers, rows, "test-table")
+        soup = BeautifulSoup(html, 'html.parser')
         
         # Should not create any links
-        assert '<a href=' not in html
-        assert 'target="_blank"' not in html
+        links = soup.find_all('a')
+        assert len(links) == 0
         
         # Should render data normally
-        assert "Brachypelma hamorii" in html
-        assert "Mexican Red Knee" in html
+        assert soup.find(string='Brachypelma hamorii') is not None
+        assert soup.find(string='Mexican Red Knee') is not None
 
     def test_table_with_page_url_but_no_scientific_name(self):
         """Should render normally when scientific_name column is missing."""
@@ -435,14 +507,15 @@ class TestGenerateTableHtml:
             ["Chilean Rose", "15.00", "https://example.com/species2"]
         ]
         html = generate_table_html(headers, rows, "test-table")
+        soup = BeautifulSoup(html, 'html.parser')
         
         # Should not create links without scientific_name column
-        assert '<a href=' not in html
-        assert 'target="_blank"' not in html
+        links = soup.find_all('a')
+        assert len(links) == 0
         
         # Should render URLs as plain text
-        assert "https://example.com/species1" in html
-        assert "https://example.com/species2" in html
+        assert soup.find(string='https://example.com/species1') is not None
+        assert soup.find(string='https://example.com/species2') is not None
 
 
 class TestGetBaseHtmlTemplate:
@@ -451,60 +524,101 @@ class TestGetBaseHtmlTemplate:
     def test_includes_doctype_and_html_tags(self):
         """Should include DOCTYPE and html tags."""
         html = get_base_html_template("Test Page")
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Check DOCTYPE (not parsed by BeautifulSoup, check raw string)
         assert "<!DOCTYPE html>" in html
-        assert "<html lang=\"en\">" in html
-        assert "</html>" not in html  # Base template doesn't close html
+        
+        # Check html tag with lang attribute
+        html_tag = soup.find('html')
+        assert html_tag is not None
+        assert html_tag.get('lang') == 'en'
+        
+        # Base template doesn't close html (partial template)
+        assert "</html>" not in html
 
     def test_includes_title_in_head(self):
         """Should include title in head section."""
         html = get_base_html_template("My Page")
-        assert "<title>My Page - Spider Shop Historical Analysis</title>" in html
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        title = soup.find('title')
+        assert title is not None
+        assert title.text == "My Page - Spider Shop Historical Analysis"
 
     def test_includes_viewport_meta(self):
         """Should include viewport meta tag for responsive design."""
         html = get_base_html_template("Test")
-        assert '<meta name="viewport" content="width=device-width, initial-scale=1.0">' in html
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        viewport_meta = soup.find('meta', attrs={'name': 'viewport'})
+        assert viewport_meta is not None
+        assert viewport_meta['content'] == 'width=device-width, initial-scale=1.0'
 
     def test_includes_navigation(self):
         """Should include navigation menu."""
         html = get_base_html_template("Test", "home")
-        assert "<nav>" in html
-        assert '<a href="index.html"' in html
-        assert '<a href="snapshot.html"' in html
-        assert '<a href="history.html"' in html
-        assert '<a href="breeder.html"' in html
-        assert '<a href="dealer.html"' in html
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        nav = soup.find('nav')
+        assert nav is not None
+        
+        # Check for all expected navigation links
+        links = nav.find_all('a')
+        assert len(links) == 5
+        
+        hrefs = [link['href'] for link in links]
+        assert 'index.html' in hrefs
+        assert 'snapshot.html' in hrefs
+        assert 'history.html' in hrefs
+        assert 'breeder.html' in hrefs
+        assert 'dealer.html' in hrefs
 
     def test_active_page_home(self):
         """Should mark home page as active."""
         html = get_base_html_template("Test", "home")
-        assert 'class="active"' in html
-        # Count should match only home link
-        assert html.count('class="active"') >= 1
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        active_links = soup.select('nav a.active')
+        assert len(active_links) == 1
+        assert active_links[0]['href'] == 'index.html'
 
     def test_active_page_snapshot(self):
         """Should mark snapshot page as active."""
         html = get_base_html_template("Test", "snapshot")
-        assert 'snapshot.html" class="active"' in html or 'class="active"' in html
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        active_links = soup.select('nav a.active')
+        assert len(active_links) == 1
+        assert active_links[0]['href'] == 'snapshot.html'
 
     def test_includes_css_styles(self):
         """Should include embedded CSS styles."""
         html = get_base_html_template("Test")
-        assert "<style>" in html
-        assert "</style>" in html
-        assert ".data-table" in html
-        assert "font-family:" in html
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        style = soup.find('style')
+        assert style is not None
+        css_content = style.string
+        assert '.data-table' in css_content
+        assert 'font-family:' in css_content
 
     def test_includes_header(self):
         """Should include page header with title."""
         html = get_base_html_template("Test")
-        assert "<header>" in html
-        assert "Spider Shop Historical Analysis" in html
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        header = soup.find('header')
+        assert header is not None
+        assert 'Spider Shop Historical Analysis' in header.text
 
     def test_opens_container_div(self):
         """Should open container div."""
         html = get_base_html_template("Test")
-        assert '<div class="container">' in html
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        container = soup.find('div', class_='container')
+        assert container is not None
 
 
 class TestGetHtmlFooter:
@@ -513,49 +627,82 @@ class TestGetHtmlFooter:
     def test_includes_footer_tag(self):
         """Should include footer tag."""
         html = get_html_footer()
-        assert "<footer>" in html
-        assert "</footer>" in html
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        footer = soup.find('footer')
+        assert footer is not None
 
     def test_includes_source_link(self):
         """Should include link to source website."""
         html = get_html_footer()
-        assert "thespidershop.co.uk" in html
-        assert 'target="_blank"' in html
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        footer = soup.find('footer')
+        links = footer.find_all('a')
+        
+        # Find the spider shop link
+        spider_shop_links = [link for link in links if 'thespidershop.co.uk' in link['href']]
+        assert len(spider_shop_links) == 1
+        assert spider_shop_links[0]['target'] == '_blank'
 
     def test_includes_github_link(self):
         """Should include GitHub repository link."""
         html = get_html_footer()
-        assert "github.com/christianacca/spidershop-historical-analysis" in html
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        footer = soup.find('footer')
+        links = footer.find_all('a')
+        
+        github_links = [link for link in links if 'github.com/christianacca/spidershop-historical-analysis' in link['href']]
+        assert len(github_links) == 1
 
     def test_includes_timestamp(self):
         """Should include generated timestamp."""
         html = get_html_footer()
-        assert "Generated:" in html
-        assert "UTC" in html
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        footer = soup.find('footer')
+        footer_text = footer.text
+        assert 'Generated:' in footer_text
+        assert 'UTC' in footer_text
 
     def test_includes_javascript_functions(self):
         """Should include JavaScript for table sorting and filtering."""
         html = get_html_footer()
-        assert "function sortTable(" in html
-        assert "function filterTable(" in html
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        script = soup.find('script')
+        assert script is not None
+        js_content = script.string
+        assert 'function sortTable(' in js_content
+        assert 'function filterTable(' in js_content
 
     def test_closes_html_tags(self):
         """Should close body and html tags."""
         html = get_html_footer()
+        # These closing tags are at the end of the string
         assert "</body>" in html
         assert "</html>" in html
 
     def test_javascript_handles_numeric_sorting(self):
         """JavaScript should include numeric sort logic."""
         html = get_html_footer()
-        assert "isNumeric" in html
-        assert "parseFloat" in html
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        script = soup.find('script')
+        js_content = script.string
+        assert 'isNumeric' in js_content
+        assert 'parseFloat' in js_content
 
     def test_javascript_handles_string_sorting(self):
         """JavaScript should include string sort logic."""
         html = get_html_footer()
-        assert "toLowerCase" in html
-        assert "localeCompare" in html
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        script = soup.find('script')
+        js_content = script.string
+        assert 'toLowerCase' in js_content
+        assert 'localeCompare' in js_content
 
 
 class TestGenerateHomepage:
@@ -564,64 +711,119 @@ class TestGenerateHomepage:
     def test_generates_complete_html_page(self):
         """Should generate complete HTML page with header and footer."""
         html = generate_homepage()
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Check DOCTYPE
         assert "<!DOCTYPE html>" in html
         assert "</html>" in html
-        assert "<header>" in html
-        assert "<footer>" in html
+        
+        # Check semantic elements
+        assert soup.find('header') is not None
+        assert soup.find('footer') is not None
 
     def test_includes_welcome_heading(self):
         """Should include welcome heading."""
         html = generate_homepage()
-        assert "Welcome to Spider Shop Historical Analysis" in html
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Find h2 with welcome text
+        headings = soup.find_all('h2')
+        welcome_heading = [h for h in headings if 'Welcome to Spider Shop Historical Analysis' in h.text]
+        assert len(welcome_heading) == 1
 
     def test_includes_last_scrape_time_when_provided(self):
         """Should display last scrape time when provided."""
         html = generate_homepage("2025-01-15 12:00:00")
-        assert "Last Updated:" in html
-        assert "2025-01-15 12:00:00" in html
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        info_box = soup.find('div', class_='info-box')
+        assert info_box is not None
+        assert 'Last Updated:' in info_box.text
+        assert '2025-01-15 12:00:00' in info_box.text
 
     def test_omits_last_scrape_time_when_none(self):
         """Should omit last scrape time section when None."""
         html = generate_homepage(None)
-        assert "Last Updated:" not in html
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Should not have info-box with "Last Updated"
+        info_boxes = soup.find_all('div', class_='info-box')
+        for box in info_boxes:
+            assert 'Last Updated:' not in box.text
 
     def test_includes_card_grid_with_links(self):
         """Should include card grid with navigation links."""
         html = generate_homepage()
-        assert "card-grid" in html
-        assert "Latest Snapshot" in html
-        assert "Historical Data" in html
-        assert "Breeder Opportunities" in html
-        assert "Dealer Supply Risk" in html
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        card_grid = soup.find('div', class_='card-grid')
+        assert card_grid is not None
+        
+        # Should have 4 cards
+        cards = card_grid.find_all('div', class_='card')
+        assert len(cards) == 4
+        
+        # Check card content
+        card_texts = [card.text for card in cards]
+        assert any('Latest Snapshot' in text for text in card_texts)
+        assert any('Historical Data' in text for text in card_texts)
+        assert any('Breeder Opportunities' in text for text in card_texts)
+        assert any('Dealer Supply Risk' in text for text in card_texts)
 
     def test_includes_download_links_section(self):
         """Should include download links for CSV files."""
         html = generate_homepage()
-        assert "Download Raw Data" in html
-        assert "spidershop_spiderlings_scrape.csv" in html
-        assert "spidershop_spiderlings_history.csv" in html
-        assert "breeder_opportunity_table.csv" in html
-        assert "dealer_supply_risk_table.csv" in html
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Find download links section
+        download_section = soup.find('div', class_='download-links')
+        assert download_section is not None
+        
+        # Check for all expected CSV download links
+        links = download_section.find_all('a')
+        hrefs = [link['href'] for link in links]
+        assert 'spidershop_spiderlings_scrape.csv' in hrefs
+        assert 'spidershop_spiderlings_history.csv' in hrefs
+        assert 'breeder_opportunity_table.csv' in hrefs
+        assert 'dealer_supply_risk_table.csv' in hrefs
 
     def test_includes_about_section(self):
         """Should include about section describing the project."""
         html = generate_homepage()
-        assert "About This Project" in html
-        assert "automatically scrapes" in html.lower()
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Find h3 with "About This Project"
+        headings = soup.find_all('h3')
+        about_heading = [h for h in headings if 'About This Project' in h.text]
+        assert len(about_heading) == 1
+        
+        # Check for "automatically scrapes" text (case insensitive)
+        assert 'automatically scrapes' in html.lower()
 
     def test_includes_data_description(self):
         """Should describe what data is collected."""
         html = generate_homepage()
-        assert "Scientific name" in html
-        assert "Common name" in html
-        assert "Size" in html
-        assert "Price" in html
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Find the list describing captured data
+        lists = soup.find_all('ul')
+        data_description_found = False
+        for ul in lists:
+            list_text = ul.text
+            if all(term in list_text for term in ['Scientific name', 'Common name', 'Size', 'Price']):
+                data_description_found = True
+                break
+        assert data_description_found
 
     def test_active_page_is_home(self):
         """Should mark home as active page in navigation."""
         html = generate_homepage()
-        # The template should have home as active
-        assert 'active' in html
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Find active link in navigation
+        active_links = soup.select('nav a.active')
+        assert len(active_links) == 1
+        assert active_links[0]['href'] == 'index.html'
 
 
 class TestGenerateDataPage:
@@ -642,8 +844,14 @@ class TestGenerateDataPage:
                 "test-table",
                 "snapshot"
             )
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Check DOCTYPE
             assert "<!DOCTYPE html>" in html
             assert "</html>" in html
+            
+            # Check HTML structure
+            assert soup.find('html') is not None
         finally:
             os.unlink(filename)
 
@@ -661,8 +869,15 @@ class TestGenerateDataPage:
                 "test-table",
                 "snapshot"
             )
-            assert "My Title" in html
-            assert "My description text" in html
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Check title in head
+            title = soup.find('title')
+            assert title is not None
+            assert 'My Title' in title.text
+            
+            # Check description in content
+            assert 'My description text' in html
         finally:
             os.unlink(filename)
 
@@ -681,8 +896,15 @@ class TestGenerateDataPage:
                 "test-table",
                 "snapshot"
             )
-            assert f'href="{filename}"' in html
-            assert "Download CSV" in html
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Find download link
+            download_links = soup.find_all('a', href=filename)
+            assert len(download_links) >= 1
+            
+            # Check for "Download CSV" text
+            link_texts = [link.text for link in download_links]
+            assert any('Download CSV' in text for text in link_texts)
         finally:
             if os.path.exists(temp_name):
                 os.unlink(temp_name)
@@ -702,8 +924,13 @@ class TestGenerateDataPage:
                 "snapshot",
                 search_filter=True
             )
-            assert "Search:" in html
-            assert "filterTable" in html
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Find search input
+            search_input = soup.find('input', type='text')
+            assert search_input is not None
+            assert 'oninput' in search_input.attrs or 'onkeyup' in search_input.attrs
+            assert 'filterTable' in html
         finally:
             os.unlink(filename)
 
@@ -722,7 +949,11 @@ class TestGenerateDataPage:
                 "snapshot",
                 search_filter=False
             )
-            assert "Search:" not in html or "table-controls" not in html
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Should not have table-controls div or search input
+            table_controls = soup.find('div', class_='table-controls')
+            assert table_controls is None or soup.find('input', type='text') is None
         finally:
             os.unlink(filename)
 
@@ -742,12 +973,23 @@ class TestGenerateDataPage:
                 "test-table",
                 "snapshot"
             )
-            assert "<h3>Full Data Table</h3>" in html
-            assert "<table" in html
-            assert "Species A" in html
-            assert "25.00" in html
-            assert "Total rows:" in html
-            assert "2" in html  # Two data rows
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Find "Full Data Table" heading
+            headings = soup.find_all('h3')
+            assert any('Full Data Table' in h.text for h in headings)
+            
+            # Find the table
+            table = soup.find('table', id='test-table')
+            assert table is not None
+            
+            # Verify data content
+            assert soup.find(string='Species A') is not None
+            assert soup.find(string='25.00') is not None
+            
+            # Check for row count
+            assert 'Total rows:' in html
+            assert '2' in html
         finally:
             os.unlink(filename)
 
@@ -760,8 +1002,14 @@ class TestGenerateDataPage:
             "test-table",
             "snapshot"
         )
-        assert "No data available" in html
-        assert "<table" not in html
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Should have "No data available" message
+        assert 'No data available' in html
+        
+        # Should not have a table
+        table = soup.find('table', id='test-table')
+        assert table is None
 
     def test_includes_analysis_markdown_when_provided(self):
         """Should include analysis section when markdown provided."""
@@ -779,10 +1027,20 @@ class TestGenerateDataPage:
                 "snapshot",
                 analysis_markdown=analysis_md
             )
-            assert 'class="analysis-section"' in html
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Find analysis section
+            analysis_section = soup.find('div', class_='analysis-section')
+            assert analysis_section is not None
+            
             # h2 is downgraded to h3 for proper heading hierarchy
-            assert "<h3>Analysis</h3>" in html
-            assert "<strong>important</strong>" in html
+            h3 = analysis_section.find('h3')
+            assert h3 is not None
+            assert 'Analysis' in h3.text
+            
+            # Check for formatted content
+            strong = soup.find('strong', string='important')
+            assert strong is not None
         finally:
             os.unlink(filename)
 
@@ -801,7 +1059,11 @@ class TestGenerateDataPage:
                 "snapshot",
                 analysis_markdown=None
             )
-            assert 'class="analysis-section"' not in html
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Should not have analysis-section div
+            analysis_section = soup.find('div', class_='analysis-section')
+            assert analysis_section is None
         finally:
             os.unlink(filename)
 
@@ -821,9 +1083,20 @@ class TestGenerateDataPage:
                 "snapshot",
                 legend_markdown=legend_md
             )
-            assert "<details>" in html
-            assert "How to read these tables" in html
-            assert "<strong>Legend</strong>" in html
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Find details element
+            details = soup.find('details')
+            assert details is not None
+            
+            # Check summary text
+            summary = details.find('summary')
+            assert summary is not None
+            assert 'How to read these tables' in summary.text
+            
+            # Check for legend content
+            strong = details.find('strong', string='Legend')
+            assert strong is not None
         finally:
             os.unlink(filename)
 
@@ -842,7 +1115,12 @@ class TestGenerateDataPage:
                 "snapshot",
                 legend_markdown=None
             )
-            assert "How to read these tables" not in html or "<details>" not in html
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Should not have details element with legend
+            details_elements = soup.find_all('details')
+            for details in details_elements:
+                assert 'How to read these tables' not in details.text
         finally:
             os.unlink(filename)
 
@@ -850,9 +1128,6 @@ class TestGenerateDataPage:
 class TestIntegration:
     """Integration tests for the website generation workflow."""
 
-    # TODO: Fix markdown-in-HTML list conversion
-    # The md_in_html extension doesn't reliably convert list items inside <details> blocks
-    @pytest.mark.skip(reason="List items inside <details markdown='1'> blocks not converting - needs investigation")
     def test_website_splits_analysis_into_separate_pages(self):
         """Should split analysis_summary.md into separate breeder and dealer pages with converted HTML."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -891,6 +1166,7 @@ Dealer content here.
 ### 🧬 Breeder Opportunity Matrix — Legend
 
 **OOS**
+
 - `IN` — Species is currently listed
 - `OUT` — Species is not listed
 
@@ -901,6 +1177,7 @@ Example content for breeders.
 ### 🏪 Dealer Supply Risk Matrix — Legend
 
 **Stock Reliability**
+
 - `High` — Listed in most runs
 - `Low` — Rarely listed
 
@@ -1116,3 +1393,256 @@ This is the **analysis** section with *formatting*.
             finally:
                 # Restore original directory
                 os.chdir(original_dir)
+
+
+class TestHtmlSnapshots:
+    """Focused HTML snapshot tests for critical components.
+    
+    Keep snapshots small and focused on specific components, not entire pages.
+    This provides regression detection while keeping diffs manageable.
+    """
+
+    def test_table_structure_snapshot(self, snapshot):
+        """Should maintain consistent table HTML structure."""
+        headers = ["Species", "Signal", "OOS"]
+        rows = [
+            ["Aphonopelma seemanni", "🔥", "OUT"],
+            ["Brachypelma hamorii", "⚠️", "IN"],
+        ]
+        
+        html = generate_table_html("breeder-table", headers, rows, sortable=True)
+        
+        # Extract just the table element (not wrapper divs)
+        soup = BeautifulSoup(html, "html.parser")
+        table = soup.find("table")
+        
+        assert snapshot == str(table)
+
+    def test_navigation_structure_snapshot(self, snapshot):
+        """Should maintain consistent navigation HTML structure."""
+        template = get_base_html_template("Test Page", "test")
+        
+        # Extract just the nav element
+        soup = BeautifulSoup(template, "html.parser")
+        nav = soup.find("nav")
+        
+        assert snapshot == str(nav)
+
+    def test_card_grid_snapshot(self, snapshot):
+        """Should maintain consistent card grid structure on homepage."""
+        html = generate_homepage(last_scrape_time="2025-01-15T12:00:00")
+        
+        # Extract just the card grid section
+        soup = BeautifulSoup(html, "html.parser")
+        card_section = soup.find("section", class_="card-grid")
+        
+        assert snapshot == str(card_section)
+
+    def test_footer_structure_snapshot(self, snapshot):
+        """Should maintain consistent footer HTML structure (excluding timestamp)."""
+        footer = get_html_footer()
+        
+        # Extract just the footer element
+        soup = BeautifulSoup(footer, "html.parser")
+        footer_elem = soup.find("footer")
+        
+        # Remove the timestamp paragraph for snapshot (it changes every run)
+        timestamp_p = footer_elem.find("p", string=lambda text: text and "Generated:" in text)
+        if timestamp_p:
+            timestamp_p.decompose()
+        
+        assert snapshot == str(footer_elem)
+
+    def test_search_filter_snapshot(self, snapshot):
+        """Should maintain consistent search filter HTML structure."""
+        html = generate_data_page(
+            title="Test Page",
+            description="Test description",
+            csv_filename="test.csv",
+            table_id="test-table",
+            active_page="test",
+            search_filter=True
+        )
+        
+        # Extract just the search container
+        soup = BeautifulSoup(html, "html.parser")
+        search = soup.find("div", class_="search-container")
+        
+        assert snapshot == str(search)
+
+    def test_download_links_snapshot(self, snapshot):
+        """Should maintain consistent download links HTML structure."""
+        html = generate_homepage(last_scrape_time="2025-01-15T12:00:00")
+        
+        # Extract just the download section
+        soup = BeautifulSoup(html, "html.parser")
+        download_section = soup.find("section", class_="download-section")
+        
+        assert snapshot == str(download_section)
+
+
+class TestCssValidation:
+    """CSS validation tests to ensure styles are well-formed and complete."""
+
+    def test_css_is_present_in_template(self):
+        """Should include CSS in base template."""
+        html = get_base_html_template("Test", "test")
+        soup = BeautifulSoup(html, "html.parser")
+        style = soup.find("style")
+        
+        assert style is not None
+        assert len(style.string) > 100  # Should have substantial CSS
+
+    def test_css_contains_critical_selectors(self):
+        """Should include critical CSS selectors for layout."""
+        html = get_base_html_template("Test", "test")
+        soup = BeautifulSoup(html, "html.parser")
+        css = soup.find("style").string
+        
+        critical_selectors = [
+            "body",
+            "header",
+            "nav",
+            "footer",
+            ".container",
+            "table",
+            "th",
+            "td",
+        ]
+        
+        for selector in critical_selectors:
+            assert selector in css, f"Missing critical selector: {selector}"
+
+    def test_css_contains_responsive_breakpoints(self):
+        """Should include media queries for responsive design."""
+        html = get_base_html_template("Test", "test")
+        soup = BeautifulSoup(html, "html.parser")
+        css = soup.find("style").string
+        
+        # Check for media query presence
+        assert "@media" in css
+        assert "max-width" in css or "min-width" in css
+
+    def test_css_has_proper_bracing(self):
+        """Should have balanced braces in CSS."""
+        html = get_base_html_template("Test", "test")
+        soup = BeautifulSoup(html, "html.parser")
+        css = soup.find("style").string
+        
+        open_braces = css.count("{")
+        close_braces = css.count("}")
+        
+        assert open_braces == close_braces, "Unbalanced CSS braces"
+        assert open_braces > 0, "No CSS rules found"
+
+    def test_css_contains_color_scheme(self):
+        """Should define color scheme variables or consistent colors."""
+        html = get_base_html_template("Test", "test")
+        soup = BeautifulSoup(html, "html.parser")
+        css = soup.find("style").string
+        
+        # Should have color definitions (hex, rgb, or named)
+        has_colors = (
+            "#" in css or  # Hex colors
+            "rgb" in css or  # RGB colors
+            "color:" in css  # Color properties
+        )
+        
+        assert has_colors, "No color definitions found in CSS"
+
+    def test_css_includes_table_styling(self):
+        """Should include comprehensive table styling."""
+        html = get_base_html_template("Test", "test")
+        soup = BeautifulSoup(html, "html.parser")
+        css = soup.find("style").string
+        
+        # Check for key table elements (not all need explicit selectors)
+        required_table_elements = ["table", "th", "td"]
+        
+        for element in required_table_elements:
+            assert element in css, f"Missing table element styling: {element}"
+
+    def test_css_includes_interactive_states(self):
+        """Should include hover and active states for interactive elements."""
+        html = get_base_html_template("Test", "test")
+        soup = BeautifulSoup(html, "html.parser")
+        css = soup.find("style").string
+        
+        # Should have pseudo-class selectors for interactivity
+        assert ":hover" in css, "Missing hover states"
+
+    def test_css_has_proper_semicolons(self):
+        """Should have semicolons after CSS property values."""
+        html = get_base_html_template("Test", "test")
+        soup = BeautifulSoup(html, "html.parser")
+        css = soup.find("style").string
+        
+        # Count property-value pairs (rough heuristic: look for colons in rules)
+        # This is a basic sanity check, not exhaustive validation
+        style_blocks = css.split("}")
+        
+        for block in style_blocks:
+            if "{" in block and ":" in block:
+                # Extract the rules part (after opening brace)
+                rules_part = block.split("{")[-1]
+                colon_count = rules_part.count(":")
+                semicolon_count = rules_part.count(";")
+                
+                # Allow for last property to optionally omit semicolon
+                # But most should have them
+                if colon_count > 0:
+                    assert semicolon_count >= colon_count - 1, \
+                        f"Missing semicolons in CSS block: {block[:50]}..."
+
+    def test_css_box_model_consistency(self):
+        """Should use consistent box-sizing model."""
+        html = get_base_html_template("Test", "test")
+        soup = BeautifulSoup(html, "html.parser")
+        css = soup.find("style").string
+        
+        # Modern best practice: use border-box for predictable sizing
+        assert "box-sizing" in css
+        assert "border-box" in css
+
+    def test_css_font_specifications(self):
+        """Should specify font families and sizes."""
+        html = get_base_html_template("Test", "test")
+        soup = BeautifulSoup(html, "html.parser")
+        css = soup.find("style").string
+        
+        assert "font-family" in css
+        assert "font-size" in css or "rem" in css or "em" in css
+
+    def test_css_no_obvious_typos(self):
+        """Should not contain common CSS property typos."""
+        html = get_base_html_template("Test", "test")
+        soup = BeautifulSoup(html, "html.parser")
+        css = soup.find("style").string.lower()
+        
+        # Common typos to check for
+        typos = [
+            "colr:",  # color typo
+            "widht:",  # width typo
+            "heigth:",  # height typo
+            "margn:",  # margin typo
+            "paddin:",  # padding typo
+        ]
+        
+        for typo in typos:
+            assert typo not in css, f"Found possible typo: {typo}"
+
+    def test_css_layout_properties_present(self):
+        """Should include modern layout properties."""
+        html = get_base_html_template("Test", "test")
+        soup = BeautifulSoup(html, "html.parser")
+        css = soup.find("style").string
+        
+        # Should use modern layout techniques
+        has_modern_layout = (
+            "display: flex" in css or
+            "display: grid" in css or
+            "display:flex" in css or
+            "display:grid" in css
+        )
+        
+        assert has_modern_layout, "No modern layout properties found"
