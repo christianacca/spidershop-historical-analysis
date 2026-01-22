@@ -15,6 +15,28 @@ For ANY file edit in `src/`, you MUST immediately execute:
 
 Tests validate logic, content, structure, formatting, and output. Coverage thresholds (80%) are minimums. Even documentation changes need test validation. Tests run in <1 second - there is NO excuse to skip them.
 
+### ⛔ Snapshot Test Protocol (MANDATORY)
+
+**NEVER blindly update snapshot files.**
+
+Snapshot tests are regression detectors. When a snapshot test fails:
+
+1. **STOP** - Do not immediately run `--snapshot-update`
+2. **INVESTIGATE** - Run the test with `-vv` to see the full diff
+3. **ANALYZE** - Review EVERY line that changed:
+   - Are the changes intentional from your code modifications?
+   - Do they match the expected behavior?
+   - Are there unexpected changes that indicate a bug?
+4. **EXPLAIN** - Document what changed and why it's correct
+5. **ONLY THEN** - Update the snapshot if changes are verified as intentional
+
+Snapshot files in `tests/__snapshots__/*.ambr` contain expected outputs. They catch:
+- Unintended changes to output format
+- Logic regressions that alter analysis results
+- Documentation changes that affect generated content
+
+**If you cannot explain why a snapshot changed, DO NOT update it.**
+
 ---
 
 ## GitHub Workflows Troubleshooting

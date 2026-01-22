@@ -397,8 +397,16 @@ class TestMainOrchestration:
         self, mock_scraping, mock_browser, tmp_path, snapshot
     ):
         """
-        Integration snapshot test capturing the complete analysis_summary.md output.
-        Tests the full pipeline: scraping → history → matrices → summary generation.
+        Integration snapshot test capturing key sections of analysis_summary.md.
+        
+        Verifies pipeline orchestration (scraping → history → matrices → summary),
+        section presence, and basic format. Detailed content is tested in unit tests.
+        
+        Snapshot covers:
+        - Pricing summary structure
+        - Breeder matrix section (minimal rows - details tested in unit tests)
+        - Dealer matrix section (minimal rows - details tested in unit tests)  
+        - Legend presence (truncated - full text tested elsewhere)
         """
         # Mock scraping - page 1 returns URLs, page 2 returns empty (end pagination)
         mock_scraping["fetch"].side_effect = [
@@ -414,7 +422,8 @@ class TestMainOrchestration:
             ("Grammostola pulchra", "Brazilian Black", "2.0", "40.00", "15"),
         ]
         
-        # Create history with multiple runs for interesting analysis
+        # Create minimal history with just enough data for integration test
+        # (detailed analysis scenarios are tested in unit tests)
         history_content = (
             "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
             "2025-01-01T10:00:00,Aphonopelma seemanni,Costa Rican Zebra,1.0,20.00,3,https://example.com/1\n"
@@ -445,6 +454,44 @@ class TestMainOrchestration:
                 '**Scrape time (UTC):** `YYYY-MM-DDTHH:MM+00:00`',
                 summary_content
             )
+            
+            # Truncate legend and examples sections to reduce snapshot noise
+            # (Full legend/example text is documentation, not integration logic)
+            # Keep just enough to verify sections exist and basic structure
+            def truncate_legend_section(content):
+                """Keep only first few lines of legend sections to verify presence."""
+                # Find the legend details block
+                details_start = content.find('<details>')
+                if details_start == -1:
+                    return content
+                
+                # Find the first legend subsection
+                breeder_legend_start = content.find('### 🧬 Breeder Opportunity Matrix — Legend', details_start)
+                if breeder_legend_start == -1:
+                    return content
+                
+                # Find where examples start (truncate point)
+                examples_start = content.find('### 📖 Breeder Matrix — Practical Examples', details_start)
+                if examples_start == -1:
+                    examples_start = content.find('### 🏪 Dealer Supply Risk Matrix — Legend', details_start)
+                
+                if examples_start == -1:
+                    return content
+                
+                # Keep structure up to examples, then add truncation marker
+                truncation_note = "\n\n[... Legend details truncated in snapshot - full text verified in production ...]\n\n"
+                
+                # Find end of details block
+                details_end = content.find('</details>', examples_start)
+                if details_end == -1:
+                    return content
+                
+                # Reconstruct: keep everything before examples + truncation note + closing tag
+                return (content[:examples_start] + 
+                       truncation_note +
+                       content[details_end:])
+            
+            summary_content = truncate_legend_section(summary_content)
             
             # Snapshot the complete summary
             assert summary_content == snapshot

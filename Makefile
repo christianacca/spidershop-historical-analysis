@@ -46,6 +46,9 @@ help:
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test                   Run pytest with coverage"
+	@echo "  make test-snapshots         Run snapshot tests only"
+	@echo "  make test-snapshots-diff    Show detailed diffs for snapshot tests"
+	@echo "  make test-update-snapshots  Update all snapshots (review diffs first!)"
 	@echo "  make coverage               View coverage report in browser"
 	@echo ""
 	@echo "Cleanup:"
@@ -141,6 +144,18 @@ download-website-serve: download-website
 
 test: .check-venv
 	source $(VENV)/bin/activate && pytest --cov=src --cov-report=html --cov-report=term-missing --cov-report=json
+
+test-update-snapshots: .check-venv
+	@echo "⚠️  Updating all snapshots. Ensure you've reviewed changes first!"
+	source $(VENV)/bin/activate && pytest --snapshot-update
+
+test-snapshots: .check-venv
+	@echo "Running snapshot tests only..."
+	source $(VENV)/bin/activate && pytest -k snapshot -v
+
+test-snapshots-diff: .check-venv
+	@echo "Running snapshot tests with detailed diff output..."
+	source $(VENV)/bin/activate && pytest -k snapshot -vv
 
 coverage:
 	@echo "Opening coverage report in browser..."

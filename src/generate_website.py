@@ -9,9 +9,19 @@ import re
 import markdown
 from datetime import datetime, timezone
 from pathlib import Path
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 # Output directory for the generated website
 OUTPUT_DIR = Path("website")
+
+# Setup Jinja2 environment
+template_dir = Path(__file__).parent.parent / "templates"
+jinja_env = Environment(
+    loader=FileSystemLoader(template_dir),
+    autoescape=select_autoescape(['html', 'xml']),
+    trim_blocks=True,
+    lstrip_blocks=True
+)
 
 
 def parse_markdown_to_html(markdown_text):
@@ -115,7 +125,12 @@ def read_csv_file(filepath):
 
 
 def escape_html(text):
-    """Escape HTML special characters."""
+    """Escape HTML special characters.
+    
+    Note: With Jinja2 auto-escaping enabled, this function is primarily
+    used for backward compatibility with tests. Jinja2 handles escaping
+    automatically in templates.
+    """
     if text is None:
         return ""
     return (str(text)
@@ -127,7 +142,7 @@ def escape_html(text):
 
 
 def generate_table_html(headers, rows, table_id, sortable=True):
-    """Generate HTML table from headers and rows."""
+    """Generate HTML table from headers and rows using Jinja2 template."""
     if not headers or not rows:
         return "<p>No data available.</p>"
     
@@ -140,425 +155,55 @@ def generate_table_html(headers, rows, table_id, sortable=True):
     except ValueError:
         pass  # Columns not found, render normally
     
-    html = f'<table id="{table_id}" class="data-table">\n'
-    html += "  <thead>\n    <tr>\n"
+    # Enumerate headers and rows for template
+    headers_enum = list(enumerate(headers))
+    rows_enum = [list(enumerate(row)) for row in rows]
     
-    for i, header in enumerate(headers):
-        if sortable:
-            html += f'      <th onclick="sortTable({i}, \'{table_id}\')">{escape_html(header)} <span class="sort-indicator">⇅</span></th>\n'
-        else:
-            html += f'      <th>{escape_html(header)}</th>\n'
-    
-    html += "    </tr>\n  </thead>\n"
-    html += "  <tbody>\n"
-    
-    for row in rows:
-        html += "    <tr>\n"
-        for i, cell in enumerate(row):
-            # Special rendering for page_url column
-            if i == page_url_idx and page_url_idx is not None and scientific_name_idx is not None:
-                url = cell.strip() if cell else ""
-                scientific_name = row[scientific_name_idx] if scientific_name_idx < len(row) else ""
-                
-                if url:
-                    html += f'      <td><a href="{escape_html(url)}" target="_blank" rel="noopener noreferrer">{escape_html(scientific_name)}</a></td>\n'
-                else:
-                    html += f"      <td>{escape_html(cell)}</td>\n"
-            else:
-                html += f"      <td>{escape_html(cell)}</td>\n"
-        html += "    </tr>\n"
-    
-    html += "  </tbody>\n</table>\n"
-    return html
+    template = jinja_env.get_template('table.html')
+    return template.render(
+        table_id=table_id,
+        headers=headers_enum,
+        rows=rows_enum,
+        sortable=sortable,
+        page_url_idx=page_url_idx,
+        scientific_name_idx=scientific_name_idx
+    )
 
 
 def get_base_html_template(title, active_page=""):
-    """Return the base HTML template with navigation."""
-    return f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{escape_html(title)} - Spider Shop Historical Analysis</title>
-    <style>
-        * {{
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }}
-        
-        body {{
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background: #f5f5f5;
-        }}
-        
-        .container {{
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }}
-        
-        header {{
-            background: #2c3e50;
-            color: white;
-            padding: 20px 0;
-            margin-bottom: 30px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }}
-        
-        header .container {{
-            padding: 0 20px;
-        }}
-        
-        header h1 {{
-            font-size: 2rem;
-            margin-bottom: 10px;
-        }}
-        
-        header p {{
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }}
-        
-        nav {{
-            background: white;
-            padding: 15px 0;
-            margin-bottom: 30px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }}
-        
-        nav ul {{
-            list-style: none;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            padding: 0 20px;
-        }}
-        
-        nav a {{
-            color: #2c3e50;
-            text-decoration: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            transition: background 0.3s;
-            display: block;
-        }}
-        
-        nav a:hover {{
-            background: #ecf0f1;
-        }}
-        
-        nav a.active {{
-            background: #3498db;
-            color: white;
-        }}
-        
-        .content {{
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            margin-bottom: 30px;
-        }}
-        
-        h2 {{
-            color: #2c3e50;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #3498db;
-        }}
-        
-        h3 {{
-            color: #34495e;
-            margin: 20px 0 15px 0;
-        }}
-        
-        .data-table {{
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            background: white;
-            font-size: 0.95rem;
-        }}
-        
-        .data-table th {{
-            background: #34495e;
-            color: white;
-            padding: 12px;
-            text-align: left;
-            font-weight: 600;
-            cursor: pointer;
-            user-select: none;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }}
-        
-        .data-table th:hover {{
-            background: #2c3e50;
-        }}
-        
-        .sort-indicator {{
-            font-size: 0.8em;
-            margin-left: 5px;
-            opacity: 0.6;
-        }}
-        
-        .data-table td {{
-            padding: 10px 12px;
-            border-bottom: 1px solid #ecf0f1;
-        }}
-        
-        .data-table tbody tr:hover {{
-            background: #f8f9fa;
-        }}
-        
-        .data-table tbody tr:nth-child(even) {{
-            background: #fafafa;
-        }}
-        
-        .data-table tbody tr:nth-child(even):hover {{
-            background: #f0f0f0;
-        }}
-        
-        .info-box {{
-            background: #e8f4f8;
-            border-left: 4px solid #3498db;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 4px;
-        }}
-        
-        .download-links {{
-            margin: 20px 0;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }}
-        
-        .download-links a {{
-            display: inline-block;
-            background: #3498db;
-            color: white;
-            padding: 10px 20px;
-            margin: 5px 10px 5px 0;
-            border-radius: 5px;
-            text-decoration: none;
-            transition: background 0.3s;
-        }}
-        
-        .download-links a:hover {{
-            background: #2980b9;
-        }}
-        
-        .card-grid {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin: 20px 0;
-        }}
-        
-        .card {{
-            background: white;
-            border: 1px solid #e1e8ed;
-            border-radius: 8px;
-            padding: 20px;
-            transition: box-shadow 0.3s;
-        }}
-        
-        .card:hover {{
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }}
-        
-        .card h3 {{
-            margin-top: 0;
-            color: #2c3e50;
-        }}
-        
-        .card p {{
-            color: #666;
-            margin: 10px 0;
-        }}
-        
-        .card a {{
-            color: #3498db;
-            text-decoration: none;
-            font-weight: 600;
-        }}
-        
-        .card a:hover {{
-            text-decoration: underline;
-        }}
-        
-        footer {{
-            text-align: center;
-            padding: 30px 20px;
-            color: #7f8c8d;
-            margin-top: 50px;
-        }}
-        
-        footer a {{
-            color: #3498db;
-            text-decoration: none;
-        }}
-        
-        footer a:hover {{
-            text-decoration: underline;
-        }}
-        
-        .table-controls {{
-            margin: 20px 0;
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            align-items: center;
-        }}
-        
-        .table-controls input {{
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 0.95rem;
-            flex: 1;
-            min-width: 200px;
-        }}
-        
-        .table-controls label {{
-            font-weight: 600;
-            color: #555;
-        }}
-        
-        .analysis-section {{
-            background: #f8f9fa;
-            padding: 25px;
-            border-radius: 8px;
-            margin: 30px 0;
-            border-left: 4px solid #3498db;
-        }}
-        
-        .analysis-section h3 {{
-            margin-top: 0;
-            color: #2c3e50;
-        }}
-        
-        .analysis-section h4 {{
-            color: #34495e;
-            margin-top: 25px;
-        }}
-        
-        .analysis-section p {{
-            margin: 10px 0;
-            line-height: 1.8;
-        }}
-        
-        .analysis-section ul {{
-            margin: 10px 0 10px 20px;
-        }}
-        
-        .analysis-section li {{
-            margin: 5px 0;
-        }}
-        
-        .analysis-section code {{
-            background: #e9ecef;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-        }}
-        
-        .analysis-section hr {{
-            margin: 30px 0;
-            border: none;
-            border-top: 2px solid #dee2e6;
-        }}
-        
-        details hr {{
-            margin: 30px 0;
-            border: none;
-            border-top: 2px solid #dee2e6;
-        }}
-        
-        .markdown-table {{
-            margin: 20px 0 !important;
-            font-size: 0.9rem !important;
-        }}
-        
-        details {{
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-            border: 1px solid #e1e8ed;
-        }}
-        
-        details summary {{
-            cursor: pointer;
-            font-weight: 600;
-            color: #2c3e50;
-            padding: 10px;
-            border-radius: 5px;
-            transition: background 0.3s;
-        }}
-        
-        details summary:hover {{
-            background: #f8f9fa;
-        }}
-        
-        details[open] summary {{
-            margin-bottom: 15px;
-            border-bottom: 1px solid #e1e8ed;
-        }}
-        
-        @media (max-width: 768px) {{
-            .data-table {{
-                font-size: 0.85rem;
-            }}
-            
-            .data-table th,
-            .data-table td {{
-                padding: 8px;
-            }}
-            
-            header h1 {{
-                font-size: 1.5rem;
-            }}
-            
-            nav ul {{
-                flex-direction: column;
-            }}
-        }}
-    </style>
-</head>
-<body>
-    <header>
-        <div class="container">
-            <h1>🕷️ Spider Shop Historical Analysis</h1>
-            <p>Tarantula Spiderling Pricing & Market Data</p>
-        </div>
-    </header>
+    """Return the base HTML template with navigation.
     
-    <nav>
-        <div class="container">
-            <ul>
-                <li><a href="index.html" class="{'active' if active_page == 'home' else ''}">Home</a></li>
-                <li><a href="snapshot.html" class="{'active' if active_page == 'snapshot' else ''}">Latest Snapshot</a></li>
-                <li><a href="history.html" class="{'active' if active_page == 'history' else ''}">Historical Data</a></li>
-                <li><a href="breeder.html" class="{'active' if active_page == 'breeder' else ''}">Breeder Opportunities</a></li>
-                <li><a href="dealer.html" class="{'active' if active_page == 'dealer' else ''}">Dealer Supply Risk</a></li>
-            </ul>
-        </div>
-    </nav>
-    
-    <div class="container">
-"""
+    Note: This function is kept for backward compatibility with tests.
+    The actual rendering now uses Jinja2 templates via render_page().
+    This returns a partial HTML fragment for testing purposes.
+    """
+    template = jinja_env.get_template('base.html')
+    html = template.render(
+        title=title,
+        active_page=active_page,
+        timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    )
+    # Return everything up to (and including) the third <div class="container">
+    # which is the main content container after header and nav
+    container_pattern = r'<div class="container">'
+    matches = list(re.finditer(container_pattern, html))
+    if len(matches) >= 3:
+        # Get position after the third container div
+        pos = matches[2].end()
+        return html[:pos] + '\n'
+    return html
 
 
 def get_html_footer():
-    """Return the HTML footer with closing tags."""
-    return """    </div>
+    """Return the HTML footer with closing tags.
+    
+    Note: This function is kept for backward compatibility with tests.
+    The actual rendering now uses Jinja2 templates via render_page().
+    This returns a partial HTML fragment for testing purposes.
+    """
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    # Return the closing structure that tests expect
+    return f"""    </div>
     
     <footer>
         <p>Data scraped from <a href="https://thespidershop.co.uk/" target="_blank">The Spider Shop UK</a></p>
@@ -631,133 +276,65 @@ def get_html_footer():
         }}
     </script>
 </body>
-</html>""".format(timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"))
+</html>"""
 
 
 def generate_homepage(last_scrape_time=None):
-    """Generate the homepage with overview and links."""
-    html = get_base_html_template("Home", "home")
-    
-    html += '        <div class="content">\n'
-    html += '            <h2>Welcome to Spider Shop Historical Analysis</h2>\n'
-    
-    if last_scrape_time:
-        html += f'            <div class="info-box">\n'
-        html += f'                <strong>Last Updated:</strong> {escape_html(last_scrape_time)}\n'
-        html += '            </div>\n'
-    
-    html += """            <p>This website provides historical pricing data and market analysis for tarantula spiderlings from The Spider Shop UK. The data is automatically scraped and updated weekly.</p>
-            
-            <h3>Available Data</h3>
-            
-            <div class="card-grid">
-                <div class="card">
-                    <h3>📸 Latest Snapshot</h3>
-                    <p>View the most recent scrape of all available spiderling listings, including scientific names, common names, sizes, and prices.</p>
-                    <a href="snapshot.html">View Snapshot →</a>
-                </div>
-                
-                <div class="card">
-                    <h3>📊 Historical Data</h3>
-                    <p>Explore accumulated pricing data across all scrapes to track trends and price changes over time.</p>
-                    <a href="history.html">View History →</a>
-                </div>
-                
-                <div class="card">
-                    <h3>🌱 Breeder Opportunities</h3>
-                    <p>Analysis showing breeding opportunities based on market trends and pricing patterns.</p>
-                    <a href="breeder.html">View Analysis →</a>
-                </div>
-                
-                <div class="card">
-                    <h3>📦 Dealer Supply Risk</h3>
-                    <p>Analysis highlighting inventory availability patterns and supply risk indicators.</p>
-                    <a href="dealer.html">View Analysis →</a>
-                </div>
-            </div>
-            
-            <h3>Download Raw Data</h3>
-            <div class="download-links">
-                <a href="spidershop_spiderlings_scrape.csv" download>⬇️ Download Snapshot CSV</a>
-                <a href="spidershop_spiderlings_history.csv" download>⬇️ Download History CSV</a>
-                <a href="breeder_opportunity_table.csv" download>⬇️ Download Breeder Table CSV</a>
-                <a href="dealer_supply_risk_table.csv" download>⬇️ Download Dealer Table CSV</a>
-            </div>
-            
-            <h3>About This Project</h3>
-            <p>This project automatically scrapes tarantula spiderling listings from The Spider Shop UK website on a weekly schedule. The data captures:</p>
-            <ul style="margin: 15px 0 15px 30px;">
-                <li><strong>Scientific name</strong> (Genus + species)</li>
-                <li><strong>Common name</strong> (descriptive name)</li>
-                <li><strong>Size</strong> (in centimeters)</li>
-                <li><strong>Price</strong> (in GBP)</li>
-            </ul>
-            <p>The collected data is used to track pricing history over time for market analysis and generate opportunity matrices for breeders and dealers.</p>
-        </div>
-"""
-    
-    html += get_html_footer()
-    return html
+    """Generate the homepage with overview and links using Jinja2 template."""
+    template = jinja_env.get_template('homepage.html')
+    return template.render(
+        active_page='home',
+        last_scrape_time=last_scrape_time,
+        timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    )
 
 
 def generate_data_page(title, description, csv_filename, table_id, active_page, search_filter=True, analysis_markdown=None, legend_markdown=None, examples_markdown=None):
-    """Generate a data page with table from CSV and optional analysis."""
-    html = get_base_html_template(title, active_page)
-    
-    html += '        <div class="content">\n'
-    html += f'            <h2>{escape_html(title)}</h2>\n'
-    html += f'            <p>{escape_html(description)}</p>\n'
-    
-    html += f'            <div class="download-links">\n'
-    html += f'                <a href="{csv_filename}" download>⬇️ Download CSV</a>\n'
-    html += '            </div>\n'
-    
-    # Add analysis section if provided
-    if analysis_markdown:
-        html += '            <div class="analysis-section">\n'
-        html += parse_markdown_to_html(analysis_markdown)
-        html += '            </div>\n'
-    
+    """Generate a data page with table from CSV and optional analysis using Jinja2 template."""
     headers, rows = read_csv_file(csv_filename)
     
-    if headers and rows:
-        # Add full table header
-        html += '            <h3>Full Data Table</h3>\n'
-        
-        if search_filter:
-            html += f'            <div class="table-controls">\n'
-            html += f'                <label for="search-{table_id}">Search:</label>\n'
-            html += f'                <input type="text" id="search-{table_id}" placeholder="Type to filter..." onkeyup="filterTable(this, \'{table_id}\')">\n'
-            html += '            </div>\n'
-        
-        html += f'            <div style="overflow-x: auto;">\n'
-        html += f'                {generate_table_html(headers, rows, table_id)}\n'
-        html += '            </div>\n'
-        html += f'            <p style="margin-top: 15px; color: #666;"><strong>Total rows:</strong> {len(rows)}</p>\n'
-    else:
-        html += '            <div class="info-box">\n'
-        html += '                <p>No data available yet. Please check back after the next scrape run.</p>\n'
-        html += '            </div>\n'
+    # Convert markdown to HTML if provided
+    analysis_html = parse_markdown_to_html(analysis_markdown) if analysis_markdown else None
+    examples_html = parse_markdown_to_html(examples_markdown) if examples_markdown else None
     
-    # Add legend if provided
+    # Wrap legend markdown in details tag and convert
+    legend_html = None
     if legend_markdown:
-        # Wrap legend markdown in details tag BEFORE converting to HTML
-        # This ensures markdown inside the details block is properly converted
         legend_with_wrapper = f'<details markdown="1">\n<summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>\n\n{legend_markdown}\n\n</details>'
-        html += parse_markdown_to_html(legend_with_wrapper)
+        legend_html = parse_markdown_to_html(legend_with_wrapper)
     
-    # Add examples section if provided (separate from legend)
-    if examples_markdown:
-        html += '            <details open>\n'
-        html += '                <summary><strong>📖 Practical Examples</strong></summary>\n'
-        html += '                <div style="padding: 15px;">\n'
-        html += parse_markdown_to_html(examples_markdown)
-        html += '                </div>\n'
-        html += '            </details>\n'
+    # Find column indices for special rendering
+    page_url_idx = None
+    scientific_name_idx = None
+    if headers:
+        try:
+            page_url_idx = headers.index('page_url')
+            scientific_name_idx = headers.index('scientific_name')
+        except ValueError:
+            pass
     
-    html += '        </div>\n'
-    html += get_html_footer()
-    return html
+    # Enumerate headers and rows for template
+    headers_enum = list(enumerate(headers)) if headers else []
+    rows_enum = [list(enumerate(row)) for row in rows] if rows else []
+    
+    template = jinja_env.get_template('data_page.html')
+    return template.render(
+        page_title=title,
+        description=description,
+        csv_filename=csv_filename,
+        table_id=table_id,
+        active_page=active_page,
+        search_filter=search_filter,
+        analysis_html=analysis_html,
+        legend_html=legend_html,
+        examples_html=examples_html,
+        headers=headers_enum,
+        rows=rows_enum,
+        sortable=True,
+        page_url_idx=page_url_idx,
+        scientific_name_idx=scientific_name_idx,
+        timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    )
 
 
 def main():
