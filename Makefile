@@ -80,21 +80,12 @@ help:
 download-artifacts: .check-venv .check-gh
 	@echo "📥 Downloading artifacts from GitHub Actions..."
 	@mkdir -p $(TESTING_DIR)
-	@echo "Finding latest successful workflow run..."
-	@RUN_ID=$$(gh api repos/$(REPO_OWNER)/$(REPO_NAME)/actions/workflows \
-		--paginate \
-		-q '.workflows[] | select(.name == "Spider Shop Spiderlings Scrape") | .id' | head -1); \
-	if [ -z "$$RUN_ID" ]; then \
-		echo "❌ Could not find workflow"; \
-		exit 1; \
-	fi; \
-	LATEST_RUN=$$(gh api repos/$(REPO_OWNER)/$(REPO_NAME)/actions/workflows/$$RUN_ID/runs \
-		-q '.workflow_runs[] | select(.conclusion == "success") | .id' | head -1); \
+	@echo "Resolving workflow run ID..."
+	@LATEST_RUN=$$(./scripts/resolve_workflow_run.sh scrape.yml); \
 	if [ -z "$$LATEST_RUN" ]; then \
-		echo "❌ No successful runs found"; \
+		echo "❌ Failed to resolve workflow run ID"; \
 		exit 1; \
 	fi; \
-	echo "✅ Found latest successful run: $$LATEST_RUN"; \
 	echo "Downloading artifacts..."; \
 	for artifact in spidershop-snapshot spidershop-history breeder-opportunity-table dealer-supply-risk-table analysis-summary; do \
 		echo "  Downloading $$artifact..."; \

@@ -1,6 +1,7 @@
 name: Deploy to GitHub Pages
 
 on:
+  workflow_dispatch:
   workflow_run:
     workflows: ["Spider Shop Spiderlings Scrape"]
     types:
@@ -24,8 +25,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     
-    # Only run if the scrape workflow completed successfully
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # Only run if the scrape workflow completed successfully (for workflow_run trigger)
+    # Always run for manual workflow_dispatch
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     
     environment:
       name: github-pages
@@ -37,6 +39,24 @@ jobs:
       # --------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      # --------------------------------
+      # Resolve scrape workflow run ID
+      # --------------------------------
+      - name: Resolve scrape workflow run ID
+        id: resolve-run
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            # Automatic trigger from scrape workflow
+            echo "run_id=${{ github.event.workflow_run.id }}" >> $GITHUB_OUTPUT
+            echo "Using workflow_run ID: ${{ github.event.workflow_run.id }}"
+          else
+            # Manual dispatch - find latest successful scrape run
+            RUN_ID=$(./scripts/resolve_workflow_run.sh scrape.yml "${{ github.ref_name }}")
+            echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # --------------------------------
       # Python setup
@@ -59,7 +79,7 @@ jobs:
         with:
           name: spidershop-snapshot
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ steps.resolve-run.outputs.run_id }}
         continue-on-error: true
 
       - name: Download history artifact
@@ -67,7 +87,7 @@ jobs:
         with:
           name: spidershop-history
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ steps.resolve-run.outputs.run_id }}
         continue-on-error: true
 
       - name: Download breeder opportunity table
@@ -75,7 +95,7 @@ jobs:
         with:
           name: breeder-opportunity-table
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ steps.resolve-run.outputs.run_id }}
         continue-on-error: true
 
       - name: Download dealer supply risk table
@@ -83,7 +103,7 @@ jobs:
         with:
           name: dealer-supply-risk-table
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ steps.resolve-run.outputs.run_id }}
         continue-on-error: true
 
       - name: Download analysis summary
@@ -91,7 +111,7 @@ jobs:
         with:
           name: analysis-summary
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ steps.resolve-run.outputs.run_id }}
         continue-on-error: true
 
       # --------------------------------
