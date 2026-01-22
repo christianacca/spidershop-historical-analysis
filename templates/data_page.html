@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="content">
+    <h2>{{ page_title }}</h2>
+    <p>{{ description }}</p>
+    
+    <div class="download-links">
+        <a href="{{ csv_filename }}" download>⬇️ Download CSV</a>
+    </div>
+    
+    {% if analysis_html %}
+    <div class="analysis-section">
+        {{ analysis_html|safe }}
+    </div>
+    {% endif %}
+    
+    {% if headers and rows %}
+    <h3>Full Data Table</h3>
+    
+    {% if search_filter %}
+    <div class="table-controls">
+        <label for="search-{{ table_id }}">Search:</label>
+        <input type="text" id="search-{{ table_id }}" placeholder="Type to filter..." onkeyup="filterTable(this, '{{ table_id }}')">
+    </div>
+    {% endif %}
+    
+    <div style="overflow-x: auto;">
+        {% include 'table.html' %}
+    </div>
+    <p style="margin-top: 15px; color: #666;"><strong>Total rows:</strong> {{ rows|length }}</p>
+    {% else %}
+    <div class="info-box">
+        <p>No data available yet. Please check back after the next scrape run.</p>
+    </div>
+    {% endif %}
+    
+    {% if legend_html %}
+    {{ legend_html|safe }}
+    {% endif %}
+    
+    {% if examples_html %}
+    <details open>
+        <summary><strong>📖 Practical Examples</strong></summary>
+        <div style="padding: 15px;">
+            {{ examples_html|safe }}
+        </div>
+    </details>
+    {% endif %}
+</div>
+{% endblock %}

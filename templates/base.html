@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ title }}{% endblock %} - Spider Shop Historical Analysis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        header .container {
+            padding: 0 20px;
+        }
+        
+        header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        nav {
+            background: white;
+            padding: 15px 0;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 0 20px;
+        }
+        
+        nav a {
+            color: #2c3e50;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            transition: background 0.3s;
+            display: block;
+        }
+        
+        nav a:hover {
+            background: #ecf0f1;
+        }
+        
+        nav a.active {
+            background: #3498db;
+            color: white;
+        }
+        
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+        
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+        }
+        
+        h3 {
+            color: #34495e;
+            margin: 20px 0 15px 0;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            font-size: 0.95rem;
+        }
+        
+        .data-table th {
+            background: #34495e;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .data-table th:hover {
+            background: #2c3e50;
+        }
+        
+        .sort-indicator {
+            font-size: 0.8em;
+            margin-left: 5px;
+            opacity: 0.6;
+        }
+        
+        .data-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .data-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .data-table tbody tr:nth-child(even) {
+            background: #fafafa;
+        }
+        
+        .data-table tbody tr:nth-child(even):hover {
+            background: #f0f0f0;
+        }
+        
+        .info-box {
+            background: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .download-links {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .download-links a {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 10px 20px;
+            margin: 5px 10px 5px 0;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: background 0.3s;
+        }
+        
+        .download-links a:hover {
+            background: #2980b9;
+        }
+        
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .card {
+            background: white;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            padding: 20px;
+            transition: box-shadow 0.3s;
+        }
+        
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .card h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        
+        .card p {
+            color: #666;
+            margin: 10px 0;
+        }
+        
+        .card a {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .card a:hover {
+            text-decoration: underline;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 30px 20px;
+            color: #7f8c8d;
+            margin-top: 50px;
+        }
+        
+        footer a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        
+        footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .table-controls {
+            margin: 20px 0;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .table-controls input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .table-controls label {
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .analysis-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            margin: 30px 0;
+            border-left: 4px solid #3498db;
+        }
+        
+        .analysis-section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        
+        .analysis-section h4 {
+            color: #34495e;
+            margin-top: 25px;
+        }
+        
+        .analysis-section p {
+            margin: 10px 0;
+            line-height: 1.8;
+        }
+        
+        .analysis-section ul {
+            margin: 10px 0 10px 20px;
+        }
+        
+        .analysis-section li {
+            margin: 5px 0;
+        }
+        
+        .analysis-section code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .analysis-section hr {
+            margin: 30px 0;
+            border: none;
+            border-top: 2px solid #dee2e6;
+        }
+        
+        details hr {
+            margin: 30px 0;
+            border: none;
+            border-top: 2px solid #dee2e6;
+        }
+        
+        .markdown-table {
+            margin: 20px 0 !important;
+            font-size: 0.9rem !important;
+        }
+        
+        details {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #e1e8ed;
+        }
+        
+        details summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: #2c3e50;
+            padding: 10px;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        
+        details summary:hover {
+            background: #f8f9fa;
+        }
+        
+        details[open] summary {
+            margin-bottom: 15px;
+            border-bottom: 1px solid #e1e8ed;
+        }
+        
+        @media (max-width: 768px) {
+            .data-table {
+                font-size: 0.85rem;
+            }
+            
+            .data-table th,
+            .data-table td {
+                padding: 8px;
+            }
+            
+            header h1 {
+                font-size: 1.5rem;
+            }
+            
+            nav ul {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🕷️ Spider Shop Historical Analysis</h1>
+            <p>Tarantula Spiderling Pricing & Market Data</p>
+        </div>
+    </header>
+    
+    <nav>
+        <div class="container">
+            <ul>
+                <li><a href="index.html" class="{% if active_page == 'home' %}active{% endif %}">Home</a></li>
+                <li><a href="snapshot.html" class="{% if active_page == 'snapshot' %}active{% endif %}">Latest Snapshot</a></li>
+                <li><a href="history.html" class="{% if active_page == 'history' %}active{% endif %}">Historical Data</a></li>
+                <li><a href="breeder.html" class="{% if active_page == 'breeder' %}active{% endif %}">Breeder Opportunities</a></li>
+                <li><a href="dealer.html" class="{% if active_page == 'dealer' %}active{% endif %}">Dealer Supply Risk</a></li>
+            </ul>
+        </div>
+    </nav>
+    
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+    
+    <footer>
+        <p>Data scraped from <a href="https://thespidershop.co.uk/" target="_blank">The Spider Shop UK</a></p>
+        <p><a href="https://github.com/christianacca/spidershop-historical-analysis" target="_blank">View on GitHub</a></p>
+        <p>Generated: {{ timestamp }}</p>
+    </footer>
+    
+    <script>
+        function sortTable(columnIndex, tableId) {
+            const table = document.getElementById(tableId);
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            // Determine if column is numeric
+            let isNumeric = true;
+            for (let i = 0; i < Math.min(5, rows.length); i++) {
+                const cellText = rows[i].cells[columnIndex].textContent.trim();
+                if (cellText && isNaN(parseFloat(cellText.replace(/[^0-9.-]/g, '')))) {
+                    isNumeric = false;
+                    break;
+                }
+            }
+            
+            // Get current sort direction
+            const header = table.querySelectorAll('th')[columnIndex];
+            const currentDirection = header.getAttribute('data-sort-direction') || 'asc';
+            const newDirection = currentDirection === 'asc' ? 'desc' : 'asc';
+            
+            // Clear all sort indicators
+            table.querySelectorAll('th').forEach(th => {
+                th.removeAttribute('data-sort-direction');
+            });
+            
+            // Set new sort direction
+            header.setAttribute('data-sort-direction', newDirection);
+            
+            // Sort rows
+            rows.sort((a, b) => {
+                let aVal = a.cells[columnIndex].textContent.trim();
+                let bVal = b.cells[columnIndex].textContent.trim();
+                
+                if (isNumeric) {
+                    aVal = parseFloat(aVal.replace(/[^0-9.-]/g, '')) || 0;
+                    bVal = parseFloat(bVal.replace(/[^0-9.-]/g, '')) || 0;
+                    return newDirection === 'asc' ? aVal - bVal : bVal - aVal;
+                } else {
+                    aVal = aVal.toLowerCase();
+                    bVal = bVal.toLowerCase();
+                    if (newDirection === 'asc') {
+                        return aVal.localeCompare(bVal);
+                    } else {
+                        return bVal.localeCompare(aVal);
+                    }
+                }
+            });
+            
+            // Reappend sorted rows
+            rows.forEach(row => tbody.appendChild(row));
+        }
+        
+        function filterTable(searchInput, tableId) {
+            const filter = searchInput.value.toLowerCase();
+            const table = document.getElementById(tableId);
+            const rows = table.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(filter) ? '' : 'none';
+            });
+        }
+    </script>
+</body>
+</html>

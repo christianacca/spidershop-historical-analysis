@@ -1,0 +1,45 @@
+{# Table component template
+   Parameters:
+   - table_id: unique ID for the table
+   - headers: list of (index, column_header) tuples from enumerate
+   - rows: list of rows, each row is a list of (index, cell_value) tuples from enumerate
+   - sortable: whether to make headers sortable (default True)
+   - page_url_idx: index of page_url column (optional)
+   - scientific_name_idx: index of scientific_name column (optional)
+#}
+{% if not headers or not rows %}
+<p>No data available.</p>
+{% else %}
+<table id="{{ table_id }}" class="data-table">
+  <thead>
+    <tr>
+      {% for i, header in headers %}
+      {% if sortable %}
+      <th onclick="sortTable({{ i }}, '{{ table_id }}')">{{ header }} <span class="sort-indicator">⇅</span></th>
+      {% else %}
+      <th>{{ header }}</th>
+      {% endif %}
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+    <tr>
+      {% for i, cell in row %}
+      {% if i == page_url_idx and page_url_idx is not none and scientific_name_idx is not none %}
+        {% set url = cell|trim %}
+        {% set scientific_name = row[scientific_name_idx][1] if scientific_name_idx < row|length else "" %}
+        {% if url %}
+      <td><a href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ scientific_name }}</a></td>
+        {% else %}
+      <td>{{ cell }}</td>
+        {% endif %}
+      {% else %}
+      <td>{{ cell }}</td>
+      {% endif %}
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
