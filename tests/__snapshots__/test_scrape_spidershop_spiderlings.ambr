@@ -38,16 +38,20 @@
   
   ### 🧬 Breeder Opportunity Matrix — Legend
   
-  **OOS**
+  **OOS** (Current Availability)
   
   - `IN` — Species is currently listed for sale
   - `OUT` — Species is not listed this run
   - `IN/OUT` — Species recently disappeared and reappeared (cyclical supply)
+  - **Note:** This reflects CURRENT availability only, not historical supply patterns
   
-  **OOS Runs**
+  **OOS Runs** (Consecutive Scarcity Window)
   
-  - Number of **consecutive runs** the species has been out of stock  
+  - Number of **consecutive runs** the species has been out of stock **ending at the current run**
   - With weekly runs, `4+` weeks indicates persistent scarcity
+  - **Resets to 0 when species returns to stock** — focuses on current opportunity window
+  - Example: A species OUT for 5 weeks, then IN, then OUT for 2 weeks shows `OOS Runs = 2`
+  - **Key Difference from Dealer Matrix:** Breeder OOS Runs measures current scarcity window (forward-looking opportunity), while Dealer Avg OOS Duration measures historical supply reliability (backward-looking risk assessment)
   
   **Stock Pattern** (Primary Signal)
   
@@ -243,20 +247,70 @@
   
   ---
   
+  #### Example 7: Understanding OOS Metrics — Breeder vs Dealer Perspective
+  **Scenario:** A species currently in stock, but with a history of extended unavailability
+  
+  | Week | Listed? | Price | Wishlist Count |
+  |------|---------|-------|----------------|
+  | Jan 1 | ✅ Yes | £15.00 | 8 |
+  | Jan 8 | ❌ No | - | - |
+  | Jan 15 | ✅ Yes | £15.00 | 12 |
+  | Jan 22 | ✅ Yes | £15.00 | 16 |
+  
+  **Breeder Analysis:**
+  
+  - **OOS:** IN (currently listed)
+  - **OOS Runs:** 0 (no consecutive scarcity right now)
+  - **Stock Pattern:** Always
+  - **Wishlist Pressure:** 🔥
+  - **Wishlist Delta:** →
+  - **Signal:** ⚠️
+  - **Recommendation:** Watch closely — high latent demand
+  
+  **Dealer Analysis:**
+  
+  - **Stock Reliability:** Medium (only in stock 3 of 10 weeks = 30%)
+  - **Avg OOS Duration:** 1.0 runs (when it goes OUT, stays OUT ~4 weeks)
+  - **Restock Speed:** Fast
+  - **Wishlist Pressure:** 🔥
+  - **Wishlist Delta:** →
+  - **Dealer Risk:** ⚠️
+  - **Recommendation:** Buy opportunistically — moderate demand, variable supply
+  
+  **Why the Different Metrics?**
+  
+  - **Breeder OOS Runs = 0**: Measures *consecutive* weeks OUT *ending now*. Since it's IN stock now, the counter resets. Breeders focus on *current* scarcity windows — if it's available now, there's no immediate breeding signal.
+  
+  - **Dealer Avg OOS = 4.0**: Measures *average duration* of OOS events *across all history*. This species disappeared twice (weeks 2-5 and weeks 7-10), averaging 4 weeks per event. Dealers need to know *supply reliability* — even if it's in stock today, the pattern shows it frequently becomes unavailable for extended periods.
+  
+  **The Key Insight:** This is **low-priority for breeders** (no current scarcity) but **high-priority for dealers** (poor supply reliability means lost sales risk). The metrics answer different questions:
+  - Breeder: "Should I breed this NOW?" → No, it's currently available
+  - Dealer: "Is supply reliable?" → No, and when it sells out, it stays out for ~4 weeks
+  
+  This demonstrates how the same market data yields different but equally valid insights for different stakeholders.
+  
+  ---
+  
   
   ### 🏪 Dealer Supply Risk Matrix — Legend
   
-  **Stock Reliability** (Primary Signal)
+  **Stock Reliability** (Historical Supply Pattern)
   
-  - `High` — Listed in most runs
-  - `Medium` — Intermittent availability
-  - `Low` — Rarely listed
+  - `High` — Listed in ≥80% of all historical runs (typically always available)
+  - `Medium` — Listed in 40-79% of runs (intermittent availability)
+  - `Low` — Listed in <40% of runs (rarely available)
   - This is the **foundation** of all dealer risk assessments — demand modifiers refine but cannot override supply constraints
+  - **Calculated across entire history**, not just recent weeks
+  - Example: A species IN stock now but only appeared in 3 of 10 historical weeks = `Low` reliability
   
-  **Avg OOS Duration**
+  **Avg OOS Duration** (Supply Volatility Measure)
   
-  - Average number of runs a species stays out of stock once it disappears
-  - Provides context for understanding supply volatility
+  - Average number of runs a species stays out of stock per OOS event **across all history**
+  - Calculated by counting all OOS events (disappearances) and averaging their durations
+  - Provides context for understanding restock patterns and supply volatility
+  - Example: OUT for 4 weeks, IN for 1, OUT for 2 weeks, IN now → Avg OOS = 3.0 runs
+  - **Independent of current availability** — measures historical behavior
+  - **Key Difference from Breeder Matrix:** Dealer Avg OOS Duration is a historical average (supply reliability indicator), while Breeder OOS Runs counts only the current consecutive OUT period (immediate scarcity signal)
   
   **Restock Speed** (Supply Confidence)
   

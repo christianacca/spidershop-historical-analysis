@@ -285,6 +285,66 @@ def generate_breeder_example_6():
 **Why:** Continuous availability combined with declining wishlist interest suggests the market is saturated and buyer interest is waning. This is a clear signal to avoid breeding this species."""
 
 
+def generate_breeder_example_7():
+    """Example 7: Currently In Stock but Historically Unreliable (Compare with Dealer View)."""
+    history = [
+        make_row("2025-01-01", "Cyriocosmus elegans", "0.5", "15.00", "8"),
+        make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "1"),
+        # OUT for 4 weeks
+        make_row("2025-02-05", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-02-12", "Cyriocosmus elegans", "0.5", "15.00", "12"),
+        make_row("2025-02-12", "Grammostola pulchra", "2.0", "40.00", "1"),
+        # OUT for 4 weeks
+        make_row("2025-03-19", "Cyriocosmus elegans", "0.5", "15.00", "16"),
+        make_row("2025-03-19", "Grammostola pulchra", "2.0", "40.00", "1"),
+    ]
+    
+    breeder_table = build_breeder_opportunity_table(history)
+    dealer_table = build_dealer_supply_risk_table(history)
+    
+    breeder_entry = [r for r in breeder_table if r["Species"] == "Cyriocosmus elegans"][0]
+    dealer_entry = [r for r in dealer_table if r["Species"] == "Cyriocosmus elegans"][0]
+    
+    data_table = format_scenario_table(history, "Cyriocosmus elegans")
+    
+    return f"""#### Example 7: Understanding OOS Metrics — Breeder vs Dealer Perspective
+**Scenario:** A species currently in stock, but with a history of extended unavailability
+
+{data_table}
+
+**Breeder Analysis:**
+
+- **OOS:** {breeder_entry["OOS"]} (currently listed)
+- **OOS Runs:** {breeder_entry["OOS Runs"]} (no consecutive scarcity right now)
+- **Stock Pattern:** {breeder_entry["Stock Pattern"]}
+- **Wishlist Pressure:** {breeder_entry["Wishlist Pressure"]}
+- **Wishlist Delta:** {breeder_entry["Wishlist Delta"]}
+- **Signal:** {breeder_entry["Signal"]}
+- **Recommendation:** {breeder_entry["Recommendation"]}
+
+**Dealer Analysis:**
+
+- **Stock Reliability:** {dealer_entry["Stock Reliability"]} (only in stock 3 of 10 weeks = 30%)
+- **Avg OOS Duration:** {dealer_entry["Avg OOS Duration"]} runs (when it goes OUT, stays OUT ~4 weeks)
+- **Restock Speed:** {dealer_entry["Restock Speed"]}
+- **Wishlist Pressure:** {dealer_entry["Wishlist Pressure"]}
+- **Wishlist Delta:** {dealer_entry["Wishlist Delta"]}
+- **Dealer Risk:** {dealer_entry["Dealer Risk"]}
+- **Recommendation:** {dealer_entry["Dealer Recommendation"]}
+
+**Why the Different Metrics?**
+
+- **Breeder OOS Runs = 0**: Measures *consecutive* weeks OUT *ending now*. Since it's IN stock now, the counter resets. Breeders focus on *current* scarcity windows — if it's available now, there's no immediate breeding signal.
+
+- **Dealer Avg OOS = 4.0**: Measures *average duration* of OOS events *across all history*. This species disappeared twice (weeks 2-5 and weeks 7-10), averaging 4 weeks per event. Dealers need to know *supply reliability* — even if it's in stock today, the pattern shows it frequently becomes unavailable for extended periods.
+
+**The Key Insight:** This is **low-priority for breeders** (no current scarcity) but **high-priority for dealers** (poor supply reliability means lost sales risk). The metrics answer different questions:
+- Breeder: "Should I breed this NOW?" → No, it's currently available
+- Dealer: "Is supply reliable?" → No, and when it sells out, it stays out for ~4 weeks
+
+This demonstrates how the same market data yields different but equally valid insights for different stakeholders."""
+
+
 def generate_breeder_examples():
     """Generate all Breeder Matrix examples."""
     examples = [
@@ -294,6 +354,7 @@ def generate_breeder_examples():
         generate_breeder_example_4(),
         generate_breeder_example_5(),
         generate_breeder_example_6(),
+        generate_breeder_example_7(),
     ]
     
     header = """### 📖 Breeder Matrix — Practical Examples
