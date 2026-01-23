@@ -857,6 +857,12 @@ class TestWriteDealerOutputs:
         os.chdir(tmp_path)
         
         try:
+            # Clear the summary file to avoid contamination from previous tests
+            # In CI, multiple tests write to the same GITHUB_STEP_SUMMARY file
+            summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+            if summary_path and os.path.exists(summary_path):
+                open(summary_path, "w").close()
+            
             # Write outputs which will generate the markdown summary
             result = write_dealer_outputs(table)
             
