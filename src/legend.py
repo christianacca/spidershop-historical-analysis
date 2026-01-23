@@ -49,6 +49,15 @@ def write_summary_legend():
 - **Influence:** Can escalate `Emerging` patterns to 🔥 when rising (strong confirmation of demand)
 - Does not affect `Sustained` signals (already high-confidence) or downgrade any patterns
 
+**Price History** (Trend Visualization)
+
+- Unicode sparkline showing last 8 weeks of pricing (▁▂▃▄▅▆▇█)
+- Each character represents one week (left = oldest, right = most recent)
+- Height indicates relative price within the period
+- Spaces indicate weeks when species was OUT of stock (no price data)
+- Shows pricing stability or volatility at a glance
+- Example: `▁▂▃▄▅▆▇█` shows steady price increases over 8 weeks
+
 **Wishlist Pressure** (Demand Amplifier)
 
 - Represents **latent demand** (buyer interest, not sales)
@@ -71,6 +80,15 @@ def write_summary_legend():
 - Uses bounded carryover for OUT-of-stock species (up to 3 runs back)
 - Acts as a **momentum modifier**, not a standalone signal
 - Can escalate or prevent escalation of emerging opportunities
+
+**Wishlist History** (Trend Visualization)
+
+- Unicode sparkline showing last 8 weeks of wishlist counts (▁▂▃▄▅▆▇█)
+- Each character represents one week (left = oldest, right = most recent)
+- Height indicates relative wishlist interest within the period
+- Spaces indicate weeks when species was OUT of stock (no wishlist data)
+- Shows demand trajectory and momentum at a glance
+- Example: `▁▂▄▆█` shows accelerating interest over 5 weeks
 
 **Signal**
 
@@ -130,6 +148,20 @@ def write_summary_legend():
 - `↓` — Prices softening
 - **Influence:** Informational only; does not affect risk classification (supply and demand signals take precedence)
 
+**Price History** (Trend Visualization)
+
+- Unicode sparkline showing last 8 weeks of pricing (▁▂▃▄▅▆▇█)
+- Each character represents one week (left = oldest, right = most recent)
+- Height indicates relative price within the period
+- Spaces indicate weeks when species was OUT of stock (no price data)
+- Shows pricing stability or volatility at a glance
+- Example: `▁▂▃▄▅▆▇█` shows steady price increases over 8 weeks
+
+**Wishlist Pressure** (Demand Amplifier)
+- `→` — Stable pricing
+- `↓` — Prices softening
+- **Influence:** Informational only; does not affect risk classification (supply and demand signals take precedence)
+
 **Wishlist Pressure** (Demand Amplifier)
 
 - Represents **latent demand** (buyer interest, not sales)
@@ -153,6 +185,27 @@ def write_summary_legend():
 - **Influence:** Can escalate `Medium` reliability + high pressure to 🔥 when rising (surging demand)
 - Can prevent `High` reliability from being dismissed when falling (declining interest)
 - Acts as a **momentum modifier**, not a standalone signal
+
+**Wishlist History** (Trend Visualization)
+
+- Unicode sparkline showing last 8 weeks of wishlist counts (▁▂▃▄▅▆▇█)
+- Each character represents one week (left = oldest, right = most recent)
+- Height indicates relative wishlist interest within the period
+- Spaces indicate weeks when species was OUT of stock (no wishlist data)
+- Shows demand trajectory and momentum at a glance
+- Example: `▁▂▄▆█` shows accelerating interest over 5 weeks
+
+**Stock Availability** (Supply Pattern Visualization)
+
+- Binary sparkline showing last 8 weeks of stock status (█ = IN, space = OUT)
+- Each position represents one week (left = oldest, right = most recent)
+- `█` indicates species was IN stock that week
+- Space indicates species was OUT of stock that week
+- Visualizes the Stock Reliability metric and supply patterns at a glance
+- Examples:
+  - `████████` — Always available (high reliability)
+  - `█  █  █ ` — Intermittent supply (medium/low reliability)
+  - `█       ` — Disappeared from stock (low reliability)
 
 **Dealer Risk** (Supply Signal)
 
