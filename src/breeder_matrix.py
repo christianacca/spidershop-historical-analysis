@@ -4,6 +4,7 @@ from history import group_by_run, k2
 from config import BREEDER_TABLE_FILE
 from assertions import get_summary_path
 from wishlist_analysis import compute_wishlist_pressure, get_oos_wishlist_carryover, compute_wishlist_delta
+from sparkline_helpers import generate_sparkline, extract_historical_values
 
 # =====================
 # BREEDER MATRIX (PRICE AWARE) — FIXED TO INCLUDE OUT-OF-STOCK ITEMS
@@ -189,6 +190,13 @@ def build_breeder_opportunity_table(history_rows):
             signal = "❌"
             rec = "Avoid for profit — oversupplied"
 
+        # Generate sparklines for price and wishlist trends
+        price_history_values = extract_historical_values(key, by_run, runs, "price_gbp", max_runs=8)
+        wishlist_history_values = extract_historical_values(key, by_run, runs, "wishlist_count", max_runs=8)
+        
+        price_sparkline = generate_sparkline(price_history_values, max_length=8)
+        wishlist_sparkline = generate_sparkline(wishlist_history_values, max_length=8)
+
         table.append({
             "Species": row.get("scientific_name", key[0]),
             "Size (cm)": row.get("size_cm", key[1]),
@@ -196,8 +204,10 @@ def build_breeder_opportunity_table(history_rows):
             "OOS Runs": str(oos_runs),
             "Stock Pattern": pattern,
             "Price Trend": price_trend,
+            "Price History": price_sparkline,
             "Wishlist Pressure": wishlist_pressure,
             "Wishlist Delta": wishlist_delta,
+            "Wishlist History": wishlist_sparkline,
             "Signal": signal,
             "Recommendation": rec,
         })
@@ -222,7 +232,8 @@ def write_breeder_outputs(table):
     else:
         # Create empty CSV with header row
         fieldnames = ["Species", "Size (cm)", "OOS", "OOS Runs", "Stock Pattern", 
-                      "Price Trend", "Wishlist Pressure", "Wishlist Delta", "Signal", "Recommendation"]
+                      "Price Trend", "Price History", "Wishlist Pressure", "Wishlist Delta", 
+                      "Wishlist History", "Signal", "Recommendation"]
         with open(BREEDER_TABLE_FILE, "w", newline="", encoding="utf-8") as f:
             w = csv.DictWriter(f, fieldnames=fieldnames)
             w.writeheader()
@@ -240,12 +251,14 @@ def write_breeder_outputs(table):
         if total == 0:
             f.write("_No breeding opportunities detected (conservative analysis requires sufficient historical data)._\n")
         else:
-            f.write("| Species | Size (cm) | OOS | OOS Runs | Stock Pattern | Price Trend | Wishlist Pressure | Wishlist Delta | Signal | Recommendation |\n")
-            f.write("|---|---:|---|---:|---|---|---|---|---|---|\n")
+            f.write("| Species | Size (cm) | OOS | OOS Runs | Stock Pattern | Price Trend | Price History | Wishlist Pressure | Wishlist Delta | Wishlist History | Signal | Recommendation |\n")
+            f.write("|---|---:|---|---:|---|---|---|---|---|---|---|---|\n")
             for r in table[:shown]:
                 f.write(
                     f"| {r['Species']} | {r['Size (cm)']} | {r['OOS']} | {r['OOS Runs']} | "
-                    f"{r['Stock Pattern']} | {r['Price Trend']} | {r['Wishlist Pressure']} | {r['Wishlist Delta']} | {r['Signal']} | {r['Recommendation']} |\n"
+                    f"{r['Stock Pattern']} | {r['Price Trend']} | {r['Price History']} | "
+                    f"{r['Wishlist Pressure']} | {r['Wishlist Delta']} | {r['Wishlist History']} | "
+                    f"{r['Signal']} | {r['Recommendation']} |\n"
                 )
             if total > shown:
                 f.write(f"\n_Showing top {shown} of {total} entries — see `{BREEDER_TABLE_FILE}` for full list._\n")

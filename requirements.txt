@@ -3,3 +3,4 @@ beautifulsoup4
 selenium
 markdown
 jinja2
+sparklines
