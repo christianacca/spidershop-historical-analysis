@@ -896,6 +896,19 @@ class TestWriteDealerOutputs:
             )
             
             # Verify expected column count (13 columns for dealer matrix with sparklines)
+            if header_columns != 13:
+                # Diagnostic: print the actual markdown content for debugging CI issues
+                print(f"\n{'='*80}")
+                print("DIAGNOSTIC INFO FOR CI DEBUGGING:")
+                print(f"{'='*80}")
+                print(f"Header line: {repr(header_line)}")
+                print(f"Separator line: {repr(separator_line)}")
+                print(f"Header columns: {header_columns}")
+                print(f"Separator columns: {separator_columns}")
+                print(f"\nFull summary content:")
+                print(summary_content)
+                print(f"{'='*80}\n")
+            
             assert header_columns == 13, f"Expected 13 columns, got {header_columns}"
             
         finally:
