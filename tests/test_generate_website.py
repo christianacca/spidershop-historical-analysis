@@ -1758,3 +1758,124 @@ class TestSparklineSVGConversion:
         assert 'width="80"' in svg
         assert 'height="20"' in svg
         assert 'viewBox="0 0 80 20"' in svg
+
+
+class TestConvertSparklinesInHtml:
+    """Test suite for converting Unicode sparklines in HTML tables."""
+
+    def test_converts_sparklines_in_markdown_table(self):
+        """Should convert Unicode sparklines in markdown-generated HTML tables."""
+        from generate_website import convert_sparklines_in_html
+        
+        # Simulate markdown-generated HTML with Unicode sparklines
+        html = """
+        <table>
+            <thead>
+                <tr>
+                    <th>Species</th>
+                    <th>Size (cm)</th>
+                    <th>Price History</th>
+                    <th>Wishlist History</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Aphonopelma seemanni</td>
+                    <td>1.5</td>
+                    <td>▁▂▃▄▅▆▇█</td>
+                    <td>▁▁▁▁████</td>
+                </tr>
+            </tbody>
+        </table>
+        """
+        
+        # Mock historical data
+        historical_data = {
+            ("Aphonopelma seemanni", "1.5"): [
+                {"price_gbp": "8.99", "wishlist_count": "5"},
+                {"price_gbp": "10.50", "wishlist_count": "5"},
+                {"price_gbp": "12.99", "wishlist_count": "5"},
+                {"price_gbp": "16.50", "wishlist_count": "5"},
+                {"price_gbp": "18.99", "wishlist_count": "20"},
+                {"price_gbp": "21.00", "wishlist_count": "22"},
+                {"price_gbp": "21.00", "wishlist_count": "25"},
+                {"price_gbp": "24.99", "wishlist_count": "28"},
+            ]
+        }
+        
+        result = convert_sparklines_in_html(html, historical_data)
+        
+        # Should contain SVG elements
+        assert '<svg' in result
+        assert '</svg>' in result
+        
+        # Should have tooltips with actual values
+        assert '8.99' in result or '£8.99' in result
+        assert '24.99' in result or '£24.99' in result
+        
+        # Should NOT contain Unicode sparklines anymore
+        assert '▁▂▃▄▅▆▇█' not in result
+
+    def test_handles_html_without_tables(self):
+        """Should return unchanged HTML when no tables present."""
+        from generate_website import convert_sparklines_in_html
+        
+        html = "<p>No tables here</p>"
+        result = convert_sparklines_in_html(html, {})
+        
+        assert result == html
+
+    def test_handles_tables_without_sparkline_columns(self):
+        """Should not modify tables without sparkline columns."""
+        from generate_website import convert_sparklines_in_html
+        
+        html = """
+        <table>
+            <thead>
+                <tr><th>Name</th><th>Value</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Test</td><td>123</td></tr>
+            </tbody>
+        </table>
+        """
+        
+        result = convert_sparklines_in_html(html, {})
+        
+        # Should contain table but no SVG
+        assert '<table>' in result
+        assert '<svg' not in result
+
+    def test_handles_empty_html(self):
+        """Should handle None or empty HTML gracefully."""
+        from generate_website import convert_sparklines_in_html
+        
+        assert convert_sparklines_in_html(None, {}) is None
+        assert convert_sparklines_in_html("", {}) == ""
+
+    def test_converts_stock_availability_sparklines(self):
+        """Should convert stock availability sparklines in HTML tables."""
+        from generate_website import convert_sparklines_in_html
+        
+        html = """
+        <table>
+            <thead>
+                <tr>
+                    <th>Species</th>
+                    <th>Stock Availability</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Test Species</td>
+                    <td>█ █ █</td>
+                </tr>
+            </tbody>
+        </table>
+        """
+        
+        result = convert_sparklines_in_html(html, {})
+        
+        # Should contain SVG for stock availability
+        assert '<svg' in result
+        assert 'IN stock' in result or 'OUT of stock' in result

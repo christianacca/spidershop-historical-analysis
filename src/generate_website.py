@@ -540,6 +540,106 @@ def convert_sparklines_in_rows(headers, rows, historical_data, csv_filename):
     return converted_rows
 
 
+def convert_sparklines_in_html(html, historical_data):
+    """
+    Convert Unicode sparklines to SVG in HTML tables (post-processing).
+    
+    This handles sparklines in markdown-generated HTML tables (e.g., Top 10 analysis tables).
+    
+    Args:
+        html: HTML string containing tables with Unicode sparklines
+        historical_data: Dictionary with historical values for tooltips
+    
+    Returns:
+        HTML string with sparklines converted to SVG
+    """
+    if not html:
+        return html
+    
+    from bs4 import BeautifulSoup
+    
+    soup = BeautifulSoup(html, 'html.parser')
+    tables = soup.find_all('table')
+    
+    for table in tables:
+        # Find header row to identify column positions
+        thead = table.find('thead')
+        if not thead:
+            continue
+        
+        header_row = thead.find('tr')
+        if not header_row:
+            continue
+        
+        headers = [th.get_text(strip=True) for th in header_row.find_all('th')]
+        
+        # Identify sparkline columns and their types
+        sparkline_columns = {}
+        for i, header in enumerate(headers):
+            if "Price History" in header:
+                sparkline_columns[i] = "price"
+            elif "Wishlist History" in header:
+                sparkline_columns[i] = "wishlist"
+            elif "Stock Availability" in header or "Stock" in header:
+                sparkline_columns[i] = "stock"
+        
+        if not sparkline_columns:
+            continue
+        
+        # Find species and size columns
+        species_idx = None
+        size_idx = None
+        try:
+            species_idx = headers.index("Species")
+        except ValueError:
+            pass
+        try:
+            size_idx = headers.index("Size (cm)")
+        except ValueError:
+            pass
+        
+        # Process each data row
+        tbody = table.find('tbody')
+        if not tbody:
+            continue
+        
+        for row in tbody.find_all('tr'):
+            cells = row.find_all('td')
+            
+            # Get species/size for looking up historical values
+            species = cells[species_idx].get_text(strip=True) if species_idx is not None and species_idx < len(cells) else None
+            size = cells[size_idx].get_text(strip=True) if size_idx is not None and size_idx < len(cells) else None
+            key = (species, size) if species and size else None
+            
+            # Convert sparklines in this row
+            for col_idx, metric_type in sparkline_columns.items():
+                if col_idx >= len(cells):
+                    continue
+                
+                cell = cells[col_idx]
+                unicode_sparkline = cell.get_text(strip=True)
+                
+                # Extract last 8 values from historical data
+                values = None
+                if key and key in historical_data and metric_type != "stock":
+                    history = historical_data[key]
+                    recent = history[-8:] if len(history) > 8 else history
+                    
+                    if metric_type == "price":
+                        values = [h.get("price_gbp", "") for h in recent]
+                    elif metric_type == "wishlist":
+                        values = [h.get("wishlist_count", "0") for h in recent]
+                
+                # Convert to SVG
+                svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type)
+                
+                # Replace cell content with SVG (mark as safe HTML)
+                cell.clear()
+                cell.append(BeautifulSoup(svg, 'html.parser'))
+    
+    return str(soup)
+
+
 def generate_data_page(title, description, csv_filename, table_id, active_page, search_filter=True, analysis_markdown=None, legend_markdown=None, examples_markdown=None):
     """Generate a data page with table from CSV and optional analysis using Jinja2 template."""
     headers, rows = read_csv_file(csv_filename)
@@ -553,6 +653,11 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
     
     # Convert markdown to HTML if provided
     analysis_html = parse_markdown_to_html(analysis_markdown) if analysis_markdown else None
+    
+    # Convert sparklines in analysis HTML (Top 10 tables from markdown)
+    if analysis_html:
+        analysis_html = convert_sparklines_in_html(analysis_html, historical_data)
+    
     examples_html = parse_markdown_to_html(examples_markdown) if examples_markdown else None
     
     # Wrap legend markdown in details tag and convert
