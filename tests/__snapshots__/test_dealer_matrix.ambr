@@ -3,10 +3,10 @@
   '''
   ## 🏪 Dealer Supply Risk Matrix (Top 10)
   
-  | Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Wishlist Pressure | Wishlist Delta | Dealer Risk | Dealer Recommendation |
-  |---|---:|---|---:|---|---|---|---|---|---|
-  | Cyriocosmus elegans | 0.5 | Medium | 1.0 | Fast | → | 🔥 | ↑ | 🔥 | Actively seek breeders — surging demand, variable supply |
-  | Grammostola pulchra | 2.0 | High | 0 | Fast | ↑ | ⚠️ | → | ❌ | No urgency / oversupplied |
-  | Aphonopelma seemanni | 1.0 | High | 0 | Fast | → | ❌ | → | ❌ | No urgency / oversupplied |
+  | Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Price History | Wishlist Pressure | Wishlist Delta | Wishlist History | Stock Availability | Dealer Risk | Dealer Recommendation |
+  |---|---:|---|---:|---|---|---|---|---|---|---|---|---|
+  | Cyriocosmus elegans | 0.5 | Medium | 1.0 | Fast | → | ▄ ▄ | 🔥 | ↑ | ▁ █ | █ █ | 🔥 | Actively seek breeders — surging demand, variable supply |
+  | Grammostola pulchra | 2.0 | High | 0 | Fast | ↑ | ▁▁█ | ⚠️ | → | ▁▁█ | ███ | ❌ | No urgency / oversupplied |
+  | Aphonopelma seemanni | 1.0 | High | 0 | Fast | → | ▄▄▄ | ❌ | → | ██▁ | ███ | ❌ | No urgency / oversupplied |
   '''
 # ---

@@ -77,3 +77,33 @@ def extract_historical_values(key, by_run, runs, field_name, max_runs=8):
             values.append(None)
     
     return values
+
+
+def generate_stock_availability_sparkline(key, by_run, runs, max_runs=8):
+    """
+    Generate a stock availability sparkline showing IN/OUT status over time.
+    
+    Args:
+        key: Tuple of (scientific_name, size_cm)
+        by_run: Dictionary mapping run_id to list of rows
+        runs: Sorted list of run IDs
+        max_runs: Maximum number of runs to look back (default 8)
+    
+    Returns:
+        String with █ for IN-stock runs, space for OUT-of-stock runs
+    """
+    if not runs:
+        return "-"
+    
+    recent_runs = runs[-max_runs:] if len(runs) > max_runs else runs
+    availability = []
+    
+    for run_id in recent_runs:
+        row_map = {(r.get("scientific_name"), r.get("size_cm")): r for r in by_run[run_id]}
+        if key in row_map:
+            availability.append("█")  # IN stock
+        else:
+            availability.append(" ")  # OUT of stock
+    
+    result = "".join(availability)
+    return result if result.strip() else "-"
