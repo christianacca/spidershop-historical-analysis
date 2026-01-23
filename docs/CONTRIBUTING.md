@@ -304,7 +304,7 @@ This project uses [pytest-syrupy](https://github.com/tophat/syrupy) for snapshot
    make test-update-snapshots
    ```
 
-**⚠️ Critical:** Never blindly update snapshots. Always review diffs first. See [Snapshot Test Protocol](.github/copilot-instructions.md#snapshot-test-protocol-mandatory) for detailed guidelines.
+**⚠️ Critical:** Never blindly update snapshots. Always review diffs first. See [Snapshot Test Protocol](../.github/copilot-instructions.md#snapshot-test-protocol-mandatory) for detailed guidelines.
 
 **Learn more:** [pytest-syrupy documentation](https://github.com/tophat/syrupy)
 
