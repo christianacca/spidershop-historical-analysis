@@ -761,8 +761,9 @@ class TestBuildDealerSupplyRiskTable:
         
         expected_keys = {
             "Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration",
-            "Restock Speed", "Price Pressure", "Wishlist Pressure", "Wishlist Delta",
-            "Dealer Risk", "Dealer Recommendation"
+            "Restock Speed", "Price Pressure", "Price History", "Wishlist Pressure", 
+            "Wishlist Delta", "Wishlist History", "Stock Availability", "Dealer Risk", 
+            "Dealer Recommendation"
         }
         assert set(entry.keys()) == expected_keys
 
@@ -856,6 +857,12 @@ class TestWriteDealerOutputs:
         os.chdir(tmp_path)
         
         try:
+            # Clear the summary file to avoid contamination from previous tests
+            # In CI, multiple tests write to the same GITHUB_STEP_SUMMARY file
+            summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+            if summary_path and os.path.exists(summary_path):
+                open(summary_path, "w").close()
+            
             # Write outputs which will generate the markdown summary
             result = write_dealer_outputs(table)
             
@@ -894,8 +901,21 @@ class TestWriteDealerOutputs:
                 f"Separator: {separator_line}"
             )
             
-            # Verify expected column count (10 columns for dealer matrix)
-            assert header_columns == 10, f"Expected 10 columns, got {header_columns}"
+            # Verify expected column count (13 columns for dealer matrix with sparklines)
+            if header_columns != 13:
+                # Diagnostic: print the actual markdown content for debugging CI issues
+                print(f"\n{'='*80}")
+                print("DIAGNOSTIC INFO FOR CI DEBUGGING:")
+                print(f"{'='*80}")
+                print(f"Header line: {repr(header_line)}")
+                print(f"Separator line: {repr(separator_line)}")
+                print(f"Header columns: {header_columns}")
+                print(f"Separator columns: {separator_columns}")
+                print(f"\nFull summary content:")
+                print(summary_content)
+                print(f"{'='*80}\n")
+            
+            assert header_columns == 13, f"Expected 13 columns, got {header_columns}"
             
         finally:
             os.chdir(original_cwd)
@@ -1000,3 +1020,113 @@ class TestWriteDealerOutputs:
             
         finally:
             os.chdir(original_cwd)
+
+
+class TestDealerSparklineColumns:
+    """Test suite for sparkline trend visualization in dealer matrix."""
+
+    def test_sparkline_columns_present(self):
+        """Should include Price History, Wishlist History, and Stock Availability sparkline columns."""
+        history = [
+            # Week 1
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "20.00", "5"),
+            # Week 2
+            make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "22.00", "8"),
+            # Week 3
+            make_row("2025-01-15", "Aphonopelma seemanni", "1.0", "25.00", "12"),
+        ]
+        
+        table = build_dealer_supply_risk_table(history)
+        
+        # Verify sparkline columns exist
+        assert len(table) > 0
+        entry = table[0]
+        assert "Price History" in entry
+        assert "Wishlist History" in entry
+        assert "Stock Availability" in entry
+
+    def test_sparkline_shows_trend_characters(self):
+        """Should contain Unicode sparkline characters in price/wishlist, and IN/OUT indicators in stock availability."""
+        history = [
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "20.00", "5"),
+            make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "25.00", "10"),
+            make_row("2025-01-15", "Aphonopelma seemanni", "1.0", "30.00", "15"),
+        ]
+        
+        table = build_dealer_supply_risk_table(history)
+        entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+        
+        # Should contain sparkline characters (any of ▁▂▃▄▅▆▇█ or space for gaps)
+        sparkline_chars = "▁▂▃▄▅▆▇█ "
+        price_history = entry["Price History"]
+        wishlist_history = entry["Wishlist History"]
+        
+        # At least some characters should be sparkline characters
+        assert any(c in sparkline_chars for c in price_history)
+        assert any(c in sparkline_chars for c in wishlist_history)
+        
+        # Stock availability should use █ for IN-stock, space for OUT
+        stock_avail = entry["Stock Availability"]
+        assert all(c in "█ " for c in stock_avail)
+        # All three runs had stock, so should be mostly █
+        assert "█" in stock_avail
+
+    def test_stock_availability_shows_gaps(self):
+        """Stock availability sparkline should show gaps (spaces) when species is OUT of stock."""
+        history = [
+            # Week 1: IN
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "20.00", "5"),
+            # Week 2: OUT (no entry)
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "3"),
+            # Week 3: IN
+            make_row("2025-01-15", "Aphonopelma seemanni", "1.0", "22.00", "6"),
+            # Week 4: OUT (no entry)
+            make_row("2025-01-22", "Grammostola pulchra", "2.0", "42.00", "3"),
+            # Week 5: IN
+            make_row("2025-01-29", "Aphonopelma seemanni", "1.0", "25.00", "8"),
+        ]
+        
+        table = build_dealer_supply_risk_table(history)
+        entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+        
+        # Stock availability should show pattern: IN, OUT, IN, OUT, IN
+        # Which translates to: █ █ █ (or similar with spaces for gaps)
+        stock_avail = entry["Stock Availability"]
+        assert " " in stock_avail  # Should have gaps for OUT periods
+        assert "█" in stock_avail  # Should have blocks for IN periods
+
+    def test_sparkline_with_single_data_point(self):
+        """Should show minimal sparkline when only one data point exists."""
+        history = [
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "10"),
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "5"),
+        ]
+        
+        table = build_dealer_supply_risk_table(history)
+        entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+        
+        # With only one data point, sparkline should be minimal (single character or dash)
+        assert "Price History" in entry
+        assert "Wishlist History" in entry
+        assert "Stock Availability" in entry
+        # Should be very short (1-2 chars for price/wishlist)
+        assert len(entry["Price History"]) <= 2
+        assert len(entry["Wishlist History"]) <= 2
+
+    def test_stock_availability_always_in_stock(self):
+        """Stock availability should show solid blocks when species always in stock."""
+        history = [
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "20.00", "5"),
+            make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "20.00", "5"),
+            make_row("2025-01-15", "Aphonopelma seemanni", "1.0", "20.00", "5"),
+            make_row("2025-01-22", "Aphonopelma seemanni", "1.0", "20.00", "5"),
+            make_row("2025-01-29", "Aphonopelma seemanni", "1.0", "20.00", "5"),
+        ]
+        
+        table = build_dealer_supply_risk_table(history)
+        entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+        
+        # Should be solid blocks (no gaps)
+        stock_avail = entry["Stock Availability"]
+        assert stock_avail.strip() == stock_avail  # No leading/trailing spaces
+        assert all(c == "█" for c in stock_avail)  # All blocks

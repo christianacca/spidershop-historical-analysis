@@ -4,6 +4,7 @@ from history import group_by_run, k2
 from config import DEALER_TABLE_FILE
 from assertions import get_summary_path
 from wishlist_analysis import compute_wishlist_pressure, get_oos_wishlist_carryover, compute_wishlist_delta
+from sparkline_helpers import generate_sparkline, extract_historical_values_with_carryforward, generate_stock_availability_sparkline
 
 # =====================
 # DEALER MATRIX (Option B: Price Pressure informational)
@@ -136,6 +137,16 @@ def build_dealer_supply_risk_table(history_rows):
             risk = "❌"
             rec = "No urgency / oversupplied"
 
+        # Generate sparklines for historical trends (last 8 weeks)
+        # Use carry-forward to show persistent values when OUT (price/wishlist don't disappear)
+        price_history_values = extract_historical_values_with_carryforward((sci, size), by_run, runs, "price_gbp", max_runs=8)
+        price_history_sparkline = generate_sparkline(price_history_values, max_length=8)
+        
+        wishlist_history_values = extract_historical_values_with_carryforward((sci, size), by_run, runs, "wishlist_count", max_runs=8)
+        wishlist_history_sparkline = generate_sparkline(wishlist_history_values, max_length=8)
+        
+        stock_availability_sparkline = generate_stock_availability_sparkline((sci, size), by_run, runs, max_runs=8)
+
         table.append({
             "Species": sci,
             "Size (cm)": size,
@@ -143,8 +154,11 @@ def build_dealer_supply_risk_table(history_rows):
             "Avg OOS Duration": avg_oos,
             "Restock Speed": speed,
             "Price Pressure": pp,
+            "Price History": price_history_sparkline,
             "Wishlist Pressure": wishlist_pressure,
             "Wishlist Delta": wishlist_delta,
+            "Wishlist History": wishlist_history_sparkline,
+            "Stock Availability": stock_availability_sparkline,
             "Dealer Risk": risk,
             "Dealer Recommendation": rec,
         })
@@ -169,8 +183,9 @@ def write_dealer_outputs(table):
     else:
         # Create empty CSV with header row
         fieldnames = ["Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration", 
-                      "Restock Speed", "Price Pressure", "Wishlist Pressure", "Wishlist Delta", 
-                      "Dealer Risk", "Dealer Recommendation"]
+                      "Restock Speed", "Price Pressure", "Price History", "Wishlist Pressure", 
+                      "Wishlist Delta", "Wishlist History", "Stock Availability", "Dealer Risk", 
+                      "Dealer Recommendation"]
         with open(DEALER_TABLE_FILE, "w", newline="", encoding="utf-8") as f:
             w = csv.DictWriter(f, fieldnames=fieldnames)
             w.writeheader()
@@ -188,12 +203,13 @@ def write_dealer_outputs(table):
         if total == 0:
             f.write("_No supply risks detected (conservative analysis requires sufficient historical data)._\n")
         else:
-            f.write("| Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Wishlist Pressure | Wishlist Delta | Dealer Risk | Dealer Recommendation |\n")
-            f.write("|---|---:|---|---:|---|---|---|---|---|---|\n")
+            f.write("| Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Price History | Wishlist Pressure | Wishlist Delta | Wishlist History | Stock Availability | Dealer Risk | Dealer Recommendation |\n")
+            f.write("|---|---:|---|---:|---|---|---|---|---|---|---|---|---|\n")
             for r in table[:shown]:
                 f.write(
                     f"| {r['Species']} | {r['Size (cm)']} | {r['Stock Reliability']} | {r['Avg OOS Duration']} | "
-                    f"{r['Restock Speed']} | {r['Price Pressure']} | {r['Wishlist Pressure']} | {r['Wishlist Delta']} | {r['Dealer Risk']} | {r['Dealer Recommendation']} |\n"
+                    f"{r['Restock Speed']} | {r['Price Pressure']} | {r['Price History']} | {r['Wishlist Pressure']} | "
+                    f"{r['Wishlist Delta']} | {r['Wishlist History']} | {r['Stock Availability']} | {r['Dealer Risk']} | {r['Dealer Recommendation']} |\n"
                 )
             if total > shown:
                 f.write(f"\n_Showing top {shown} of {total} entries — see `{DEALER_TABLE_FILE}` for full list._\n")

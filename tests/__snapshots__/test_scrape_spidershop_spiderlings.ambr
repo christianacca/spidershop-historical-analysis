@@ -19,19 +19,19 @@
   
   ## 🧬 Breeder Opportunity Matrix (Top 10)
   
-  | Species | Size (cm) | OOS | OOS Runs | Stock Pattern | Price Trend | Wishlist Pressure | Wishlist Delta | Signal | Recommendation |
-  |---|---:|---|---:|---|---|---|---|---|---|
-  | Cyriocosmus elegans | 0.5 | OUT | 4 | Sustained | → | 🔥 | → | 🔥 | Pair soon — sustained scarcity with strong buyer interest |
-  | Grammostola pulchra | 2.0 | IN | 0 | Always | → | 🔥 | → | ⚠️ | Watch closely — high latent demand |
-  | Aphonopelma seemanni | 1.0 | IN | 0 | Always | ↑ | ❌ | → | ❌ | Avoid for profit — oversupplied |
+  | Species | Size (cm) | OOS | OOS Runs | Stock Pattern | Price Trend | Price History | Wishlist Pressure | Wishlist Delta | Wishlist History | Signal | Recommendation |
+  |---|---:|---|---:|---|---|---|---|---|---|---|---|
+  | Cyriocosmus elegans | 0.5 | OUT | 4 | Sustained | → | ▄▄▄▄▄ | 🔥 | → | ▄▄▄▄▄ | 🔥 | Pair soon — sustained scarcity with strong buyer interest |
+  | Grammostola pulchra | 2.0 | IN | 0 | Always | → | ▄ | 🔥 | → | ▄ | ⚠️ | Watch closely — high latent demand |
+  | Aphonopelma seemanni | 1.0 | IN | 0 | Always | ↑ | ▁▄▅▇█ | ❌ | → | ▁▄▄██ | ❌ | Avoid for profit — oversupplied |
   
   ## 🏪 Dealer Supply Risk Matrix (Top 10)
   
-  | Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Wishlist Pressure | Wishlist Delta | Dealer Risk | Dealer Recommendation |
-  |---|---:|---|---:|---|---|---|---|---|---|
-  | Cyriocosmus elegans | 0.5 | Low | 4.0 | Slow | → | 🔥 | → | 🔥 | Actively seek breeders — high demand, poor supply |
-  | Grammostola pulchra | 2.0 | Low | 4.0 | Slow | → | 🔥 | → | 🔥 | Actively seek breeders — high demand, poor supply |
-  | Aphonopelma seemanni | 1.0 | High | 0 | Fast | ↑ | ❌ | → | ❌ | No urgency / oversupplied |
+  | Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Price History | Wishlist Pressure | Wishlist Delta | Wishlist History | Stock Availability | Dealer Risk | Dealer Recommendation |
+  |---|---:|---|---:|---|---|---|---|---|---|---|---|---|
+  | Cyriocosmus elegans | 0.5 | Low | 4.0 | Slow | → | ▄▄▄▄▄ | 🔥 | → | ▄▄▄▄▄ | █     | 🔥 | Actively seek breeders — high demand, poor supply |
+  | Grammostola pulchra | 2.0 | Low | 4.0 | Slow | → | ▄ | 🔥 | → | ▄ |     █ | 🔥 | Actively seek breeders — high demand, poor supply |
+  | Aphonopelma seemanni | 1.0 | High | 0 | Fast | ↑ | ▁▄▅▇█ | ❌ | → | ▁▄▄██ | █████ | ❌ | No urgency / oversupplied |
   
   <details>
   <summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>
@@ -69,6 +69,15 @@
   - **Influence:** Can escalate `Emerging` patterns to 🔥 when rising (strong confirmation of demand)
   - Does not affect `Sustained` signals (already high-confidence) or downgrade any patterns
   
+  **Price History** (Trend Visualization)
+  
+  - Unicode sparkline showing last 8 weeks of pricing (▁▂▃▄▅▆▇█)
+  - Each character represents one week (left = oldest, right = most recent)
+  - Height indicates relative price within the period
+  - When species is OUT of stock, last known price is carried forward (prices persist even when not actively sold)
+  - Shows pricing stability or volatility at a glance
+  - Example: `▁▂▃▄▅▆▇█` shows steady price increases over 8 weeks
+  
   **Wishlist Pressure** (Demand Amplifier)
   
   - Represents **latent demand** (buyer interest, not sales)
@@ -91,6 +100,15 @@
   - Uses bounded carryover for OUT-of-stock species (up to 3 runs back)
   - Acts as a **momentum modifier**, not a standalone signal
   - Can escalate or prevent escalation of emerging opportunities
+  
+  **Wishlist History** (Trend Visualization)
+  
+  - Unicode sparkline showing last 8 weeks of wishlist counts (▁▂▃▄▅▆▇█)
+  - Each character represents one week (left = oldest, right = most recent)
+  - Height indicates relative wishlist interest within the period
+  - When species is OUT of stock, last known wishlist count is carried forward (interest persists)
+  - Shows demand trajectory and momentum at a glance
+  - Example: `▁▂▄▆█` shows accelerating interest over 5 weeks
   
   **Signal**
   

@@ -390,11 +390,11 @@ class TestBuildBreederOpportunityTable:
         assert len(table) > 0
         entry = table[0]
         
-        # Verify all expected keys exist
+        # Verify all expected keys exist (including new sparkline columns)
         expected_keys = {
             "Species", "Size (cm)", "OOS", "OOS Runs", "Stock Pattern",
-            "Price Trend", "Wishlist Pressure", "Wishlist Delta", 
-            "Signal", "Recommendation"
+            "Price Trend", "Price History", "Wishlist Pressure", "Wishlist Delta", 
+            "Wishlist History", "Signal", "Recommendation"
         }
         assert set(entry.keys()) == expected_keys
         
@@ -609,4 +609,65 @@ class TestBuildBreederOpportunityTable:
             
         finally:
             os.chdir(original_cwd)
+
+
+class TestSparklineColumns:
+    """Test suite for sparkline trend visualization in breeder matrix."""
+
+    def test_sparkline_columns_present(self):
+        """Should include Price History and Wishlist History sparkline columns."""
+        history = [
+            # Week 1
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "20.00", "5"),
+            # Week 2
+            make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "22.00", "8"),
+            # Week 3
+            make_row("2025-01-15", "Aphonopelma seemanni", "1.0", "25.00", "12"),
+        ]
+        
+        table = build_breeder_opportunity_table(history)
+        
+        # Verify sparkline columns exist
+        assert len(table) > 0
+        entry = table[0]
+        assert "Price History" in entry
+        assert "Wishlist History" in entry
+
+    def test_sparkline_shows_trend_characters(self):
+        """Should contain Unicode sparkline characters (▁▂▃▄▅▆▇█) in sparkline columns."""
+        history = [
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "20.00", "5"),
+            make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "25.00", "10"),
+            make_row("2025-01-15", "Aphonopelma seemanni", "1.0", "30.00", "15"),
+        ]
+        
+        table = build_breeder_opportunity_table(history)
+        entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+        
+        # Should contain sparkline characters (any of ▁▂▃▄▅▆▇█ or space for gaps)
+        sparkline_chars = "▁▂▃▄▅▆▇█ "
+        price_history = entry["Price History"]
+        wishlist_history = entry["Wishlist History"]
+        
+        # At least some characters should be sparkline characters
+        assert any(c in sparkline_chars for c in price_history)
+        assert any(c in sparkline_chars for c in wishlist_history)
+
+    def test_sparkline_empty_for_single_data_point(self):
+        """Should show minimal sparkline when only one data point exists."""
+        history = [
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "10"),
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "5"),
+        ]
+        
+        table = build_breeder_opportunity_table(history)
+        entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+        
+        # With only one data point, sparkline should be minimal (single character or dash)
+        assert "Price History" in entry
+        assert "Wishlist History" in entry
+        # Should be very short (1-2 chars)
+        assert len(entry["Price History"]) <= 2
+        assert len(entry["Wishlist History"]) <= 2
+
 
