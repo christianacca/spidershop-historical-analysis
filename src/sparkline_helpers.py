@@ -79,6 +79,41 @@ def extract_historical_values(key, by_run, runs, field_name, max_runs=8):
     return values
 
 
+def extract_historical_values_with_carryforward(key, by_run, runs, field_name, max_runs=8):
+    """
+    Extract historical values with carry-forward for OUT-of-stock periods.
+    
+    When a species is OUT of stock, the last known value is carried forward.
+    This reflects reality: prices and wishlist counts don't disappear when stock runs out.
+    
+    Args:
+        key: Tuple of (scientific_name, size_cm)
+        by_run: Dictionary mapping run_id to list of rows
+        runs: Sorted list of run IDs
+        field_name: Name of field to extract (e.g., "price_gbp", "wishlist_count")
+        max_runs: Maximum number of runs to look back (default 8)
+    
+    Returns:
+        List of values in chronological order (oldest to newest) with carry-forward
+    """
+    values = []
+    recent_runs = runs[-max_runs:] if len(runs) > max_runs else runs
+    last_known_value = None
+    
+    for run_id in recent_runs:
+        row_map = {(r.get("scientific_name"), r.get("size_cm")): r for r in by_run[run_id]}
+        if key in row_map:
+            # Species present - get current value and update last_known
+            current_value = row_map[key].get(field_name, "")
+            values.append(current_value)
+            last_known_value = current_value
+        else:
+            # Species OUT - carry forward last known value
+            values.append(last_known_value)
+    
+    return values
+
+
 def generate_stock_availability_sparkline(key, by_run, runs, max_runs=8):
     """
     Generate a stock availability sparkline showing IN/OUT status over time.

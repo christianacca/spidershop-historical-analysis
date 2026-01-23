@@ -54,7 +54,7 @@ def write_summary_legend():
 - Unicode sparkline showing last 8 weeks of pricing (▁▂▃▄▅▆▇█)
 - Each character represents one week (left = oldest, right = most recent)
 - Height indicates relative price within the period
-- Spaces indicate weeks when species was OUT of stock (no price data)
+- When species is OUT of stock, last known price is carried forward (prices persist even when not actively sold)
 - Shows pricing stability or volatility at a glance
 - Example: `▁▂▃▄▅▆▇█` shows steady price increases over 8 weeks
 
@@ -86,7 +86,7 @@ def write_summary_legend():
 - Unicode sparkline showing last 8 weeks of wishlist counts (▁▂▃▄▅▆▇█)
 - Each character represents one week (left = oldest, right = most recent)
 - Height indicates relative wishlist interest within the period
-- Spaces indicate weeks when species was OUT of stock (no wishlist data)
+- When species is OUT of stock, last known wishlist count is carried forward (interest persists)
 - Shows demand trajectory and momentum at a glance
 - Example: `▁▂▄▆█` shows accelerating interest over 5 weeks
 
@@ -153,26 +153,9 @@ def write_summary_legend():
 - Unicode sparkline showing last 8 weeks of pricing (▁▂▃▄▅▆▇█)
 - Each character represents one week (left = oldest, right = most recent)
 - Height indicates relative price within the period
-- Spaces indicate weeks when species was OUT of stock (no price data)
+- When species is OUT of stock, last known price is carried forward (prices persist even when not actively sold)
 - Shows pricing stability or volatility at a glance
 - Example: `▁▂▃▄▅▆▇█` shows steady price increases over 8 weeks
-
-**Wishlist Pressure** (Demand Amplifier)
-- `→` — Stable pricing
-- `↓` — Prices softening
-- **Influence:** Informational only; does not affect risk classification (supply and demand signals take precedence)
-
-**Wishlist Pressure** (Demand Amplifier)
-
-- Represents **latent demand** (buyer interest, not sales)
-- Calculated using **relative ranking** within the current run (not absolute thresholds)
-- `🔥` — High wishlist pressure (top tier of current interest)
-- `⚠️` — Moderate wishlist pressure (middle range)
-- `❌` — Low or no wishlist pressure (bottom tier or zero interest)
-- For **OUT-of-stock** species: carries forward the most recent pressure from when it was IN (up to 5 runs back)
-- **Influence:** Escalates `Low` or `Medium` reliability to 🔥 when combined with poor supply stability
-- Can prevent `Medium` reliability from escalating to 🔥 when interest is weak
-- Never overrides `High` reliability (already well-supplied)
 
 **Wishlist Delta** (Momentum Modifier)
 
@@ -191,9 +174,21 @@ def write_summary_legend():
 - Unicode sparkline showing last 8 weeks of wishlist counts (▁▂▃▄▅▆▇█)
 - Each character represents one week (left = oldest, right = most recent)
 - Height indicates relative wishlist interest within the period
-- Spaces indicate weeks when species was OUT of stock (no wishlist data)
+- When species is OUT of stock, last known wishlist count is carried forward (interest persists)
 - Shows demand trajectory and momentum at a glance
 - Example: `▁▂▄▆█` shows accelerating interest over 5 weeks
+
+**Wishlist Pressure** (Demand Amplifier)
+
+- Represents **latent demand** (buyer interest, not sales)
+- Calculated using **relative ranking** within the current run (not absolute thresholds)
+- `🔥` — High wishlist pressure (top tier of current interest)
+- `⚠️` — Moderate wishlist pressure (middle range)
+- `❌` — Low or no wishlist pressure (bottom tier or zero interest)
+- For **OUT-of-stock** species: carries forward the most recent pressure from when it was IN (up to 5 runs back)
+- **Influence:** Escalates `Low` or `Medium` reliability to 🔥 when combined with poor supply stability
+- Can prevent `Medium` reliability from escalating to 🔥 when interest is weak
+- Never overrides `High` reliability (already well-supplied)
 
 **Stock Availability** (Supply Pattern Visualization)
 

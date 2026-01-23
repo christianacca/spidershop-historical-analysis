@@ -21,7 +21,7 @@
   
   | Species | Size (cm) | OOS | OOS Runs | Stock Pattern | Price Trend | Price History | Wishlist Pressure | Wishlist Delta | Wishlist History | Signal | Recommendation |
   |---|---:|---|---:|---|---|---|---|---|---|---|---|
-  | Cyriocosmus elegans | 0.5 | OUT | 4 | Sustained | → | ▄ | 🔥 | → | ▄ | 🔥 | Pair soon — sustained scarcity with strong buyer interest |
+  | Cyriocosmus elegans | 0.5 | OUT | 4 | Sustained | → | ▄▄▄▄▄ | 🔥 | → | ▄▄▄▄▄ | 🔥 | Pair soon — sustained scarcity with strong buyer interest |
   | Grammostola pulchra | 2.0 | IN | 0 | Always | → | ▄ | 🔥 | → | ▄ | ⚠️ | Watch closely — high latent demand |
   | Aphonopelma seemanni | 1.0 | IN | 0 | Always | ↑ | ▁▄▅▇█ | ❌ | → | ▁▄▄██ | ❌ | Avoid for profit — oversupplied |
   
@@ -29,7 +29,7 @@
   
   | Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Price History | Wishlist Pressure | Wishlist Delta | Wishlist History | Stock Availability | Dealer Risk | Dealer Recommendation |
   |---|---:|---|---:|---|---|---|---|---|---|---|---|---|
-  | Cyriocosmus elegans | 0.5 | Low | 4.0 | Slow | → | ▄ | 🔥 | → | ▄ | █     | 🔥 | Actively seek breeders — high demand, poor supply |
+  | Cyriocosmus elegans | 0.5 | Low | 4.0 | Slow | → | ▄▄▄▄▄ | 🔥 | → | ▄▄▄▄▄ | █     | 🔥 | Actively seek breeders — high demand, poor supply |
   | Grammostola pulchra | 2.0 | Low | 4.0 | Slow | → | ▄ | 🔥 | → | ▄ |     █ | 🔥 | Actively seek breeders — high demand, poor supply |
   | Aphonopelma seemanni | 1.0 | High | 0 | Fast | ↑ | ▁▄▅▇█ | ❌ | → | ▁▄▄██ | █████ | ❌ | No urgency / oversupplied |
   
@@ -74,7 +74,7 @@
   - Unicode sparkline showing last 8 weeks of pricing (▁▂▃▄▅▆▇█)
   - Each character represents one week (left = oldest, right = most recent)
   - Height indicates relative price within the period
-  - Spaces indicate weeks when species was OUT of stock (no price data)
+  - When species is OUT of stock, last known price is carried forward (prices persist even when not actively sold)
   - Shows pricing stability or volatility at a glance
   - Example: `▁▂▃▄▅▆▇█` shows steady price increases over 8 weeks
   
@@ -106,7 +106,7 @@
   - Unicode sparkline showing last 8 weeks of wishlist counts (▁▂▃▄▅▆▇█)
   - Each character represents one week (left = oldest, right = most recent)
   - Height indicates relative wishlist interest within the period
-  - Spaces indicate weeks when species was OUT of stock (no wishlist data)
+  - When species is OUT of stock, last known wishlist count is carried forward (interest persists)
   - Shows demand trajectory and momentum at a glance
   - Example: `▁▂▄▆█` shows accelerating interest over 5 weeks
   
