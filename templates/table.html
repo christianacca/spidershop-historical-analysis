@@ -34,6 +34,9 @@
         {% else %}
       <td>{{ cell }}</td>
         {% endif %}
+      {% elif cell|string|trim|truncate(5, True, '') == '<svg ' %}
+      {# Cell contains SVG sparkline - don't escape #}
+      <td>{{ cell|safe }}</td>
       {% else %}
       <td>{{ cell }}</td>
       {% endif %}

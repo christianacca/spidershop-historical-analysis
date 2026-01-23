@@ -1646,3 +1646,115 @@ class TestCssValidation:
         )
         
         assert has_modern_layout, "No modern layout properties found"
+
+
+class TestSparklineSVGConversion:
+    """Test suite for converting Unicode sparklines to SVG."""
+
+    def test_convert_price_sparkline_with_rising_trend(self):
+        """Should convert rising price sparkline to SVG with green bars and tooltips."""
+        from generate_website import convert_sparkline_to_svg
+        
+        unicode_sparkline = "▁▂▃▄▅▆▇█"
+        values = ["8.99", "10.50", "12.99", "16.50", "18.99", "21.00", "21.00", "24.99"]
+        
+        svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type="price")
+        
+        # Should be SVG element
+        assert svg.startswith('<svg')
+        assert '</svg>' in svg
+        
+        # Should have green color (rising trend)
+        assert '#4CAF50' in svg or 'green' in svg.lower()
+        
+        # Should have tooltips with price values
+        assert '£8.99' in svg or '8.99' in svg
+        assert '£24.99' in svg or '24.99' in svg
+        
+        # Should have 8 bars
+        assert svg.count('<rect') == 8
+
+    def test_convert_wishlist_sparkline_with_falling_trend(self):
+        """Should convert falling wishlist sparkline to SVG with red bars."""
+        from generate_website import convert_sparkline_to_svg
+        
+        unicode_sparkline = "█▇▆▅▄▃▂▁"
+        values = ["45", "40", "35", "28", "20", "15", "12", "8"]
+        
+        svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type="wishlist")
+        
+        # Should be SVG element
+        assert svg.startswith('<svg')
+        
+        # Should have red color (falling trend)
+        assert '#f44336' in svg or 'red' in svg.lower()
+        
+        # Should have tooltips with wishlist counts
+        assert '45' in svg
+        assert '8' in svg
+        assert 'wishlist' in svg.lower()
+
+    def test_convert_stable_sparkline_uses_gray(self):
+        """Should use gray color for stable/neutral trends."""
+        from generate_website import convert_sparkline_to_svg
+        
+        unicode_sparkline = "▄▄▄▄▄▄▄▄"
+        values = ["12.50", "12.50", "12.50", "13.00", "12.50", "12.50", "12.50", "12.50"]
+        
+        svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type="price")
+        
+        # Should have gray color (stable trend)
+        assert '#888' in svg or 'gray' in svg.lower()
+
+    def test_convert_sparkline_with_gaps(self):
+        """Should handle sparklines with gaps (OUT of stock periods)."""
+        from generate_website import convert_sparkline_to_svg
+        
+        unicode_sparkline = "▁   █"
+        values = ["45.00", "45.00", "45.00", "45.00", "65.00"]
+        
+        svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type="price")
+        
+        # Should have dashed borders for carried-forward values
+        assert 'stroke-dasharray' in svg or 'dashed' in svg.lower()
+        
+        # Should show carried forward in tooltip
+        assert 'carried forward' in svg.lower() or 'OUT' in svg
+
+    def test_convert_stock_availability_sparkline(self):
+        """Should convert stock availability sparkline (binary IN/OUT)."""
+        from generate_website import convert_sparkline_to_svg
+        
+        unicode_sparkline = "█ █ █"
+        values = None  # Stock availability doesn't need numeric values
+        
+        svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type="stock")
+        
+        # Should have green bars for IN stock
+        assert '#4CAF50' in svg or 'green' in svg.lower()
+        
+        # Should have labels for IN/OUT
+        assert 'IN stock' in svg or 'OUT of stock' in svg
+
+    def test_sparkline_with_no_values_returns_dash(self):
+        """Should return plain dash for invalid sparklines."""
+        from generate_website import convert_sparkline_to_svg
+        
+        result = convert_sparkline_to_svg("-", [], metric_type="price")
+        
+        # Should return the original dash (no conversion)
+        assert result == "-"
+
+    def test_sparkline_dimensions_are_consistent(self):
+        """Should generate SVG with consistent dimensions."""
+        from generate_website import convert_sparkline_to_svg
+        
+        unicode_sparkline = "▁▂▃▄▅▆▇█"
+        values = ["10", "15", "20", "25", "30", "35", "40", "45"]
+        
+        svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type="wishlist")
+        
+        # Should have standard dimensions
+        assert 'width="80"' in svg
+        assert 'height="20"' in svg
+        assert 'viewBox="0 0 80 20"' in svg
