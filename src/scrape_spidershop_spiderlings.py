@@ -76,6 +76,11 @@ def main():
         append_history(HISTORY_FILE, new_rows)
         history_rows.extend(dict(zip(CSV_HEADER, r)) for r in new_rows)
 
+        # Clear analysis_summary.md before writing new analysis
+        summary_path = os.getenv("GITHUB_STEP_SUMMARY")
+        if summary_path and os.path.exists(summary_path):
+            open(summary_path, "w").close()
+
         write_pricing_summary(history_rows, scrape_dt)
 
         breeder_table = build_breeder_opportunity_table(history_rows)
