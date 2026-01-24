@@ -108,18 +108,29 @@ def serve_website(port=8000):
         print(f"❌ Website directory '{WEBSITE_DIR}' not found")
         sys.exit(1)
     
-    print(f"\n🌐 Starting local server at http://localhost:{port}")
+    print(f"\n🌐 Starting local server at http://127.0.0.1:{port}")
     print(f"   Serving: {WEBSITE_DIR}")
     print("   Press Ctrl+C to stop the server\n")
     
     os.chdir(WEBSITE_DIR)
     
-    Handler = http.server.SimpleHTTPRequestHandler
-    with socketserver.TCPServer(("", port), Handler) as httpd:
+    # Disable reverse DNS lookups for faster response
+    class FastHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
+        def address_string(self):
+            # Return IP address directly without reverse DNS lookup
+            return self.client_address[0]
+    
+    # Enable socket reuse to avoid "Address already in use" errors after Ctrl+C
+    class ReusableTCPServer(socketserver.TCPServer):
+        allow_reuse_address = True
+    
+    with ReusableTCPServer(("127.0.0.1", port), FastHTTPRequestHandler) as httpd:
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
-            print("\n\n👋 Server stopped")
+            print("\n\n👋 Shutting down server...")
+            httpd.shutdown()
+            print("✅ Server stopped")
 
 
 def main():
