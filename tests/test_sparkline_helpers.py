@@ -42,7 +42,12 @@ class TestCarryForwardBehavior:
         assert values[3] == "30.00"
     
     def test_extract_with_carryforward_handles_initial_out_period(self):
-        """When species starts OUT, should use None until first IN observation."""
+        """When species starts OUT, should skip leading periods until first IN observation.
+        
+        Per user requirements:
+        - Bars only start when "records began" for that spider
+        - Once the sparkline starts, there should be no gaps
+        """
         history = [
             # Week 1: OUT (no entry)
             make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "3"),
@@ -60,12 +65,10 @@ class TestCarryForwardBehavior:
         
         values = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp", max_runs=8)
         
-        # Should be: [None, None, 25.00, 25.00]
-        assert len(values) == 4
-        assert values[0] is None
-        assert values[1] is None
-        assert values[2] == "25.00"
-        assert values[3] == "25.00"  # Carried forward
+        # Should skip leading None values and start from first appearance: [25.00, 25.00]
+        assert len(values) == 2
+        assert values[0] == "25.00"
+        assert values[1] == "25.00"  # Carried forward
     
     def test_extract_with_carryforward_handles_value_changes(self):
         """Should update carry-forward value when species returns with new price."""
