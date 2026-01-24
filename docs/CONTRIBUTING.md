@@ -397,7 +397,7 @@ make download-website-serve
 
 # Individual steps (if needed):
 make download-artifacts  # Just download
-make website             # Just build from existing data
+make generate-website    # Just build from existing data
 ```
 
 This downloads the latest scrape results from GitHub Actions, generates the static website in `tmp/local-testing/website/`, and optionally starts a local server.
@@ -449,7 +449,7 @@ This displays all workflow commands with descriptions.
 # 1. Get data (only needed once)
 make download-artifacts  # OR: make scrape-only
 
-# 2. Start server (keep running in this terminal)
+# 2. Generate and start server (keep running in this terminal)
 make website-serve
 # Open http://localhost:8000
 
@@ -473,7 +473,6 @@ make clean-cache
 # Or use any workflow - they all clear cache automatically
 make scrape-only         # Clears cache before scraping
 make generate-website    # Clears cache before website generation
-make website             # Clears cache (via generate-website)
 make download-website    # Clears cache (via generate-website)
 ```
 

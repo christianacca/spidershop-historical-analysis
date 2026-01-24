@@ -12,7 +12,7 @@
 #   All commands automatically activate the .venv virtual environment
 #   Ensure .venv exists and has dependencies installed first
 
-.PHONY: help website website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website clean-cache clean-artifacts clean-all test coverage .check-venv .check-gh
+.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only clean-cache clean-artifacts clean-all test coverage .check-venv .check-gh
 
 # Shell configuration
 SHELL := /bin/bash
@@ -28,11 +28,14 @@ TESTING_DIR := tmp/local-testing
 REPO_OWNER := christianacca
 REPO_NAME := spidershop-historical-analysis
 
+# ==============================================================================
+# Meta / Help
+# ==============================================================================
+
 help:
 	@echo "Spider Shop Historical Analysis - Makefile Commands"
 	@echo ""
 	@echo "Website Workflows:"
-	@echo "  make website                Generate website from existing data"
 	@echo "  make website-serve          Generate website from existing data + serve"
 	@echo "  make scrape-website         Run new scrape + generate website"
 	@echo "  make scrape-website-serve   Run new scrape + generate website + serve"
@@ -43,6 +46,7 @@ help:
 	@echo "  make download-artifacts     Download latest data from GitHub Actions"
 	@echo "  make scrape-only            Run scraper only (no website generation)"
 	@echo "  make generate-website       Generate website from existing CSV files"
+	@echo "  make serve-only             Serve existing website (no regeneration)"
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test                   Run pytest with coverage"
@@ -76,6 +80,26 @@ help:
 		echo "Run: gh auth login"; \
 		exit 1; \
 	fi
+
+# ==============================================================================
+# Website Workflows
+# ==============================================================================
+
+website-serve: generate-website serve-only
+
+scrape-website: scrape-only generate-website
+	@echo "✅ Scrape complete and website generated"
+
+scrape-website-serve: scrape-website serve-only
+
+download-website: download-artifacts generate-website
+	@echo "✅ Download complete and website generated"
+
+download-website-serve: download-website serve-only
+
+# ==============================================================================
+# Data Management
+# ==============================================================================
 
 download-artifacts: .check-venv .check-gh
 	@echo "📥 Downloading artifacts from GitHub Actions..."
@@ -112,33 +136,16 @@ generate-website: .check-venv clean-cache
 	source $(VENV)/bin/activate && python scripts/test_website_locally.py
 	@echo "✅ Website generated in $(TESTING_DIR)/website/"
 
-website: generate-website
-	@echo "✅ Website ready at $(TESTING_DIR)/website/"
-
-website-serve: generate-website
+serve-only: .check-venv
 	@echo "🌐 Starting local server..."
 	source $(VENV)/bin/activate && python scripts/test_website_locally.py --serve
 
-scrape-website: scrape-only generate-website
-	@echo "✅ Scrape complete and website generated"
-
-scrape-website-serve: scrape-website
-	@echo "🌐 Starting local server..."
-	source $(VENV)/bin/activate && python scripts/test_website_locally.py --serve
-
-download-website: download-artifacts generate-website
-	@echo "✅ Download complete and website generated"
-
-download-website-serve: download-website
-	@echo "🌐 Starting local server..."
-	source $(VENV)/bin/activate && python scripts/test_website_locally.py --serve
+# ==============================================================================
+# Testing
+# ==============================================================================
 
 test: .check-venv
 	source $(VENV)/bin/activate && pytest --cov=src --cov-report=html --cov-report=term-missing --cov-report=json
-
-test-update-snapshots: .check-venv
-	@echo "⚠️  Updating all snapshots. Ensure you've reviewed changes first!"
-	source $(VENV)/bin/activate && pytest --snapshot-update
 
 test-snapshots: .check-venv
 	@echo "Running snapshot tests only..."
@@ -148,9 +155,17 @@ test-snapshots-diff: .check-venv
 	@echo "Running snapshot tests with detailed diff output..."
 	source $(VENV)/bin/activate && pytest -k snapshot -vv
 
+test-update-snapshots: .check-venv
+	@echo "⚠️  Updating all snapshots. Ensure you've reviewed changes first!"
+	source $(VENV)/bin/activate && pytest --snapshot-update
+
 coverage:
 	@echo "Opening coverage report in browser..."
 	open tmp/coverage/html/index.html
+
+# ==============================================================================
+# Cleanup
+# ==============================================================================
 
 clean-cache:
 	@echo "🧹 Cleaning Python bytecode cache..."
