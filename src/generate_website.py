@@ -96,41 +96,10 @@ def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price"
         x = i * bar_spacing
         
         if height is None:
-            # Gap (OUT of stock or missing data)
-            if metric_type == "stock":
-                # Show subtle background for OUT periods
-                tooltip = "OUT of stock"
-                y = svg_height // 2 - 2
-                h = 4
-                svg_bars.append(
-                    f'<rect x="{x}" y="{y}" width="{bar_width}" height="{h}" '
-                    f'fill="#ffcdd2" opacity="0.3"><title>{tooltip}</title></rect>'
-                )
-            else:
-                # Carried forward value - show with dashed border
-                if values and i < len(values):
-                    val = values[i]
-                    if metric_type == "price":
-                        tooltip = f"£{val} (carried forward - OUT)"
-                    else:
-                        tooltip = f"{val} wishlists (carried forward - OUT)"
-                    
-                    # Find last known height before this gap
-                    last_height = 3  # default mid-height
-                    for j in range(i - 1, -1, -1):
-                        if bars[j] is not None:
-                            last_height = bars[j]
-                            break
-                    
-                    # Calculate bar dimensions
-                    bar_height = (last_height / 7.0) * max_bar_height
-                    y = svg_height - bar_height
-                    
-                    svg_bars.append(
-                        f'<rect x="{x}" y="{y:.1f}" width="{bar_width}" height="{bar_height:.1f}" '
-                        f'fill="{color}" opacity="0.3" stroke="#ccc" stroke-width="0.5" '
-                        f'stroke-dasharray="1,1"><title>{tooltip}</title></rect>'
-                    )
+            # Gap - represents periods before species first appeared
+            # Don't render anything (true gap, not carried forward)
+            # The Unicode sparkline shows spaces for these positions intentionally
+            continue
         else:
             # Normal bar with value
             bar_height = (height / 7.0) * max_bar_height

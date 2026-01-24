@@ -1706,20 +1706,36 @@ class TestSparklineSVGConversion:
         # Should have gray color (stable trend)
         assert '#888' in svg or 'gray' in svg.lower()
 
-    def test_convert_sparkline_with_gaps(self):
-        """Should handle sparklines with gaps (OUT of stock periods)."""
+    def test_convert_sparkline_with_gaps_before_first_appearance(self):
+        """Should render gaps as true empty space when species didn't exist yet (no bars)."""
         from generate_website import convert_sparkline_to_svg
         
-        unicode_sparkline = "▁   █"
-        values = ["45.00", "45.00", "45.00", "45.00", "65.00"]
+        # Unicode sparkline: 4 spaces (didn't exist), then 3 bars (existed with carried-forward values)
+        unicode_sparkline = "    ▄▄▄"
+        values = ["20.00", "20.00", "20.00", "20.00", "20.00", "20.00", "20.00"]
         
         svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type="price")
         
-        # Should have dashed borders for carried-forward values
-        assert 'stroke-dasharray' in svg or 'dashed' in svg.lower()
+        # Should be SVG
+        assert svg.startswith('<svg')
+        assert '</svg>' in svg
         
-        # Should show carried forward in tooltip
-        assert 'carried forward' in svg.lower() or 'OUT' in svg
+        # Should have exactly 3 bars (not 7) - gaps should not render as bars
+        assert svg.count('<rect') == 3
+        
+        # Should NOT have carried-forward indicators in tooltips (gaps are true absences)
+        assert 'carried forward' not in svg.lower()
+        
+        # Bars should be positioned at x=40, 50, 60 (skipping first 4 positions)
+        assert 'x="40"' in svg  # 5th position (index 4)
+        assert 'x="50"' in svg  # 6th position (index 5)
+        assert 'x="60"' in svg  # 7th position (index 6)
+        
+        # Should NOT have bars at x=0, 10, 20, 30 (the gap positions)
+        assert 'x="0"' not in svg
+        assert 'x="10"' not in svg
+        assert 'x="20"' not in svg
+        assert 'x="30"' not in svg
 
     def test_convert_stock_availability_sparkline(self):
         """Should convert stock availability sparkline (binary IN/OUT)."""
