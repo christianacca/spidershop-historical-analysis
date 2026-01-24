@@ -4,3 +4,4 @@ selenium
 markdown
 jinja2
 sparklines
+waitress
