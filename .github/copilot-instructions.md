@@ -278,6 +278,22 @@ pip install -r requirements-dev.txt
 - **Static website**: Generated HTML files in `website/` directory
 - **Artifacts**: Files are uploaded to GitHub Actions artifacts (branch-scoped for history)
 
+### Website Generation Output Location
+
+**CRITICAL**: The location of the generated `website/` folder depends on the working directory when `generate_website.py` is executed:
+
+- **Coding agent / Direct execution**: Running `python src/generate_website.py` from project root creates `website/` at **project root level** (same level as `src/`, `tmp/`, `.github/`)
+- **GitHub workflow**: Runs from project root → creates `website/` at **project root level** 
+- **Make commands** (developer local testing): Changes to `tmp/local-testing/` first → creates `website/` at **`tmp/local-testing/website/`**
+
+The `OUTPUT_DIR` constant in `generate_website.py` is `Path("website")`, which is always **relative to the current working directory**.
+
+**When testing or verifying website generation:**
+- If you ran `generate_website.py` directly → look for `website/` at project root
+- If user ran `make generate-website` → look for `tmp/local-testing/website/`
+- DO NOT assume files are in `tmp/local-testing/website/` when YOU run the script
+- DO NOT get confused by seeing existing files in `tmp/local-testing/website/` from user's previous make commands
+
 ### CSV Schema
 
 The CSV files use the following header (defined in config.CSV_HEADER):

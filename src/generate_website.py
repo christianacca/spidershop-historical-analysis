@@ -1,6 +1,15 @@
 #!/usr/bin/env python3
 """
 Generate a static HTML website from scraped CSV data for GitHub Pages deployment.
+
+IMPORTANT - Output Location:
+    The OUTPUT_DIR is relative to the CURRENT WORKING DIRECTORY when this script runs:
+    
+    - GitHub workflow: Runs from project root → creates website/ at root
+    - Coding agent: Runs from project root → creates website/ at root
+    - Make command: Changes to tmp/local-testing/ first → creates website/ there
+    
+    This means the generated website/ folder location varies depending on execution context.
 """
 
 import csv
@@ -12,6 +21,8 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 # Output directory for the generated website
+# NOTE: This is RELATIVE to the current working directory when the script runs!
+# See docstring above for how this behaves in different execution contexts.
 OUTPUT_DIR = Path("website")
 
 # Setup Jinja2 environment
