@@ -1775,6 +1775,48 @@ class TestSparklineSVGConversion:
         assert 'height="20"' in svg
         assert 'viewBox="0 0 80 20"' in svg
 
+    def test_sparkline_with_leading_gaps_aligns_tooltips_correctly(self):
+        """
+        Should align tooltips with correct values when sparkline has leading gaps.
+        
+        This is a regression test for the bug where:
+        - Unicode sparkline: "  █▁▁▁▁" (2 leading spaces/gaps, then 5 bars)
+        - Historical values: [0, 0, 91, 90] (4 values in chronological order)
+        - Expected: First bar (█) should show "0 wishlists", subsequent bars show actual values
+        - Bug: Tooltips were misaligned because we indexed values[] using position in bars[]
+        """
+        from generate_website import convert_sparkline_to_svg
+        
+        # Sparkline with 2 leading gaps (spaces), then 5 bars
+        unicode_sparkline = "  █▁▁▁▁"
+        # Historical values: [old=0, old=0, new=91, newest=90]
+        # But we only have 4 values in the history, not 7
+        values = ["0", "0", "91", "90"]
+        
+        svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type="wishlist")
+        
+        # Should render only 5 bars (skipping the 2 leading gaps)
+        rect_count = svg.count('<rect')
+        assert rect_count == 5, f"Expected 5 bars but got {rect_count}"
+        
+        # Parse SVG to check tooltip values in order
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(svg, 'html.parser')
+        rects = soup.find_all('rect')
+        
+        # Extract tooltip text from each rect's <title> child
+        tooltips = [rect.find('title').text for rect in rects if rect.find('title')]
+        
+        # The first 4 bars should have actual wishlist values
+        # Note: The values list has 4 items, sparkline has 5 bars (2 gaps + 5 bars = 7 positions)
+        # So bars [2,3,4,5] should map to values [0,1,2,3]
+        assert "0 wishlists" in tooltips[0], f"First bar should show '0 wishlists', got {tooltips[0]}"
+        assert "0 wishlists" in tooltips[1], f"Second bar should show '0 wishlists', got {tooltips[1]}"
+        assert "91 wishlists" in tooltips[2], f"Third bar should show '91 wishlists', got {tooltips[2]}"
+        assert "90 wishlists" in tooltips[3], f"Fourth bar should show '90 wishlists', got {tooltips[3]}"
+        # Fifth bar has no value (beyond values list), should show "Week N"
+        assert "Week" in tooltips[4], f"Fifth bar should show 'Week N', got {tooltips[4]}"
+
 
 class TestConvertSparklinesInHtml:
     """Test suite for converting Unicode sparklines in HTML tables."""

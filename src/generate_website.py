@@ -103,6 +103,9 @@ def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price"
     svg_height = 20
     max_bar_height = svg_height
     
+    # Track how many non-None bars we've processed for proper values indexing
+    bar_index = 0
+    
     for i, height in enumerate(bars):
         x = i * bar_spacing
         
@@ -117,8 +120,9 @@ def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price"
             y = svg_height - bar_height
             
             # Generate tooltip
-            if values and i < len(values):
-                val = values[i]
+            # Use bar_index (count of non-None bars) to index into values list
+            if values and bar_index < len(values):
+                val = values[bar_index]
                 if metric_type == "price":
                     tooltip = f"£{val}"
                 elif metric_type == "wishlist":
@@ -129,7 +133,7 @@ def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price"
                 if metric_type == "stock":
                     tooltip = "IN stock"
                 else:
-                    tooltip = f"Week {i + 1}"
+                    tooltip = f"Week {bar_index + 1}"
             
             # Adjust opacity based on position (gradient effect)
             opacity = 0.7 + (i / len(bars)) * 0.3
@@ -138,6 +142,9 @@ def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price"
                 f'<rect x="{x}" y="{y:.1f}" width="{bar_width}" height="{bar_height:.1f}" '
                 f'fill="{color}" opacity="{opacity:.2f}"><title>{tooltip}</title></rect>'
             )
+            
+            # Increment bar_index only for rendered bars
+            bar_index += 1
     
     # Assemble final SVG
     svg = (
