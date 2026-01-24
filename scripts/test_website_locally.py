@@ -15,8 +15,9 @@ Note:
 """
 
 import argparse
-import logging
+import http.server
 import os
+import socketserver
 import subprocess
 import sys
 from pathlib import Path
@@ -102,72 +103,32 @@ def generate_website():
 
 
 def serve_website(port=8000):
-    """Start a local HTTP server to preview the website using Waitress."""
+    """Start a local HTTP server to preview the website."""
     if not WEBSITE_DIR.exists():
         print(f"❌ Website directory '{WEBSITE_DIR}' not found")
         sys.exit(1)
     
-    try:
-        from waitress import serve
-        from wsgiref.simple_server import make_server
-        import mimetypes
-        
-        # Configure logging to see request logs
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s [%(levelname)s] %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
-        )
-        
-        # Ensure proper MIME types
-        mimetypes.init()
-        
-        logger = logging.getLogger(__name__)
-        
-        def static_app(environ, start_response):
-            """Simple WSGI app to serve static files."""
-            from urllib.parse import unquote
-            
-            path = unquote(environ.get('PATH_INFO', ''))
-            if path == '/':
-                path = '/index.html'
-            
-            filepath = WEBSITE_DIR / path.lstrip('/')
-            method = environ.get('REQUEST_METHOD', 'GET')
-            remote_addr = environ.get('REMOTE_ADDR', '?')
-            
-            if filepath.exists() and filepath.is_file():
-                mime_type, _ = mimetypes.guess_type(str(filepath))
-                if mime_type is None:
-                    mime_type = 'application/octet-stream'
-                
-                logger.info(f'{remote_addr} {method} {path} - 200 OK')
-                
-                start_response('200 OK', [
-                    ('Content-Type', mime_type),
-                    ('Content-Length', str(filepath.stat().st_size))
-                ])
-                with open(filepath, 'rb') as f:
-                    return [f.read()]
-            else:
-                logger.warning(f'{remote_addr} {method} {path} - 404 Not Found')
-                
-                start_response('404 Not Found', [('Content-Type', 'text/plain')])
-                return [b'404 Not Found']
-        
-        print(f"\n🌐 Starting Waitress server at http://localhost:{port}")
-        print(f"   Serving: {WEBSITE_DIR}")
-        print("   Press Ctrl+C to stop the server\n")
-        
-        # Waitress handles SIGINT/SIGTERM gracefully and cleans up properly
-        # Logging is configured above to show request logs
-        serve(static_app, host='127.0.0.1', port=port, threads=4)
-        
-    except ImportError:
-        print("❌ waitress package not installed")
-        print("\n🔧 Install it with:")
-        print("   pip install waitress")
-        sys.exit(1)
+    # Custom handler that skips reverse DNS lookups (which cause delays)
+    class FastHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
+        def address_string(self):
+            # Return IP directly instead of doing reverse DNS lookup
+            return self.client_address[0]
+    
+    # Enable socket reuse
+    class ReusableTCPServer(socketserver.TCPServer):
+        allow_reuse_address = True
+    
+    print(f"\n🌐 Starting server at http://localhost:{port}")
+    print(f"   Serving: {WEBSITE_DIR}")
+    print("   Press Ctrl+C to stop\n")
+    
+    os.chdir(WEBSITE_DIR)
+    
+    with ReusableTCPServer(("127.0.0.1", port), FastHTTPRequestHandler) as httpd:
+        try:
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            print("\n\n👋 Server stopped")
 
 
 def main():
