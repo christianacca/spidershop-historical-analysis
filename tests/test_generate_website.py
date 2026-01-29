@@ -1665,7 +1665,7 @@ class TestSparklineSVGConversion:
         assert '</svg>' in svg
         
         # Should have green color (rising trend)
-        assert '#4CAF50' in svg or 'green' in svg.lower()
+        assert '#22c55e' in svg or '#4CAF50' in svg or 'green' in svg.lower()
         
         # Should have tooltips with price values
         assert '£8.99' in svg or '8.99' in svg
@@ -1687,7 +1687,7 @@ class TestSparklineSVGConversion:
         assert svg.startswith('<svg')
         
         # Should have red color (falling trend)
-        assert '#f44336' in svg or 'red' in svg.lower()
+        assert '#ef4444' in svg or '#f44336' in svg or 'red' in svg.lower()
         
         # Should have tooltips with wishlist counts
         assert '45' in svg
@@ -1703,8 +1703,8 @@ class TestSparklineSVGConversion:
         
         svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type="price")
         
-        # Should have gray color (stable trend)
-        assert '#888' in svg or 'gray' in svg.lower()
+        # Should be blue (neutral) for stable trend
+        assert '#3b82f6' in svg or '#888' in svg or 'blue' in svg.lower()
 
     def test_convert_sparkline_with_gaps_before_first_appearance(self):
         """Should render gaps as true empty space when species didn't exist yet (no bars)."""
@@ -1747,10 +1747,10 @@ class TestSparklineSVGConversion:
         svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type="stock")
         
         # Should have green bars for IN stock
-        assert '#4CAF50' in svg or 'green' in svg.lower()
+        assert '#22c55e' in svg or '#4CAF50' in svg or 'green' in svg.lower()
         
-        # Should have labels for IN/OUT
-        assert 'IN stock' in svg or 'OUT of stock' in svg
+        # Should have tooltips
+        assert '<title>IN</title>' in svg
 
     def test_sparkline_with_no_values_returns_dash(self):
         """Should return plain dash for invalid sparklines."""
@@ -1936,4 +1936,4 @@ class TestConvertSparklinesInHtml:
         
         # Should contain SVG for stock availability
         assert '<svg' in result
-        assert 'IN stock' in result or 'OUT of stock' in result
+        assert '<title>IN</title>' in result
