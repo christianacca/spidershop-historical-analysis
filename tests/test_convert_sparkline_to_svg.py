@@ -22,7 +22,7 @@ class TestBasicConversion:
         
         assert '<svg' in svg
         assert '<rect' in svg
-        assert 'height="8.6"' in svg  # (3/7) * 20 = 8.57
+        assert 'height="10.0"' in svg  # Single value falls back to Unicode height (4/8 * 20)
         assert '<title>£15.00</title>' in svg
     
     def test_converts_rising_trend(self):
@@ -31,25 +31,26 @@ class TestBasicConversion:
         
         assert '<svg' in svg
         assert svg.count('<rect') == 4
-        assert 'height="0.0"' in svg  # ▁
-        assert 'height="5.7"' in svg  # ▃
-        assert 'height="11.4"' in svg  # ▅
-        assert 'height="17.1"' in svg  # ▇
+        # Heights are proportional to values (zero-based: 0-18 range)
+        assert 'height="12.0"' in svg  # 10.00: 10/18 = 56% → 10% + 56%*90% = 60% → 12.0px
+        assert 'height="14.0"' in svg  # 12.00: 12/18 = 67% → 10% + 67%*90% = 70% → 14.0px
+        assert 'height="17.0"' in svg  # 15.00: 15/18 = 83% → 10% + 83%*90% = 85% → 17.0px
+        assert 'height="20.0"' in svg  # 18.00: 18/18 = 100% → 100% → 20.0px
     
     def test_converts_all_eight_character_levels(self):
         """All 8 Unicode sparkline characters map to correct heights."""
         unicode = "▁▂▃▄▅▆▇█"
         svg = convert_sparkline_to_svg(unicode, metric_type="stock")
         
-        # Heights: 0/7, 1/7, 2/7, 3/7, 4/7, 5/7, 6/7, 7/7 * 20
-        assert 'height="0.0"' in svg   # ▁
-        assert 'height="2.9"' in svg   # ▂
-        assert 'height="5.7"' in svg   # ▃
-        assert 'height="8.6"' in svg   # ▄
-        assert 'height="11.4"' in svg  # ▅
-        assert 'height="14.3"' in svg  # ▆
-        assert 'height="17.1"' in svg  # ▇
-        assert 'height="20.0"' in svg  # █
+        # Heights: 1/8, 2/8, 3/8, 4/8, 5/8, 6/8, 7/8, 8/8 * 20
+        assert 'height="2.5"' in svg   # ▁ (1/8) * 20 = 2.5
+        assert 'height="5.0"' in svg   # ▂ (2/8) * 20 = 5.0
+        assert 'height="7.5"' in svg   # ▃ (3/8) * 20 = 7.5
+        assert 'height="10.0"' in svg  # ▄ (4/8) * 20 = 10.0
+        assert 'height="12.5"' in svg  # ▅ (5/8) * 20 = 12.5
+        assert 'height="15.0"' in svg  # ▆ (6/8) * 20 = 15.0
+        assert 'height="17.5"' in svg  # ▇ (7/8) * 20 = 17.5
+        assert 'height="20.0"' in svg  # █ (8/8) * 20 = 20.0
 
 
 class TestContinuousBars:
@@ -105,9 +106,9 @@ class TestContinuousBars:
         
         svg = convert_sparkline_to_svg(unicode, values=values, metric_type="price", is_carried_forward=is_carried)
         
-        # 4 bars, all same height
+        # 4 bars, all same height (zero-based: 20/20 = 100% → full height)
         assert svg.count('<rect') == 4
-        assert svg.count('height="8.6"') == 4
+        assert svg.count('height="20.0"') == 4
         
         # First is actual, rest are carried
         assert '<title>£20.00</title>' in svg

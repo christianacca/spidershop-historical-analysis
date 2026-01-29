@@ -110,6 +110,52 @@ Example:
 <rect fill="#22c55e" opacity="0.5" ...>
 ```
 
+## Bar Height Calculation
+
+SVG bar heights are calculated **proportionally from actual numeric values** when available (for price/wishlist metrics). This ensures visually accurate representation of the data.
+
+### Proportional Height (Price & Wishlist)
+
+When actual values are provided, heights are calculated using **zero-based normalization**:
+
+```
+normalized = value / max_value
+bar_height = (0.1 + normalized × 0.9) × 20px
+```
+
+**Example:** Wishlist counts of 120 and 126:
+- Max value: 126
+- Bar 1: 120/126 = 95.2% → (0.1 + 0.952 × 0.9) × 20 = **19.1px**
+- Bar 2: 126/126 = 100% → (0.1 + 1.0 × 0.9) × 20 = **20.0px**
+
+**Result:** Bars look appropriately similar (only 5% difference in height), matching the 5% difference in values.
+
+**Key features:**
+- Zero-based: All values normalized relative to 0 (not to min/max range)
+- 10% minimum: Ensures all bars are visible (no invisible bars)
+- 90% proportional: Preserves relative differences accurately
+
+### Fallback: Unicode Character Heights
+
+When actual values are **not** available (or for stock availability), heights are calculated from Unicode character positions:
+
+```
+▁ = 1/8 × 20px = 2.5px
+▂ = 2/8 × 20px = 5.0px
+▃ = 3/8 × 20px = 7.5px
+▄ = 4/8 × 20px = 10.0px
+▅ = 5/8 × 20px = 12.5px
+▆ = 6/8 × 20px = 15.0px
+▇ = 7/8 × 20px = 17.5px
+█ = 8/8 × 20px = 20.0px
+```
+
+**When fallback is used:**
+- Stock availability sparklines (always use Unicode heights)
+- When values array doesn't match bar count
+- When values can't be parsed as numbers
+- When fewer than 2 numeric values exist
+
 ## Bar Positioning
 
 **X position**: `bar_index × 10` pixels  
@@ -149,20 +195,7 @@ Color:    Green (always for stock)
 
 - Unicode sparkline spec: [SPARKLINES.md](./SPARKLINES.md)
 - Implementation: [generate_website.py](../src/generate_website.py) (`convert_sparkline_to_svg()`)
-- Data extraction: [sparkline_helpers.py](../src/sparkline_helpers.py)
-Known Issues
-
-**🐛 Tooltips show "Week 3" instead of "[£15.00]"**
-- Carried-forward values need square bracket notation
-- Currently using placeholder text
-
-**🐛 Carried-forward bars look identical to actual data**
-- No visual way to tell old data from current data
-- Could use opacity or color difference
-
-**🐛 Color coding might be incorrect for flat lines**
-- Flat lines from carry-forward should be blue (neutral)
-- May be showing gray instead Examples
+- Data extraction: [sparkline_helpers.py](../src/sparkline_helpers.py) Examples
 
 **Price rising with OUT period:**
 ```

@@ -36,8 +36,8 @@ jinja_env = Environment(
 
 # Sparkline character mapping (Unicode to relative height 0-7)
 SPARKLINE_CHARS = {
-    '▁': 0, '▂': 1, '▃': 2, '▄': 3,
-    '▅': 4, '▆': 5, '▇': 6, '█': 7,
+    '▁': 1, '▂': 2, '▃': 3, '▄': 4,
+    '▅': 5, '▆': 6, '▇': 7, '█': 8,
     ' ': None  # Gap/missing data
 }
 
@@ -140,6 +140,33 @@ def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price"
     svg_height = 20
     max_bar_height = svg_height
     
+    # Determine if we should use actual values for proportional heights
+    # Use actual values when available and metric is price or wishlist
+    # Allow partial values - as long as we have SOME values for price/wishlist
+    use_proportional_values = (values is not None and 
+                               len(values) > 0 and 
+                               metric_type in ["price", "wishlist"])
+    
+    # Calculate min/max for proportional scaling if using actual values
+    if use_proportional_values:
+        # Only use numeric values that exist
+        numeric_values = []
+        for v in values:
+            try:
+                numeric_values.append(float(v))
+            except (ValueError, TypeError):
+                pass
+        
+        if len(numeric_values) >= 2:
+            # Use zero-based normalization for better proportional representation
+            # This ensures that similar values (e.g., 120 vs 126) look similar
+            min_val = 0  # Always use zero as baseline
+            max_val = max(numeric_values)
+            value_range = max_val if max_val > 0 else 1.0
+        else:
+            # Not enough values for proportional scaling
+            use_proportional_values = False
+    
     # Track how many non-None bars we've processed for proper values indexing
     bar_index = 0
     
@@ -151,8 +178,22 @@ def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price"
             # Don't render anything (true gap)
             continue
         else:
-            # Normal bar with value
-            bar_height = (height / 7.0) * max_bar_height
+            # Calculate bar height
+            if use_proportional_values and bar_index < len(values):
+                try:
+                    # Use actual numeric value for proportional height
+                    val_float = float(values[bar_index])
+                    # Normalize to 0-1 range, then scale to max height
+                    # Add small minimum (10%) to ensure all bars are visible
+                    normalized = (val_float - min_val) / value_range
+                    bar_height = (0.1 + normalized * 0.9) * max_bar_height
+                except (ValueError, TypeError):
+                    # Value doesn't exist or isn't numeric - fall back to Unicode height
+                    bar_height = (height / 8.0) * max_bar_height
+            else:
+                # Use Unicode character height (for stock or when no values)
+                bar_height = (height / 8.0) * max_bar_height
+            
             y = svg_height - bar_height
             
             # Check if this bar is carried-forward
