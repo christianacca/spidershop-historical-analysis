@@ -770,6 +770,74 @@ def convert_sparklines_in_html(html, historical_data):
     return str(soup)
 
 
+def apply_signal_styling_to_html(html):
+    """
+    Apply color-coded CSS classes to Signal/Dealer Risk cells in HTML tables.
+    
+    This post-processes markdown-generated HTML tables (e.g., Top 10 analysis tables)
+    to add the same styling used in the full data tables.
+    
+    Args:
+        html: HTML string containing tables with Signal or Dealer Risk columns
+    
+    Returns:
+        HTML string with signal cells styled
+    """
+    if not html:
+        return html
+    
+    from bs4 import BeautifulSoup
+    
+    soup = BeautifulSoup(html, 'html.parser')
+    tables = soup.find_all('table')
+    
+    for table in tables:
+        # Find header row to identify Signal/Dealer Risk column
+        thead = table.find('thead')
+        if not thead:
+            continue
+        
+        header_row = thead.find('tr')
+        if not header_row:
+            continue
+        
+        headers = [th.get_text(strip=True) for th in header_row.find_all('th')]
+        
+        # Find Signal or Dealer Risk column index
+        signal_col_idx = None
+        try:
+            signal_col_idx = headers.index("Signal")
+        except ValueError:
+            try:
+                signal_col_idx = headers.index("Dealer Risk")
+            except ValueError:
+                continue  # No signal column in this table
+        
+        # Process each data row
+        tbody = table.find('tbody')
+        if not tbody:
+            continue
+        
+        for row in tbody.find_all('tr'):
+            cells = row.find_all('td')
+            
+            if signal_col_idx >= len(cells):
+                continue
+            
+            signal_cell = cells[signal_col_idx]
+            signal_text = signal_cell.get_text(strip=True)
+            
+            # Add appropriate CSS class based on signal emoji
+            if '🔥' in signal_text:
+                signal_cell['class'] = signal_cell.get('class', []) + ['signal-hot']
+            elif '⚠️' in signal_text:
+                signal_cell['class'] = signal_cell.get('class', []) + ['signal-watch']
+            elif '❌' in signal_text:
+                signal_cell['class'] = signal_cell.get('class', []) + ['signal-avoid']
+    
+    return str(soup)
+
+
 def generate_data_page(title, description, csv_filename, table_id, active_page, search_filter=True, analysis_markdown=None, legend_markdown=None, examples_markdown=None):
     """Generate a data page with table from CSV and optional analysis using Jinja2 template."""
     headers, rows = read_csv_file(csv_filename)
@@ -798,6 +866,8 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
     # Convert sparklines in analysis HTML (Top 10 tables from markdown)
     if analysis_html:
         analysis_html = convert_sparklines_in_html(analysis_html, historical_data)
+        # Apply signal cell styling to Top 10 tables
+        analysis_html = apply_signal_styling_to_html(analysis_html)
     
     # Determine labels based on page type (breeder vs dealer)
     stats_labels = None

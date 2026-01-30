@@ -306,8 +306,37 @@
         footer a:hover {
             text-decoration: underline;
         }
+                .filter-buttons-container {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
         
-        .table-controls {
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .filter-btn:hover {
+            border-color: #3498db;
+            background: #ecf0f1;
+        }
+        
+        .filter-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+                .table-controls {
             margin: 20px 0;
             display: flex;
             gap: 15px;
@@ -522,6 +551,30 @@
             
             // Reappend sorted rows
             rows.forEach(row => tbody.appendChild(row));
+        }
+        
+        function filterBySignal(signalType, tableId, button) {
+            const table = document.getElementById(tableId);
+            const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+            
+            // Update button states
+            const buttons = button.parentElement.getElementsByClassName('filter-btn');
+            for (let btn of buttons) {
+                btn.classList.remove('active');
+            }
+            button.classList.add('active');
+            
+            // Filter rows by signal
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const signal = row.getAttribute('data-signal');
+                
+                if (signalType === 'all' || signal === signalType) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
         }
         
         function filterTable(searchInput, tableId) {

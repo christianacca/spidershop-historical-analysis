@@ -2373,3 +2373,183 @@ class TestColorCodedSignalCells:
         species_cell = soup.find('tbody').find_all('td')[0]
         classes = species_cell.get('class', [])
         assert not any(c.startswith('signal-') for c in classes), "Non-signal cells should not have signal-* classes"
+
+    def test_signal_styling_applied_to_markdown_tables(self):
+        """Signal styling should be applied to markdown-generated HTML tables (Top 10 tables)."""
+        from generate_website import apply_signal_styling_to_html
+        
+        # Markdown table converted to HTML (simulating Top 10 table from analysis)
+        markdown_table_html = """
+        <table>
+            <thead>
+                <tr>
+                    <th>Species</th>
+                    <th>Signal</th>
+                    <th>Recommendation</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Hot Species</td>
+                    <td>🔥</td>
+                    <td>Pair soon</td>
+                </tr>
+                <tr>
+                    <td>Watch Species</td>
+                    <td>⚠️</td>
+                    <td>Monitor</td>
+                </tr>
+                <tr>
+                    <td>Avoid Species</td>
+                    <td>❌</td>
+                    <td>Skip</td>
+                </tr>
+            </tbody>
+        </table>
+        """
+        
+        result = apply_signal_styling_to_html(markdown_table_html)
+        soup = BeautifulSoup(result, 'html.parser')
+        
+        # Check that signal cells have appropriate classes
+        signal_cells = soup.find_all('td', string=lambda t: t and ('🔥' in t or '⚠️' in t or '❌' in t))
+        
+        hot_cell = [c for c in signal_cells if '🔥' in c.get_text()][0]
+        watch_cell = [c for c in signal_cells if '⚠️' in c.get_text()][0]
+        avoid_cell = [c for c in signal_cells if '❌' in c.get_text()][0]
+        
+        assert 'signal-hot' in hot_cell.get('class', []), "Hot signal should have signal-hot class"
+        assert 'signal-watch' in watch_cell.get('class', []), "Watch signal should have signal-watch class"
+        assert 'signal-avoid' in avoid_cell.get('class', []), "Avoid signal should have signal-avoid class"
+
+
+class TestInteractiveFilterButtons:
+    """Test suite for interactive filter buttons in data tables.
+    
+    This implements the UX enhancement for quick filtering of tables by signal type,
+    allowing users to instantly show only Hot (🔥), Watch (⚠️), or Avoid (❌) items.
+    """
+
+    def test_breeder_page_has_filter_buttons(self, tmp_path):
+        """Breeder page should include filter buttons above the table for Signal column."""
+        # Create a test CSV with Signal column
+        csv_file = tmp_path / "test_breeder.csv"
+        csv_file.write_text(
+            "Species,Signal,Recommendation\n"
+            "Hot Species,🔥,Good opportunity\n"
+            "Watch Species,⚠️,Monitor\n"
+            "Avoid Species,❌,Skip\n"
+        )
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Test Breeder Opportunities",
+            description="Test description",
+            csv_filename="test_breeder.csv",
+            table_id="test-breeder-table",
+            active_page="breeder"
+        )
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Should have a filter container
+        filter_container = soup.find('div', class_='filter-buttons-container')
+        assert filter_container is not None, "Should have filter buttons container"
+        
+        # Should have filter buttons with correct labels and emojis
+        buttons = filter_container.find_all('button', class_='filter-btn')
+        assert len(buttons) == 4, "Should have 4 filter buttons (All, Hot, Watch, Avoid)"
+        
+        button_texts = [btn.get_text(strip=True) for btn in buttons]
+        assert 'Show All' in button_texts[0], "Should have Show All button"
+        assert '🔥' in button_texts[1], "Should have Hot button with emoji"
+        assert '⚠️' in button_texts[2], "Should have Watch button with emoji"
+        assert '❌' in button_texts[3], "Should have Avoid button with emoji"
+
+    def test_dealer_page_has_filter_buttons(self, tmp_path):
+        """Dealer page should include filter buttons above the table for Dealer Risk column."""
+        csv_file = tmp_path / "test_dealer.csv"
+        csv_file.write_text(
+            "Species,Stock Reliability,Dealer Risk,Recommendation\n"
+            "Risky Species,40%,🔥,Stock up\n"
+            "Watch Species,65%,⚠️,Monitor\n"
+            "Safe Species,95%,❌,No action\n"
+        )
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Test Dealer Supply Risk",
+            description="Test description",
+            csv_filename="test_dealer.csv",
+            table_id="test-dealer-table",
+            active_page="dealer"
+        )
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Should have filter buttons
+        filter_container = soup.find('div', class_='filter-buttons-container')
+        assert filter_container is not None, "Should have filter buttons container"
+        
+        buttons = filter_container.find_all('button', class_='filter-btn')
+        assert len(buttons) == 4, "Should have 4 filter buttons"
+
+    def test_filter_buttons_have_onclick_handlers(self, tmp_path):
+        """Filter buttons should have onclick handlers for JavaScript filtering."""
+        csv_file = tmp_path / "test.csv"
+        csv_file.write_text("Species,Signal\nTest,🔥\n")
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Test",
+            description="Test",
+            csv_filename="test.csv",
+            table_id="test-table",
+            active_page="breeder"
+        )
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        buttons = soup.find_all('button', class_='filter-btn')
+        
+        # Each button should have an onclick attribute
+        for btn in buttons:
+            assert btn.get('onclick') is not None, "Filter buttons should have onclick handlers"
+            assert 'filterBySignal' in btn.get('onclick'), "Should call filterBySignal function"
+
+    def test_snapshot_page_has_no_filter_buttons(self, tmp_path):
+        """Snapshot and history pages should NOT have filter buttons (no Signal column)."""
+        csv_file = tmp_path / "test.csv"
+        csv_file.write_text("Species,Price,Size\nTest,25.00,2\n")
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Latest Snapshot",
+            description="Test",
+            csv_filename="test.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Should NOT have filter buttons
+        filter_container = soup.find('div', class_='filter-buttons-container')
+        assert filter_container is None, "Snapshot page should not have filter buttons (no Signal column)"
+
+    def test_javascript_filter_function_exists(self, tmp_path):
+        """Generated pages should include the filterBySignal JavaScript function."""
+        csv_file = tmp_path / "test.csv"
+        csv_file.write_text("Species,Signal\nTest,🔥\n")
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Test",
+            description="Test",
+            csv_filename="test.csv",
+            table_id="test-table",
+            active_page="breeder"
+        )
+        
+        # Should contain the filterBySignal function definition
+        assert 'function filterBySignal' in html, "Should include filterBySignal JavaScript function"
+        assert 'data-signal=' in html, "Table rows should have data-signal attributes for filtering"

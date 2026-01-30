@@ -25,7 +25,8 @@
   </thead>
   <tbody>
     {% for row in rows %}
-    <tr>
+    {% set signal_value = row[signal_col_idx][1]|string|trim if signal_col_idx is not none and signal_col_idx < row|length else '' %}
+    <tr{% if signal_value %} data-signal="{{ signal_value }}"{% endif %}>
       {% for i, cell in row %}
       {% if i == page_url_idx and page_url_idx is not none and scientific_name_idx is not none %}
         {% set url = cell|trim %}

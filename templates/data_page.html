@@ -40,8 +40,15 @@
     
     {% if headers and rows %}
     <h3>Full Data Table</h3>
-    
-    {% if search_filter %}
+        {% if signal_col_idx is not none %}
+    <div class="filter-buttons-container">
+        <button class="filter-btn active" onclick="filterBySignal('all', '{{ table_id }}', this)">Show All{% if summary_stats %} ({{ summary_stats.total }}){% endif %}</button>
+        <button class="filter-btn" onclick="filterBySignal('🔥', '{{ table_id }}', this)">🔥 Hot{% if summary_stats %} ({{ summary_stats.hot }}){% endif %}</button>
+        <button class="filter-btn" onclick="filterBySignal('⚠️', '{{ table_id }}', this)">⚠️ Watch{% if summary_stats %} ({{ summary_stats.watch }}){% endif %}</button>
+        <button class="filter-btn" onclick="filterBySignal('❌', '{{ table_id }}', this)">❌ Avoid{% if summary_stats %} ({{ summary_stats.avoid }}){% endif %}</button>
+    </div>
+    {% endif %}
+        {% if search_filter %}
     <div class="table-controls">
         <label for="search-{{ table_id }}">Search:</label>
         <input type="text" id="search-{{ table_id }}" placeholder="Type to filter..." onkeyup="filterTable(this, '{{ table_id }}')">
