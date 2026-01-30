@@ -592,22 +592,146 @@
             margin-bottom: 10px;
         }
         
+        /* Mobile Responsive Card Layout */
         @media (max-width: 768px) {
-            .data-table {
-                font-size: 0.85rem;
+            /* Hide table structure on mobile */
+            .data-table thead {
+                display: none;
             }
             
-            .data-table th,
+            .data-table tbody {
+                display: block;
+            }
+            
+            .data-table tbody tr {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 12px;
+                padding: 20px;
+                margin-bottom: 20px;
+                border: 2px solid #e1e8ed;
+                border-radius: 12px;
+                background: white;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            }
+            
+            .data-table tbody tr:hover {
+                background: white;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            }
+            
+            .data-table tbody tr:nth-child(even) {
+                background: white;
+            }
+            
+            /* Card cells with labels */
             .data-table td {
-                padding: 8px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0;
+                border: none;
+                font-size: 0.95rem;
             }
             
+            /* Add labels from data-label attribute */
+            .data-table td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: #555;
+                margin-right: 15px;
+                flex-shrink: 0;
+            }
+            
+            /* Signal/Risk cells - make them prominent in card layout */
+            .data-table .signal-hot,
+            .data-table .signal-watch,
+            .data-table .signal-avoid {
+                padding: 12px 16px;
+                border-radius: 8px;
+                border-left: none;
+                border: 2px solid;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            
+            .data-table .signal-hot {
+                border-color: #ef4444;
+            }
+            
+            .data-table .signal-watch {
+                border-color: #f59e0b;
+            }
+            
+            .data-table .signal-avoid {
+                border-color: #94a3b8;
+            }
+            
+            .data-table .signal-hot::before,
+            .data-table .signal-watch::before,
+            .data-table .signal-avoid::before {
+                font-weight: 700;
+                font-size: 1rem;
+            }
+            
+            /* Sparkline cells - keep horizontal layout */
+            .data-table td svg {
+                margin-left: auto;
+            }
+            
+            /* Species name - make it larger and more prominent */
+            .data-table td:first-child {
+                font-size: 1.1rem;
+                font-weight: 600;
+                color: #2c3e50;
+                padding-bottom: 8px;
+                border-bottom: 2px solid #e1e8ed;
+                margin-bottom: 8px;
+            }
+            
+            /* Responsive adjustments for other elements */
             header h1 {
                 font-size: 1.5rem;
             }
             
             nav ul {
                 flex-direction: column;
+            }
+            
+            .filter-buttons-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filter-btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .table-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .table-controls input {
+                min-width: 100%;
+            }
+            
+            .summary-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Tablet breakpoint - keep table layout but optimize spacing */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .data-table {
+                font-size: 0.9rem;
+            }
+            
+            .data-table th,
+            .data-table td {
+                padding: 10px;
             }
         }
     </style>

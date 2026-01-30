@@ -2876,3 +2876,195 @@ class TestStockPatternFiltering:
         html_lower = html.lower()
         assert 'risk' in html_lower and ':' in html, \
             "Dealer page should have clear label for risk level filters"
+
+
+class TestAddDataLabelsToTables:
+    """Test suite for adding data-label attributes to HTML tables for responsive layout."""
+
+    def test_adds_data_labels_to_simple_table(self):
+        """Should add data-label attributes to all td elements based on headers."""
+        from generate_website import add_data_labels_to_tables
+        
+        html = """
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>City</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>John</td>
+                    <td>30</td>
+                    <td>NYC</td>
+                </tr>
+                <tr>
+                    <td>Jane</td>
+                    <td>25</td>
+                    <td>LA</td>
+                </tr>
+            </tbody>
+        </table>
+        """
+        
+        result = add_data_labels_to_tables(html)
+        
+        # Parse result to verify
+        soup = BeautifulSoup(result, 'html.parser')
+        rows = soup.find_all('tr')
+        
+        # First row (John)
+        cells = rows[1].find_all('td')
+        assert cells[0].get('data-label') == 'Name'
+        assert cells[1].get('data-label') == 'Age'
+        assert cells[2].get('data-label') == 'City'
+        
+        # Second row (Jane)
+        cells = rows[2].find_all('td')
+        assert cells[0].get('data-label') == 'Name'
+        assert cells[1].get('data-label') == 'Age'
+        assert cells[2].get('data-label') == 'City'
+
+    def test_handles_multiple_tables(self):
+        """Should add data-label attributes to multiple tables independently."""
+        from generate_website import add_data_labels_to_tables
+        
+        html = """
+        <table>
+            <thead><tr><th>Col1</th><th>Col2</th></tr></thead>
+            <tbody><tr><td>A</td><td>B</td></tr></tbody>
+        </table>
+        <table>
+            <thead><tr><th>Header1</th><th>Header2</th><th>Header3</th></tr></thead>
+            <tbody><tr><td>X</td><td>Y</td><td>Z</td></tr></tbody>
+        </table>
+        """
+        
+        result = add_data_labels_to_tables(html)
+        soup = BeautifulSoup(result, 'html.parser')
+        tables = soup.find_all('table')
+        
+        # First table
+        cells = tables[0].find('tbody').find_all('td')
+        assert cells[0].get('data-label') == 'Col1'
+        assert cells[1].get('data-label') == 'Col2'
+        
+        # Second table
+        cells = tables[1].find('tbody').find_all('td')
+        assert cells[0].get('data-label') == 'Header1'
+        assert cells[1].get('data-label') == 'Header2'
+        assert cells[2].get('data-label') == 'Header3'
+
+    def test_handles_table_without_thead(self):
+        """Should skip tables without thead gracefully."""
+        from generate_website import add_data_labels_to_tables
+        
+        html = """
+        <table>
+            <tbody>
+                <tr><td>Data1</td><td>Data2</td></tr>
+            </tbody>
+        </table>
+        """
+        
+        result = add_data_labels_to_tables(html)
+        soup = BeautifulSoup(result, 'html.parser')
+        cells = soup.find_all('td')
+        
+        # Should not have data-label attributes
+        assert cells[0].get('data-label') is None
+        assert cells[1].get('data-label') is None
+
+    def test_handles_table_without_tbody(self):
+        """Should skip tables without tbody gracefully."""
+        from generate_website import add_data_labels_to_tables
+        
+        html = """
+        <table>
+            <thead>
+                <tr><th>Header1</th><th>Header2</th></tr>
+            </thead>
+        </table>
+        """
+        
+        result = add_data_labels_to_tables(html)
+        # Should not crash, returns valid HTML
+        assert '<table>' in result
+
+    def test_handles_mismatched_column_count(self):
+        """Should handle rows with different number of cells than headers."""
+        from generate_website import add_data_labels_to_tables
+        
+        html = """
+        <table>
+            <thead>
+                <tr><th>Col1</th><th>Col2</th><th>Col3</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>A</td><td>B</td></tr>
+                <tr><td>X</td><td>Y</td><td>Z</td><td>Extra</td></tr>
+            </tbody>
+        </table>
+        """
+        
+        result = add_data_labels_to_tables(html)
+        soup = BeautifulSoup(result, 'html.parser')
+        rows = soup.find('tbody').find_all('tr')
+        
+        # First row - only 2 cells, should get labels for first 2 headers
+        cells = rows[0].find_all('td')
+        assert len(cells) == 2
+        assert cells[0].get('data-label') == 'Col1'
+        assert cells[1].get('data-label') == 'Col2'
+        
+        # Second row - 4 cells, first 3 should get labels, 4th should not
+        cells = rows[1].find_all('td')
+        assert len(cells) == 4
+        assert cells[0].get('data-label') == 'Col1'
+        assert cells[1].get('data-label') == 'Col2'
+        assert cells[2].get('data-label') == 'Col3'
+        assert cells[3].get('data-label') is None  # No header for 4th column
+
+    def test_preserves_existing_html_content(self):
+        """Should preserve other HTML content and only modify tables."""
+        from generate_website import add_data_labels_to_tables
+        
+        html = """
+        <div class="container">
+            <p>Some text before table</p>
+            <table>
+                <thead><tr><th>Name</th></tr></thead>
+                <tbody><tr><td>John</td></tr></tbody>
+            </table>
+            <p>Some text after table</p>
+        </div>
+        """
+        
+        result = add_data_labels_to_tables(html)
+        
+        # Should preserve structure
+        assert '<div class="container">' in result
+        assert '<p>Some text before table</p>' in result
+        assert '<p>Some text after table</p>' in result
+        
+        # Should add data-label to table
+        soup = BeautifulSoup(result, 'html.parser')
+        td = soup.find('td')
+        assert td.get('data-label') == 'Name'
+
+    def test_empty_string_returns_empty_string(self):
+        """Should handle empty string input."""
+        from generate_website import add_data_labels_to_tables
+        
+        result = add_data_labels_to_tables("")
+        assert result == ""
+
+    def test_no_tables_returns_unchanged(self):
+        """Should return unchanged HTML when no tables present."""
+        from generate_website import add_data_labels_to_tables
+        
+        html = "<div><p>Just some text</p></div>"
+        result = add_data_labels_to_tables(html)
+        assert "<div><p>Just some text</p></div>" in result

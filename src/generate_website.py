@@ -234,6 +234,7 @@ def parse_markdown_to_html(markdown_text):
     
     Uses the 'tables', 'fenced_code', and 'md_in_html' extensions.
     Downgrades heading levels (h2→h3, h3→h4) to maintain proper hierarchy.
+    Adds data-label attributes to table cells for responsive card layout.
     """
     if not markdown_text:
         return ""
@@ -248,6 +249,9 @@ def parse_markdown_to_html(markdown_text):
     # Add our custom class to tables for styling consistency
     html = html.replace('<table>', '<table class="data-table markdown-table">')
     
+    # Add data-label attributes to table cells for mobile responsive layout
+    html = add_data_labels_to_tables(html)
+    
     # Downgrade heading levels to maintain semantic hierarchy
     # h2 → h3, h3 → h4, h4 → h5, h5 → h6
     # Process in reverse order to avoid double-replacements
@@ -257,6 +261,44 @@ def parse_markdown_to_html(markdown_text):
     html = html.replace('<h2>', '<h3>').replace('</h2>', '</h3>')
     
     return html
+
+
+def add_data_labels_to_tables(html):
+    """Add data-label attributes to table cells for mobile responsive layout.
+    
+    Parses HTML tables and adds data-label attributes to each <td> element
+    based on the corresponding <th> header text. This enables CSS-based
+    responsive card layouts where labels appear on mobile devices.
+    """
+    from bs4 import BeautifulSoup
+    
+    soup = BeautifulSoup(html, 'html.parser')
+    tables = soup.find_all('table')
+    
+    for table in tables:
+        # Extract headers
+        thead = table.find('thead')
+        if not thead:
+            continue
+        
+        header_row = thead.find('tr')
+        if not header_row:
+            continue
+        
+        headers = [th.get_text(strip=True) for th in header_row.find_all('th')]
+        
+        # Add data-label to each cell in tbody
+        tbody = table.find('tbody')
+        if not tbody:
+            continue
+        
+        for row in tbody.find_all('tr'):
+            cells = row.find_all('td')
+            for i, cell in enumerate(cells):
+                if i < len(headers):
+                    cell['data-label'] = headers[i]
+    
+    return str(soup)
 
 
 def extract_summary_stats(markdown):
