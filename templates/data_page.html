@@ -19,15 +19,30 @@
         </div>
         <div class="stat-card stat-hot">
             <div class="stat-value">{{ summary_stats.hot }}</div>
-            <div class="stat-label">{{ stats_labels.hot }}</div>
+            <div class="stat-label">
+                {{ stats_labels.hot }}
+                <span class="info-icon" tabindex="0">ℹ️
+                    <span class="tooltip">{{ tooltips.hot }}</span>
+                </span>
+            </div>
         </div>
         <div class="stat-card stat-watch">
             <div class="stat-value">{{ summary_stats.watch }}</div>
-            <div class="stat-label">{{ stats_labels.watch }}</div>
+            <div class="stat-label">
+                {{ stats_labels.watch }}
+                <span class="info-icon" tabindex="0">ℹ️
+                    <span class="tooltip">{{ tooltips.watch }}</span>
+                </span>
+            </div>
         </div>
         <div class="stat-card stat-avoid">
             <div class="stat-value">{{ summary_stats.avoid }}</div>
-            <div class="stat-label">{{ stats_labels.avoid }}</div>
+            <div class="stat-label">
+                {{ stats_labels.avoid }}
+                <span class="info-icon" tabindex="0">ℹ️
+                    <span class="tooltip">{{ tooltips.avoid }}</span>
+                </span>
+            </div>
         </div>
     </div>
     {% endif %}

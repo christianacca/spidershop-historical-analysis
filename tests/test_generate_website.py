@@ -289,9 +289,10 @@ class TestSummaryStatsInHtml:
             assert '<div class="stat-label">Species Analyzed</div>' in html
             
             assert '<div class="stat-value">1</div>' in html  # hot count (appears 3 times for hot/watch/avoid)
-            assert '<div class="stat-label">🔥 Hot</div>' in html
-            assert '<div class="stat-label">⚠️ Watch</div>' in html
-            assert '<div class="stat-label">❌ Avoid</div>' in html
+            # Labels now wrapped in stat-label div with info icons
+            assert '🔥 Hot' in html
+            assert '⚠️ Watch' in html
+            assert '❌ Avoid' in html
             
             # Verify Summary line text is NOT duplicated in the analysis HTML
             assert '**Summary:**' not in html
@@ -342,9 +343,9 @@ class TestSummaryStatsInHtml:
             # Verify dealer-specific labels are used (not breeder labels)
             # Note: extract_summary_stats returns hot/watch/avoid regardless of terminology,
             # but the template should use dealer-friendly labels
-            assert '<div class="stat-label">🔥 High Risk</div>' in html
-            assert '<div class="stat-label">⚠️ Moderate Risk</div>' in html
-            assert '<div class="stat-label">❌ Low Risk</div>' in html
+            assert '🔥 High Risk' in html
+            assert '⚠️ Moderate Risk' in html
+            assert '❌ Low Risk' in html
         finally:
             os.unlink(csv_filename)
 
@@ -402,8 +403,106 @@ class TestSummaryStatsInHtml:
                 analysis_markdown=analysis_markdown
             )
             
-            # Verify NO summary stats section
+            # Verify NO summary stats section (because no Summary line found)
             assert '<div class="summary-stats">' not in html
+        finally:
+            os.unlink(csv_filename)
+
+    def test_breeder_summary_cards_include_tooltip_explanations(self):
+        """Should include info icons with tooltip explanations for breeder signals."""
+        from generate_website import generate_data_page
+        
+        # Create a temporary CSV file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
+            f.write("Species,Signal\n")
+            f.write("Species A,🔥\n")
+            csv_filename = f.name
+        
+        analysis_markdown = """## 🧬 Breeder Opportunity Matrix (Top 10)
+
+**Summary:** 3 species analyzed | 🔥 Hot: 1 | ⚠️ Watch: 1 | ❌ Avoid: 1
+"""
+        
+        try:
+            html = generate_data_page(
+                "Breeder Opportunities",
+                "Test description",
+                csv_filename,
+                "test-table",
+                "breeder",
+                analysis_markdown=analysis_markdown
+            )
+            
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Verify info icons are present (one for each stat except total)
+            info_icons = soup.find_all('span', class_='info-icon')
+            assert len(info_icons) == 3  # hot, watch, avoid
+            
+            # Verify tooltips contain breeder-specific explanations
+            tooltips = soup.find_all('span', class_='tooltip')
+            assert len(tooltips) == 3
+            
+            # Check hot tooltip
+            hot_tooltip = tooltips[0].get_text()
+            assert 'breeding opportunity' in hot_tooltip.lower()
+            assert 'scarcity' in hot_tooltip.lower()
+            
+            # Check watch tooltip
+            watch_tooltip = tooltips[1].get_text()
+            assert 'emerging' in watch_tooltip.lower()
+            assert 'monitor' in watch_tooltip.lower() or 'watch' in watch_tooltip.lower()
+            
+            # Check avoid tooltip
+            avoid_tooltip = tooltips[2].get_text()
+            assert 'oversupplied' in avoid_tooltip.lower() or 'always available' in avoid_tooltip.lower()
+        finally:
+            os.unlink(csv_filename)
+
+    def test_dealer_summary_cards_include_tooltip_explanations(self):
+        """Should include info icons with dealer-specific tooltip explanations."""
+        from generate_website import generate_data_page
+        
+        # Create a temporary CSV file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
+            f.write("Species,Dealer Risk\n")
+            f.write("Species A,🔥\n")
+            csv_filename = f.name
+        
+        analysis_markdown = """## 🏪 Dealer Supply Risk Matrix (Top 10)
+
+**Summary:** 3 species analyzed | 🔥 High Risk: 1 | ⚠️ Moderate Risk: 1 | ❌ Low Risk: 1
+"""
+        
+        try:
+            html = generate_data_page(
+                "Dealer Supply Risk",
+                "Test description",
+                csv_filename,
+                "test-table",
+                "dealer",
+                analysis_markdown=analysis_markdown
+            )
+            
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Verify tooltips contain dealer-specific explanations
+            tooltips = soup.find_all('span', class_='tooltip')
+            assert len(tooltips) == 3
+            
+            # Check high risk tooltip
+            high_risk_tooltip = tooltips[0].get_text()
+            assert 'supply' in high_risk_tooltip.lower()
+            assert 'risk' in high_risk_tooltip.lower() or 'lost sales' in high_risk_tooltip.lower()
+            
+            # Check moderate risk tooltip
+            moderate_risk_tooltip = tooltips[1].get_text()
+            assert 'moderate' in moderate_risk_tooltip.lower()
+            assert 'supply' in moderate_risk_tooltip.lower()
+            
+            # Check low risk tooltip
+            low_risk_tooltip = tooltips[2].get_text()
+            assert 'healthy' in low_risk_tooltip.lower() or 'well-supplied' in low_risk_tooltip.lower()
         finally:
             os.unlink(csv_filename)
 

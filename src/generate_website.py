@@ -869,8 +869,9 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
         # Apply signal cell styling to Top 10 tables
         analysis_html = apply_signal_styling_to_html(analysis_html)
     
-    # Determine labels based on page type (breeder vs dealer)
+    # Determine labels and tooltips based on page type (breeder vs dealer)
     stats_labels = None
+    tooltips = None
     if summary_stats:
         if active_page == "dealer":
             stats_labels = {
@@ -878,11 +879,21 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
                 'watch': '⚠️ Moderate Risk',
                 'avoid': '❌ Low Risk'
             }
+            tooltips = {
+                'hot': 'High risk of lost sales due to supply constraints. Low stock reliability (<40% of runs) or slow restock speed, often with rising demand.',
+                'watch': 'Moderate supply concerns. Medium reliability (40-79% of runs) or intermittent restock patterns. Monitor carefully for escalating demand.',
+                'avoid': 'Healthy supply with high reliability (≥80% of runs). No urgency — these species consistently restock and are well-supplied.'
+            }
         else:  # breeder or other pages
             stats_labels = {
                 'hot': '🔥 Hot',
                 'watch': '⚠️ Watch',
                 'avoid': '❌ Avoid'
+            }
+            tooltips = {
+                'hot': 'Strong breeding opportunity. Sustained or emerging scarcity patterns (4+ weeks out of stock) with rising prices or high demand signals.',
+                'watch': 'Emerging opportunity forming. Species showing early scarcity (2-3 weeks) or cyclical patterns. Monitor for escalating signals.',
+                'avoid': 'Oversupplied or always available. No meaningful scarcity pattern detected, regardless of demand spikes.'
             }
     
     examples_html = parse_markdown_to_html(examples_markdown) if examples_markdown else None
@@ -928,6 +939,7 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
         analysis_html=analysis_html,
         summary_stats=summary_stats,
         stats_labels=stats_labels,
+        tooltips=tooltips,
         legend_html=legend_html,
         examples_html=examples_html,
         headers=headers_enum,
