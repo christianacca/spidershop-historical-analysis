@@ -657,6 +657,30 @@
             }
         }
         
+        function filterByStockPattern(patternType, tableId, button) {
+            const table = document.getElementById(tableId);
+            const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+            
+            // Update button states
+            const buttons = button.parentElement.getElementsByClassName('filter-btn');
+            for (let btn of buttons) {
+                btn.classList.remove('active');
+            }
+            button.classList.add('active');
+            
+            // Filter rows by stock pattern
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const stockPattern = row.getAttribute('data-stock-pattern');
+                
+                if (patternType === 'all' || stockPattern === patternType) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        }
+        
         function filterTable(searchInput, tableId) {
             const filter = searchInput.value.toLowerCase();
             const table = document.getElementById(tableId);

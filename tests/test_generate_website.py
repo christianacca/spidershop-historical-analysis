@@ -2652,3 +2652,230 @@ class TestInteractiveFilterButtons:
         # Should contain the filterBySignal function definition
         assert 'function filterBySignal' in html, "Should include filterBySignal JavaScript function"
         assert 'data-signal=' in html, "Table rows should have data-signal attributes for filtering"
+
+
+class TestStockPatternFiltering:
+    """Test suite for Stock Pattern filtering feature on breeder page."""
+
+    def test_breeder_page_has_stock_pattern_filter_buttons(self, tmp_path):
+        """Breeder page should have Stock Pattern filter buttons."""
+        csv_file = tmp_path / "breeder.csv"
+        csv_file.write_text(
+            "Species,Size (cm),OOS,OOS Runs,Stock Pattern,Signal\n"
+            "Test Species 1,1,OUT,4,Sustained,🔥\n"
+            "Test Species 2,2,OUT,3,Emerging,⚠️\n"
+            "Test Species 3,1,IN/OUT,0,Cyclical,⚠️\n"
+            "Test Species 4,1,IN,0,Always,❌\n"
+        )
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Breeder Opportunities",
+            description="Test",
+            csv_filename="breeder.csv",
+            table_id="breeder-table",
+            active_page="breeder"
+        )
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Should have stock pattern filter buttons
+        stock_pattern_container = soup.find('div', class_='stock-pattern-filters')
+        assert stock_pattern_container is not None, "Breeder page should have stock pattern filter container"
+        
+        # Check for specific filter buttons
+        buttons = stock_pattern_container.find_all('button', class_='filter-btn')
+        button_texts = [btn.text.strip() for btn in buttons]
+        
+        # Check that buttons exist (may have counts in parentheses now)
+        assert any('Show All' in text for text in button_texts), "Should have 'Show All' button"
+        assert any('Sustained' in text for text in button_texts), "Should have 'Sustained' filter button"
+        assert any('Emerging' in text for text in button_texts), "Should have 'Emerging' filter button"
+        assert any('Cyclical' in text for text in button_texts), "Should have 'Cyclical' filter button"
+        assert any('Always' in text for text in button_texts), "Should have 'Always' filter button"
+
+    def test_breeder_table_rows_have_stock_pattern_data_attribute(self, tmp_path):
+        """Breeder table rows should have data-stock-pattern attribute for filtering."""
+        csv_file = tmp_path / "breeder.csv"
+        csv_file.write_text(
+            "Species,Size (cm),OOS,OOS Runs,Stock Pattern,Signal\n"
+            "Test Species 1,1,OUT,4,Sustained,🔥\n"
+            "Test Species 2,2,OUT,3,Emerging,⚠️\n"
+        )
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Breeder Opportunities",
+            description="Test",
+            csv_filename="breeder.csv",
+            table_id="breeder-table",
+            active_page="breeder"
+        )
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        table = soup.find('table', id='breeder-table')
+        rows = table.select('tbody tr')
+        
+        # Check first row
+        assert rows[0].get('data-stock-pattern') == 'Sustained'
+        assert rows[0].get('data-signal') == '🔥'
+        
+        # Check second row
+        assert rows[1].get('data-stock-pattern') == 'Emerging'
+        assert rows[1].get('data-signal') == '⚠️'
+
+    def test_dealer_page_does_not_have_stock_pattern_filters(self, tmp_path):
+        """Dealer page should NOT have Stock Pattern filters (not applicable)."""
+        csv_file = tmp_path / "dealer.csv"
+        csv_file.write_text(
+            "Species,Size (cm),Stock Reliability,Dealer Risk\n"
+            "Test Species,1,Low,🔥\n"
+        )
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Dealer Supply Risk",
+            description="Test",
+            csv_filename="dealer.csv",
+            table_id="dealer-table",
+            active_page="dealer"
+        )
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Should NOT have stock pattern filters
+        stock_pattern_container = soup.find('div', class_='stock-pattern-filters')
+        assert stock_pattern_container is None, "Dealer page should not have stock pattern filters"
+
+    def test_stock_pattern_filter_javascript_function_exists(self, tmp_path):
+        """Breeder page should include filterByStockPattern JavaScript function."""
+        csv_file = tmp_path / "breeder.csv"
+        csv_file.write_text(
+            "Species,Size (cm),Stock Pattern,Signal\n"
+            "Test,1,Sustained,🔥\n"
+        )
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Breeder Opportunities",
+            description="Test",
+            csv_filename="breeder.csv",
+            table_id="breeder-table",
+            active_page="breeder"
+        )
+        
+        # Should contain the filterByStockPattern function definition
+        assert 'function filterByStockPattern' in html, "Should include filterByStockPattern JavaScript function"
+        assert 'data-stock-pattern=' in html, "Table rows should have data-stock-pattern attributes"
+
+    def test_stock_pattern_buttons_have_counts(self, tmp_path):
+        """Stock pattern filter buttons should display counts for each pattern."""
+        csv_file = tmp_path / "breeder.csv"
+        csv_file.write_text(
+            "Species,Size (cm),Stock Pattern,Signal\n"
+            "Species 1,1,Sustained,🔥\n"
+            "Species 2,2,Sustained,🔥\n"
+            "Species 3,1,Emerging,⚠️\n"
+            "Species 4,1,Emerging,⚠️\n"
+            "Species 5,1,Emerging,⚠️\n"
+            "Species 6,1,Cyclical,⚠️\n"
+            "Species 7,1,Always,❌\n"
+        )
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Breeder Opportunities",
+            description="Test",
+            csv_filename="breeder.csv",
+            table_id="breeder-table",
+            active_page="breeder"
+        )
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        stock_pattern_container = soup.find('div', class_='stock-pattern-filters')
+        buttons = stock_pattern_container.find_all('button', class_='filter-btn')
+        button_texts = [btn.text.strip() for btn in buttons]
+        
+        # Check for counts in button text
+        assert 'Show All (7)' in button_texts, "Show All should have total count"
+        assert 'Sustained (2)' in button_texts, "Sustained should have count of 2"
+        assert 'Emerging (3)' in button_texts, "Emerging should have count of 3"
+        assert 'Cyclical (1)' in button_texts, "Cyclical should have count of 1"
+        assert 'Always (1)' in button_texts, "Always should have count of 1"
+
+    def test_stock_pattern_filter_has_clear_label(self, tmp_path):
+        """Stock pattern filters should have a clear label indicating what they filter."""
+        csv_file = tmp_path / "breeder.csv"
+        csv_file.write_text(
+            "Species,Size (cm),Stock Pattern,Signal\n"
+            "Test,1,Sustained,🔥\n"
+        )
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Breeder Opportunities",
+            description="Test",
+            csv_filename="breeder.csv",
+            table_id="breeder-table",
+            active_page="breeder"
+        )
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Should have a label/heading for stock pattern filters
+        # Look for text like "Stock Pattern:" or "Filter by Pattern:" near the buttons
+        stock_pattern_container = soup.find('div', class_='stock-pattern-filters')
+        assert stock_pattern_container is not None
+        
+        # Check if there's a label element or heading text before/inside the container
+        # The label should contain "Stock Pattern" or similar text
+        parent = stock_pattern_container.parent
+        assert parent is not None
+        
+        # Look for label text in the HTML near the filter buttons
+        html_lower = html.lower()
+        assert 'stock pattern' in html_lower or 'filter by pattern' in html_lower, \
+            "Should have clear label indicating stock pattern filtering"
+
+    def test_signal_filter_has_clear_label_on_breeder_page(self, tmp_path):
+        """Signal filters should have a clear label on breeder page for consistency."""
+        csv_file = tmp_path / "breeder.csv"
+        csv_file.write_text(
+            "Species,Size (cm),Signal\n"
+            "Test,1,🔥\n"
+        )
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Breeder Opportunities",
+            description="Test",
+            csv_filename="breeder.csv",
+            table_id="breeder-table",
+            active_page="breeder"
+        )
+        
+        # Should have a label for signal filters (e.g., "🎯 Signal:" or similar)
+        html_lower = html.lower()
+        assert 'signal:' in html_lower, "Breeder page should have clear label for signal filters"
+
+    def test_signal_filter_has_clear_label_on_dealer_page(self, tmp_path):
+        """Dealer Risk filters should have a clear label on dealer page for consistency."""
+        csv_file = tmp_path / "dealer.csv"
+        csv_file.write_text(
+            "Species,Size (cm),Dealer Risk\n"
+            "Test,1,🔥\n"
+        )
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Dealer Supply Risk",
+            description="Test",
+            csv_filename="dealer.csv",
+            table_id="dealer-table",
+            active_page="dealer"
+        )
+        
+        # Should have a label for dealer risk filters (e.g., "🎯 Risk Level:" or "Dealer Risk:")
+        html_lower = html.lower()
+        assert 'risk' in html_lower and ':' in html, \
+            "Dealer page should have clear label for risk level filters"

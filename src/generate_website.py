@@ -408,6 +408,7 @@ def generate_table_html(headers, rows, table_id, sortable=True):
     page_url_idx = None
     scientific_name_idx = None
     signal_col_idx = None
+    stock_pattern_col_idx = None
     try:
         page_url_idx = headers.index('page_url')
         scientific_name_idx = headers.index('scientific_name')
@@ -423,6 +424,12 @@ def generate_table_html(headers, rows, table_id, sortable=True):
         except ValueError:
             pass  # No signal column found
     
+    # Find Stock Pattern column for breeder filtering
+    try:
+        stock_pattern_col_idx = headers.index('Stock Pattern')
+    except ValueError:
+        pass  # No stock pattern column (not breeder table)
+    
     # Enumerate headers and rows for template
     headers_enum = list(enumerate(headers))
     rows_enum = [list(enumerate(row)) for row in rows]
@@ -435,7 +442,8 @@ def generate_table_html(headers, rows, table_id, sortable=True):
         sortable=sortable,
         page_url_idx=page_url_idx,
         scientific_name_idx=scientific_name_idx,
-        signal_col_idx=signal_col_idx
+        signal_col_idx=signal_col_idx,
+        stock_pattern_col_idx=stock_pattern_col_idx
     )
 
 
@@ -908,6 +916,7 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
     page_url_idx = None
     scientific_name_idx = None
     signal_col_idx = None
+    stock_pattern_col_idx = None
     if headers:
         try:
             page_url_idx = headers.index('page_url')
@@ -923,6 +932,26 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
                 signal_col_idx = headers.index('Dealer Risk')
             except ValueError:
                 pass  # No signal column found
+        
+        # Find Stock Pattern column for breeder filtering
+        try:
+            stock_pattern_col_idx = headers.index('Stock Pattern')
+        except ValueError:
+            pass  # No stock pattern column (not breeder table)
+    
+    # Calculate stock pattern counts for filter buttons
+    stock_pattern_counts = None
+    if stock_pattern_col_idx is not None and rows:
+        from collections import Counter
+        patterns = [row[stock_pattern_col_idx] for row in rows if stock_pattern_col_idx < len(row)]
+        pattern_counter = Counter(patterns)
+        stock_pattern_counts = {
+            'total': len(patterns),
+            'sustained': pattern_counter.get('Sustained', 0),
+            'emerging': pattern_counter.get('Emerging', 0),
+            'cyclical': pattern_counter.get('Cyclical', 0),
+            'always': pattern_counter.get('Always', 0)
+        }
     
     # Enumerate headers and rows for template
     headers_enum = list(enumerate(headers)) if headers else []
@@ -948,6 +977,8 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
         page_url_idx=page_url_idx,
         scientific_name_idx=scientific_name_idx,
         signal_col_idx=signal_col_idx,
+        stock_pattern_col_idx=stock_pattern_col_idx,
+        stock_pattern_counts=stock_pattern_counts,
         timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     )
 
