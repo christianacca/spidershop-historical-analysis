@@ -523,39 +523,34 @@ def generate_homepage(last_scrape_time=None):
 
 def load_historical_sparkline_data():
     """
-    Load historical data from history CSV to enable tooltips with actual values.
+    Load historical data from history CSV in format ready for sparkline extraction.
     
     Returns:
-        Dictionary mapping (species, size) to list of historical data points
-        Each data point is a dict with: scrape_datetime, price_gbp, wishlist_count
+        Tuple of (by_run, runs) where:
+        - by_run: Dictionary mapping run_id (scrape_datetime) to list of rows
+        - runs: Sorted list of run IDs (scrape_datetime values)
     """
+    from history import group_by_run
+    
     history_file = "spidershop_spiderlings_history.csv"
     if not os.path.exists(history_file):
-        return {}
-    
-    historical_data = {}
+        return {}, []
     
     try:
+        history = []
         with open(history_file, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
-                species = row.get("scientific_name", "")
-                size = row.get("size_cm", "")
-                key = (species, size)
-                
-                if key not in historical_data:
-                    historical_data[key] = []
-                
-                historical_data[key].append({
-                    "scrape_datetime": row.get("scrape_datetime", ""),
-                    "price_gbp": row.get("price_gbp", ""),
-                    "wishlist_count": row.get("wishlist_count", "0"),
-                })
+                history.append(row)
+        
+        # Group by run and get sorted runs
+        by_run = group_by_run(history)
+        runs = sorted(by_run)
+        
+        return by_run, runs
     except Exception as e:
         print(f"Warning: Could not load historical data: {e}")
-        return {}
-    
-    return historical_data
+        return {}, []
 
 
 def convert_sparklines_in_rows(headers, rows, historical_data, csv_filename):
@@ -565,20 +560,24 @@ def convert_sparklines_in_rows(headers, rows, historical_data, csv_filename):
     Args:
         headers: List of column names
         rows: List of data rows
-        historical_data: Dictionary with historical values for tooltips
+        historical_data: Tuple of (by_run, runs) for sparkline extraction
         csv_filename: Name of the CSV file being processed
     
     Returns:
         Modified rows with sparklines converted to SVG
     """
+    from sparkline_helpers import extract_historical_values_with_carryforward
+    
+    by_run, runs = historical_data
+    
     # Identify sparkline columns
     sparkline_columns = {}
     for i, header in enumerate(headers):
         if "History" in header or "Availability" in header:
             if "Price" in header:
-                sparkline_columns[i] = "price"
+                sparkline_columns[i] = "price_gbp"
             elif "Wishlist" in header:
-                sparkline_columns[i] = "wishlist"
+                sparkline_columns[i] = "wishlist_count"
             elif "Stock" in header or "Availability" in header:
                 sparkline_columns[i] = "stock"
     
@@ -600,24 +599,32 @@ def convert_sparklines_in_rows(headers, rows, historical_data, csv_filename):
         key = (species, size) if species and size else None
         
         # Convert each sparkline column
-        for col_idx, metric_type in sparkline_columns.items():
+        for col_idx, field_name in sparkline_columns.items():
             if col_idx < len(new_row):
                 unicode_sparkline = new_row[col_idx]
                 
-                # Extract last 8 values from historical data
+                # Extract values with carried-forward tracking using the same logic as matrix generation
                 values = None
-                if key and key in historical_data and metric_type != "stock":
-                    history = historical_data[key]
-                    # Take last 8 data points
-                    recent = history[-8:] if len(history) > 8 else history
-                    
-                    if metric_type == "price":
-                        values = [h.get("price_gbp", "") for h in recent]
-                    elif metric_type == "wishlist":
-                        values = [h.get("wishlist_count", "0") for h in recent]
+                is_carried_forward = None
+                
+                # Determine metric type from field_name
+                if field_name == "stock":
+                    metric_type = "stock"
+                elif field_name == "price_gbp":
+                    metric_type = "price"
+                elif field_name == "wishlist_count":
+                    metric_type = "wishlist"
+                else:
+                    metric_type = None
+                
+                # Extract historical values if available
+                if field_name != "stock" and key and by_run:
+                    result = extract_historical_values_with_carryforward(key, by_run, runs, field_name, max_runs=8)
+                    values = result['values']
+                    is_carried_forward = result['is_carried_forward']
                 
                 # Convert to SVG
-                svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type)
+                svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type, is_carried_forward=is_carried_forward)
                 new_row[col_idx] = svg
         
         converted_rows.append(new_row)
@@ -633,7 +640,7 @@ def convert_sparklines_in_html(html, historical_data):
     
     Args:
         html: HTML string containing tables with Unicode sparklines
-        historical_data: Dictionary with historical values for tooltips
+        historical_data: Tuple of (by_run, runs) for sparkline extraction
     
     Returns:
         HTML string with sparklines converted to SVG
@@ -642,6 +649,9 @@ def convert_sparklines_in_html(html, historical_data):
         return html
     
     from bs4 import BeautifulSoup
+    from sparkline_helpers import extract_historical_values_with_carryforward
+    
+    by_run, runs = historical_data
     
     soup = BeautifulSoup(html, 'html.parser')
     tables = soup.find_all('table')
@@ -658,15 +668,15 @@ def convert_sparklines_in_html(html, historical_data):
         
         headers = [th.get_text(strip=True) for th in header_row.find_all('th')]
         
-        # Identify sparkline columns and their types
+        # Identify sparkline columns and their field names
         sparkline_columns = {}
         for i, header in enumerate(headers):
             if "Price History" in header:
-                sparkline_columns[i] = "price"
+                sparkline_columns[i] = ("price_gbp", "price")
             elif "Wishlist History" in header:
-                sparkline_columns[i] = "wishlist"
+                sparkline_columns[i] = ("wishlist_count", "wishlist")
             elif "Stock Availability" in header or "Stock" in header:
-                sparkline_columns[i] = "stock"
+                sparkline_columns[i] = (None, "stock")
         
         if not sparkline_columns:
             continue
@@ -697,26 +707,24 @@ def convert_sparklines_in_html(html, historical_data):
             key = (species, size) if species and size else None
             
             # Convert sparklines in this row
-            for col_idx, metric_type in sparkline_columns.items():
+            for col_idx, (field_name, metric_type) in sparkline_columns.items():
                 if col_idx >= len(cells):
                     continue
                 
                 cell = cells[col_idx]
                 unicode_sparkline = cell.get_text(strip=True)
                 
-                # Extract last 8 values from historical data
+                # Extract values with carried-forward tracking
                 values = None
-                if key and key in historical_data and metric_type != "stock":
-                    history = historical_data[key]
-                    recent = history[-8:] if len(history) > 8 else history
-                    
-                    if metric_type == "price":
-                        values = [h.get("price_gbp", "") for h in recent]
-                    elif metric_type == "wishlist":
-                        values = [h.get("wishlist_count", "0") for h in recent]
+                is_carried_forward = None
+                
+                if key and by_run and field_name is not None:
+                    result = extract_historical_values_with_carryforward(key, by_run, runs, field_name, max_runs=8)
+                    values = result['values']
+                    is_carried_forward = result['is_carried_forward']
                 
                 # Convert to SVG
-                svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type)
+                svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type, is_carried_forward=is_carried_forward)
                 
                 # Replace cell content with SVG (mark as safe HTML)
                 cell.clear()

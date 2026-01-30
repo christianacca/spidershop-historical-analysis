@@ -203,11 +203,12 @@ class TestExtractWithCarryforward:
         runs = sorted(by_run)
         key = ("Spider A", "1.0")
         
-        values = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp")
+        result = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp")
         
         # Should skip weeks 1-2, start at week 3
-        assert len(values) == 2
-        assert values == ["12.00", "13.00"]
+        assert result['values'] == ["12.00", "13.00"]
+        assert result['is_carried_forward'] == [False, False]
+        assert result['unicode'] == "▁█"  # 12.00 < 13.00 → rising
     
     def test_never_appears_returns_empty_list(self):
         """Species that never appears → empty list"""
@@ -219,9 +220,11 @@ class TestExtractWithCarryforward:
         runs = sorted(by_run)
         key = ("Spider A", "1.0")  # Never appears
         
-        values = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp")
+        result = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp")
         
-        assert values == []
+        assert result['values'] == []
+        assert result['is_carried_forward'] == []
+        assert result['unicode'] == "-"
     
     # Rule 2: Carry-Forward - No Mid-Sparkline Gaps
     
@@ -236,9 +239,11 @@ class TestExtractWithCarryforward:
         runs = sorted(by_run)
         key = ("Spider A", "1.0")
         
-        values = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp")
+        result = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp")
         
-        assert values == ["25.00", "25.00", "30.00"]  # Carried forward in week 2
+        assert result['values'] == ["25.00", "25.00", "30.00"]  # Carried forward in week 2
+        assert result['is_carried_forward'] == [False, True, False]
+        assert result['unicode'] == "▁▁█"
     
     def test_carries_forward_during_multiple_out_weeks(self):
         """Rule 2: Carry forward persists across multiple OUT weeks"""
@@ -253,9 +258,11 @@ class TestExtractWithCarryforward:
         runs = sorted(by_run)
         key = ("Spider A", "1.0")
         
-        values = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp")
+        result = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp")
         
-        assert values == ["25.00", "25.00", "25.00", "25.00", "30.00"]
+        assert result['values'] == ["25.00", "25.00", "25.00", "25.00", "30.00"]
+        assert result['is_carried_forward'] == [False, True, True, True, False]
+        assert result['unicode'] == "▁▁▁▁█"
     
     def test_updates_carryforward_value_on_restock(self):
         """When species returns, carry-forward value updates to new value"""
@@ -270,10 +277,12 @@ class TestExtractWithCarryforward:
         runs = sorted(by_run)
         key = ("Spider A", "1.0")
         
-        values = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp")
+        result = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp")
         
         # Carries 22.00 during OUT, then updates to 25.00
-        assert values == ["20.00", "22.00", "22.00", "22.00", "25.00"]
+        assert result['values'] == ["20.00", "22.00", "22.00", "22.00", "25.00"]
+        assert result['is_carried_forward'] == [False, False, True, True, False]
+        assert result['unicode'] == "▁▄▄▄█"
     
     def test_carries_forward_until_end_if_never_restocks(self):
         """If species goes OUT and never returns, carry forward to end"""
@@ -287,9 +296,11 @@ class TestExtractWithCarryforward:
         runs = sorted(by_run)
         key = ("Spider A", "1.0")
         
-        values = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp")
+        result = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp")
         
-        assert values == ["20.00", "22.00", "22.00", "22.00"]
+        assert result['values'] == ["20.00", "22.00", "22.00", "22.00"]
+        assert result['is_carried_forward'] == [False, False, True, True]
+        assert result['unicode'] == "▁███"
     
     # Combined scenarios (Start Point + Carry-Forward)
     
@@ -309,10 +320,12 @@ class TestExtractWithCarryforward:
         runs = sorted(by_run)
         key = ("Spider A", "1.0")
         
-        values = extract_historical_values_with_carryforward(key, by_run, runs, "wishlist_count")
+        result = extract_historical_values_with_carryforward(key, by_run, runs, "wishlist_count")
         
         # Skips week 1, starts week 2, carries 7 during weeks 4-6
-        assert values == ["5", "7", "7", "7", "7", "12", "15"]
+        assert result['values'] == ["5", "7", "7", "7", "7", "12", "15"]
+        assert result['is_carried_forward'] == [False, False, True, True, True, False, False]
+        assert result['unicode'] == "▁▂▂▂▂▆█"
     
     # Test with different fields
     
@@ -328,9 +341,11 @@ class TestExtractWithCarryforward:
         runs = sorted(by_run)
         key = ("Spider A", "1.0")
         
-        values = extract_historical_values_with_carryforward(key, by_run, runs, "wishlist_count")
+        result = extract_historical_values_with_carryforward(key, by_run, runs, "wishlist_count")
         
-        assert values == ["10", "10", "10", "15"]
+        assert result['values'] == ["10", "10", "10", "15"]
+        assert result['is_carried_forward'] == [False, True, True, False]
+        assert result['unicode'] == "▁▁▁█"
     
     def test_handles_empty_field_value(self):
         """If field is missing/empty, should carry forward empty string"""
@@ -342,9 +357,11 @@ class TestExtractWithCarryforward:
         runs = sorted(by_run)
         key = ("Spider A", "1.0")
         
-        values = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp")
+        result = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp")
         
-        assert values == ["", ""]  # Empty string carried forward
+        assert result['values'] == ["", ""]  # Empty string carried forward
+        assert result['is_carried_forward'] == [False, True]
+        assert result['unicode'] == "-"
     
     # Test max_runs parameter
     
@@ -362,11 +379,13 @@ class TestExtractWithCarryforward:
         runs = sorted(by_run)
         key = ("Spider A", "1.0")
         
-        values = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp", max_runs=3)
+        result = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp", max_runs=3)
         
         # Last 3 runs: week 4 (13.00), week 5 (OUT, carry 13.00), week 6 (14.00)
-        assert len(values) == 3
-        assert values == ["13.00", "13.00", "14.00"]
+        assert len(result['values']) == 3
+        assert result['values'] == ["13.00", "13.00", "14.00"]
+        assert result['is_carried_forward'] == [False, True, False]
+        assert result['unicode'] == "▁▁█"
 
 
 # ==================== generate_stock_availability_sparkline() ====================
@@ -477,8 +496,8 @@ class TestSparklineIntegration:
         runs = sorted(by_run)
         key = ("Spider A", "1.0")
         
-        values = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp")
-        sparkline = generate_sparkline(values)
+        result = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp")
+        sparkline = result['unicode']
         
         # Should show clear upward trend
         assert len(sparkline) == 8
@@ -501,8 +520,8 @@ class TestSparklineIntegration:
         runs = sorted(by_run)
         key = ("Spider A", "1.0")
         
-        values = extract_historical_values_with_carryforward(key, by_run, runs, "wishlist_count")
-        sparkline = generate_sparkline(values)
+        result = extract_historical_values_with_carryforward(key, by_run, runs, "wishlist_count")
+        sparkline = result['unicode']
         
         # Should show: low, mid, mid(plateau x3), high, higher
         assert len(sparkline) == 7
@@ -525,8 +544,8 @@ class TestSparklineIntegration:
         runs = sorted(by_run)
         key = ("Spider A", "1.0")
         
-        values = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp")
-        sparkline = generate_sparkline(values)
+        result = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp")
+        sparkline = result['unicode']
         
         # Should show dip in middle (positions 2-3)
         assert len(sparkline) == 8

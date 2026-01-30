@@ -4,7 +4,7 @@ from history import group_by_run, k2
 from config import BREEDER_TABLE_FILE
 from assertions import get_summary_path
 from wishlist_analysis import compute_wishlist_pressure, get_oos_wishlist_carryover, compute_wishlist_delta
-from sparkline_helpers import generate_sparkline, extract_historical_values_with_carryforward
+from sparkline_helpers import extract_historical_values_with_carryforward
 
 # =====================
 # BREEDER MATRIX (PRICE AWARE) — FIXED TO INCLUDE OUT-OF-STOCK ITEMS
@@ -192,11 +192,11 @@ def build_breeder_opportunity_table(history_rows):
 
         # Generate sparklines for price and wishlist trends
         # Use carry-forward to show persistent values when OUT (price/wishlist don't disappear)
-        price_history_values = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp", max_runs=8)
-        wishlist_history_values = extract_historical_values_with_carryforward(key, by_run, runs, "wishlist_count", max_runs=8)
+        price_history = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp", max_runs=8)
+        wishlist_history = extract_historical_values_with_carryforward(key, by_run, runs, "wishlist_count", max_runs=8)
         
-        price_sparkline = generate_sparkline(price_history_values, max_length=8)
-        wishlist_sparkline = generate_sparkline(wishlist_history_values, max_length=8)
+        price_sparkline = price_history['unicode']
+        wishlist_sparkline = wishlist_history['unicode']
 
         table.append({
             "Species": row.get("scientific_name", key[0]),

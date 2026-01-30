@@ -1818,6 +1818,114 @@ class TestSparklineSVGConversion:
         assert "Week" in tooltips[4], f"Fifth bar should show 'Week N', got {tooltips[4]}"
 
 
+class TestConvertSparklinesInRows:
+    """Test suite for converting Unicode sparklines in CSV rows."""
+
+    def test_converts_price_sparklines_in_csv_rows(self):
+        """Should convert price history sparklines in CSV data rows."""
+        from generate_website import convert_sparklines_in_rows
+        
+        headers = ["Species", "Size (cm)", "Price History"]
+        rows = [
+            ["Aphonopelma seemanni", "1.5", "▁▂▃▄▅▆▇█"]
+        ]
+        
+        # Create historical data structure
+        by_run = {
+            "2025-01-01": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "8.99", "wishlist_count": "5"}],
+            "2025-01-08": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "10.50", "wishlist_count": "5"}],
+            "2025-01-15": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "12.99", "wishlist_count": "5"}],
+            "2025-01-22": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "16.50", "wishlist_count": "5"}],
+            "2025-01-29": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "18.99", "wishlist_count": "20"}],
+            "2025-02-05": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "21.00", "wishlist_count": "22"}],
+            "2025-02-12": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "21.00", "wishlist_count": "25"}],
+            "2025-02-19": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "24.99", "wishlist_count": "28"}],
+        }
+        runs = sorted(by_run.keys())
+        historical_data = (by_run, runs)
+        
+        result = convert_sparklines_in_rows(headers, rows, historical_data, "test.csv")
+        
+        # Should have SVG in the sparkline column
+        assert '<svg' in result[0][2]
+        assert '</svg>' in result[0][2]
+        assert '8.99' in result[0][2] or '£8.99' in result[0][2]
+
+    def test_converts_wishlist_sparklines_in_csv_rows(self):
+        """Should convert wishlist history sparklines in CSV data rows."""
+        from generate_website import convert_sparklines_in_rows
+        
+        headers = ["Species", "Size (cm)", "Wishlist History"]
+        rows = [
+            ["Test Species", "2.0", "▁▁▁▁████"]
+        ]
+        
+        by_run = {
+            "2025-01-01": [{"scientific_name": "Test Species", "size_cm": "2.0", "price_gbp": "10.00", "wishlist_count": "5"}],
+            "2025-01-08": [{"scientific_name": "Test Species", "size_cm": "2.0", "price_gbp": "10.00", "wishlist_count": "5"}],
+            "2025-01-15": [{"scientific_name": "Test Species", "size_cm": "2.0", "price_gbp": "10.00", "wishlist_count": "5"}],
+            "2025-01-22": [{"scientific_name": "Test Species", "size_cm": "2.0", "price_gbp": "10.00", "wishlist_count": "5"}],
+            "2025-01-29": [{"scientific_name": "Test Species", "size_cm": "2.0", "price_gbp": "10.00", "wishlist_count": "20"}],
+            "2025-02-05": [{"scientific_name": "Test Species", "size_cm": "2.0", "price_gbp": "10.00", "wishlist_count": "22"}],
+            "2025-02-12": [{"scientific_name": "Test Species", "size_cm": "2.0", "price_gbp": "10.00", "wishlist_count": "25"}],
+            "2025-02-19": [{"scientific_name": "Test Species", "size_cm": "2.0", "price_gbp": "10.00", "wishlist_count": "28"}],
+        }
+        runs = sorted(by_run.keys())
+        historical_data = (by_run, runs)
+        
+        result = convert_sparklines_in_rows(headers, rows, historical_data, "test.csv")
+        
+        assert '<svg' in result[0][2]
+        assert 'wishlists' in result[0][2]
+
+    def test_converts_stock_availability_sparklines_in_csv_rows(self):
+        """Should convert stock availability sparklines without crashing (regression test for metric_type=None bug)."""
+        from generate_website import convert_sparklines_in_rows
+        
+        headers = ["Species", "Size (cm)", "Stock Availability"]
+        rows = [
+            ["Test Species", "2.0", "█ █ █"]
+        ]
+        
+        # Stock sparklines don't use historical data
+        historical_data = ({}, [])
+        
+        # Should not raise AttributeError: 'NoneType' object has no attribute 'capitalize'
+        result = convert_sparklines_in_rows(headers, rows, historical_data, "test.csv")
+        
+        assert '<svg' in result[0][2]
+        assert '<title>IN</title>' in result[0][2]
+
+    def test_handles_rows_without_sparkline_columns(self):
+        """Should return unchanged rows when no sparkline columns present."""
+        from generate_website import convert_sparklines_in_rows
+        
+        headers = ["Species", "Size (cm)", "Price"]
+        rows = [
+            ["Test Species", "2.0", "£10.00"]
+        ]
+        
+        result = convert_sparklines_in_rows(headers, rows, ({}, []), "test.csv")
+        
+        # Should be unchanged
+        assert result == rows
+
+    def test_handles_empty_historical_data(self):
+        """Should handle missing historical data gracefully."""
+        from generate_website import convert_sparklines_in_rows
+        
+        headers = ["Species", "Size (cm)", "Price History"]
+        rows = [
+            ["Unknown Species", "1.0", "▁▂▃▄"]
+        ]
+        
+        # No historical data available
+        result = convert_sparklines_in_rows(headers, rows, ({}, []), "test.csv")
+        
+        # Should still convert to SVG (without values)
+        assert '<svg' in result[0][2]
+
+
 class TestConvertSparklinesInHtml:
     """Test suite for converting Unicode sparklines in HTML tables."""
 
@@ -1847,19 +1955,20 @@ class TestConvertSparklinesInHtml:
         </table>
         """
         
-        # Mock historical data
-        historical_data = {
-            ("Aphonopelma seemanni", "1.5"): [
-                {"price_gbp": "8.99", "wishlist_count": "5"},
-                {"price_gbp": "10.50", "wishlist_count": "5"},
-                {"price_gbp": "12.99", "wishlist_count": "5"},
-                {"price_gbp": "16.50", "wishlist_count": "5"},
-                {"price_gbp": "18.99", "wishlist_count": "20"},
-                {"price_gbp": "21.00", "wishlist_count": "22"},
-                {"price_gbp": "21.00", "wishlist_count": "25"},
-                {"price_gbp": "24.99", "wishlist_count": "28"},
-            ]
+        # Mock historical data in (by_run, runs) format
+        # Create simple structure with one run per row
+        by_run = {
+            "2025-01-01": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "8.99", "wishlist_count": "5"}],
+            "2025-01-08": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "10.50", "wishlist_count": "5"}],
+            "2025-01-15": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "12.99", "wishlist_count": "5"}],
+            "2025-01-22": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "16.50", "wishlist_count": "5"}],
+            "2025-01-29": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "18.99", "wishlist_count": "20"}],
+            "2025-02-05": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "21.00", "wishlist_count": "22"}],
+            "2025-02-12": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "21.00", "wishlist_count": "25"}],
+            "2025-02-19": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "24.99", "wishlist_count": "28"}],
         }
+        runs = sorted(by_run.keys())
+        historical_data = (by_run, runs)
         
         result = convert_sparklines_in_html(html, historical_data)
         
@@ -1879,7 +1988,7 @@ class TestConvertSparklinesInHtml:
         from generate_website import convert_sparklines_in_html
         
         html = "<p>No tables here</p>"
-        result = convert_sparklines_in_html(html, {})
+        result = convert_sparklines_in_html(html, ({}, []))
         
         assert result == html
 
@@ -1898,7 +2007,7 @@ class TestConvertSparklinesInHtml:
         </table>
         """
         
-        result = convert_sparklines_in_html(html, {})
+        result = convert_sparklines_in_html(html, ({}, []))
         
         # Should contain table but no SVG
         assert '<table>' in result
@@ -1908,8 +2017,8 @@ class TestConvertSparklinesInHtml:
         """Should handle None or empty HTML gracefully."""
         from generate_website import convert_sparklines_in_html
         
-        assert convert_sparklines_in_html(None, {}) is None
-        assert convert_sparklines_in_html("", {}) == ""
+        assert convert_sparklines_in_html(None, ({}, [])) is None
+        assert convert_sparklines_in_html("", ({}, [])) == ""
 
     def test_converts_stock_availability_sparklines(self):
         """Should convert stock availability sparklines in HTML tables."""
@@ -1932,7 +2041,7 @@ class TestConvertSparklinesInHtml:
         </table>
         """
         
-        result = convert_sparklines_in_html(html, {})
+        result = convert_sparklines_in_html(html, ({}, []))
         
         # Should contain SVG for stock availability
         assert '<svg' in result
