@@ -477,6 +477,68 @@
             font-size: 0.9em;
         }
         
+        .advanced-filters {
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        
+        .advanced-filters-toggle {
+            background: #f8f9fa;
+            border: 2px solid #ddd;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.95rem;
+            color: #495057;
+            transition: all 0.2s;
+            margin-left: 10px;
+        }
+        
+        .advanced-filters-toggle:hover {
+            background: #e9ecef;
+            border-color: #3498db;
+        }
+        
+        .advanced-filters-toggle .arrow {
+            transition: transform 0.2s;
+            font-size: 0.8rem;
+        }
+        
+        .advanced-filters-toggle.expanded .arrow {
+            transform: rotate(90deg);
+        }
+        
+        .advanced-filters-content {
+            display: none;
+            padding: 15px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+        
+        .advanced-filters-content.show {
+            display: block;
+        }
+        
+        .filter-row {
+            margin-bottom: 15px;
+        }
+        
+        .filter-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .filter-row strong {
+            color: #34495e;
+            margin-right: 10px;
+            display: block;
+            margin-bottom: 8px;
+        }
+        
         .analysis-section hr {
             margin: 30px 0;
             border: none;
@@ -690,6 +752,19 @@
                 const text = row.textContent.toLowerCase();
                 row.style.display = text.includes(filter) ? '' : 'none';
             });
+        }
+        
+        function toggleAdvancedFilters(contentId, toggleButton) {
+            const content = document.getElementById(contentId);
+            const isExpanded = content.classList.contains('show');
+            
+            if (isExpanded) {
+                content.classList.remove('show');
+                toggleButton.classList.remove('expanded');
+            } else {
+                content.classList.add('show');
+                toggleButton.classList.add('expanded');
+            }
         }
     </script>
 </body>

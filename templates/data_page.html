@@ -55,18 +55,6 @@
     
     {% if headers and rows %}
     <h3>Full Data Table</h3>
-        {% if stock_pattern_col_idx is not none %}
-    <div style="margin-bottom: 15px;">
-        <strong style="color: #34495e; margin-right: 10px;">📊 Stock Pattern:</strong>
-        <div class="stock-pattern-filters filter-buttons-container" style="display: inline-block;">
-            <button class="filter-btn active" onclick="filterByStockPattern('all', '{{ table_id }}', this)">Show All{% if stock_pattern_counts %} ({{ stock_pattern_counts.total }}){% endif %}</button>
-            <button class="filter-btn" onclick="filterByStockPattern('Sustained', '{{ table_id }}', this)">Sustained{% if stock_pattern_counts %} ({{ stock_pattern_counts.sustained }}){% endif %}</button>
-            <button class="filter-btn" onclick="filterByStockPattern('Emerging', '{{ table_id }}', this)">Emerging{% if stock_pattern_counts %} ({{ stock_pattern_counts.emerging }}){% endif %}</button>
-            <button class="filter-btn" onclick="filterByStockPattern('Cyclical', '{{ table_id }}', this)">Cyclical{% if stock_pattern_counts %} ({{ stock_pattern_counts.cyclical }}){% endif %}</button>
-            <button class="filter-btn" onclick="filterByStockPattern('Always', '{{ table_id }}', this)">Always{% if stock_pattern_counts %} ({{ stock_pattern_counts.always }}){% endif %}</button>
-        </div>
-    </div>
-    {% endif %}
         {% if signal_col_idx is not none %}
     <div style="margin-bottom: 15px;">
         {% if active_page == "dealer" %}
@@ -79,13 +67,37 @@
             <button class="filter-btn" onclick="filterBySignal('🔥', '{{ table_id }}', this)">🔥 Hot{% if summary_stats %} ({{ summary_stats.hot }}){% endif %}</button>
             <button class="filter-btn" onclick="filterBySignal('⚠️', '{{ table_id }}', this)">⚠️ Watch{% if summary_stats %} ({{ summary_stats.watch }}){% endif %}</button>
             <button class="filter-btn" onclick="filterBySignal('❌', '{{ table_id }}', this)">❌ Avoid{% if summary_stats %} ({{ summary_stats.avoid }}){% endif %}</button>
+            {% if stock_pattern_col_idx is not none or search_filter %}
+            <button class="advanced-filters-toggle" onclick="toggleAdvancedFilters('advanced-filters-{{ table_id }}', this)">
+                <span class="arrow">▶</span>
+                <span>More Filters</span>
+            </button>
+            {% endif %}
         </div>
     </div>
     {% endif %}
-        {% if search_filter %}
-    <div class="table-controls">
-        <label for="search-{{ table_id }}">Search:</label>
-        <input type="text" id="search-{{ table_id }}" placeholder="Type to filter..." onkeyup="filterTable(this, '{{ table_id }}')">
+        {% if stock_pattern_col_idx is not none or search_filter %}
+    <div class="advanced-filters">
+        <div id="advanced-filters-{{ table_id }}" class="advanced-filters-content">
+            {% if stock_pattern_col_idx is not none %}
+            <div class="filter-row">
+                <strong>📊 Stock Pattern:</strong>
+                <div class="stock-pattern-filters filter-buttons-container">
+                    <button class="filter-btn active" onclick="filterByStockPattern('all', '{{ table_id }}', this)">Show All{% if stock_pattern_counts %} ({{ stock_pattern_counts.total }}){% endif %}</button>
+                    <button class="filter-btn" onclick="filterByStockPattern('Sustained', '{{ table_id }}', this)">Sustained{% if stock_pattern_counts %} ({{ stock_pattern_counts.sustained }}){% endif %}</button>
+                    <button class="filter-btn" onclick="filterByStockPattern('Emerging', '{{ table_id }}', this)">Emerging{% if stock_pattern_counts %} ({{ stock_pattern_counts.emerging }}){% endif %}</button>
+                    <button class="filter-btn" onclick="filterByStockPattern('Cyclical', '{{ table_id }}', this)">Cyclical{% if stock_pattern_counts %} ({{ stock_pattern_counts.cyclical }}){% endif %}</button>
+                    <button class="filter-btn" onclick="filterByStockPattern('Always', '{{ table_id }}', this)">Always{% if stock_pattern_counts %} ({{ stock_pattern_counts.always }}){% endif %}</button>
+                </div>
+            </div>
+            {% endif %}
+            {% if search_filter %}
+            <div class="filter-row">
+                <strong>🔍 Search:</strong>
+                <input type="text" id="search-{{ table_id }}" placeholder="Type to filter species, names, etc..." onkeyup="filterTable(this, '{{ table_id }}'" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem;">
+            </div>
+            {% endif %}
+        </div>
     </div>
     {% endif %}
     
