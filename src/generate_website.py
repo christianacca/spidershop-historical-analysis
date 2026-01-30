@@ -48,19 +48,19 @@ def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price"
     
     Args:
         unicode_sparkline: String of Unicode sparkline characters (e.g., "▁▂▃▄▅▆▇█")
-        values: List of actual numeric values (for tooltips), or None for stock availability
-        metric_type: "price", "wishlist", or "stock" (affects formatting and colors)
+        values: List of actual numeric values for price/wishlist, None for stock
+        metric_type: "price", "wishlist", or "stock"
         is_carried_forward: List of booleans indicating which values are carried-forward (optional)
     
     Returns:
         String containing SVG markup, or original string if conversion not possible
+        
+    Raises:
+        AssertionError: If values are required but missing/invalid for price/wishlist
     """
     # Don't convert if it's just a dash or empty string
     if not unicode_sparkline or unicode_sparkline == "-":
         return unicode_sparkline
-    
-    # Handle whitespace-only strings - treat as "no data" after parsing
-    # (but don't exit early - need to check if it's all spaces which means all gaps)
     
     # Parse Unicode characters into bar heights
     bars = []
@@ -77,16 +77,24 @@ def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price"
     if not non_none_bars:
         return "-"
     
+    # For price/wishlist: values must be provided and valid (fail fast)
+    if metric_type in ["price", "wishlist"]:
+        assert values is not None, f"Values required for {metric_type} sparklines"
+        assert len(values) > 0, f"Values array cannot be empty for {metric_type} sparklines"
+        # Validate all values are numeric
+        for v in values:
+            assert v is not None and str(v).replace('.', '').replace('-', '').isdigit(), \
+                f"Invalid non-numeric value in {metric_type} sparkline: {v}"
+    
     # Determine trend direction for color coding
-    # For carried-forward values: check if ALL non-None bars after first are carried forward
-    # If so, treat as neutral (no actual change occurred)
-    if len(non_none_bars) >= 2 and is_carried_forward:
-        # Check if we have actual change by examining is_carried_forward flags
+    # For stock: always green
+    if metric_type == "stock":
+        color = "#22c55e"  # Green
+        trend = "stock"
+    # For price/wishlist: check for actual changes
+    elif len(non_none_bars) >= 2 and is_carried_forward:
+        # Check if ALL values after first are carried forward (no actual change)
         non_none_indices = [i for i, b in enumerate(bars) if b is not None]
-        first_idx = non_none_indices[0]
-        last_idx = non_none_indices[-1]
-        
-        # Check if all values after first are carried forward
         all_carried_after_first = all(
             is_carried_forward[i] 
             for i in non_none_indices[1:] 
@@ -98,10 +106,10 @@ def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price"
             color = "#3b82f6"  # Blue
             trend = "stable"
         else:
-            # Has actual changes - use trend color
+            # Has actual changes - use trend color based on first vs last
             first_val = non_none_bars[0]
             last_val = non_none_bars[-1]
-            if last_val > first_val + 1:  # Rising (allow for minor fluctuation)
+            if last_val > first_val + 1:  # Rising
                 color = "#22c55e"  # Green
                 trend = "rising"
             elif last_val < first_val - 1:  # Falling
@@ -114,7 +122,7 @@ def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price"
         # No is_carried_forward info - use simple trend detection
         first_val = non_none_bars[0]
         last_val = non_none_bars[-1]
-        if last_val > first_val + 1:  # Rising (allow for minor fluctuation)
+        if last_val > first_val + 1:  # Rising
             color = "#22c55e"  # Green
             trend = "rising"
         elif last_val < first_val - 1:  # Falling
@@ -124,13 +132,9 @@ def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price"
             color = "#3b82f6"  # Blue (stable)
             trend = "stable"
     else:
+        # Single bar
         color = "#3b82f6"  # Blue
         trend = "stable"
-    
-    # For stock availability, always use green for IN bars
-    if metric_type == "stock":
-        color = "#22c55e"  # Green
-        trend = "stock"
     
     # Generate SVG bars
     svg_bars = []
@@ -140,32 +144,17 @@ def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price"
     svg_height = 20
     max_bar_height = svg_height
     
-    # Determine if we should use actual values for proportional heights
-    # Use actual values when available and metric is price or wishlist
-    # Allow partial values - as long as we have SOME values for price/wishlist
-    use_proportional_values = (values is not None and 
-                               len(values) > 0 and 
-                               metric_type in ["price", "wishlist"])
-    
-    # Calculate min/max for proportional scaling if using actual values
-    if use_proportional_values:
-        # Only use numeric values that exist
-        numeric_values = []
-        for v in values:
-            try:
-                numeric_values.append(float(v))
-            except (ValueError, TypeError):
-                pass
-        
-        if len(numeric_values) >= 2:
-            # Use zero-based normalization for better proportional representation
-            # This ensures that similar values (e.g., 120 vs 126) look similar
-            min_val = 0  # Always use zero as baseline
-            max_val = max(numeric_values)
-            value_range = max_val if max_val > 0 else 1.0
-        else:
-            # Not enough values for proportional scaling
-            use_proportional_values = False
+    # Calculate bar heights based on metric type
+    if metric_type == "stock":
+        # Stock: Use Unicode character heights (IN/OUT status, not numeric)
+        bar_heights_method = "unicode"
+    else:
+        # Price/Wishlist: Use zero-based proportional scaling from actual values
+        bar_heights_method = "proportional"
+        numeric_values = [float(v) for v in values]
+        max_val = max(numeric_values)
+        min_val = 0  # Zero-based normalization
+        value_range = max_val if max_val > 0 else 1.0
     
     # Track how many non-None bars we've processed for proper values indexing
     bar_index = 0
@@ -174,66 +163,50 @@ def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price"
         x = i * bar_spacing
         
         if height is None:
-            # Gap - represents OUT-of-stock or periods before species first appeared
+            # Gap - represents OUT-of-stock (only used in stock sparklines)
             # Don't render anything (true gap)
             continue
+        
+        # Calculate bar height
+        if bar_heights_method == "proportional":
+            # Use actual numeric value for proportional height
+            val_float = numeric_values[bar_index]
+            # Normalize to 0-1 range, then scale to max height
+            # Add small minimum (10%) to ensure all bars are visible
+            normalized = (val_float - min_val) / value_range
+            bar_height = (0.1 + normalized * 0.9) * max_bar_height
         else:
-            # Calculate bar height
-            if use_proportional_values and bar_index < len(values):
-                try:
-                    # Use actual numeric value for proportional height
-                    val_float = float(values[bar_index])
-                    # Normalize to 0-1 range, then scale to max height
-                    # Add small minimum (10%) to ensure all bars are visible
-                    normalized = (val_float - min_val) / value_range
-                    bar_height = (0.1 + normalized * 0.9) * max_bar_height
-                except (ValueError, TypeError):
-                    # Value doesn't exist or isn't numeric - fall back to Unicode height
-                    bar_height = (height / 8.0) * max_bar_height
-            else:
-                # Use Unicode character height (for stock or when no values)
-                bar_height = (height / 8.0) * max_bar_height
-            
-            y = svg_height - bar_height
-            
-            # Check if this bar is carried-forward
-            is_carried = is_carried_forward and bar_index < len(is_carried_forward) and is_carried_forward[bar_index]
-            
-            # Generate tooltip
-            # Use bar_index (count of non-None bars) to index into values list
-            if values and bar_index < len(values):
-                val = values[bar_index]
-                if metric_type == "price":
-                    # Format price with square brackets if carried forward
-                    if is_carried:
-                        tooltip = f"[£{val}]"
-                    else:
-                        tooltip = f"£{val}"
-                elif metric_type == "wishlist":
-                    # Format wishlist count with singular/plural and square brackets
-                    plural = "wishlist" if val == "1" else "wishlists"
-                    if is_carried:
-                        tooltip = f"[{val} {plural}]"
-                    else:
-                        tooltip = f"{val} {plural}"
-                else:  # stock
-                    tooltip = "IN"
-            else:
-                if metric_type == "stock":
-                    tooltip = "IN"
-                else:
-                    tooltip = f"Week {bar_index + 1}"
-            
-            # Adjust opacity based on position (gradient effect)
-            opacity = 0.7 + (i / len(bars)) * 0.3
-            
-            svg_bars.append(
-                f'<rect x="{x}" y="{y:.1f}" width="{bar_width}" height="{bar_height:.1f}" '
-                f'fill="{color}" opacity="{opacity:.2f}"><title>{tooltip}</title></rect>'
-            )
-            
-            # Increment bar_index only for rendered bars
-            bar_index += 1
+            # Stock: Use Unicode character height
+            bar_height = (height / 8.0) * max_bar_height
+        
+        y = svg_height - bar_height
+        
+        # Check if this bar is carried-forward
+        is_carried = is_carried_forward and bar_index < len(is_carried_forward) and is_carried_forward[bar_index]
+        
+        # Generate tooltip
+        if metric_type == "price":
+            val = values[bar_index]
+            # Format price with square brackets if carried forward
+            tooltip = f"[£{val}]" if is_carried else f"£{val}"
+        elif metric_type == "wishlist":
+            val = values[bar_index]
+            # Format wishlist count with singular/plural and square brackets
+            plural = "wishlist" if val == "1" else "wishlists"
+            tooltip = f"[{val} {plural}]" if is_carried else f"{val} {plural}"
+        else:  # stock
+            tooltip = "IN"
+        
+        # Adjust opacity based on position (gradient effect)
+        opacity = 0.7 + (i / len(bars)) * 0.3
+        
+        svg_bars.append(
+            f'<rect x="{x}" y="{y:.1f}" width="{bar_width}" height="{bar_height:.1f}" '
+            f'fill="{color}" opacity="{opacity:.2f}"><title>{tooltip}</title></rect>'
+        )
+        
+        # Increment bar_index only for rendered bars
+        bar_index += 1
     
     # Assemble final SVG
     if metric_type == "price":
@@ -668,9 +641,13 @@ def convert_sparklines_in_rows(headers, rows, historical_data, csv_filename):
                     values = result['values']
                     is_carried_forward = result['is_carried_forward']
                 
-                # Convert to SVG
-                svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type, is_carried_forward=is_carried_forward)
-                new_row[col_idx] = svg
+                # Convert to SVG only if we have valid data
+                # For price/wishlist: skip conversion if no values (keep Unicode sparkline)
+                # For stock: always convert (doesn't need values)
+                if metric_type == "stock" or (values and len(values) > 0):
+                    svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type, is_carried_forward=is_carried_forward)
+                    new_row[col_idx] = svg
+                # else: keep Unicode sparkline unchanged
         
         converted_rows.append(new_row)
     
@@ -768,12 +745,15 @@ def convert_sparklines_in_html(html, historical_data):
                     values = result['values']
                     is_carried_forward = result['is_carried_forward']
                 
-                # Convert to SVG
-                svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type, is_carried_forward=is_carried_forward)
-                
-                # Replace cell content with SVG (mark as safe HTML)
-                cell.clear()
-                cell.append(BeautifulSoup(svg, 'html.parser'))
+                # Convert to SVG only if we have valid data
+                # For price/wishlist: skip conversion if no values (keep Unicode sparkline)
+                # For stock: always convert (doesn't need values)
+                if metric_type == "stock" or (values and len(values) > 0):
+                    svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type, is_carried_forward=is_carried_forward)
+                    # Replace cell content with SVG (mark as safe HTML)
+                    cell.clear()
+                    cell.append(BeautifulSoup(svg, 'html.parser'))
+                # else: keep Unicode sparkline unchanged in the cell
     
     return str(soup)
 
