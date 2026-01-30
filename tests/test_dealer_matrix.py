@@ -1022,6 +1022,55 @@ class TestWriteDealerOutputs:
             os.chdir(original_cwd)
 
 
+class TestDealerSummaryStatistics:
+    """Test suite for summary statistics in dealer markdown output."""
+
+    def test_summary_stats_included_in_markdown(self, tmp_path):
+        """Should include summary statistics line before the table in markdown output."""
+        import os
+        
+        # Create table with mix of risk signals
+        table = [
+            {"Species": "Species A", "Size (cm)": "1", "Stock Reliability": "Low", "Avg OOS Duration": 5.0, "Restock Speed": "Slow",
+             "Price Pressure": "→", "Price History": "▄▄▄", "Wishlist Pressure": "🔥", "Wishlist Delta": "→", "Wishlist History": "▄▄▄",
+             "Stock Availability": "█", "Dealer Risk": "🔥", "Dealer Recommendation": "Actively seek breeders"},
+            {"Species": "Species B", "Size (cm)": "2", "Stock Reliability": "Medium", "Avg OOS Duration": 2.0, "Restock Speed": "Fast",
+             "Price Pressure": "→", "Price History": "▄▄▄", "Wishlist Pressure": "🔥", "Wishlist Delta": "↑", "Wishlist History": "▁██",
+             "Stock Availability": "███", "Dealer Risk": "🔥", "Dealer Recommendation": "Actively seek breeders"},
+            {"Species": "Species C", "Size (cm)": "1", "Stock Reliability": "Medium", "Avg OOS Duration": 1.5, "Restock Speed": "Fast",
+             "Price Pressure": "→", "Price History": "▄▄▄", "Wishlist Pressure": "🔥", "Wishlist Delta": "→", "Wishlist History": "▄▄▄",
+             "Stock Availability": "████", "Dealer Risk": "⚠️", "Dealer Recommendation": "Buy opportunistically"},
+            {"Species": "Species D", "Size (cm)": "1", "Stock Reliability": "High", "Avg OOS Duration": 0.0, "Restock Speed": "Fast",
+             "Price Pressure": "→", "Price History": "▄▄▄", "Wishlist Pressure": "❌", "Wishlist Delta": "↓", "Wishlist History": "█▁▁",
+             "Stock Availability": "███████", "Dealer Risk": "❌", "Dealer Recommendation": "No urgency"},
+        ]
+        
+        summary_path = tmp_path / "summary.md"
+        os.environ["GITHUB_STEP_SUMMARY"] = str(summary_path)
+        
+        try:
+            write_dealer_outputs(table)
+            
+            with open(summary_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            
+            # Should contain summary stats line
+            assert "**Summary:**" in content
+            assert "4 species" in content  # Total count
+            assert "🔥" in content  # Hot signal count
+            assert "⚠️" in content  # Watch signal count
+            assert "❌" in content  # Avoid signal count
+            
+            # Should have format like: "**Summary:** 4 species analyzed | 🔥 High Risk: 2 | ⚠️ Moderate Risk: 1 | ❌ Low Risk: 1"
+            assert "High Risk:" in content or "🔥 Risk:" in content
+            assert "Moderate Risk:" in content or "⚠️ Risk:" in content 
+            assert "Low Risk:" in content or "❌ Risk:" in content
+            
+        finally:
+            if "GITHUB_STEP_SUMMARY" in os.environ:
+                del os.environ["GITHUB_STEP_SUMMARY"]
+
+
 class TestDealerSparklineColumns:
     """Test suite for sparkline trend visualization in dealer matrix."""
 

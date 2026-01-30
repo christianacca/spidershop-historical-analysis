@@ -247,11 +247,22 @@ def write_breeder_outputs(table):
     total = len(table) if table else 0
     shown = min(10, total)
 
+    # Calculate signal statistics
+    signal_counts = {"🔥": 0, "⚠️": 0, "❌": 0}
+    if table:
+        for row in table:
+            signal = row.get("Signal", "")
+            if signal in signal_counts:
+                signal_counts[signal] += 1
+
     with open(summary_path, "a", encoding="utf-8") as f:
         f.write("\n## 🧬 Breeder Opportunity Matrix (Top 10)\n\n")
         if total == 0:
             f.write("_No breeding opportunities detected (conservative analysis requires sufficient historical data)._\n")
         else:
+            # Write summary statistics
+            f.write(f"**Summary:** {total} species analyzed | 🔥 Hot: {signal_counts['🔥']} | ⚠️ Watch: {signal_counts['⚠️']} | ❌ Avoid: {signal_counts['❌']}\n\n")
+            
             f.write("| Species | Size (cm) | OOS | OOS Runs | Stock Pattern | Price Trend | Price History | Wishlist Pressure | Wishlist Delta | Wishlist History | Signal | Recommendation |\n")
             f.write("|---|---:|---|---:|---|---|---|---|---|---|---|---|\n")
             for r in table[:shown]:

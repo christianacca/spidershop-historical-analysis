@@ -286,6 +286,32 @@ def parse_markdown_to_html(markdown_text):
     return html
 
 
+def extract_summary_stats(markdown):
+    """
+    Extract summary statistics from markdown content.
+    
+    Looks for line like: **Summary:** 106 species analyzed | 🔥 Hot: 42 | ⚠️ Watch: 38 | ❌ Avoid: 26
+    or: **Summary:** 106 species analyzed | 🔥 High Risk: 42 | ⚠️ Moderate Risk: 38 | ❌ Low Risk: 26
+    
+    Returns dict with keys: total, hot, watch, avoid, or None if not found.
+    """
+    if not markdown:
+        return None
+    
+    # Match either "Hot/Watch/Avoid" or "High Risk/Moderate Risk/Low Risk" format
+    pattern = r'\*\*Summary:\*\*\s*(\d+)\s*species analyzed\s*\|.*?🔥\s*(?:Hot|High Risk):\s*(\d+)\s*\|.*?⚠️\s*(?:Watch|Moderate Risk):\s*(\d+)\s*\|.*?❌\s*(?:Avoid|Low Risk):\s*(\d+)'
+    match = re.search(pattern, markdown)
+    
+    if match:
+        return {
+            'total': int(match.group(1)),
+            'hot': int(match.group(2)),
+            'watch': int(match.group(3)),
+            'avoid': int(match.group(4))
+        }
+    
+    return None
+
 
 def extract_analysis_sections(markdown_file):
     """Extract breeder and dealer analysis sections from markdown file."""
@@ -744,12 +770,39 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
     if headers and rows:
         rows = convert_sparklines_in_rows(headers, rows, historical_data, csv_filename)
     
+    # Extract summary stats from analysis markdown BEFORE converting to HTML
+    summary_stats = extract_summary_stats(analysis_markdown) if analysis_markdown else None
+    
+    # Remove the Summary line from markdown to avoid duplication (stats are rendered as cards)
+    if analysis_markdown and summary_stats:
+        analysis_markdown = re.sub(
+            r'\*\*Summary:\*\*\s*\d+\s*species analyzed\s*\|[^\n]+\n\n',
+            '',
+            analysis_markdown
+        )
+    
     # Convert markdown to HTML if provided
     analysis_html = parse_markdown_to_html(analysis_markdown) if analysis_markdown else None
     
     # Convert sparklines in analysis HTML (Top 10 tables from markdown)
     if analysis_html:
         analysis_html = convert_sparklines_in_html(analysis_html, historical_data)
+    
+    # Determine labels based on page type (breeder vs dealer)
+    stats_labels = None
+    if summary_stats:
+        if active_page == "dealer":
+            stats_labels = {
+                'hot': '🔥 High Risk',
+                'watch': '⚠️ Moderate Risk',
+                'avoid': '❌ Low Risk'
+            }
+        else:  # breeder or other pages
+            stats_labels = {
+                'hot': '🔥 Hot',
+                'watch': '⚠️ Watch',
+                'avoid': '❌ Avoid'
+            }
     
     examples_html = parse_markdown_to_html(examples_markdown) if examples_markdown else None
     
@@ -782,6 +835,8 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
         active_page=active_page,
         search_filter=search_filter,
         analysis_html=analysis_html,
+        summary_stats=summary_stats,
+        stats_labels=stats_labels,
         legend_html=legend_html,
         examples_html=examples_html,
         headers=headers_enum,

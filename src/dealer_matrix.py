@@ -198,11 +198,22 @@ def write_dealer_outputs(table):
     total = len(table) if table else 0
     shown = min(10, total)
 
+    # Calculate risk statistics
+    risk_counts = {"🔥": 0, "⚠️": 0, "❌": 0}
+    if table:
+        for row in table:
+            risk = row.get("Dealer Risk", "")
+            if risk in risk_counts:
+                risk_counts[risk] += 1
+
     with open(summary_path, "a", encoding="utf-8") as f:
         f.write("\n## 🏪 Dealer Supply Risk Matrix (Top 10)\n\n")
         if total == 0:
             f.write("_No supply risks detected (conservative analysis requires sufficient historical data)._\n")
         else:
+            # Write summary statistics
+            f.write(f"**Summary:** {total} species analyzed | 🔥 High Risk: {risk_counts['🔥']} | ⚠️ Moderate Risk: {risk_counts['⚠️']} | ❌ Low Risk: {risk_counts['❌']}\n\n")
+            
             f.write("| Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Price History | Wishlist Pressure | Wishlist Delta | Wishlist History | Stock Availability | Dealer Risk | Dealer Recommendation |\n")
             f.write("|---|---:|---|---:|---|---|---|---|---|---|---|---|---|\n")
             for r in table[:shown]:
