@@ -1,6 +1,15 @@
 #!/usr/bin/env python3
 """
 Generate a static HTML website from scraped CSV data for GitHub Pages deployment.
+
+IMPORTANT - Output Location:
+    The OUTPUT_DIR is relative to the CURRENT WORKING DIRECTORY when this script runs:
+    
+    - GitHub workflow: Runs from project root → creates website/ at root
+    - Coding agent: Runs from project root → creates website/ at root
+    - Make command: Changes to tmp/local-testing/ first → creates website/ there
+    
+    This means the generated website/ folder location varies depending on execution context.
 """
 
 import csv
@@ -12,6 +21,8 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 # Output directory for the generated website
+# NOTE: This is RELATIVE to the current working directory when the script runs!
+# See docstring above for how this behaves in different execution contexts.
 OUTPUT_DIR = Path("website")
 
 # Setup Jinja2 environment
@@ -22,6 +33,227 @@ jinja_env = Environment(
     trim_blocks=True,
     lstrip_blocks=True
 )
+
+# Sparkline character mapping (Unicode to relative height 0-7)
+SPARKLINE_CHARS = {
+    '▁': 1, '▂': 2, '▃': 3, '▄': 4,
+    '▅': 5, '▆': 6, '▇': 7, '█': 8,
+    ' ': None  # Gap/missing data
+}
+
+
+def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price", is_carried_forward=None):
+    """
+    Convert a Unicode sparkline to an interactive SVG with tooltips.
+    
+    Args:
+        unicode_sparkline: String of Unicode sparkline characters (e.g., "▁▂▃▄▅▆▇█")
+        values: List of actual numeric values (for tooltips), or None for stock availability
+        metric_type: "price", "wishlist", or "stock" (affects formatting and colors)
+        is_carried_forward: List of booleans indicating which values are carried-forward (optional)
+    
+    Returns:
+        String containing SVG markup, or original string if conversion not possible
+    """
+    # Don't convert if it's just a dash or empty string
+    if not unicode_sparkline or unicode_sparkline == "-":
+        return unicode_sparkline
+    
+    # Handle whitespace-only strings - treat as "no data" after parsing
+    # (but don't exit early - need to check if it's all spaces which means all gaps)
+    
+    # Parse Unicode characters into bar heights
+    bars = []
+    for char in unicode_sparkline:
+        if char in SPARKLINE_CHARS:
+            height = SPARKLINE_CHARS[char]
+            bars.append(height)
+        else:
+            # Unknown character, return original
+            return unicode_sparkline
+    
+    # Need at least one non-None bar
+    non_none_bars = [b for b in bars if b is not None]
+    if not non_none_bars:
+        return "-"
+    
+    # Determine trend direction for color coding
+    # For carried-forward values: check if ALL non-None bars after first are carried forward
+    # If so, treat as neutral (no actual change occurred)
+    if len(non_none_bars) >= 2 and is_carried_forward:
+        # Check if we have actual change by examining is_carried_forward flags
+        non_none_indices = [i for i, b in enumerate(bars) if b is not None]
+        first_idx = non_none_indices[0]
+        last_idx = non_none_indices[-1]
+        
+        # Check if all values after first are carried forward
+        all_carried_after_first = all(
+            is_carried_forward[i] 
+            for i in non_none_indices[1:] 
+            if i < len(is_carried_forward)
+        )
+        
+        if all_carried_after_first:
+            # No actual change - use neutral color
+            color = "#3b82f6"  # Blue
+            trend = "stable"
+        else:
+            # Has actual changes - use trend color
+            first_val = non_none_bars[0]
+            last_val = non_none_bars[-1]
+            if last_val > first_val + 1:  # Rising (allow for minor fluctuation)
+                color = "#22c55e"  # Green
+                trend = "rising"
+            elif last_val < first_val - 1:  # Falling
+                color = "#ef4444"  # Red
+                trend = "falling"
+            else:
+                color = "#3b82f6"  # Blue (stable)
+                trend = "stable"
+    elif len(non_none_bars) >= 2:
+        # No is_carried_forward info - use simple trend detection
+        first_val = non_none_bars[0]
+        last_val = non_none_bars[-1]
+        if last_val > first_val + 1:  # Rising (allow for minor fluctuation)
+            color = "#22c55e"  # Green
+            trend = "rising"
+        elif last_val < first_val - 1:  # Falling
+            color = "#ef4444"  # Red
+            trend = "falling"
+        else:
+            color = "#3b82f6"  # Blue (stable)
+            trend = "stable"
+    else:
+        color = "#3b82f6"  # Blue
+        trend = "stable"
+    
+    # For stock availability, always use green for IN bars
+    if metric_type == "stock":
+        color = "#22c55e"  # Green
+        trend = "stock"
+    
+    # Generate SVG bars
+    svg_bars = []
+    bar_width = 8
+    bar_spacing = 10
+    svg_width = len(bars) * bar_spacing
+    svg_height = 20
+    max_bar_height = svg_height
+    
+    # Determine if we should use actual values for proportional heights
+    # Use actual values when available and metric is price or wishlist
+    # Allow partial values - as long as we have SOME values for price/wishlist
+    use_proportional_values = (values is not None and 
+                               len(values) > 0 and 
+                               metric_type in ["price", "wishlist"])
+    
+    # Calculate min/max for proportional scaling if using actual values
+    if use_proportional_values:
+        # Only use numeric values that exist
+        numeric_values = []
+        for v in values:
+            try:
+                numeric_values.append(float(v))
+            except (ValueError, TypeError):
+                pass
+        
+        if len(numeric_values) >= 2:
+            # Use zero-based normalization for better proportional representation
+            # This ensures that similar values (e.g., 120 vs 126) look similar
+            min_val = 0  # Always use zero as baseline
+            max_val = max(numeric_values)
+            value_range = max_val if max_val > 0 else 1.0
+        else:
+            # Not enough values for proportional scaling
+            use_proportional_values = False
+    
+    # Track how many non-None bars we've processed for proper values indexing
+    bar_index = 0
+    
+    for i, height in enumerate(bars):
+        x = i * bar_spacing
+        
+        if height is None:
+            # Gap - represents OUT-of-stock or periods before species first appeared
+            # Don't render anything (true gap)
+            continue
+        else:
+            # Calculate bar height
+            if use_proportional_values and bar_index < len(values):
+                try:
+                    # Use actual numeric value for proportional height
+                    val_float = float(values[bar_index])
+                    # Normalize to 0-1 range, then scale to max height
+                    # Add small minimum (10%) to ensure all bars are visible
+                    normalized = (val_float - min_val) / value_range
+                    bar_height = (0.1 + normalized * 0.9) * max_bar_height
+                except (ValueError, TypeError):
+                    # Value doesn't exist or isn't numeric - fall back to Unicode height
+                    bar_height = (height / 8.0) * max_bar_height
+            else:
+                # Use Unicode character height (for stock or when no values)
+                bar_height = (height / 8.0) * max_bar_height
+            
+            y = svg_height - bar_height
+            
+            # Check if this bar is carried-forward
+            is_carried = is_carried_forward and bar_index < len(is_carried_forward) and is_carried_forward[bar_index]
+            
+            # Generate tooltip
+            # Use bar_index (count of non-None bars) to index into values list
+            if values and bar_index < len(values):
+                val = values[bar_index]
+                if metric_type == "price":
+                    # Format price with square brackets if carried forward
+                    if is_carried:
+                        tooltip = f"[£{val}]"
+                    else:
+                        tooltip = f"£{val}"
+                elif metric_type == "wishlist":
+                    # Format wishlist count with singular/plural and square brackets
+                    plural = "wishlist" if val == "1" else "wishlists"
+                    if is_carried:
+                        tooltip = f"[{val} {plural}]"
+                    else:
+                        tooltip = f"{val} {plural}"
+                else:  # stock
+                    tooltip = "IN"
+            else:
+                if metric_type == "stock":
+                    tooltip = "IN"
+                else:
+                    tooltip = f"Week {bar_index + 1}"
+            
+            # Adjust opacity based on position (gradient effect)
+            opacity = 0.7 + (i / len(bars)) * 0.3
+            
+            svg_bars.append(
+                f'<rect x="{x}" y="{y:.1f}" width="{bar_width}" height="{bar_height:.1f}" '
+                f'fill="{color}" opacity="{opacity:.2f}"><title>{tooltip}</title></rect>'
+            )
+            
+            # Increment bar_index only for rendered bars
+            bar_index += 1
+    
+    # Assemble final SVG
+    if metric_type == "price":
+        svg_title = "Price History"
+    elif metric_type == "wishlist":
+        svg_title = "Wishlist History"
+    elif metric_type == "stock":
+        svg_title = "Stock History"
+    else:
+        svg_title = f"{metric_type.capitalize()} History"
+    
+    svg = (
+        f'<svg width="{svg_width}" height="{svg_height}" viewBox="0 0 {svg_width} {svg_height}" '
+        f'style="vertical-align: middle;">'
+        f'<title>{svg_title}</title>'
+        f'{"".join(svg_bars)}'
+        f'</svg>'
+    )
+    
+    return svg
 
 
 def parse_markdown_to_html(markdown_text):
@@ -289,12 +521,228 @@ def generate_homepage(last_scrape_time=None):
     )
 
 
+def load_historical_sparkline_data():
+    """
+    Load historical data from history CSV to enable tooltips with actual values.
+    
+    Returns:
+        Dictionary mapping (species, size) to list of historical data points
+        Each data point is a dict with: scrape_datetime, price_gbp, wishlist_count
+    """
+    history_file = "spidershop_spiderlings_history.csv"
+    if not os.path.exists(history_file):
+        return {}
+    
+    historical_data = {}
+    
+    try:
+        with open(history_file, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                species = row.get("scientific_name", "")
+                size = row.get("size_cm", "")
+                key = (species, size)
+                
+                if key not in historical_data:
+                    historical_data[key] = []
+                
+                historical_data[key].append({
+                    "scrape_datetime": row.get("scrape_datetime", ""),
+                    "price_gbp": row.get("price_gbp", ""),
+                    "wishlist_count": row.get("wishlist_count", "0"),
+                })
+    except Exception as e:
+        print(f"Warning: Could not load historical data: {e}")
+        return {}
+    
+    return historical_data
+
+
+def convert_sparklines_in_rows(headers, rows, historical_data, csv_filename):
+    """
+    Convert Unicode sparklines to SVG in specific columns.
+    
+    Args:
+        headers: List of column names
+        rows: List of data rows
+        historical_data: Dictionary with historical values for tooltips
+        csv_filename: Name of the CSV file being processed
+    
+    Returns:
+        Modified rows with sparklines converted to SVG
+    """
+    # Identify sparkline columns
+    sparkline_columns = {}
+    for i, header in enumerate(headers):
+        if "History" in header or "Availability" in header:
+            if "Price" in header:
+                sparkline_columns[i] = "price"
+            elif "Wishlist" in header:
+                sparkline_columns[i] = "wishlist"
+            elif "Stock" in header or "Availability" in header:
+                sparkline_columns[i] = "stock"
+    
+    if not sparkline_columns:
+        return rows  # No sparkline columns found
+    
+    # Get species and size column indices
+    species_idx = headers.index("Species") if "Species" in headers else None
+    size_idx = headers.index("Size (cm)") if "Size (cm)" in headers else None
+    
+    # Convert sparklines in each row
+    converted_rows = []
+    for row in rows:
+        new_row = list(row)  # Make a copy
+        
+        # Get species/size for looking up historical values
+        species = row[species_idx] if species_idx is not None else None
+        size = row[size_idx] if size_idx is not None else None
+        key = (species, size) if species and size else None
+        
+        # Convert each sparkline column
+        for col_idx, metric_type in sparkline_columns.items():
+            if col_idx < len(new_row):
+                unicode_sparkline = new_row[col_idx]
+                
+                # Extract last 8 values from historical data
+                values = None
+                if key and key in historical_data and metric_type != "stock":
+                    history = historical_data[key]
+                    # Take last 8 data points
+                    recent = history[-8:] if len(history) > 8 else history
+                    
+                    if metric_type == "price":
+                        values = [h.get("price_gbp", "") for h in recent]
+                    elif metric_type == "wishlist":
+                        values = [h.get("wishlist_count", "0") for h in recent]
+                
+                # Convert to SVG
+                svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type)
+                new_row[col_idx] = svg
+        
+        converted_rows.append(new_row)
+    
+    return converted_rows
+
+
+def convert_sparklines_in_html(html, historical_data):
+    """
+    Convert Unicode sparklines to SVG in HTML tables (post-processing).
+    
+    This handles sparklines in markdown-generated HTML tables (e.g., Top 10 analysis tables).
+    
+    Args:
+        html: HTML string containing tables with Unicode sparklines
+        historical_data: Dictionary with historical values for tooltips
+    
+    Returns:
+        HTML string with sparklines converted to SVG
+    """
+    if not html:
+        return html
+    
+    from bs4 import BeautifulSoup
+    
+    soup = BeautifulSoup(html, 'html.parser')
+    tables = soup.find_all('table')
+    
+    for table in tables:
+        # Find header row to identify column positions
+        thead = table.find('thead')
+        if not thead:
+            continue
+        
+        header_row = thead.find('tr')
+        if not header_row:
+            continue
+        
+        headers = [th.get_text(strip=True) for th in header_row.find_all('th')]
+        
+        # Identify sparkline columns and their types
+        sparkline_columns = {}
+        for i, header in enumerate(headers):
+            if "Price History" in header:
+                sparkline_columns[i] = "price"
+            elif "Wishlist History" in header:
+                sparkline_columns[i] = "wishlist"
+            elif "Stock Availability" in header or "Stock" in header:
+                sparkline_columns[i] = "stock"
+        
+        if not sparkline_columns:
+            continue
+        
+        # Find species and size columns
+        species_idx = None
+        size_idx = None
+        try:
+            species_idx = headers.index("Species")
+        except ValueError:
+            pass
+        try:
+            size_idx = headers.index("Size (cm)")
+        except ValueError:
+            pass
+        
+        # Process each data row
+        tbody = table.find('tbody')
+        if not tbody:
+            continue
+        
+        for row in tbody.find_all('tr'):
+            cells = row.find_all('td')
+            
+            # Get species/size for looking up historical values
+            species = cells[species_idx].get_text(strip=True) if species_idx is not None and species_idx < len(cells) else None
+            size = cells[size_idx].get_text(strip=True) if size_idx is not None and size_idx < len(cells) else None
+            key = (species, size) if species and size else None
+            
+            # Convert sparklines in this row
+            for col_idx, metric_type in sparkline_columns.items():
+                if col_idx >= len(cells):
+                    continue
+                
+                cell = cells[col_idx]
+                unicode_sparkline = cell.get_text(strip=True)
+                
+                # Extract last 8 values from historical data
+                values = None
+                if key and key in historical_data and metric_type != "stock":
+                    history = historical_data[key]
+                    recent = history[-8:] if len(history) > 8 else history
+                    
+                    if metric_type == "price":
+                        values = [h.get("price_gbp", "") for h in recent]
+                    elif metric_type == "wishlist":
+                        values = [h.get("wishlist_count", "0") for h in recent]
+                
+                # Convert to SVG
+                svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type)
+                
+                # Replace cell content with SVG (mark as safe HTML)
+                cell.clear()
+                cell.append(BeautifulSoup(svg, 'html.parser'))
+    
+    return str(soup)
+
+
 def generate_data_page(title, description, csv_filename, table_id, active_page, search_filter=True, analysis_markdown=None, legend_markdown=None, examples_markdown=None):
     """Generate a data page with table from CSV and optional analysis using Jinja2 template."""
     headers, rows = read_csv_file(csv_filename)
     
+    # Load historical data if available to enrich sparklines with values
+    historical_data = load_historical_sparkline_data()
+    
+    # Convert Unicode sparklines to SVG in sparkline columns
+    if headers and rows:
+        rows = convert_sparklines_in_rows(headers, rows, historical_data, csv_filename)
+    
     # Convert markdown to HTML if provided
     analysis_html = parse_markdown_to_html(analysis_markdown) if analysis_markdown else None
+    
+    # Convert sparklines in analysis HTML (Top 10 tables from markdown)
+    if analysis_html:
+        analysis_html = convert_sparklines_in_html(analysis_html, historical_data)
+    
     examples_html = parse_markdown_to_html(examples_markdown) if examples_markdown else None
     
     # Wrap legend markdown in details tag and convert

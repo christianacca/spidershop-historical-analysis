@@ -1646,3 +1646,294 @@ class TestCssValidation:
         )
         
         assert has_modern_layout, "No modern layout properties found"
+
+
+class TestSparklineSVGConversion:
+    """Test suite for converting Unicode sparklines to SVG."""
+
+    def test_convert_price_sparkline_with_rising_trend(self):
+        """Should convert rising price sparkline to SVG with green bars and tooltips."""
+        from generate_website import convert_sparkline_to_svg
+        
+        unicode_sparkline = "▁▂▃▄▅▆▇█"
+        values = ["8.99", "10.50", "12.99", "16.50", "18.99", "21.00", "21.00", "24.99"]
+        
+        svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type="price")
+        
+        # Should be SVG element
+        assert svg.startswith('<svg')
+        assert '</svg>' in svg
+        
+        # Should have green color (rising trend)
+        assert '#22c55e' in svg or '#4CAF50' in svg or 'green' in svg.lower()
+        
+        # Should have tooltips with price values
+        assert '£8.99' in svg or '8.99' in svg
+        assert '£24.99' in svg or '24.99' in svg
+        
+        # Should have 8 bars
+        assert svg.count('<rect') == 8
+
+    def test_convert_wishlist_sparkline_with_falling_trend(self):
+        """Should convert falling wishlist sparkline to SVG with red bars."""
+        from generate_website import convert_sparkline_to_svg
+        
+        unicode_sparkline = "█▇▆▅▄▃▂▁"
+        values = ["45", "40", "35", "28", "20", "15", "12", "8"]
+        
+        svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type="wishlist")
+        
+        # Should be SVG element
+        assert svg.startswith('<svg')
+        
+        # Should have red color (falling trend)
+        assert '#ef4444' in svg or '#f44336' in svg or 'red' in svg.lower()
+        
+        # Should have tooltips with wishlist counts
+        assert '45' in svg
+        assert '8' in svg
+        assert 'wishlist' in svg.lower()
+
+    def test_convert_stable_sparkline_uses_gray(self):
+        """Should use gray color for stable/neutral trends."""
+        from generate_website import convert_sparkline_to_svg
+        
+        unicode_sparkline = "▄▄▄▄▄▄▄▄"
+        values = ["12.50", "12.50", "12.50", "13.00", "12.50", "12.50", "12.50", "12.50"]
+        
+        svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type="price")
+        
+        # Should be blue (neutral) for stable trend
+        assert '#3b82f6' in svg or '#888' in svg or 'blue' in svg.lower()
+
+    def test_convert_sparkline_with_gaps_before_first_appearance(self):
+        """Should render gaps as true empty space when species didn't exist yet (no bars)."""
+        from generate_website import convert_sparkline_to_svg
+        
+        # Unicode sparkline: 4 spaces (didn't exist), then 3 bars (existed with carried-forward values)
+        unicode_sparkline = "    ▄▄▄"
+        values = ["20.00", "20.00", "20.00", "20.00", "20.00", "20.00", "20.00"]
+        
+        svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type="price")
+        
+        # Should be SVG
+        assert svg.startswith('<svg')
+        assert '</svg>' in svg
+        
+        # Should have exactly 3 bars (not 7) - gaps should not render as bars
+        assert svg.count('<rect') == 3
+        
+        # Should NOT have carried-forward indicators in tooltips (gaps are true absences)
+        assert 'carried forward' not in svg.lower()
+        
+        # Bars should be positioned at x=40, 50, 60 (skipping first 4 positions)
+        assert 'x="40"' in svg  # 5th position (index 4)
+        assert 'x="50"' in svg  # 6th position (index 5)
+        assert 'x="60"' in svg  # 7th position (index 6)
+        
+        # Should NOT have bars at x=0, 10, 20, 30 (the gap positions)
+        assert 'x="0"' not in svg
+        assert 'x="10"' not in svg
+        assert 'x="20"' not in svg
+        assert 'x="30"' not in svg
+
+    def test_convert_stock_availability_sparkline(self):
+        """Should convert stock availability sparkline (binary IN/OUT)."""
+        from generate_website import convert_sparkline_to_svg
+        
+        unicode_sparkline = "█ █ █"
+        values = None  # Stock availability doesn't need numeric values
+        
+        svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type="stock")
+        
+        # Should have green bars for IN stock
+        assert '#22c55e' in svg or '#4CAF50' in svg or 'green' in svg.lower()
+        
+        # Should have tooltips
+        assert '<title>IN</title>' in svg
+
+    def test_sparkline_with_no_values_returns_dash(self):
+        """Should return plain dash for invalid sparklines."""
+        from generate_website import convert_sparkline_to_svg
+        
+        result = convert_sparkline_to_svg("-", [], metric_type="price")
+        
+        # Should return the original dash (no conversion)
+        assert result == "-"
+
+    def test_sparkline_dimensions_are_consistent(self):
+        """Should generate SVG with consistent dimensions."""
+        from generate_website import convert_sparkline_to_svg
+        
+        unicode_sparkline = "▁▂▃▄▅▆▇█"
+        values = ["10", "15", "20", "25", "30", "35", "40", "45"]
+        
+        svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type="wishlist")
+        
+        # Should have standard dimensions
+        assert 'width="80"' in svg
+        assert 'height="20"' in svg
+        assert 'viewBox="0 0 80 20"' in svg
+
+    def test_sparkline_with_leading_gaps_aligns_tooltips_correctly(self):
+        """
+        Should align tooltips with correct values when sparkline has leading gaps.
+        
+        This is a regression test for the bug where:
+        - Unicode sparkline: "  █▁▁▁▁" (2 leading spaces/gaps, then 5 bars)
+        - Historical values: [0, 0, 91, 90] (4 values in chronological order)
+        - Expected: First bar (█) should show "0 wishlists", subsequent bars show actual values
+        - Bug: Tooltips were misaligned because we indexed values[] using position in bars[]
+        """
+        from generate_website import convert_sparkline_to_svg
+        
+        # Sparkline with 2 leading gaps (spaces), then 5 bars
+        unicode_sparkline = "  █▁▁▁▁"
+        # Historical values: [old=0, old=0, new=91, newest=90]
+        # But we only have 4 values in the history, not 7
+        values = ["0", "0", "91", "90"]
+        
+        svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type="wishlist")
+        
+        # Should render only 5 bars (skipping the 2 leading gaps)
+        rect_count = svg.count('<rect')
+        assert rect_count == 5, f"Expected 5 bars but got {rect_count}"
+        
+        # Parse SVG to check tooltip values in order
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(svg, 'html.parser')
+        rects = soup.find_all('rect')
+        
+        # Extract tooltip text from each rect's <title> child
+        tooltips = [rect.find('title').text for rect in rects if rect.find('title')]
+        
+        # The first 4 bars should have actual wishlist values
+        # Note: The values list has 4 items, sparkline has 5 bars (2 gaps + 5 bars = 7 positions)
+        # So bars [2,3,4,5] should map to values [0,1,2,3]
+        assert "0 wishlists" in tooltips[0], f"First bar should show '0 wishlists', got {tooltips[0]}"
+        assert "0 wishlists" in tooltips[1], f"Second bar should show '0 wishlists', got {tooltips[1]}"
+        assert "91 wishlists" in tooltips[2], f"Third bar should show '91 wishlists', got {tooltips[2]}"
+        assert "90 wishlists" in tooltips[3], f"Fourth bar should show '90 wishlists', got {tooltips[3]}"
+        # Fifth bar has no value (beyond values list), should show "Week N"
+        assert "Week" in tooltips[4], f"Fifth bar should show 'Week N', got {tooltips[4]}"
+
+
+class TestConvertSparklinesInHtml:
+    """Test suite for converting Unicode sparklines in HTML tables."""
+
+    def test_converts_sparklines_in_markdown_table(self):
+        """Should convert Unicode sparklines in markdown-generated HTML tables."""
+        from generate_website import convert_sparklines_in_html
+        
+        # Simulate markdown-generated HTML with Unicode sparklines
+        html = """
+        <table>
+            <thead>
+                <tr>
+                    <th>Species</th>
+                    <th>Size (cm)</th>
+                    <th>Price History</th>
+                    <th>Wishlist History</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Aphonopelma seemanni</td>
+                    <td>1.5</td>
+                    <td>▁▂▃▄▅▆▇█</td>
+                    <td>▁▁▁▁████</td>
+                </tr>
+            </tbody>
+        </table>
+        """
+        
+        # Mock historical data
+        historical_data = {
+            ("Aphonopelma seemanni", "1.5"): [
+                {"price_gbp": "8.99", "wishlist_count": "5"},
+                {"price_gbp": "10.50", "wishlist_count": "5"},
+                {"price_gbp": "12.99", "wishlist_count": "5"},
+                {"price_gbp": "16.50", "wishlist_count": "5"},
+                {"price_gbp": "18.99", "wishlist_count": "20"},
+                {"price_gbp": "21.00", "wishlist_count": "22"},
+                {"price_gbp": "21.00", "wishlist_count": "25"},
+                {"price_gbp": "24.99", "wishlist_count": "28"},
+            ]
+        }
+        
+        result = convert_sparklines_in_html(html, historical_data)
+        
+        # Should contain SVG elements
+        assert '<svg' in result
+        assert '</svg>' in result
+        
+        # Should have tooltips with actual values
+        assert '8.99' in result or '£8.99' in result
+        assert '24.99' in result or '£24.99' in result
+        
+        # Should NOT contain Unicode sparklines anymore
+        assert '▁▂▃▄▅▆▇█' not in result
+
+    def test_handles_html_without_tables(self):
+        """Should return unchanged HTML when no tables present."""
+        from generate_website import convert_sparklines_in_html
+        
+        html = "<p>No tables here</p>"
+        result = convert_sparklines_in_html(html, {})
+        
+        assert result == html
+
+    def test_handles_tables_without_sparkline_columns(self):
+        """Should not modify tables without sparkline columns."""
+        from generate_website import convert_sparklines_in_html
+        
+        html = """
+        <table>
+            <thead>
+                <tr><th>Name</th><th>Value</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Test</td><td>123</td></tr>
+            </tbody>
+        </table>
+        """
+        
+        result = convert_sparklines_in_html(html, {})
+        
+        # Should contain table but no SVG
+        assert '<table>' in result
+        assert '<svg' not in result
+
+    def test_handles_empty_html(self):
+        """Should handle None or empty HTML gracefully."""
+        from generate_website import convert_sparklines_in_html
+        
+        assert convert_sparklines_in_html(None, {}) is None
+        assert convert_sparklines_in_html("", {}) == ""
+
+    def test_converts_stock_availability_sparklines(self):
+        """Should convert stock availability sparklines in HTML tables."""
+        from generate_website import convert_sparklines_in_html
+        
+        html = """
+        <table>
+            <thead>
+                <tr>
+                    <th>Species</th>
+                    <th>Stock Availability</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Test Species</td>
+                    <td>█ █ █</td>
+                </tr>
+            </tbody>
+        </table>
+        """
+        
+        result = convert_sparklines_in_html(html, {})
+        
+        # Should contain SVG for stock availability
+        assert '<svg' in result
+        assert '<title>IN</title>' in result

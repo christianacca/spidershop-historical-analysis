@@ -21,11 +21,11 @@ def generate_sparkline(values, max_length=8):
     if not values:
         return "-"
     
-    # Filter out None/empty values and convert to floats
+    # Convert values to floats, treating None/empty as gaps but "0" as valid data
     numeric_values = []
     for v in values[-max_length:]:  # Take last N values
-        if v is None or v == "" or v == "0":
-            numeric_values.append(None)  # Preserve gaps
+        if v is None or v == "":
+            numeric_values.append(None)  # True gaps (missing data)
         else:
             try:
                 numeric_values.append(float(v))
@@ -86,6 +86,10 @@ def extract_historical_values_with_carryforward(key, by_run, runs, field_name, m
     When a species is OUT of stock, the last known value is carried forward.
     This reflects reality: prices and wishlist counts don't disappear when stock runs out.
     
+    Sparkline rules (per user requirements):
+    - Bars only start when "records began" for that spider (skip leading None values)
+    - Once the sparkline starts, there should be no gaps (carry forward when OUT)
+    
     Args:
         key: Tuple of (scientific_name, size_cm)
         by_run: Dictionary mapping run_id to list of rows
@@ -94,11 +98,13 @@ def extract_historical_values_with_carryforward(key, by_run, runs, field_name, m
         max_runs: Maximum number of runs to look back (default 8)
     
     Returns:
-        List of values in chronological order (oldest to newest) with carry-forward
+        List of values in chronological order (oldest to newest) with carry-forward,
+        starting from the first run where the species appeared
     """
     values = []
     recent_runs = runs[-max_runs:] if len(runs) > max_runs else runs
     last_known_value = None
+    first_appearance = False  # Track if we've seen the species yet
     
     for run_id in recent_runs:
         row_map = {(r.get("scientific_name"), r.get("size_cm")): r for r in by_run[run_id]}
@@ -107,9 +113,13 @@ def extract_historical_values_with_carryforward(key, by_run, runs, field_name, m
             current_value = row_map[key].get(field_name, "")
             values.append(current_value)
             last_known_value = current_value
+            first_appearance = True
         else:
-            # Species OUT - carry forward last known value
-            values.append(last_known_value)
+            # Species OUT
+            if first_appearance:
+                # We've seen the species before - carry forward last known value
+                values.append(last_known_value)
+            # else: species hasn't appeared yet - don't add anything (skip leading Nones)
     
     return values
 
