@@ -2273,3 +2273,103 @@ class TestConvertSparklinesInHtml:
         # Should contain SVG for stock availability
         assert '<svg' in result
         assert '<title>IN</title>' in result
+
+
+class TestColorCodedSignalCells:
+    """Test suite for color-coded signal and risk cells in tables.
+    
+    This implements visual hierarchy improvements per the UX enhancement plan,
+    making signal priorities instantly scannable through color-coding.
+    """
+
+    def test_breeder_signal_cells_have_color_classes(self):
+        """Signal cells should have appropriate CSS classes for color-coding.
+        
+        Tests that the Signal column cells get color-coded classes:
+        - 🔥 → signal-hot (red gradient)
+        - ⚠️ → signal-watch (orange gradient)
+        - ❌ → signal-avoid (gray gradient)
+        """
+        # Create a simple breeder CSV with all three signal types
+        breeder_data = [
+            ['Species', 'Size (cm)', 'Signal', 'Recommendation'],
+            ['Hot Species', '2', '🔥', 'Good opportunity'],
+            ['Watch Species', '3', '⚠️', 'Monitor closely'],
+            ['Avoid Species', '1', '❌', 'Avoid for now'],
+        ]
+        
+        html = generate_table_html(
+            headers=breeder_data[0],
+            rows=breeder_data[1:],
+            table_id="breeder-table"
+        )
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Find all signal cells (should be in column 2)
+        all_rows = soup.find('tbody').find_all('tr')
+        
+        # Check that signal cells have appropriate classes
+        hot_signal = all_rows[0].find_all('td')[2]
+        watch_signal = all_rows[1].find_all('td')[2]
+        avoid_signal = all_rows[2].find_all('td')[2]
+        
+        assert 'signal-hot' in hot_signal.get('class', []), "🔥 should have signal-hot class"
+        assert 'signal-watch' in watch_signal.get('class', []), "⚠️ should have signal-watch class"
+        assert 'signal-avoid' in avoid_signal.get('class', []), "❌ should have signal-avoid class"
+
+    def test_dealer_risk_cells_have_color_classes(self):
+        """Dealer Risk cells should have appropriate CSS classes for color-coding.
+        
+        Tests that the Dealer Risk column cells get color-coded classes:
+        - 🔥 → signal-hot (red gradient)
+        - ⚠️ → signal-watch (orange gradient)
+        - ❌ → signal-avoid (gray gradient)
+        """
+        # Create a simple dealer CSV with all three risk types
+        dealer_data = [
+            ['Species', 'Size (cm)', 'Stock Reliability', 'Dealer Risk', 'Recommendation'],
+            ['Risky Species', '2', '40%', '🔥', 'Stock up immediately'],
+            ['Watch Species', '3', '65%', '⚠️', 'Monitor inventory'],
+            ['Safe Species', '1', '95%', '❌', 'No action needed'],
+        ]
+        
+        html = generate_table_html(
+            headers=dealer_data[0],
+            rows=dealer_data[1:],
+            table_id="dealer-table"
+        )
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Find all risk cells (should be in column 3)
+        all_rows = soup.find('tbody').find_all('tr')
+        
+        # Check that risk cells have appropriate classes
+        hot_risk = all_rows[0].find_all('td')[3]
+        watch_risk = all_rows[1].find_all('td')[3]
+        avoid_risk = all_rows[2].find_all('td')[3]
+        
+        assert 'signal-hot' in hot_risk.get('class', []), "🔥 should have signal-hot class"
+        assert 'signal-watch' in watch_risk.get('class', []), "⚠️ should have signal-watch class"
+        assert 'signal-avoid' in avoid_risk.get('class', []), "❌ should have signal-avoid class"
+
+    def test_other_cells_have_no_signal_classes(self):
+        """Non-signal cells should not have signal-* CSS classes."""
+        breeder_data = [
+            ['Species', 'Signal'],
+            ['Test Species', '🔥'],
+        ]
+        
+        html = generate_table_html(
+            headers=breeder_data[0],
+            rows=breeder_data[1:],
+            table_id="test-table"
+        )
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # First cell (Species) should NOT have signal-* classes
+        species_cell = soup.find('tbody').find_all('td')[0]
+        classes = species_cell.get('class', [])
+        assert not any(c.startswith('signal-') for c in classes), "Non-signal cells should not have signal-* classes"

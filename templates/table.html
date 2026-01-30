@@ -6,6 +6,7 @@
    - sortable: whether to make headers sortable (default True)
    - page_url_idx: index of page_url column (optional)
    - scientific_name_idx: index of scientific_name column (optional)
+   - signal_col_idx: index of Signal or Dealer Risk column (optional)
 #}
 {% if not headers or not rows %}
 <p>No data available.</p>
@@ -31,6 +32,18 @@
         {% set scientific_name = row[scientific_name_idx][1] if scientific_name_idx < row|length else "" %}
         {% if url %}
       <td><a href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ scientific_name }}</a></td>
+        {% else %}
+      <td>{{ cell }}</td>
+        {% endif %}
+      {% elif i == signal_col_idx and signal_col_idx is not none %}
+        {# Signal/Risk column - add color-coded CSS class #}
+        {% set cell_str = cell|string|trim %}
+        {% if '🔥' in cell_str %}
+      <td class="signal-hot">{{ cell }}</td>
+        {% elif '⚠️' in cell_str %}
+      <td class="signal-watch">{{ cell }}</td>
+        {% elif '❌' in cell_str %}
+      <td class="signal-avoid">{{ cell }}</td>
         {% else %}
       <td>{{ cell }}</td>
         {% endif %}

@@ -407,11 +407,21 @@ def generate_table_html(headers, rows, table_id, sortable=True):
     # Find column indices for special rendering
     page_url_idx = None
     scientific_name_idx = None
+    signal_col_idx = None
     try:
         page_url_idx = headers.index('page_url')
         scientific_name_idx = headers.index('scientific_name')
     except ValueError:
         pass  # Columns not found, render normally
+    
+    # Find Signal or Dealer Risk column for color-coding
+    try:
+        signal_col_idx = headers.index('Signal')
+    except ValueError:
+        try:
+            signal_col_idx = headers.index('Dealer Risk')
+        except ValueError:
+            pass  # No signal column found
     
     # Enumerate headers and rows for template
     headers_enum = list(enumerate(headers))
@@ -424,7 +434,8 @@ def generate_table_html(headers, rows, table_id, sortable=True):
         rows=rows_enum,
         sortable=sortable,
         page_url_idx=page_url_idx,
-        scientific_name_idx=scientific_name_idx
+        scientific_name_idx=scientific_name_idx,
+        signal_col_idx=signal_col_idx
     )
 
 
@@ -815,12 +826,22 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
     # Find column indices for special rendering
     page_url_idx = None
     scientific_name_idx = None
+    signal_col_idx = None
     if headers:
         try:
             page_url_idx = headers.index('page_url')
             scientific_name_idx = headers.index('scientific_name')
         except ValueError:
             pass
+        
+        # Find Signal or Dealer Risk column for color-coding
+        try:
+            signal_col_idx = headers.index('Signal')
+        except ValueError:
+            try:
+                signal_col_idx = headers.index('Dealer Risk')
+            except ValueError:
+                pass  # No signal column found
     
     # Enumerate headers and rows for template
     headers_enum = list(enumerate(headers)) if headers else []
@@ -844,6 +865,7 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
         sortable=True,
         page_url_idx=page_url_idx,
         scientific_name_idx=scientific_name_idx,
+        signal_col_idx=signal_col_idx,
         timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     )
 
