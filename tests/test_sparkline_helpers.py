@@ -6,14 +6,14 @@ Tests all behavioral rules from docs/SPARKLINES.md with 100% branch coverage.
 Tests are organized by function and behavior for clarity.
 """
 import pytest
-from src.sparkline_helpers import (
+from sparkline_helpers import (
     generate_sparkline,
     extract_historical_values,
     extract_historical_values_with_carryforward,
     generate_stock_availability_sparkline
 )
 from conftest import make_row
-from src.history import group_by_run
+from history import group_by_run
 
 
 # ==================== generate_sparkline() ====================
