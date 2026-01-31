@@ -27,8 +27,8 @@ import tempfile
 import os
 from pathlib import Path
 from bs4 import BeautifulSoup
-from website import PageConfig
-from website.generate_website import (
+from website import (
+    PageConfig,
     parse_markdown_to_html,
     extract_analysis_sections,
     read_csv_file,
@@ -36,6 +36,8 @@ from website.generate_website import (
     generate_table_html,
     get_base_html_template,
     get_html_footer,
+)
+from website.generate_website import (
     generate_homepage,
     generate_data_page,
     main,
@@ -2819,7 +2821,7 @@ class TestAddDataLabelsToTables:
 
     def test_adds_data_labels_to_simple_table(self):
         """Should add data-label attributes to all td elements based on headers."""
-        from website.generate_website import add_data_labels_to_tables
+        from website.markdown_utils import add_data_labels_to_tables
         
         html = """
         <table>
@@ -2865,7 +2867,7 @@ class TestAddDataLabelsToTables:
 
     def test_handles_multiple_tables(self):
         """Should add data-label attributes to multiple tables independently."""
-        from website.generate_website import add_data_labels_to_tables
+        from website.markdown_utils import add_data_labels_to_tables
         
         html = """
         <table>
@@ -2895,7 +2897,7 @@ class TestAddDataLabelsToTables:
 
     def test_handles_table_without_thead(self):
         """Should skip tables without thead gracefully."""
-        from website.generate_website import add_data_labels_to_tables
+        from website.markdown_utils import add_data_labels_to_tables
         
         html = """
         <table>
@@ -2915,7 +2917,7 @@ class TestAddDataLabelsToTables:
 
     def test_handles_table_without_tbody(self):
         """Should skip tables without tbody gracefully."""
-        from website.generate_website import add_data_labels_to_tables
+        from website.markdown_utils import add_data_labels_to_tables
         
         html = """
         <table>
@@ -2931,7 +2933,7 @@ class TestAddDataLabelsToTables:
 
     def test_handles_mismatched_column_count(self):
         """Should handle rows with different number of cells than headers."""
-        from website.generate_website import add_data_labels_to_tables
+        from website.markdown_utils import add_data_labels_to_tables
         
         html = """
         <table>
@@ -2965,7 +2967,7 @@ class TestAddDataLabelsToTables:
 
     def test_preserves_existing_html_content(self):
         """Should preserve other HTML content and only modify tables."""
-        from website.generate_website import add_data_labels_to_tables
+        from website.markdown_utils import add_data_labels_to_tables
         
         html = """
         <div class="container">
@@ -2992,14 +2994,14 @@ class TestAddDataLabelsToTables:
 
     def test_empty_string_returns_empty_string(self):
         """Should handle empty string input."""
-        from website.generate_website import add_data_labels_to_tables
+        from website.markdown_utils import add_data_labels_to_tables
         
         result = add_data_labels_to_tables("")
         assert result == ""
 
     def test_no_tables_returns_unchanged(self):
         """Should return unchanged HTML when no tables present."""
-        from website.generate_website import add_data_labels_to_tables
+        from website.markdown_utils import add_data_labels_to_tables
         
         html = "<div><p>Just some text</p></div>"
         result = add_data_labels_to_tables(html)
