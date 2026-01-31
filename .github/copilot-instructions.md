@@ -280,16 +280,16 @@ pip install -r requirements-dev.txt
 
 ### Website Generation Output Location
 
-**CRITICAL**: The location of the generated `website/` folder depends on the working directory when `generate_website.py` is executed:
+**CRITICAL**: The location of the generated `website/` folder depends on the working directory when the website generation module is executed:
 
-- **Coding agent / Direct execution**: Running `python src/generate_website.py` from project root creates `website/` at **project root level** (same level as `src/`, `tmp/`, `.github/`)
+- **Coding agent / Direct execution**: Running `python src/website/generate_website.py` from project root creates `website/` at **project root level** (same level as `src/`, `tmp/`, `.github/`)
 - **GitHub workflow**: Runs from project root → creates `website/` at **project root level** 
 - **Make commands** (developer local testing): Changes to `tmp/local-testing/` first → creates `website/` at **`tmp/local-testing/website/`**
 
-The `OUTPUT_DIR` constant in `generate_website.py` is `Path("website")`, which is always **relative to the current working directory**.
+The `OUTPUT_DIR` constant in `src/website/generate_website.py` is `Path("website")`, which is always **relative to the current working directory**.
 
 **When testing or verifying website generation:**
-- If you ran `generate_website.py` directly → look for `website/` at project root
+- If you ran the module directly → look for `website/` at project root
 - If user ran `make generate-website` → look for `tmp/local-testing/website/`
 - DO NOT assume files are in `tmp/local-testing/website/` when YOU run the script
 - DO NOT get confused by seeing existing files in `tmp/local-testing/website/` from user's previous make commands
@@ -328,7 +328,7 @@ scrape_datetime, scientific_name, common_name, size_cm, price_gbp, wishlist_coun
 1. Checkout repository
 2. Set up Python 3.11
 3. Download all artifacts from scrape workflow
-4. Generate static HTML website using `generate_website.py`
+4. Generate static HTML website using the `website.generate_website` module
 5. Upload website to GitHub Pages
 6. Deploy to GitHub Pages
 
@@ -351,11 +351,11 @@ scrape_datetime, scientific_name, common_name, size_cm, price_gbp, wishlist_coun
 2. Follow the pattern of breeder_matrix.py or dealer_matrix.py
 3. Import and call from scrape_spidershop_spiderlings.py main()
 4. Update workflow to upload new artifact files
-5. Update generate_website.py if the analysis should appear on the website
+5. Update `src/website/generate_website.py` if the analysis should appear on the website
 
 ### Modifying website generation
-1. Edit generate_website.py
-2. Test locally by running: `python src/generate_website.py`
+1. Edit `src/website/generate_website.py`
+2. Test locally by running: `python src/website/generate_website.py`
 3. Check generated HTML files in `website/` directory
 4. Ensure CSV files are copied to output directory
 5. Verify markdown-to-HTML conversion for analysis sections

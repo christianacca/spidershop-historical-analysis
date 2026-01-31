@@ -13,7 +13,8 @@ IMPORTANT - Output Location:
 
 Usage Example:
     
-    from generate_website import PageConfig, generate_data_page
+    from website import PageConfig
+    from website.generate_website import generate_data_page
     
     config = PageConfig(
         title="Breeder Opportunities",
@@ -28,15 +29,25 @@ Usage Example:
     html = generate_data_page(config)
 """
 
+import sys
+from pathlib import Path
+
+# Add parent directory to path to allow imports of sibling modules
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import csv
 import os
 import re
 import markdown
-from dataclasses import dataclass
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Optional
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+
+# Handle both direct script execution and module import
+try:
+    from website.page_config import PageConfig
+except ModuleNotFoundError:
+    from page_config import PageConfig
 
 # Output directory for the generated website
 # NOTE: This is RELATIVE to the current working directory when the script runs!
@@ -44,7 +55,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 OUTPUT_DIR = Path("website")
 
 # Setup Jinja2 environment
-template_dir = Path(__file__).parent.parent / "templates"
+template_dir = Path(__file__).parent.parent.parent / "templates"
 jinja_env = Environment(
     loader=FileSystemLoader(template_dir),
     autoescape=select_autoescape(['html', 'xml']),
@@ -58,35 +69,6 @@ SPARKLINE_CHARS = {
     '▅': 5, '▆': 6, '▇': 7, '█': 8,
     ' ': None  # Gap/missing data
 }
-
-
-@dataclass
-class PageConfig:
-    """Configuration for generating a data page.
-    
-    This encapsulates all the parameters needed to generate a complete HTML page
-    with data tables, analysis sections, and interactive features.
-    
-    Attributes:
-        title: Page title displayed in header
-        description: Brief description shown below title
-        csv_filename: Path to CSV file containing table data
-        table_id: HTML element ID for the main data table
-        active_page: Navigation identifier (e.g., 'breeder', 'dealer', 'snapshot')
-        search_filter: Whether to include text search functionality
-        analysis_markdown: Optional markdown content for analysis summary
-        legend_markdown: Optional markdown content for legend/help section
-        examples_markdown: Optional markdown content for practical examples
-    """
-    title: str
-    description: str
-    csv_filename: str
-    table_id: str
-    active_page: str
-    search_filter: bool = True
-    analysis_markdown: Optional[str] = None
-    legend_markdown: Optional[str] = None
-    examples_markdown: Optional[str] = None
 
 
 def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price", is_carried_forward=None):
@@ -939,7 +921,7 @@ def main():
     
     # Copy JavaScript file to output directory
     print("  Copying JavaScript files...")
-    js_source = Path(__file__).parent.parent / "templates" / "scripts" / "table-interactions.js"
+    js_source = Path(__file__).parent.parent.parent / "templates" / "scripts" / "table-interactions.js"
     if js_source.exists():
         with open(js_source, "r", encoding="utf-8") as src:
             content = src.read()

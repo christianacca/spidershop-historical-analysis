@@ -40,8 +40,8 @@ Thumbs.db
 # Test coverage
 .pytest_cache/
 
-# Generated website (CI/CD output)
-website/
+# Generated website output (CI/CD output at project root)
+/website/
 
 # Temporary files and local testing (includes coverage, local-testing, etc.)
 tmp/

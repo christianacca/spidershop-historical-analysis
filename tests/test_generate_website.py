@@ -27,7 +27,8 @@ import tempfile
 import os
 from pathlib import Path
 from bs4 import BeautifulSoup
-from generate_website import (
+from website import PageConfig
+from website.generate_website import (
     parse_markdown_to_html,
     extract_analysis_sections,
     read_csv_file,
@@ -39,7 +40,6 @@ from generate_website import (
     generate_data_page,
     main,
     OUTPUT_DIR,
-    PageConfig,
 )
 
 
@@ -200,7 +200,7 @@ class TestExtractSummaryStatistics:
 
     def test_extract_breeder_summary_stats(self):
         """Should extract breeder summary statistics from markdown Summary line."""
-        from generate_website import extract_summary_stats
+        from website.generate_website import extract_summary_stats
         
         markdown = """## 🧬 Breeder Opportunity Matrix (Top 10)
 
@@ -220,7 +220,7 @@ class TestExtractSummaryStatistics:
 
     def test_extract_dealer_summary_stats(self):
         """Should extract dealer summary statistics from markdown Summary line."""
-        from generate_website import extract_summary_stats
+        from website.generate_website import extract_summary_stats
         
         markdown = """## 🏪 Dealer Supply Risk Matrix (Top 10)
 
@@ -240,7 +240,7 @@ class TestExtractSummaryStatistics:
 
     def test_extract_summary_stats_missing_summary(self):
         """Should return None when Summary line is missing."""
-        from generate_website import extract_summary_stats
+        from website.generate_website import extract_summary_stats
         
         markdown = """## 🧬 Breeder Opportunity Matrix (Top 10)
 
@@ -254,7 +254,7 @@ class TestExtractSummaryStatistics:
 
     def test_extract_summary_stats_none_input(self):
         """Should return None when markdown is None."""
-        from generate_website import extract_summary_stats
+        from website.generate_website import extract_summary_stats
         stats = extract_summary_stats(None)
         assert stats is None
 
@@ -264,7 +264,7 @@ class TestSummaryStatsInHtml:
 
     def test_breeder_page_includes_summary_stats_cards(self):
         """Should render summary statistics as HTML cards in breeder page and remove duplicate Summary line."""
-        from generate_website import generate_data_page
+        from website.generate_website import generate_data_page
         
         # Create a temporary CSV file
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
@@ -321,7 +321,7 @@ class TestSummaryStatsInHtml:
 
     def test_dealer_page_includes_summary_stats_cards(self):
         """Should render summary statistics with dealer-specific labels."""
-        from generate_website import generate_data_page
+        from website.generate_website import generate_data_page
         
         # Create a temporary CSV file
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
@@ -365,7 +365,7 @@ class TestSummaryStatsInHtml:
 
     def test_page_without_analysis_has_no_summary_stats(self):
         """Should not render summary stats section when no analysis markdown provided."""
-        from generate_website import generate_data_page
+        from website.generate_website import generate_data_page
         
         # Create a temporary CSV file
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
@@ -391,7 +391,7 @@ class TestSummaryStatsInHtml:
 
     def test_page_with_analysis_but_no_summary_line_has_no_stats(self):
         """Should not render summary stats when analysis markdown lacks Summary line."""
-        from generate_website import generate_data_page
+        from website.generate_website import generate_data_page
         
         # Create a temporary CSV file
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
@@ -424,7 +424,7 @@ class TestSummaryStatsInHtml:
 
     def test_breeder_summary_cards_include_tooltip_explanations(self):
         """Should include info icons with tooltip explanations for breeder signals."""
-        from generate_website import generate_data_page
+        from website.generate_website import generate_data_page
         
         # Create a temporary CSV file
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
@@ -475,7 +475,7 @@ class TestSummaryStatsInHtml:
 
     def test_dealer_summary_cards_include_tooltip_explanations(self):
         """Should include info icons with dealer-specific tooltip explanations."""
-        from generate_website import generate_data_page
+        from website.generate_website import generate_data_page
         
         # Create a temporary CSV file
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
@@ -2084,7 +2084,7 @@ class TestSparklineSVGConversion:
 
     def test_convert_price_sparkline_with_rising_trend(self):
         """Should convert rising price sparkline to SVG with green bars and tooltips."""
-        from generate_website import convert_sparkline_to_svg
+        from website.generate_website import convert_sparkline_to_svg
         
         unicode_sparkline = "▁▂▃▄▅▆▇█"
         values = ["8.99", "10.50", "12.99", "16.50", "18.99", "21.00", "21.00", "24.99"]
@@ -2107,7 +2107,7 @@ class TestSparklineSVGConversion:
 
     def test_convert_wishlist_sparkline_with_falling_trend(self):
         """Should convert falling wishlist sparkline to SVG with red bars."""
-        from generate_website import convert_sparkline_to_svg
+        from website.generate_website import convert_sparkline_to_svg
         
         unicode_sparkline = "█▇▆▅▄▃▂▁"
         values = ["45", "40", "35", "28", "20", "15", "12", "8"]
@@ -2127,7 +2127,7 @@ class TestSparklineSVGConversion:
 
     def test_convert_stable_sparkline_uses_gray(self):
         """Should use gray color for stable/neutral trends."""
-        from generate_website import convert_sparkline_to_svg
+        from website.generate_website import convert_sparkline_to_svg
         
         unicode_sparkline = "▄▄▄▄▄▄▄▄"
         values = ["12.50", "12.50", "12.50", "13.00", "12.50", "12.50", "12.50", "12.50"]
@@ -2139,7 +2139,7 @@ class TestSparklineSVGConversion:
 
     def test_convert_sparkline_with_gaps_before_first_appearance(self):
         """Should render gaps as true empty space when species didn't exist yet (no bars)."""
-        from generate_website import convert_sparkline_to_svg
+        from website.generate_website import convert_sparkline_to_svg
         
         # Unicode sparkline: 4 spaces (didn't exist), then 3 bars (existed with carried-forward values)
         unicode_sparkline = "    ▄▄▄"
@@ -2170,7 +2170,7 @@ class TestSparklineSVGConversion:
 
     def test_convert_stock_availability_sparkline(self):
         """Should convert stock availability sparkline (binary IN/OUT)."""
-        from generate_website import convert_sparkline_to_svg
+        from website.generate_website import convert_sparkline_to_svg
         
         unicode_sparkline = "█ █ █"
         values = None  # Stock availability doesn't need numeric values
@@ -2185,7 +2185,7 @@ class TestSparklineSVGConversion:
 
     def test_sparkline_with_no_values_returns_dash(self):
         """Should return plain dash for invalid sparklines."""
-        from generate_website import convert_sparkline_to_svg
+        from website.generate_website import convert_sparkline_to_svg
         
         result = convert_sparkline_to_svg("-", [], metric_type="price")
         
@@ -2194,7 +2194,7 @@ class TestSparklineSVGConversion:
 
     def test_sparkline_dimensions_are_consistent(self):
         """Should generate SVG with consistent dimensions."""
-        from generate_website import convert_sparkline_to_svg
+        from website.generate_website import convert_sparkline_to_svg
         
         unicode_sparkline = "▁▂▃▄▅▆▇█"
         values = ["10", "15", "20", "25", "30", "35", "40", "45"]
@@ -2216,7 +2216,7 @@ class TestSparklineSVGConversion:
         - Expected: First bar (█) should show first value, subsequent bars show remaining values
         - Bug fix: Tooltips are aligned because we index values[] using bar_index (non-None count)
         """
-        from generate_website import convert_sparkline_to_svg
+        from website.generate_website import convert_sparkline_to_svg
         
         # Sparkline with 2 leading gaps (spaces), then 5 bars
         unicode_sparkline = "  █▁▁▁▁"
@@ -2250,7 +2250,7 @@ class TestConvertSparklinesInRows:
 
     def test_converts_price_sparklines_in_csv_rows(self):
         """Should convert price history sparklines in CSV data rows."""
-        from generate_website import convert_sparklines_in_rows
+        from website.generate_website import convert_sparklines_in_rows
         
         headers = ["Species", "Size (cm)", "Price History"]
         rows = [
@@ -2280,7 +2280,7 @@ class TestConvertSparklinesInRows:
 
     def test_converts_wishlist_sparklines_in_csv_rows(self):
         """Should convert wishlist history sparklines in CSV data rows."""
-        from generate_website import convert_sparklines_in_rows
+        from website.generate_website import convert_sparklines_in_rows
         
         headers = ["Species", "Size (cm)", "Wishlist History"]
         rows = [
@@ -2307,7 +2307,7 @@ class TestConvertSparklinesInRows:
 
     def test_converts_stock_availability_sparklines_in_csv_rows(self):
         """Should convert stock availability sparklines without crashing (regression test for metric_type=None bug)."""
-        from generate_website import convert_sparklines_in_rows
+        from website.generate_website import convert_sparklines_in_rows
         
         headers = ["Species", "Size (cm)", "Stock Availability"]
         rows = [
@@ -2325,7 +2325,7 @@ class TestConvertSparklinesInRows:
 
     def test_handles_rows_without_sparkline_columns(self):
         """Should return unchanged rows when no sparkline columns present."""
-        from generate_website import convert_sparklines_in_rows
+        from website.generate_website import convert_sparklines_in_rows
         
         headers = ["Species", "Size (cm)", "Price"]
         rows = [
@@ -2339,7 +2339,7 @@ class TestConvertSparklinesInRows:
 
     def test_handles_empty_historical_data(self):
         """Should handle missing historical data gracefully."""
-        from generate_website import convert_sparklines_in_rows
+        from website.generate_website import convert_sparklines_in_rows
         
         headers = ["Species", "Size (cm)", "Price History"]
         rows = [
@@ -2808,7 +2808,7 @@ class TestAddDataLabelsToTables:
 
     def test_adds_data_labels_to_simple_table(self):
         """Should add data-label attributes to all td elements based on headers."""
-        from generate_website import add_data_labels_to_tables
+        from website.generate_website import add_data_labels_to_tables
         
         html = """
         <table>
@@ -2854,7 +2854,7 @@ class TestAddDataLabelsToTables:
 
     def test_handles_multiple_tables(self):
         """Should add data-label attributes to multiple tables independently."""
-        from generate_website import add_data_labels_to_tables
+        from website.generate_website import add_data_labels_to_tables
         
         html = """
         <table>
@@ -2884,7 +2884,7 @@ class TestAddDataLabelsToTables:
 
     def test_handles_table_without_thead(self):
         """Should skip tables without thead gracefully."""
-        from generate_website import add_data_labels_to_tables
+        from website.generate_website import add_data_labels_to_tables
         
         html = """
         <table>
@@ -2904,7 +2904,7 @@ class TestAddDataLabelsToTables:
 
     def test_handles_table_without_tbody(self):
         """Should skip tables without tbody gracefully."""
-        from generate_website import add_data_labels_to_tables
+        from website.generate_website import add_data_labels_to_tables
         
         html = """
         <table>
@@ -2920,7 +2920,7 @@ class TestAddDataLabelsToTables:
 
     def test_handles_mismatched_column_count(self):
         """Should handle rows with different number of cells than headers."""
-        from generate_website import add_data_labels_to_tables
+        from website.generate_website import add_data_labels_to_tables
         
         html = """
         <table>
@@ -2954,7 +2954,7 @@ class TestAddDataLabelsToTables:
 
     def test_preserves_existing_html_content(self):
         """Should preserve other HTML content and only modify tables."""
-        from generate_website import add_data_labels_to_tables
+        from website.generate_website import add_data_labels_to_tables
         
         html = """
         <div class="container">
@@ -2981,14 +2981,14 @@ class TestAddDataLabelsToTables:
 
     def test_empty_string_returns_empty_string(self):
         """Should handle empty string input."""
-        from generate_website import add_data_labels_to_tables
+        from website.generate_website import add_data_labels_to_tables
         
         result = add_data_labels_to_tables("")
         assert result == ""
 
     def test_no_tables_returns_unchanged(self):
         """Should return unchanged HTML when no tables present."""
-        from generate_website import add_data_labels_to_tables
+        from website.generate_website import add_data_labels_to_tables
         
         html = "<div><p>Just some text</p></div>"
         result = add_data_labels_to_tables(html)

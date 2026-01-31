@@ -80,10 +80,10 @@ def generate_website():
     # Ensure testing directory exists
     TESTING_DIR.mkdir(parents=True, exist_ok=True)
     
-    # Check if generate_website.py exists
-    generator_path = Path("src/generate_website.py")
+    # Check if generate_website module exists
+    generator_path = Path("src/website/generate_website.py")
     if not generator_path.exists():
-        print("❌ Could not find src/generate_website.py")
+        print("❌ Could not find src/website/generate_website.py")
         sys.exit(1)
     
     # Run the generator from the testing directory

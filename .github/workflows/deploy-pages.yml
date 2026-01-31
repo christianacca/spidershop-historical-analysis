@@ -127,7 +127,7 @@ jobs:
       # --------------------------------
       - name: Generate HTML website
         run: |
-          python src/generate_website.py
+          python src/website/generate_website.py
 
       # --------------------------------
       # Setup GitHub Pages
