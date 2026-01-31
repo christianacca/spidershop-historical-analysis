@@ -329,28 +329,31 @@ def extract_summary_stats(markdown):
 
 
 def extract_analysis_sections(markdown_file):
-    """Extract breeder and dealer analysis sections from markdown file."""
+    """
+    Extract analysis text (summary stats only) from markdown file.
+    
+    Tables are no longer extracted - they will be rendered directly from CSV files.
+    This function only extracts the Summary line for statistics.
+    """
     if not os.path.exists(markdown_file):
         return None, None, None, None, None, None
     
     with open(markdown_file, 'r', encoding='utf-8') as f:
         content = f.read()
     
-    # Extract breeder section
-    breeder_match = re.search(
-        r'## 🧬 Breeder Opportunity Matrix \(Top 10\)\n\n(.*?)(?=\n## |\n<details>|$)',
-        content,
-        re.DOTALL
+    # Extract breeder summary line only (no table)
+    breeder_summary_match = re.search(
+        r'\*\*Summary:\*\*\s*\d+\s*species analyzed\s*\|[^\n]+',
+        content
     )
-    breeder_md = breeder_match.group(0) if breeder_match else None
+    breeder_md = breeder_summary_match.group(0) if breeder_summary_match else None
     
-    # Extract dealer section
-    dealer_match = re.search(
-        r'## 🏪 Dealer Supply Risk Matrix \(Top 10\)\n\n(.*?)(?=\n<details>|$)',
-        content,
-        re.DOTALL
+    # Extract dealer summary line only (no table)
+    dealer_summary_match = re.search(
+        r'## 🏪 Dealer Supply Risk Matrix \(Top 10\)\n\n\*\*Summary:\*\*\s*\d+\s*species analyzed\s*\|[^\n]+',
+        content
     )
-    dealer_md = dealer_match.group(0) if dealer_match else None
+    dealer_md = dealer_summary_match.group(0) if dealer_summary_match else None
     
     # Extract full legend content
     legend_match = re.search(
@@ -368,19 +371,22 @@ def extract_analysis_sections(markdown_file):
     
     if legend_full:
         # Split at breeder examples heading
-        breeder_examples_split = re.split(r'### 📖 Breeder Matrix — Practical Examples', legend_full)
-        breeder_legend = breeder_examples_split[0].strip()
-        remaining = breeder_examples_split[1]
-        
-        # Split remaining at dealer legend heading
-        dealer_split = re.split(r'### 🏪 Dealer Supply Risk Matrix — Legend', remaining)
-        breeder_examples = '### 📖 Breeder Matrix — Practical Examples' + dealer_split[0]
-        remaining_dealer = dealer_split[1]
-        
-        # Split dealer remaining at dealer examples heading
-        dealer_examples_split = re.split(r'### 📖 Dealer Matrix — Practical Examples', remaining_dealer)
-        dealer_legend = '### 🏪 Dealer Supply Risk Matrix — Legend' + dealer_examples_split[0].strip()
-        dealer_examples = '### 📖 Dealer Matrix — Practical Examples' + dealer_examples_split[1]
+        breeder_examples_parts = re.split(r'### 📖 Breeder Matrix — Practical Examples', legend_full)
+        if len(breeder_examples_parts) >= 2:
+            breeder_legend = breeder_examples_parts[0].strip()
+            remaining = breeder_examples_parts[1]
+            
+            # Split remaining at dealer legend heading
+            dealer_split = re.split(r'### 🏪 Dealer Supply Risk Matrix — Legend', remaining)
+            if len(dealer_split) >= 2:
+                breeder_examples = '### 📖 Breeder Matrix — Practical Examples' + dealer_split[0]
+                remaining_dealer = dealer_split[1]
+                
+                # Split dealer remaining at dealer examples heading
+                dealer_examples_split = re.split(r'### 📖 Dealer Matrix — Practical Examples', remaining_dealer)
+                if len(dealer_examples_split) >= 2:
+                    dealer_legend = '### 🏪 Dealer Supply Risk Matrix — Legend' + dealer_examples_split[0].strip()
+                    dealer_examples = '### 📖 Dealer Matrix — Practical Examples' + dealer_examples_split[1]
     
     return breeder_md, dealer_md, breeder_legend, dealer_legend, breeder_examples, dealer_examples
 
@@ -696,178 +702,6 @@ def convert_sparklines_in_rows(headers, rows, historical_data, csv_filename):
     return converted_rows
 
 
-def convert_sparklines_in_html(html, historical_data):
-    """
-    Convert Unicode sparklines to SVG in HTML tables (post-processing).
-    
-    This handles sparklines in markdown-generated HTML tables (e.g., Top 10 analysis tables).
-    
-    Args:
-        html: HTML string containing tables with Unicode sparklines
-        historical_data: Tuple of (by_run, runs) for sparkline extraction
-    
-    Returns:
-        HTML string with sparklines converted to SVG
-    """
-    if not html:
-        return html
-    
-    from bs4 import BeautifulSoup
-    from sparkline_helpers import extract_historical_values_with_carryforward
-    
-    by_run, runs = historical_data
-    
-    soup = BeautifulSoup(html, 'html.parser')
-    tables = soup.find_all('table')
-    
-    for table in tables:
-        # Find header row to identify column positions
-        thead = table.find('thead')
-        if not thead:
-            continue
-        
-        header_row = thead.find('tr')
-        if not header_row:
-            continue
-        
-        headers = [th.get_text(strip=True) for th in header_row.find_all('th')]
-        
-        # Identify sparkline columns and their field names
-        sparkline_columns = {}
-        for i, header in enumerate(headers):
-            if "Price History" in header:
-                sparkline_columns[i] = ("price_gbp", "price")
-            elif "Wishlist History" in header:
-                sparkline_columns[i] = ("wishlist_count", "wishlist")
-            elif "Stock Availability" in header or "Stock" in header:
-                sparkline_columns[i] = (None, "stock")
-        
-        if not sparkline_columns:
-            continue
-        
-        # Find species and size columns
-        species_idx = None
-        size_idx = None
-        try:
-            species_idx = headers.index("Species")
-        except ValueError:
-            pass
-        try:
-            size_idx = headers.index("Size (cm)")
-        except ValueError:
-            pass
-        
-        # Process each data row
-        tbody = table.find('tbody')
-        if not tbody:
-            continue
-        
-        for row in tbody.find_all('tr'):
-            cells = row.find_all('td')
-            
-            # Get species/size for looking up historical values
-            species = cells[species_idx].get_text(strip=True) if species_idx is not None and species_idx < len(cells) else None
-            size = cells[size_idx].get_text(strip=True) if size_idx is not None and size_idx < len(cells) else None
-            key = (species, size) if species and size else None
-            
-            # Convert sparklines in this row
-            for col_idx, (field_name, metric_type) in sparkline_columns.items():
-                if col_idx >= len(cells):
-                    continue
-                
-                cell = cells[col_idx]
-                unicode_sparkline = cell.get_text(strip=True)
-                
-                # Extract values with carried-forward tracking
-                values = None
-                is_carried_forward = None
-                
-                if key and by_run and field_name is not None:
-                    result = extract_historical_values_with_carryforward(key, by_run, runs, field_name, max_runs=8)
-                    values = result['values']
-                    is_carried_forward = result['is_carried_forward']
-                
-                # Convert to SVG only if we have valid data
-                # For price/wishlist: skip conversion if no values (keep Unicode sparkline)
-                # For stock: always convert (doesn't need values)
-                if metric_type == "stock" or (values and len(values) > 0):
-                    svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type, is_carried_forward=is_carried_forward)
-                    # Replace cell content with SVG (mark as safe HTML)
-                    cell.clear()
-                    cell.append(BeautifulSoup(svg, 'html.parser'))
-                # else: keep Unicode sparkline unchanged in the cell
-    
-    return str(soup)
-
-
-def apply_signal_styling_to_html(html):
-    """
-    Apply color-coded CSS classes to Signal/Dealer Risk cells in HTML tables.
-    
-    This post-processes markdown-generated HTML tables (e.g., Top 10 analysis tables)
-    to add the same styling used in the full data tables.
-    
-    Args:
-        html: HTML string containing tables with Signal or Dealer Risk columns
-    
-    Returns:
-        HTML string with signal cells styled
-    """
-    if not html:
-        return html
-    
-    from bs4 import BeautifulSoup
-    
-    soup = BeautifulSoup(html, 'html.parser')
-    tables = soup.find_all('table')
-    
-    for table in tables:
-        # Find header row to identify Signal/Dealer Risk column
-        thead = table.find('thead')
-        if not thead:
-            continue
-        
-        header_row = thead.find('tr')
-        if not header_row:
-            continue
-        
-        headers = [th.get_text(strip=True) for th in header_row.find_all('th')]
-        
-        # Find Signal or Dealer Risk column index
-        signal_col_idx = None
-        try:
-            signal_col_idx = headers.index("Signal")
-        except ValueError:
-            try:
-                signal_col_idx = headers.index("Dealer Risk")
-            except ValueError:
-                continue  # No signal column in this table
-        
-        # Process each data row
-        tbody = table.find('tbody')
-        if not tbody:
-            continue
-        
-        for row in tbody.find_all('tr'):
-            cells = row.find_all('td')
-            
-            if signal_col_idx >= len(cells):
-                continue
-            
-            signal_cell = cells[signal_col_idx]
-            signal_text = signal_cell.get_text(strip=True)
-            
-            # Add appropriate CSS class based on signal emoji
-            if '🔥' in signal_text:
-                signal_cell['class'] = signal_cell.get('class', []) + ['signal-hot']
-            elif '⚠️' in signal_text:
-                signal_cell['class'] = signal_cell.get('class', []) + ['signal-watch']
-            elif '❌' in signal_text:
-                signal_cell['class'] = signal_cell.get('class', []) + ['signal-avoid']
-    
-    return str(soup)
-
-
 def generate_data_page(title, description, csv_filename, table_id, active_page, search_filter=True, analysis_markdown=None, legend_markdown=None, examples_markdown=None):
     """Generate a data page with table from CSV and optional analysis using Jinja2 template."""
     headers, rows = read_csv_file(csv_filename)
@@ -879,25 +713,18 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
     if headers and rows:
         rows = convert_sparklines_in_rows(headers, rows, historical_data, csv_filename)
     
-    # Extract summary stats from analysis markdown BEFORE converting to HTML
+    # Extract summary stats from analysis markdown
     summary_stats = extract_summary_stats(analysis_markdown) if analysis_markdown else None
     
-    # Remove the Summary line from markdown to avoid duplication (stats are rendered as cards)
-    if analysis_markdown and summary_stats:
-        analysis_markdown = re.sub(
-            r'\*\*Summary:\*\*\s*\d+\s*species analyzed\s*\|[^\n]+\n\n',
-            '',
-            analysis_markdown
-        )
+    # Generate top 10 table from CSV (first 10 rows, already sorted by analysis modules)
+    top_10_headers = None
+    top_10_rows = None
+    if headers and rows and len(rows) > 0:
+        top_10_headers = headers
+        top_10_rows = rows[:10]  # CSV is already sorted by breeder_matrix/dealer_matrix
     
-    # Convert markdown to HTML if provided
-    analysis_html = parse_markdown_to_html(analysis_markdown) if analysis_markdown else None
-    
-    # Convert sparklines in analysis HTML (Top 10 tables from markdown)
-    if analysis_html:
-        analysis_html = convert_sparklines_in_html(analysis_html, historical_data)
-        # Apply signal cell styling to Top 10 tables
-        analysis_html = apply_signal_styling_to_html(analysis_html)
+    # No markdown to HTML conversion for analysis - no tables to render
+    analysis_html = None
     
     # Determine labels and tooltips based on page type (breeder vs dealer)
     stats_labels = None
@@ -979,6 +806,10 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
     headers_enum = list(enumerate(headers)) if headers else []
     rows_enum = [list(enumerate(row)) for row in rows] if rows else []
     
+    # Enumerate top 10 headers and rows for separate rendering
+    top_10_headers_enum = list(enumerate(top_10_headers)) if top_10_headers else []
+    top_10_rows_enum = [list(enumerate(row)) for row in top_10_rows] if top_10_rows else []
+    
     template = jinja_env.get_template('data_page.html')
     return template.render(
         page_title=title,
@@ -993,6 +824,8 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
         tooltips=tooltips,
         legend_html=legend_html,
         examples_html=examples_html,
+        top_10_headers=top_10_headers_enum,
+        top_10_rows=top_10_rows_enum,
         headers=headers_enum,
         rows=rows_enum,
         sortable=True,
