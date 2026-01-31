@@ -40,7 +40,7 @@ import os
 import re
 import markdown
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Tuple, List, Dict, Any
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 # Handle both direct script execution and module import
@@ -71,7 +71,7 @@ SPARKLINE_CHARS = {
 }
 
 
-def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price", is_carried_forward=None):
+def convert_sparkline_to_svg(unicode_sparkline: str, values: Optional[List[float]] = None, metric_type: str = "price", is_carried_forward: Optional[List[bool]] = None) -> str:
     """
     Convert a Unicode sparkline to an interactive SVG with tooltips.
     
@@ -258,7 +258,7 @@ def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price"
     return svg
 
 
-def parse_markdown_to_html(markdown_text):
+def parse_markdown_to_html(markdown_text: Optional[str]) -> str:
     """Convert markdown to HTML using the markdown library.
     
     Uses the 'tables', 'fenced_code', and 'md_in_html' extensions.
@@ -292,7 +292,7 @@ def parse_markdown_to_html(markdown_text):
     return html
 
 
-def add_data_labels_to_tables(html):
+def add_data_labels_to_tables(html: str) -> str:
     """Add data-label attributes to table cells for mobile responsive layout.
     
     Parses HTML tables and adds data-label attributes to each <td> element
@@ -330,7 +330,7 @@ def add_data_labels_to_tables(html):
     return str(soup)
 
 
-def extract_summary_stats(markdown):
+def extract_summary_stats(markdown: Optional[str]) -> Optional[Dict[str, int]]:
     """
     Extract summary statistics from markdown content.
     
@@ -420,7 +420,7 @@ def extract_analysis_sections(markdown_file):
     return breeder_md, dealer_md, breeder_legend, dealer_legend, breeder_examples, dealer_examples
 
 
-def read_csv_file(filepath):
+def read_csv_file(filepath: str) -> Tuple[Optional[List[str]], List[List[str]]]:
     """Read a CSV file and return headers and rows."""
     if not os.path.exists(filepath):
         return None, []
@@ -432,7 +432,7 @@ def read_csv_file(filepath):
     return headers, rows
 
 
-def escape_html(text):
+def escape_html(text: Any) -> str:
     """Escape HTML special characters.
     
     Note: With Jinja2 auto-escaping enabled, this function is primarily
@@ -449,7 +449,7 @@ def escape_html(text):
             .replace("'", "&#39;"))
 
 
-def generate_table_html(headers, rows, table_id, sortable=True):
+def generate_table_html(headers: Optional[List[str]], rows: List[List[str]], table_id: str, sortable: bool = True) -> str:
     """Generate HTML table from headers and rows using Jinja2 template."""
     if not headers or not rows:
         return "<p>No data available.</p>"
@@ -497,7 +497,7 @@ def generate_table_html(headers, rows, table_id, sortable=True):
     )
 
 
-def get_base_html_template(title, active_page=""):
+def get_base_html_template(title: str, active_page: str = "") -> str:
     """Return the base HTML template with navigation.
     
     Note: This function is kept for backward compatibility with tests.
@@ -521,7 +521,7 @@ def get_base_html_template(title, active_page=""):
     return html
 
 
-def get_html_footer():
+def get_html_footer() -> str:
     """Return the HTML footer with closing tags.
     
     Note: This function is kept for backward compatibility with tests.
@@ -543,7 +543,7 @@ def get_html_footer():
 </html>"""
 
 
-def generate_homepage(last_scrape_time=None):
+def generate_homepage(last_scrape_time: Optional[str] = None) -> str:
     """Generate the homepage with overview and links using Jinja2 template."""
     template = jinja_env.get_template('homepage.html')
     return template.render(
@@ -553,7 +553,7 @@ def generate_homepage(last_scrape_time=None):
     )
 
 
-def load_historical_sparkline_data():
+def load_historical_sparkline_data() -> Tuple[Dict[str, List[Dict[str, str]]], List[str]]:
     """
     Load historical data from history CSV in format ready for sparkline extraction.
     
@@ -585,7 +585,7 @@ def load_historical_sparkline_data():
         return {}, []
 
 
-def convert_sparklines_in_rows(headers, rows, historical_data, csv_filename):
+def convert_sparklines_in_rows(headers: List[str], rows: List[List[str]], historical_data: Tuple[Dict[str, List[Dict[str, str]]], List[str]], csv_filename: str) -> List[List[str]]:
     """
     Convert Unicode sparklines to SVG in specific columns.
     
@@ -821,7 +821,7 @@ def generate_data_page(config: PageConfig) -> str:
     )
 
 
-def main():
+def main() -> None:
     """Main function to generate the static website."""
     print("Generating static website...")
     
