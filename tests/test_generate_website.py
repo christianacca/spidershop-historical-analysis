@@ -2084,7 +2084,7 @@ class TestSparklineSVGConversion:
 
     def test_convert_price_sparkline_with_rising_trend(self):
         """Should convert rising price sparkline to SVG with green bars and tooltips."""
-        from website.generate_website import convert_sparkline_to_svg
+        from website.sparkline_conversion import convert_sparkline_to_svg
         
         unicode_sparkline = "▁▂▃▄▅▆▇█"
         values = ["8.99", "10.50", "12.99", "16.50", "18.99", "21.00", "21.00", "24.99"]
@@ -2107,7 +2107,7 @@ class TestSparklineSVGConversion:
 
     def test_convert_wishlist_sparkline_with_falling_trend(self):
         """Should convert falling wishlist sparkline to SVG with red bars."""
-        from website.generate_website import convert_sparkline_to_svg
+        from website.sparkline_conversion import convert_sparkline_to_svg
         
         unicode_sparkline = "█▇▆▅▄▃▂▁"
         values = ["45", "40", "35", "28", "20", "15", "12", "8"]
@@ -2127,7 +2127,7 @@ class TestSparklineSVGConversion:
 
     def test_convert_stable_sparkline_uses_gray(self):
         """Should use gray color for stable/neutral trends."""
-        from website.generate_website import convert_sparkline_to_svg
+        from website.sparkline_conversion import convert_sparkline_to_svg
         
         unicode_sparkline = "▄▄▄▄▄▄▄▄"
         values = ["12.50", "12.50", "12.50", "13.00", "12.50", "12.50", "12.50", "12.50"]
@@ -2139,7 +2139,7 @@ class TestSparklineSVGConversion:
 
     def test_convert_sparkline_with_gaps_before_first_appearance(self):
         """Should render gaps as true empty space when species didn't exist yet (no bars)."""
-        from website.generate_website import convert_sparkline_to_svg
+        from website.sparkline_conversion import convert_sparkline_to_svg
         
         # Unicode sparkline: 4 spaces (didn't exist), then 3 bars (existed with carried-forward values)
         unicode_sparkline = "    ▄▄▄"
@@ -2170,7 +2170,7 @@ class TestSparklineSVGConversion:
 
     def test_convert_stock_availability_sparkline(self):
         """Should convert stock availability sparkline (binary IN/OUT)."""
-        from website.generate_website import convert_sparkline_to_svg
+        from website.sparkline_conversion import convert_sparkline_to_svg
         
         unicode_sparkline = "█ █ █"
         values = None  # Stock availability doesn't need numeric values
@@ -2185,7 +2185,7 @@ class TestSparklineSVGConversion:
 
     def test_sparkline_with_no_values_returns_dash(self):
         """Should return plain dash for invalid sparklines."""
-        from website.generate_website import convert_sparkline_to_svg
+        from website.sparkline_conversion import convert_sparkline_to_svg
         
         result = convert_sparkline_to_svg("-", [], metric_type="price")
         
@@ -2194,7 +2194,7 @@ class TestSparklineSVGConversion:
 
     def test_sparkline_dimensions_are_consistent(self):
         """Should generate SVG with consistent dimensions."""
-        from website.generate_website import convert_sparkline_to_svg
+        from website.sparkline_conversion import convert_sparkline_to_svg
         
         unicode_sparkline = "▁▂▃▄▅▆▇█"
         values = ["10", "15", "20", "25", "30", "35", "40", "45"]
@@ -2216,7 +2216,7 @@ class TestSparklineSVGConversion:
         - Expected: First bar (█) should show first value, subsequent bars show remaining values
         - Bug fix: Tooltips are aligned because we index values[] using bar_index (non-None count)
         """
-        from website.generate_website import convert_sparkline_to_svg
+        from website.sparkline_conversion import convert_sparkline_to_svg
         
         # Sparkline with 2 leading gaps (spaces), then 5 bars
         unicode_sparkline = "  █▁▁▁▁"
@@ -2250,7 +2250,7 @@ class TestConvertSparklinesInRows:
 
     def test_converts_price_sparklines_in_csv_rows(self):
         """Should convert price history sparklines in CSV data rows."""
-        from website.generate_website import convert_sparklines_in_rows
+        from website.sparkline_conversion import convert_sparklines_in_rows
         
         headers = ["Species", "Size (cm)", "Price History"]
         rows = [
@@ -2280,7 +2280,7 @@ class TestConvertSparklinesInRows:
 
     def test_converts_wishlist_sparklines_in_csv_rows(self):
         """Should convert wishlist history sparklines in CSV data rows."""
-        from website.generate_website import convert_sparklines_in_rows
+        from website.sparkline_conversion import convert_sparklines_in_rows
         
         headers = ["Species", "Size (cm)", "Wishlist History"]
         rows = [
@@ -2307,7 +2307,7 @@ class TestConvertSparklinesInRows:
 
     def test_converts_stock_availability_sparklines_in_csv_rows(self):
         """Should convert stock availability sparklines without crashing (regression test for metric_type=None bug)."""
-        from website.generate_website import convert_sparklines_in_rows
+        from website.sparkline_conversion import convert_sparklines_in_rows
         
         headers = ["Species", "Size (cm)", "Stock Availability"]
         rows = [
@@ -2325,7 +2325,7 @@ class TestConvertSparklinesInRows:
 
     def test_handles_rows_without_sparkline_columns(self):
         """Should return unchanged rows when no sparkline columns present."""
-        from website.generate_website import convert_sparklines_in_rows
+        from website.sparkline_conversion import convert_sparklines_in_rows
         
         headers = ["Species", "Size (cm)", "Price"]
         rows = [
@@ -2339,7 +2339,7 @@ class TestConvertSparklinesInRows:
 
     def test_handles_empty_historical_data(self):
         """Should handle missing historical data gracefully."""
-        from website.generate_website import convert_sparklines_in_rows
+        from website.sparkline_conversion import convert_sparklines_in_rows
         
         headers = ["Species", "Size (cm)", "Price History"]
         rows = [

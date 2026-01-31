@@ -10,7 +10,7 @@ Tests cover all behavioral rules from docs/SPARKLINES.md (Part 2: SVG Sparklines
 """
 
 import pytest
-from website.generate_website import convert_sparkline_to_svg
+from website.sparkline_conversion import convert_sparkline_to_svg
 
 
 class TestBasicConversion:
