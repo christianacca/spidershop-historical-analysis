@@ -257,6 +257,48 @@ pip install -r requirements-dev.txt
 8. **Regex patterns**: Define regex patterns in config.py for reusability
 9. **Browser cleanup**: Always use try/finally to ensure driver cleanup
 
+## Test Utilities
+
+Common test helper functions are available in `tests/test_helpers.py` and exported via `tests/conftest.py`:
+
+- **File creation helpers**:
+  - `create_temp_markdown_file(content)` - Create temporary markdown file
+  - `create_temp_csv_file(content)` - Create temporary CSV file
+  - `write_csv_file(path, headers, rows)` - Write CSV to path
+  - `read_file_content(path)` - Read file with UTF-8 encoding
+
+- **CSV content generators**:
+  - `create_csv_content(headers, rows)` - Generate CSV string
+  - `create_breeder_csv_content(species, size, signal, extra_columns)` - Breeder CSV
+  - `create_dealer_csv_content(species, size, risk, extra_columns)` - Dealer CSV
+  - `create_history_csv_content(entries)` - Historical scrape data CSV
+
+**Usage in tests:**
+```python
+from conftest import create_temp_csv_file, create_breeder_csv_content
+
+def test_example():
+    # Simple approach
+    csv_path = create_temp_csv_file("Header1,Header2\nValue1,Value2\n")
+    
+    # Or use generator
+    content = create_breeder_csv_content(
+        species="Test Spider",
+        size="1.5",
+        signal="🔥",
+        extra_columns={"Price": "30.00"}
+    )
+    csv_path = create_temp_csv_file(content)
+    
+    try:
+        # Test code here
+        pass
+    finally:
+        os.unlink(csv_path)
+```
+
+Use these helpers to reduce boilerplate and improve test readability.
+
 ## Web Scraping Guidelines
 
 - **User-Agent**: Use the configured User-Agent string in config.py

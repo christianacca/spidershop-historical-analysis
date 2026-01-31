@@ -78,8 +78,10 @@ class TestExtractAnalysisSections:
 
     def test_extract_breeder_section(self):
         """Should extract breeder summary stats (not full table)."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, encoding='utf-8') as f:
-            f.write("""## 🧬 Breeder Opportunity Matrix (Top 10)
+        from conftest import create_temp_markdown_file
+        
+        filename = create_temp_markdown_file(
+            """## 🧬 Breeder Opportunity Matrix (Top 10)
 
 **Summary:** 109 species analyzed | 🔥 Hot: 36 | ⚠️ Watch: 30 | ❌ Avoid: 43
 
@@ -89,8 +91,8 @@ class TestExtractAnalysisSections:
 
 ## 🏪 Dealer Supply Risk Matrix (Top 10)
 
-Other content.""")
-            filename = f.name
+Other content."""
+        )
         
         try:
             breeder, dealer, breeder_legend, dealer_legend, breeder_examples, dealer_examples = extract_analysis_sections(filename)
@@ -104,8 +106,10 @@ Other content.""")
 
     def test_extract_dealer_section(self):
         """Should extract dealer summary stats (not full table)."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, encoding='utf-8') as f:
-            f.write("""## 🏪 Dealer Supply Risk Matrix (Top 10)
+        from conftest import create_temp_markdown_file
+        
+        filename = create_temp_markdown_file(
+            """## 🏪 Dealer Supply Risk Matrix (Top 10)
 
 **Summary:** 109 species analyzed | 🔥 High Risk: 35 | ⚠️ Moderate Risk: 57 | ❌ Low Risk: 17
 
@@ -115,8 +119,8 @@ Other content.""")
 
 <details>
 <summary>Legend</summary>
-</details>""")
-            filename = f.name
+</details>"""
+        )
         
         try:
             breeder, dealer, breeder_legend, dealer_legend, breeder_examples, dealer_examples = extract_analysis_sections(filename)
@@ -130,8 +134,10 @@ Other content.""")
 
     def test_extract_legend_section(self):
         """Should extract legend from details block."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, encoding='utf-8') as f:
-            f.write("""<details>
+        from conftest import create_temp_markdown_file
+        
+        filename = create_temp_markdown_file(
+            """<details>
 <summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>
 ### 🧬 Breeder Opportunity Matrix — Legend
 Breeder legend content here.
@@ -141,8 +147,8 @@ Breeder example 1 here.
 Dealer legend content here.
 ### 📖 Dealer Matrix — Practical Examples
 Dealer example 1 here.
-</details>""")
-            filename = f.name
+</details>"""
+        )
         
         try:
             breeder, dealer, breeder_legend, dealer_legend, breeder_examples, dealer_examples = extract_analysis_sections(filename)
@@ -159,9 +165,11 @@ Dealer example 1 here.
 
     def test_missing_sections_return_none(self):
         """Should return None for missing sections."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, encoding='utf-8') as f:
-            f.write("# Some Title\n\nSome content without the expected sections.")
-            filename = f.name
+        from conftest import create_temp_markdown_file
+        
+        filename = create_temp_markdown_file(
+            "# Some Title\n\nSome content without the expected sections."
+        )
         
         try:
             breeder, dealer, breeder_legend, dealer_legend, breeder_examples, dealer_examples = extract_analysis_sections(filename)
@@ -176,11 +184,13 @@ Dealer example 1 here.
 
     def test_partial_sections(self):
         """Should return None if Summary line not found."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, encoding='utf-8') as f:
-            f.write("""## 🧬 Breeder Opportunity Matrix (Top 10)
+        from conftest import create_temp_markdown_file
+        
+        filename = create_temp_markdown_file(
+            """## 🧬 Breeder Opportunity Matrix (Top 10)
 
-Breeder content only (no Summary line).""")
-            filename = f.name
+Breeder content only (no Summary line)."""
+        )
         
         try:
             breeder, dealer, breeder_legend, dealer_legend, breeder_examples, dealer_examples = extract_analysis_sections(filename)
@@ -265,14 +275,15 @@ class TestSummaryStatsInHtml:
     def test_breeder_page_includes_summary_stats_cards(self):
         """Should render summary statistics as HTML cards in breeder page and remove duplicate Summary line."""
         from website.generate_website import generate_data_page
+        from conftest import create_temp_csv_file
         
         # Create a temporary CSV file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Species,Signal,Recommendation\n")
-            f.write("Species A,🔥,Hot opportunity\n")
-            f.write("Species B,⚠️,Watch closely\n")
-            f.write("Species C,❌,Avoid\n")
-            csv_filename = f.name
+        csv_filename = create_temp_csv_file(
+            "Species,Signal,Recommendation\n"
+            "Species A,🔥,Hot opportunity\n"
+            "Species B,⚠️,Watch closely\n"
+            "Species C,❌,Avoid\n"
+        )
         
         # Create markdown with Summary line
         analysis_markdown = """## 🧬 Breeder Opportunity Matrix (Top 10)
