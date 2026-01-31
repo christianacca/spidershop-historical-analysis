@@ -1006,15 +1006,14 @@ class TestGetHtmlFooter:
         assert 'UTC' in footer_text
 
     def test_includes_javascript_functions(self):
-        """Should include JavaScript for table sorting and filtering."""
+        """Should include JavaScript reference for table sorting and filtering."""
         html = get_html_footer()
         soup = BeautifulSoup(html, 'html.parser')
         
         script = soup.find('script')
         assert script is not None
-        js_content = script.string
-        assert 'function sortTable(' in js_content
-        assert 'function filterTable(' in js_content
+        # Should reference external JS file
+        assert script.get('src') == 'table-interactions.js'
 
     def test_closes_html_tags(self):
         """Should close body and html tags."""
@@ -1024,22 +1023,22 @@ class TestGetHtmlFooter:
         assert "</html>" in html
 
     def test_javascript_handles_numeric_sorting(self):
-        """JavaScript should include numeric sort logic."""
-        html = get_html_footer()
-        soup = BeautifulSoup(html, 'html.parser')
+        """JavaScript file should exist and contain numeric sort logic."""
+        # Read the external JavaScript file
+        js_file = Path(__file__).parent.parent / "templates" / "scripts" / "table-interactions.js"
+        assert js_file.exists(), "JavaScript file should exist"
         
-        script = soup.find('script')
-        js_content = script.string
+        js_content = js_file.read_text()
         assert 'isNumeric' in js_content
         assert 'parseFloat' in js_content
 
     def test_javascript_handles_string_sorting(self):
-        """JavaScript should include string sort logic."""
-        html = get_html_footer()
-        soup = BeautifulSoup(html, 'html.parser')
+        """JavaScript file should exist and contain string sort logic."""
+        # Read the external JavaScript file
+        js_file = Path(__file__).parent.parent / "templates" / "scripts" / "table-interactions.js"
+        assert js_file.exists(), "JavaScript file should exist"
         
-        script = soup.find('script')
-        js_content = script.string
+        js_content = js_file.read_text()
         assert 'toLowerCase' in js_content
         assert 'localeCompare' in js_content
 
@@ -2374,7 +2373,7 @@ class TestInteractiveFilterButtons:
         assert filter_container is None, "Snapshot page should not have filter buttons (no Signal column)"
 
     def test_javascript_filter_function_exists(self, tmp_path):
-        """Generated pages should include the filterBySignal JavaScript function."""
+        """Generated pages should reference external JavaScript and have filter attributes."""
         csv_file = tmp_path / "test.csv"
         csv_file.write_text("Species,Signal\nTest,🔥\n")
         
@@ -2387,9 +2386,15 @@ class TestInteractiveFilterButtons:
             active_page="breeder"
         )
         
-        # Should contain the filterBySignal function definition
-        assert 'function filterBySignal' in html, "Should include filterBySignal JavaScript function"
+        # Should reference external JS file and have data attributes
+        assert 'src="table-interactions.js"' in html, "Should reference external JavaScript file"
         assert 'data-signal=' in html, "Table rows should have data-signal attributes for filtering"
+        
+        # Verify the external JavaScript file contains filterBySignal function
+        js_file = Path(__file__).parent.parent / "templates" / "scripts" / "table-interactions.js"
+        assert js_file.exists(), "JavaScript file should exist"
+        js_content = js_file.read_text()
+        assert 'function filterBySignal' in js_content
 
 
 class TestStockPatternFiltering:
@@ -2564,7 +2569,7 @@ class TestStockPatternFiltering:
         assert stock_pattern_container is None, "Dealer page should not have stock pattern filters"
 
     def test_stock_pattern_filter_javascript_function_exists(self, tmp_path):
-        """Breeder page should include filterByStockPattern JavaScript function."""
+        """Breeder page should reference external JavaScript and have stock pattern attributes."""
         csv_file = tmp_path / "breeder.csv"
         csv_file.write_text(
             "Species,Size (cm),Stock Pattern,Signal\n"
@@ -2580,9 +2585,15 @@ class TestStockPatternFiltering:
             active_page="breeder"
         )
         
-        # Should contain the filterByStockPattern function definition
-        assert 'function filterByStockPattern' in html, "Should include filterByStockPattern JavaScript function"
+        # Should reference external JS file and have data attributes
+        assert 'src="table-interactions.js"' in html, "Should reference external JavaScript file"
         assert 'data-stock-pattern=' in html, "Table rows should have data-stock-pattern attributes"
+        
+        # Verify the external JavaScript file contains filterByStockPattern function
+        js_file = Path(__file__).parent.parent / "templates" / "scripts" / "table-interactions.js"
+        assert js_file.exists(), "JavaScript file should exist"
+        js_content = js_file.read_text()
+        assert 'function filterByStockPattern' in js_content
 
     def test_stock_pattern_buttons_have_counts(self, tmp_path):
         """Stock pattern filter buttons should display counts for each pattern."""
