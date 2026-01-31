@@ -10,14 +10,32 @@ IMPORTANT - Output Location:
     - Make command: Changes to tmp/local-testing/ first → creates website/ there
     
     This means the generated website/ folder location varies depending on execution context.
+
+Usage Example:
+    
+    from generate_website import PageConfig, generate_data_page
+    
+    config = PageConfig(
+        title="Breeder Opportunities",
+        description="Analysis of breeding opportunities",
+        csv_filename="breeder_opportunity_table.csv",
+        table_id="breeder-table",
+        active_page="breeder",
+        analysis_markdown=breeder_analysis,
+        legend_markdown=breeder_legend,
+        examples_markdown=breeder_examples
+    )
+    html = generate_data_page(config)
 """
 
 import csv
 import os
 import re
 import markdown
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 # Output directory for the generated website
@@ -40,6 +58,35 @@ SPARKLINE_CHARS = {
     '▅': 5, '▆': 6, '▇': 7, '█': 8,
     ' ': None  # Gap/missing data
 }
+
+
+@dataclass
+class PageConfig:
+    """Configuration for generating a data page.
+    
+    This encapsulates all the parameters needed to generate a complete HTML page
+    with data tables, analysis sections, and interactive features.
+    
+    Attributes:
+        title: Page title displayed in header
+        description: Brief description shown below title
+        csv_filename: Path to CSV file containing table data
+        table_id: HTML element ID for the main data table
+        active_page: Navigation identifier (e.g., 'breeder', 'dealer', 'snapshot')
+        search_filter: Whether to include text search functionality
+        analysis_markdown: Optional markdown content for analysis summary
+        legend_markdown: Optional markdown content for legend/help section
+        examples_markdown: Optional markdown content for practical examples
+    """
+    title: str
+    description: str
+    csv_filename: str
+    table_id: str
+    active_page: str
+    search_filter: bool = True
+    analysis_markdown: Optional[str] = None
+    legend_markdown: Optional[str] = None
+    examples_markdown: Optional[str] = None
 
 
 def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price", is_carried_forward=None):
@@ -639,19 +686,36 @@ def convert_sparklines_in_rows(headers, rows, historical_data, csv_filename):
     return converted_rows
 
 
-def generate_data_page(title, description, csv_filename, table_id, active_page, search_filter=True, analysis_markdown=None, legend_markdown=None, examples_markdown=None):
-    """Generate a data page with table from CSV and optional analysis using Jinja2 template."""
-    headers, rows = read_csv_file(csv_filename)
+def generate_data_page(config: PageConfig) -> str:
+    """Generate a data page with table from CSV and optional analysis using Jinja2 template.
+    
+    Args:
+        config: PageConfig object containing all page generation parameters
+    
+    Returns:
+        str: Complete HTML page content
+        
+    Example:
+        config = PageConfig(
+            title="Breeder Opportunities",
+            description="Market analysis",
+            csv_filename="breeder_table.csv",
+            table_id="breeder-table",
+            active_page="breeder"
+        )
+        html = generate_data_page(config)
+    """
+    headers, rows = read_csv_file(config.csv_filename)
     
     # Load historical data if available to enrich sparklines with values
     historical_data = load_historical_sparkline_data()
     
     # Convert Unicode sparklines to SVG in sparkline columns
     if headers and rows:
-        rows = convert_sparklines_in_rows(headers, rows, historical_data, csv_filename)
+        rows = convert_sparklines_in_rows(headers, rows, historical_data, config.csv_filename)
     
     # Extract summary stats from analysis markdown
-    summary_stats = extract_summary_stats(analysis_markdown) if analysis_markdown else None
+    summary_stats = extract_summary_stats(config.analysis_markdown) if config.analysis_markdown else None
     
     # Generate top 10 table from CSV (first 10 rows, already sorted by analysis modules)
     top_10_headers = None
@@ -667,7 +731,7 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
     stats_labels = None
     tooltips = None
     if summary_stats:
-        if active_page == "dealer":
+        if config.active_page == "dealer":
             stats_labels = {
                 'hot': '🔥 High Risk',
                 'watch': '⚠️ Moderate Risk',
@@ -690,12 +754,12 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
                 'avoid': 'Oversupplied or always available. No meaningful scarcity pattern detected, regardless of demand spikes.'
             }
     
-    examples_html = parse_markdown_to_html(examples_markdown) if examples_markdown else None
+    examples_html = parse_markdown_to_html(config.examples_markdown) if config.examples_markdown else None
     
     # Wrap legend markdown in details tag and convert
     legend_html = None
-    if legend_markdown:
-        legend_with_wrapper = f'<details markdown="1">\n<summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>\n\n{legend_markdown}\n\n</details>'
+    if config.legend_markdown:
+        legend_with_wrapper = f'<details markdown="1">\n<summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>\n\n{config.legend_markdown}\n\n</details>'
         legend_html = parse_markdown_to_html(legend_with_wrapper)
     
     # Find column indices for special rendering
@@ -749,12 +813,12 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
     
     template = jinja_env.get_template('data_page.html')
     return template.render(
-        page_title=title,
-        description=description,
-        csv_filename=csv_filename,
-        table_id=table_id,
-        active_page=active_page,
-        search_filter=search_filter,
+        page_title=config.title,
+        description=config.description,
+        csv_filename=config.csv_filename,
+        table_id=config.table_id,
+        active_page=config.active_page,
+        search_filter=config.search_filter,
         analysis_html=analysis_html,
         summary_stats=summary_stats,
         stats_labels=stats_labels,
@@ -809,52 +873,52 @@ def main():
     # Generate snapshot page
     print("  Generating snapshot.html...")
     with open(OUTPUT_DIR / "snapshot.html", "w", encoding="utf-8") as f:
-        f.write(generate_data_page(
-            "Latest Snapshot",
-            "Current scrape results showing all available tarantula spiderlings.",
-            "spidershop_spiderlings_scrape.csv",
-            "snapshot-table",
-            "snapshot"
-        ))
+        f.write(generate_data_page(config=PageConfig(
+            title="Latest Snapshot",
+            description="Current scrape results showing all available tarantula spiderlings.",
+            csv_filename="spidershop_spiderlings_scrape.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )))
     
     # Generate history page
     print("  Generating history.html...")
     with open(OUTPUT_DIR / "history.html", "w", encoding="utf-8") as f:
-        f.write(generate_data_page(
-            "Historical Data",
-            "Accumulated historical pricing data across all scrape runs.",
-            "spidershop_spiderlings_history.csv",
-            "history-table",
-            "history"
-        ))
+        f.write(generate_data_page(config=PageConfig(
+            title="Historical Data",
+            description="Accumulated historical pricing data across all scrape runs.",
+            csv_filename="spidershop_spiderlings_history.csv",
+            table_id="history-table",
+            active_page="history"
+        )))
     
     # Generate breeder opportunity page
     print("  Generating breeder.html...")
     with open(OUTPUT_DIR / "breeder.html", "w", encoding="utf-8") as f:
-        f.write(generate_data_page(
-            "Breeder Opportunities",
-            "Analysis showing breeding opportunities based on market trends and pricing patterns.",
-            "breeder_opportunity_table.csv",
-            "breeder-table",
-            "breeder",
+        f.write(generate_data_page(config=PageConfig(
+            title="Breeder Opportunities",
+            description="Analysis showing breeding opportunities based on market trends and pricing patterns.",
+            csv_filename="breeder_opportunity_table.csv",
+            table_id="breeder-table",
+            active_page="breeder",
             analysis_markdown=breeder_analysis,
             legend_markdown=breeder_legend,
             examples_markdown=breeder_examples
-        ))
+        )))
     
     # Generate dealer supply risk page
     print("  Generating dealer.html...")
     with open(OUTPUT_DIR / "dealer.html", "w", encoding="utf-8") as f:
-        f.write(generate_data_page(
-            "Dealer Supply Risk",
-            "Analysis highlighting inventory availability patterns and supply risk indicators.",
-            "dealer_supply_risk_table.csv",
-            "dealer-table",
-            "dealer",
+        f.write(generate_data_page(config=PageConfig(
+            title="Dealer Supply Risk",
+            description="Analysis highlighting inventory availability patterns and supply risk indicators.",
+            csv_filename="dealer_supply_risk_table.csv",
+            table_id="dealer-table",
+            active_page="dealer",
             analysis_markdown=dealer_analysis,
             legend_markdown=dealer_legend,
             examples_markdown=dealer_examples
-        ))
+        )))
     
     # Copy CSV files to output directory
     print("  Copying CSV files...")

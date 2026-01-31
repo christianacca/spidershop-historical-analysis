@@ -39,6 +39,7 @@ from generate_website import (
     generate_data_page,
     main,
     OUTPUT_DIR,
+    PageConfig,
 )
 
 
@@ -284,14 +285,14 @@ class TestSummaryStatsInHtml:
 """
         
         try:
-            html = generate_data_page(
-                "Breeder Opportunities",
-                "Test description",
-                csv_filename,
-                "test-table",
-                "breeder",
+            html = generate_data_page(PageConfig(
+                title="Breeder Opportunities",
+                description="Test description",
+                csv_filename=csv_filename,
+                table_id="test-table",
+                active_page="breeder",
                 analysis_markdown=analysis_markdown
-            )
+            ))
             
             # Verify summary stats cards are present in HTML
             assert '<div class="summary-stats">' in html
@@ -341,14 +342,14 @@ class TestSummaryStatsInHtml:
 """
         
         try:
-            html = generate_data_page(
-                "Dealer Supply Risk",
-                "Test description",
-                csv_filename,
-                "test-table",
-                "dealer",
+            html = generate_data_page(PageConfig(
+                title="Dealer Supply Risk",
+                description="Test description",
+                csv_filename=csv_filename,
+                table_id="test-table",
+                active_page="dealer",
                 analysis_markdown=analysis_markdown
-            )
+            ))
             
             # Verify summary stats cards are present
             assert '<div class="summary-stats">' in html
@@ -373,14 +374,14 @@ class TestSummaryStatsInHtml:
             csv_filename = f.name
         
         try:
-            html = generate_data_page(
-                "Test Page",
-                "Test description",
-                csv_filename,
-                "test-table",
-                "test",
+            html = generate_data_page(PageConfig(
+                title="Test Page",
+                description="Test description",
+                csv_filename=csv_filename,
+                table_id="test-table",
+                active_page="test",
                 analysis_markdown=None
-            )
+            ))
             
             # Verify NO summary stats section present
             assert '<div class="summary-stats">' not in html
@@ -407,14 +408,14 @@ class TestSummaryStatsInHtml:
 """
         
         try:
-            html = generate_data_page(
-                "Breeder Opportunities",
-                "Test description",
-                csv_filename,
-                "test-table",
-                "breeder",
+            html = generate_data_page(PageConfig(
+                title="Breeder Opportunities",
+                description="Test description",
+                csv_filename=csv_filename,
+                table_id="test-table",
+                active_page="breeder",
                 analysis_markdown=analysis_markdown
-            )
+            ))
             
             # Verify NO summary stats section (because no Summary line found)
             assert '<div class="summary-stats">' not in html
@@ -437,14 +438,14 @@ class TestSummaryStatsInHtml:
 """
         
         try:
-            html = generate_data_page(
-                "Breeder Opportunities",
-                "Test description",
-                csv_filename,
-                "test-table",
-                "breeder",
+            html = generate_data_page(PageConfig(
+                title="Breeder Opportunities",
+                description="Test description",
+                csv_filename=csv_filename,
+                table_id="test-table",
+                active_page="breeder",
                 analysis_markdown=analysis_markdown
-            )
+            ))
             
             soup = BeautifulSoup(html, 'html.parser')
             
@@ -488,14 +489,14 @@ class TestSummaryStatsInHtml:
 """
         
         try:
-            html = generate_data_page(
-                "Dealer Supply Risk",
-                "Test description",
-                csv_filename,
-                "test-table",
-                "dealer",
+            html = generate_data_page(PageConfig(
+                title="Dealer Supply Risk",
+                description="Test description",
+                csv_filename=csv_filename,
+                table_id="test-table",
+                active_page="dealer",
                 analysis_markdown=analysis_markdown
-            )
+            ))
             
             soup = BeautifulSoup(html, 'html.parser')
             
@@ -1175,13 +1176,13 @@ class TestGenerateDataPage:
             filename = f.name
         
         try:
-            html = generate_data_page(
-                "Test Page",
-                "Test description",
-                filename,
-                "test-table",
-                "snapshot"
-            )
+            html = generate_data_page(PageConfig(
+                title="Test Page",
+                description="Test description",
+                csv_filename=filename,
+                table_id="test-table",
+                active_page="snapshot"
+            ))
             soup = BeautifulSoup(html, 'html.parser')
             
             # Check DOCTYPE
@@ -1200,13 +1201,13 @@ class TestGenerateDataPage:
             filename = f.name
         
         try:
-            html = generate_data_page(
-                "My Title",
-                "My description text",
-                filename,
-                "test-table",
-                "snapshot"
-            )
+            html = generate_data_page(PageConfig(
+                title="My Title",
+                description="My description text",
+                csv_filename=filename,
+                table_id="test-table",
+                active_page="snapshot"
+            ))
             soup = BeautifulSoup(html, 'html.parser')
             
             # Check title in head
@@ -1227,13 +1228,13 @@ class TestGenerateDataPage:
             temp_name = f.name
         
         try:
-            html = generate_data_page(
-                "Test",
-                "Desc",
-                filename,
-                "test-table",
-                "snapshot"
-            )
+            html = generate_data_page(PageConfig(
+                title="Test",
+                description="Desc",
+                csv_filename=filename,
+                table_id="test-table",
+                active_page="snapshot"
+            ))
             soup = BeautifulSoup(html, 'html.parser')
             
             # Find download link
@@ -1254,14 +1255,14 @@ class TestGenerateDataPage:
             filename = f.name
         
         try:
-            html = generate_data_page(
-                "Test",
-                "Desc",
-                filename,
-                "test-table",
-                "snapshot",
+            html = generate_data_page(PageConfig(
+                title="Test",
+                description="Desc",
+                csv_filename=filename,
+                table_id="test-table",
+                active_page="snapshot",
                 search_filter=True
-            )
+            ))
             soup = BeautifulSoup(html, 'html.parser')
             
             # Find search input
@@ -1279,14 +1280,14 @@ class TestGenerateDataPage:
             filename = f.name
         
         try:
-            html = generate_data_page(
-                "Test",
-                "Desc",
-                filename,
-                "test-table",
-                "snapshot",
+            html = generate_data_page(PageConfig(
+                title="Test",
+                description="Desc",
+                csv_filename=filename,
+                table_id="test-table",
+                active_page="snapshot",
                 search_filter=False
-            )
+            ))
             soup = BeautifulSoup(html, 'html.parser')
             
             # Should not have table-controls div or search input
@@ -1304,13 +1305,13 @@ class TestGenerateDataPage:
             filename = f.name
         
         try:
-            html = generate_data_page(
-                "Test",
-                "Desc",
-                filename,
-                "test-table",
-                "snapshot"
-            )
+            html = generate_data_page(PageConfig(
+                title="Test",
+                description="Desc",
+                csv_filename=filename,
+                table_id="test-table",
+                active_page="snapshot"
+            ))
             soup = BeautifulSoup(html, 'html.parser')
             
             # Find "Full Data Table" heading
@@ -1333,13 +1334,13 @@ class TestGenerateDataPage:
 
     def test_handles_nonexistent_csv_file(self):
         """Should show 'no data' message for nonexistent file."""
-        html = generate_data_page(
-            "Test",
-            "Desc",
-            "/nonexistent/file.csv",
-            "test-table",
-            "snapshot"
-        )
+        html = generate_data_page(PageConfig(
+            title="Test",
+            description="Desc",
+            csv_filename="/nonexistent/file.csv",
+            table_id="test-table",
+            active_page="snapshot"
+        ))
         soup = BeautifulSoup(html, 'html.parser')
         
         # Should have "No data available" message
@@ -1358,13 +1359,13 @@ class TestGenerateDataPage:
             filename = f.name
         
         try:
-            html = generate_data_page(
-                "Test",
-                "Desc",
-                filename,
-                "test-table",
-                "breeder"
-            )
+            html = generate_data_page(PageConfig(
+                title="Test",
+                description="Desc",
+                csv_filename=filename,
+                table_id="test-table",
+                active_page="breeder"
+            ))
             soup = BeautifulSoup(html, 'html.parser')
             
             # Top 10 table should be rendered from CSV (first 10 rows)
@@ -1385,14 +1386,14 @@ class TestGenerateDataPage:
             filename = f.name
         
         try:
-            html = generate_data_page(
-                "Test",
-                "Desc",
-                filename,
-                "test-table",
-                "snapshot",
+            html = generate_data_page(PageConfig(
+                title="Test",
+                description="Desc",
+                csv_filename=filename,
+                table_id="test-table",
+                active_page="snapshot",
                 analysis_markdown=None
-            )
+            ))
             soup = BeautifulSoup(html, 'html.parser')
             
             # Should not have analysis-section div
@@ -1409,14 +1410,14 @@ class TestGenerateDataPage:
         
         try:
             legend_md = "**Legend**: This explains the symbols."
-            html = generate_data_page(
-                "Test",
-                "Desc",
-                filename,
-                "test-table",
-                "snapshot",
+            html = generate_data_page(PageConfig(
+                title="Test",
+                description="Desc",
+                csv_filename=filename,
+                table_id="test-table",
+                active_page="snapshot",
                 legend_markdown=legend_md
-            )
+            ))
             soup = BeautifulSoup(html, 'html.parser')
             
             # Find details element
@@ -1441,14 +1442,14 @@ class TestGenerateDataPage:
             filename = f.name
         
         try:
-            html = generate_data_page(
-                "Test",
-                "Desc",
-                filename,
-                "test-table",
-                "snapshot",
+            html = generate_data_page(PageConfig(
+                title="Test",
+                description="Desc",
+                csv_filename=filename,
+                table_id="test-table",
+                active_page="snapshot",
                 legend_markdown=None
-            )
+            ))
             soup = BeautifulSoup(html, 'html.parser')
             
             # Should not have details element with legend
@@ -1457,6 +1458,100 @@ class TestGenerateDataPage:
                 assert 'How to read these tables' not in details.text
         finally:
             os.unlink(filename)
+
+
+class TestPageConfig:
+    """Tests for PageConfig dataclass and its usage."""
+
+    def test_pageconfig_with_all_required_fields(self):
+        """PageConfig should accept all required fields."""
+        config = PageConfig(
+            title="Test Title",
+            description="Test Description",
+            csv_filename="test.csv",
+            table_id="test-table",
+            active_page="test"
+        )
+        
+        assert config.title == "Test Title"
+        assert config.description == "Test Description"
+        assert config.csv_filename == "test.csv"
+        assert config.table_id == "test-table"
+        assert config.active_page == "test"
+        assert config.search_filter is True  # Default value
+        assert config.analysis_markdown is None
+        assert config.legend_markdown is None
+        assert config.examples_markdown is None
+
+    def test_pageconfig_with_optional_fields(self):
+        """PageConfig should accept optional fields."""
+        config = PageConfig(
+            title="Test",
+            description="Desc",
+            csv_filename="test.csv",
+            table_id="id",
+            active_page="page",
+            search_filter=False,
+            analysis_markdown="# Analysis",
+            legend_markdown="## Legend",
+            examples_markdown="### Examples"
+        )
+        
+        assert config.search_filter is False
+        assert config.analysis_markdown == "# Analysis"
+        assert config.legend_markdown == "## Legend"
+        assert config.examples_markdown == "### Examples"
+
+    def test_generate_data_page_with_pageconfig(self, tmp_path):
+        """generate_data_page should work with PageConfig parameter."""
+        csv_file = tmp_path / "test.csv"
+        csv_file.write_text("Species,Price\nTest Spider,£10.00\n")
+        
+        os.chdir(tmp_path)
+        
+        config = PageConfig(
+            title="Test Page",
+            description="Test description using PageConfig",
+            csv_filename="test.csv",
+            table_id="config-test-table",
+            active_page="test"
+        )
+        
+        html = generate_data_page(config=config)
+        
+        # Verify the page was generated correctly
+        assert "Test Page" in html
+        assert "Test description using PageConfig" in html
+        assert "config-test-table" in html
+        assert "Test Spider" in html
+
+    def test_pageconfig_improves_readability(self, tmp_path):
+        """PageConfig makes complex calls more readable."""
+        csv_file = tmp_path / "breeder.csv"
+        csv_file.write_text("Species,Signal\nTest,🔥\n")
+        
+        os.chdir(tmp_path)
+        
+        # New style: much more readable with named fields
+        config = PageConfig(
+            title="Breeder Opportunities",
+            description="Analysis of breeding opportunities",
+            csv_filename="breeder.csv",
+            table_id="breeder-table",
+            active_page="breeder",
+            search_filter=True,
+            legend_markdown="## Legend content",
+            examples_markdown="### Examples content"
+        )
+        
+        html = generate_data_page(config=config)
+        
+        # All parameters should be respected
+        assert "Breeder Opportunities" in html
+        assert "Analysis of breeding opportunities" in html
+        assert "breeder-table" in html
+        assert "Legend content" in html
+        assert "Examples content" in html
 
 
 class TestIntegration:
@@ -1595,16 +1690,16 @@ Example content for dealers.
             analysis_md = "**Summary:** 15 species analyzed | 🔥 Hot: 15 | ⚠️ Watch: 0 | ❌ Avoid: 0"
             legend_md = "**Symbol**: Meaning of symbol."
             
-            html = generate_data_page(
-                "Test Page",
-                "Description here",
-                csv_file,
-                "test-table",
-                "breeder",
+            html = generate_data_page(PageConfig(
+                title="Test Page",
+                description="Description here",
+                csv_filename=csv_file,
+                table_id="test-table",
+                active_page="breeder",
                 search_filter=True,
                 analysis_markdown=analysis_md,
                 legend_markdown=legend_md
-            )
+            ))
             
             # Verify all components present
             assert "<!DOCTYPE html>" in html
@@ -1627,13 +1722,13 @@ Example content for dealers.
             csv_file = f.name
         
         try:
-            html = generate_data_page(
-                "Empty Data",
-                "No data test",
-                csv_file,
-                "test-table",
-                "snapshot"
-            )
+            html = generate_data_page(PageConfig(
+                title="Empty Data",
+                description="No data test",
+                csv_filename=csv_file,
+                table_id="test-table",
+                active_page="snapshot"
+            ))
             assert "No data available" in html
             assert "<!DOCTYPE html>" in html
             assert "</html>" in html
@@ -1648,13 +1743,13 @@ Example content for dealers.
             csv_file = f.name
         
         try:
-            html = generate_data_page(
-                "<script>bad</script>",
-                "<b>Description</b>",
-                csv_file,
-                "test-table",
-                "snapshot"
-            )
+            html = generate_data_page(PageConfig(
+                title="<script>bad</script>",
+                description="<b>Description</b>",
+                csv_filename=csv_file,
+                table_id="test-table",
+                active_page="snapshot"
+            ))
             # Verify escaping
             assert "&lt;script&gt;" in html
             assert "<script>alert" not in html
@@ -1791,14 +1886,14 @@ class TestHtmlSnapshots:
 
     def test_search_filter_snapshot(self, snapshot):
         """Should maintain consistent search filter HTML structure."""
-        html = generate_data_page(
+        html = generate_data_page(PageConfig(
             title="Test Page",
             description="Test description",
             csv_filename="test.csv",
             table_id="test-table",
             active_page="test",
             search_filter=True
-        )
+        ))
         
         # Extract just the search container
         soup = BeautifulSoup(html, "html.parser")
@@ -2278,13 +2373,13 @@ class TestInteractiveFilterButtons:
         )
         
         os.chdir(tmp_path)
-        html = generate_data_page(
+        html = generate_data_page(PageConfig(
             title="Test Breeder Opportunities",
             description="Test description",
             csv_filename="test_breeder.csv",
             table_id="test-breeder-table",
             active_page="breeder"
-        )
+        ))
         
         soup = BeautifulSoup(html, 'html.parser')
         
@@ -2313,13 +2408,13 @@ class TestInteractiveFilterButtons:
         )
         
         os.chdir(tmp_path)
-        html = generate_data_page(
+        html = generate_data_page(PageConfig(
             title="Test Dealer Supply Risk",
             description="Test description",
             csv_filename="test_dealer.csv",
             table_id="test-dealer-table",
             active_page="dealer"
-        )
+        ))
         
         soup = BeautifulSoup(html, 'html.parser')
         
@@ -2336,13 +2431,13 @@ class TestInteractiveFilterButtons:
         csv_file.write_text("Species,Signal\nTest,🔥\n")
         
         os.chdir(tmp_path)
-        html = generate_data_page(
+        html = generate_data_page(PageConfig(
             title="Test",
             description="Test",
             csv_filename="test.csv",
             table_id="test-table",
             active_page="breeder"
-        )
+        ))
         
         soup = BeautifulSoup(html, 'html.parser')
         buttons = soup.find_all('button', class_='filter-btn')
@@ -2358,13 +2453,13 @@ class TestInteractiveFilterButtons:
         csv_file.write_text("Species,Price,Size\nTest,25.00,2\n")
         
         os.chdir(tmp_path)
-        html = generate_data_page(
+        html = generate_data_page(PageConfig(
             title="Latest Snapshot",
             description="Test",
             csv_filename="test.csv",
             table_id="snapshot-table",
             active_page="snapshot"
-        )
+        ))
         
         soup = BeautifulSoup(html, 'html.parser')
         
@@ -2378,13 +2473,13 @@ class TestInteractiveFilterButtons:
         csv_file.write_text("Species,Signal\nTest,🔥\n")
         
         os.chdir(tmp_path)
-        html = generate_data_page(
+        html = generate_data_page(PageConfig(
             title="Test",
             description="Test",
             csv_filename="test.csv",
             table_id="test-table",
             active_page="breeder"
-        )
+        ))
         
         # Should reference external JS file and have data attributes
         assert 'src="table-interactions.js"' in html, "Should reference external JavaScript file"
@@ -2412,13 +2507,13 @@ class TestStockPatternFiltering:
         )
         
         os.chdir(tmp_path)
-        html = generate_data_page(
+        html = generate_data_page(PageConfig(
             title="Breeder Opportunities",
             description="Test",
             csv_filename="breeder.csv",
             table_id="breeder-table",
             active_page="breeder"
-        )
+        ))
         
         soup = BeautifulSoup(html, 'html.parser')
         
@@ -2447,13 +2542,13 @@ class TestStockPatternFiltering:
         )
         
         os.chdir(tmp_path)
-        html = generate_data_page(
+        html = generate_data_page(PageConfig(
             title="Breeder Opportunities",
             description="Test",
             csv_filename="breeder.csv",
             table_id="breeder-table",
             active_page="breeder"
-        )
+        ))
         
         soup = BeautifulSoup(html, 'html.parser')
         table = soup.find('table', id='breeder-table')
@@ -2494,13 +2589,13 @@ class TestStockPatternFiltering:
         )
         
         os.chdir(tmp_path)
-        html = generate_data_page(
+        html = generate_data_page(PageConfig(
             title="Breeder Opportunities",
             description="Test",
             csv_filename="breeder.csv",
             table_id="breeder-table",
             active_page="breeder"
-        )
+        ))
         
         soup = BeautifulSoup(html, 'html.parser')
         
@@ -2554,13 +2649,13 @@ class TestStockPatternFiltering:
         )
         
         os.chdir(tmp_path)
-        html = generate_data_page(
+        html = generate_data_page(PageConfig(
             title="Dealer Supply Risk",
             description="Test",
             csv_filename="dealer.csv",
             table_id="dealer-table",
             active_page="dealer"
-        )
+        ))
         
         soup = BeautifulSoup(html, 'html.parser')
         
@@ -2577,13 +2672,13 @@ class TestStockPatternFiltering:
         )
         
         os.chdir(tmp_path)
-        html = generate_data_page(
+        html = generate_data_page(PageConfig(
             title="Breeder Opportunities",
             description="Test",
             csv_filename="breeder.csv",
             table_id="breeder-table",
             active_page="breeder"
-        )
+        ))
         
         # Should reference external JS file and have data attributes
         assert 'src="table-interactions.js"' in html, "Should reference external JavaScript file"
@@ -2610,13 +2705,13 @@ class TestStockPatternFiltering:
         )
         
         os.chdir(tmp_path)
-        html = generate_data_page(
+        html = generate_data_page(PageConfig(
             title="Breeder Opportunities",
             description="Test",
             csv_filename="breeder.csv",
             table_id="breeder-table",
             active_page="breeder"
-        )
+        ))
         
         soup = BeautifulSoup(html, 'html.parser')
         stock_pattern_container = soup.find('div', class_='stock-pattern-filters')
@@ -2639,13 +2734,13 @@ class TestStockPatternFiltering:
         )
         
         os.chdir(tmp_path)
-        html = generate_data_page(
+        html = generate_data_page(PageConfig(
             title="Breeder Opportunities",
             description="Test",
             csv_filename="breeder.csv",
             table_id="breeder-table",
             active_page="breeder"
-        )
+        ))
         
         soup = BeautifulSoup(html, 'html.parser')
         
@@ -2673,13 +2768,13 @@ class TestStockPatternFiltering:
         )
         
         os.chdir(tmp_path)
-        html = generate_data_page(
+        html = generate_data_page(PageConfig(
             title="Breeder Opportunities",
             description="Test",
             csv_filename="breeder.csv",
             table_id="breeder-table",
             active_page="breeder"
-        )
+        ))
         
         # Should have a label for signal filters (e.g., "🎯 Signal:" or similar)
         html_lower = html.lower()
@@ -2694,13 +2789,13 @@ class TestStockPatternFiltering:
         )
         
         os.chdir(tmp_path)
-        html = generate_data_page(
+        html = generate_data_page(PageConfig(
             title="Dealer Supply Risk",
             description="Test",
             csv_filename="dealer.csv",
             table_id="dealer-table",
             active_page="dealer"
-        )
+        ))
         
         # Should have a label for dealer risk filters (e.g., "🎯 Risk Level:" or "Dealer Risk:")
         html_lower = html.lower()
