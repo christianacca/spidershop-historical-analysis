@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import time
+from typing import Optional
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -11,10 +12,14 @@ from shared.config import HEADERS
 # BROWSER CLIENT
 # =====================
 
-_driver = None
+_driver: Optional[webdriver.Chrome] = None
 
-def get_driver():
-    """Get or create a Chrome driver instance"""
+def get_driver() -> webdriver.Chrome:
+    """Get or create a Chrome driver instance.
+    
+    Returns:
+        Chrome webdriver instance
+    """
     global _driver
     if _driver is None:
         options = webdriver.ChromeOptions()
@@ -26,8 +31,8 @@ def get_driver():
         _driver = webdriver.Chrome(options=options)
     return _driver
 
-def close_driver():
-    """Close the driver if it exists"""
+def close_driver() -> None:
+    """Close the driver if it exists and reset the global state."""
     global _driver
     if _driver is not None:
         _driver.quit()

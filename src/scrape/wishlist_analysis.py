@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """
 Wishlist analysis and computation functions for market signal detection.
 
@@ -8,6 +7,15 @@ This module provides conservative, time-bounded analysis of wishlist metrics:
 - Wishlist Carryover: Bounded lookback for OUT-of-stock species
 - Wishlist Delta: Meaningful momentum detection with conservative thresholds
 """
+
+from shared.config import (
+    WISHLIST_DELTA_INCREASE_THRESHOLD,
+    WISHLIST_DELTA_DECREASE_THRESHOLD,
+    WISHLIST_OOS_CARRYOVER_LOOKBACK,
+    WISHLIST_DELTA_LOOKBACK,
+    WISHLIST_DELTA_PREV_LOOKBACK,
+    WISHLIST_SMALL_N_FLATTEN_THRESHOLD
+)
 
 
 def compute_wishlist_pressure(rows):
@@ -58,11 +66,11 @@ def compute_wishlist_pressure(rows):
     # Sort non-zero by count descending
     nonzero.sort(key=lambda x: x[1], reverse=True)
     
-    # Small-N flattening: if all wishlist counts are very close (max - min ≤ 1),
+    # Small-N flattening: if all wishlist counts are very close (max - min ≤ threshold),
     # then the distribution is too flat to meaningfully rank.
     # Conservative interpretation: assign ⚠️ to all non-zero to avoid artificial 🔥.
     counts = [c for _, c in nonzero]
-    if counts and max(counts) - min(counts) <= 1:
+    if counts and max(counts) - min(counts) <= WISHLIST_SMALL_N_FLATTEN_THRESHOLD:
         for k, _ in nonzero:
             result[k] = "⚠️"
         return result
@@ -86,7 +94,7 @@ def compute_wishlist_pressure(rows):
     return result
 
 
-def get_oos_wishlist_carryover(key, by_run, runs, cur_run, lookback_limit=5):
+def get_oos_wishlist_carryover(key, by_run, runs, cur_run, lookback_limit=WISHLIST_OOS_CARRYOVER_LOOKBACK):
     """
     For OUT-of-stock species, carry forward wishlist pressure from the most recent run
     where it was IN stock, within a bounded lookback window.
@@ -128,7 +136,7 @@ def get_oos_wishlist_carryover(key, by_run, runs, cur_run, lookback_limit=5):
     return None
 
 
-def compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=3, prev_lookback_limit=12):
+def compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=WISHLIST_DELTA_LOOKBACK, prev_lookback_limit=WISHLIST_DELTA_PREV_LOOKBACK):
     """
     Compute Wishlist Delta (momentum signal) for a species by comparing current vs
     previous IN-stock wishlist counts using conservative thresholds.
@@ -138,14 +146,14 @@ def compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=3, prev_lo
         by_run: dict mapping run datetime -> list of rows
         runs: sorted list of run datetimes
         cur_run: current run datetime
-        lookback_limit: max number of recent runs to look back for OUT species (default 3)
-        prev_lookback_limit: max runs to look back for previous comparison value (default 12)
+        lookback_limit: max number of recent runs to look back for OUT species
+        prev_lookback_limit: max runs to look back for previous comparison value
     
     Returns:
         Wishlist Delta symbol:
-        - "↑" if Δ ≥ +5 (meaningful increase)
-        - "→" if −4 ≤ Δ ≤ +4 (stable or noise)
-        - "↓" if Δ ≤ −5 (meaningful decrease)
+        - "↑" if Δ ≥ threshold (meaningful increase)
+        - "→" if within threshold range (stable or noise)
+        - "↓" if Δ ≤ -threshold (meaningful decrease)
     
     Rationale:
         Conservative thresholds prevent false signals from noise.
@@ -222,9 +230,9 @@ def compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=3, prev_lo
     # Calculate delta and apply thresholds
     delta = current_count - previous_count
     
-    if delta >= 5:
+    if delta >= WISHLIST_DELTA_INCREASE_THRESHOLD:
         return "↑"
-    elif delta <= -5:
+    elif delta <= WISHLIST_DELTA_DECREASE_THRESHOLD:
         return "↓"
     else:
         return "→"
