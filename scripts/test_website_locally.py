@@ -27,10 +27,10 @@ TESTING_DIR = Path("tmp/local-testing")
 WEBSITE_DIR = TESTING_DIR / "website"
 
 
-def run_command(cmd, capture_output=True):
+def run_command(cmd, capture_output=True, env=None):
     """Run a shell command and return output."""
     print(f"Running: {' '.join(cmd)}")
-    result = subprocess.run(cmd, capture_output=capture_output, text=True)
+    result = subprocess.run(cmd, capture_output=capture_output, text=True, env=env)
     if result.returncode != 0:
         print(f"❌ Error running command: {result.stderr}", file=sys.stderr)
         sys.exit(1)
@@ -80,10 +80,10 @@ def generate_website():
     # Ensure testing directory exists
     TESTING_DIR.mkdir(parents=True, exist_ok=True)
     
-    # Check if generate_website.py exists
-    generator_path = Path("src/generate_website.py")
-    if not generator_path.exists():
-        print("❌ Could not find src/generate_website.py")
+    # Check if website module exists
+    website_module_path = Path("src/website/__main__.py")
+    if not website_module_path.exists():
+        print("❌ Could not find src/website/__main__.py")
         sys.exit(1)
     
     # Run the generator from the testing directory
@@ -91,7 +91,10 @@ def generate_website():
     original_dir = Path.cwd()
     try:
         os.chdir(TESTING_DIR)
-        run_command(["python3", str(original_dir / generator_path)], capture_output=False)
+        # Set PYTHONPATH to include src directory
+        env = os.environ.copy()
+        env['PYTHONPATH'] = str(original_dir / 'src')
+        run_command(["python3", "-m", "website"], capture_output=False, env=env)
     finally:
         os.chdir(original_dir)
     

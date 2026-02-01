@@ -291,5 +291,5 @@ Square brackets indicate the value was carried forward from a previous week when
 
 - **Unicode generation**: `generate_sparkline()` in [sparkline_helpers.py](../src/sparkline_helpers.py)
 - **Carry-forward logic**: `extract_historical_values_with_carryforward()` in [sparkline_helpers.py](../src/sparkline_helpers.py)
-- **SVG conversion**: `convert_sparkline_to_svg()` in [generate_website.py](../src/generate_website.py)
+- **SVG conversion**: `convert_sparkline_to_svg()` in [generate_website.py](../src/website/generate_website.py)
 - **Unicode library**: `sparklines` Python package

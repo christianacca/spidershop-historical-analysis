@@ -68,7 +68,7 @@ Snapshot tests are regression detectors. When a snapshot test fails:
 4. **EXPLAIN** - Document what changed and why it's correct
 5. **ONLY THEN** - Update the snapshot if changes are verified as intentional
 
-Snapshot files in `tests/__snapshots__/*.ambr` contain expected outputs. They catch:
+Snapshot files are located in module-specific subdirectories (`tests/scrape_module/__snapshots__/*.ambr`, `tests/website_module/__snapshots__/*.ambr`). They catch:
 - Unintended changes to output format
 - Logic regressions that alter analysis results
 - Documentation changes that affect generated content
@@ -167,7 +167,7 @@ pytest
 pytest --cov=src --cov-report=html --cov-report=term-missing --cov-report=json
 
 # Check specific module coverage
-python scripts/check_coverage.py --module=breeder_matrix.py
+python scripts/check_coverage.py --module=scrape/breeder_matrix.py
 ```
 
 ### Test Coverage Requirements
@@ -181,7 +181,14 @@ python scripts/check_coverage.py --module=breeder_matrix.py
 
 **Verify coverage after changes:**
 ```bash
-python scripts/check_coverage.py --module=your_module.py --threshold=80
+# For scrape modules
+python scripts/check_coverage.py --module=scrape/breeder_matrix.py --threshold=80
+
+# For shared modules
+python scripts/check_coverage.py --module=shared/parsing.py --threshold=80
+
+# For website modules
+python scripts/check_coverage.py --module=website/generate_website.py --threshold=80
 ```
 
 **Coverage artifacts:**
@@ -223,13 +230,27 @@ This is a Python web scraper that captures pricing data for tarantula spiderling
 
 ## Project Structure
 
-The project uses a modular architecture with focused modules in the `src/` directory. Key modules include:
-- Main scraper orchestration and entry point
+The project is organized into three main modules:
+
+**`src/scrape/`** - Main scraping and analysis:
+- Main scraper orchestration and entry point (scrape_spidershop_spiderlings.py)
 - HTTP and browser clients for web scraping
-- Text parsing and data extraction utilities
 - Historical data management
-- Analysis engines (breeder/dealer opportunity matrices)
-- Static website generation
+- Analysis engines (breeder_matrix.py, dealer_matrix.py, wishlist_analysis.py)
+- Pricing summary and legend generation
+
+**`src/shared/`** - Shared utilities used by both scrape and website:
+- Configuration (config.py)
+- Text parsing utilities (parsing.py)
+- Validation helpers (assertions.py)
+- Sparkline generation (sparkline_helpers.py)
+- History utilities (history_utils.py)
+
+**`src/website/`** - Static website generation:
+- HTML page generation
+- Markdown to HTML conversion
+- CSV processing and table rendering
+- Sparkline conversion to SVG
 
 Explore the `src/` directory for the complete list of modules.
 
@@ -252,14 +273,56 @@ pip install -r requirements-dev.txt
 3. **Imports**: Use absolute imports from src modules
 4. **String handling**: Use UTF-8 encoding for file operations
 5. **Error handling**: Use assertions for validation with descriptive messages
-6. **CSV format**: Use the CSV_HEADER defined in config.py for consistency
-7. **Whitespace normalization**: Use the normalize_whitespace() function from parsing.py
-8. **Regex patterns**: Define regex patterns in config.py for reusability
+6. **CSV format**: Use the CSV_HEADER defined in shared.config for consistency
+7. **Whitespace normalization**: Use the normalize_whitespace() function from shared.parsing
+8. **Regex patterns**: Define regex patterns in shared.config for reusability
 9. **Browser cleanup**: Always use try/finally to ensure driver cleanup
+
+## Test Utilities
+
+Common test helper functions are available in `tests/helpers/test_helpers.py` and exported via `tests/conftest.py`:
+
+- **File creation helpers**:
+  - `create_temp_markdown_file(content)` - Create temporary markdown file
+  - `create_temp_csv_file(content)` - Create temporary CSV file
+  - `write_csv_file(path, headers, rows)` - Write CSV to path
+  - `read_file_content(path)` - Read file with UTF-8 encoding
+
+- **CSV content generators**:
+  - `create_csv_content(headers, rows)` - Generate CSV string
+  - `create_breeder_csv_content(species, size, signal, extra_columns)` - Breeder CSV
+  - `create_dealer_csv_content(species, size, risk, extra_columns)` - Dealer CSV
+  - `create_history_csv_content(entries)` - Historical scrape data CSV
+
+**Usage in tests:**
+```python
+from conftest import create_temp_csv_file, create_breeder_csv_content
+
+def test_example():
+    # Simple approach
+    csv_path = create_temp_csv_file("Header1,Header2\nValue1,Value2\n")
+    
+    # Or use generator
+    content = create_breeder_csv_content(
+        species="Test Spider",
+        size="1.5",
+        signal="🔥",
+        extra_columns={"Price": "30.00"}
+    )
+    csv_path = create_temp_csv_file(content)
+    
+    try:
+        # Test code here
+        pass
+    finally:
+        os.unlink(csv_path)
+```
+
+Use these helpers to reduce boilerplate and improve test readability.
 
 ## Web Scraping Guidelines
 
-- **User-Agent**: Use the configured User-Agent string in config.py
+- **User-Agent**: Use the configured User-Agent string in shared.config
 - **Pagination**: Handle pagination by incrementing page numbers until 404
 - **URLs**: Use urljoin() for proper URL construction
 - **Selectors**: Use CSS selectors with BeautifulSoup for HTML parsing
@@ -280,16 +343,16 @@ pip install -r requirements-dev.txt
 
 ### Website Generation Output Location
 
-**CRITICAL**: The location of the generated `website/` folder depends on the working directory when `generate_website.py` is executed:
+**CRITICAL**: The location of the generated `website/` folder depends on the working directory when the website generation module is executed:
 
-- **Coding agent / Direct execution**: Running `python src/generate_website.py` from project root creates `website/` at **project root level** (same level as `src/`, `tmp/`, `.github/`)
+- **Coding agent / Direct execution**: Running `python -m website` from project root creates `website/` at **project root level** (same level as `src/`, `tmp/`, `.github/`)
 - **GitHub workflow**: Runs from project root → creates `website/` at **project root level** 
 - **Make commands** (developer local testing): Changes to `tmp/local-testing/` first → creates `website/` at **`tmp/local-testing/website/`**
 
-The `OUTPUT_DIR` constant in `generate_website.py` is `Path("website")`, which is always **relative to the current working directory**.
+The `OUTPUT_DIR` constant in `src/website/generate_website.py` is `Path("website")`, which is always **relative to the current working directory**.
 
 **When testing or verifying website generation:**
-- If you ran `generate_website.py` directly → look for `website/` at project root
+- If you ran the module directly → look for `website/` at project root
 - If user ran `make generate-website` → look for `tmp/local-testing/website/`
 - DO NOT assume files are in `tmp/local-testing/website/` when YOU run the script
 - DO NOT get confused by seeing existing files in `tmp/local-testing/website/` from user's previous make commands
@@ -328,34 +391,34 @@ scrape_datetime, scientific_name, common_name, size_cm, price_gbp, wishlist_coun
 1. Checkout repository
 2. Set up Python 3.11
 3. Download all artifacts from scrape workflow
-4. Generate static HTML website using `generate_website.py`
+4. Generate static HTML website using the `website.generate_website` module
 5. Upload website to GitHub Pages
 6. Deploy to GitHub Pages
 
 ## Common Tasks
 
 ### Adding a new parsing function
-1. Add the function to parsing.py
-2. Add any regex patterns to config.py
+1. Add the function to src/shared/parsing.py
+2. Add any regex patterns to src/shared/config.py
 3. Use normalize_whitespace() for text processing
 4. Handle edge cases with empty/None values
 
 ### Modifying scraper logic
-1. Update scraper.py for extraction changes
+1. Update src/scrape/scraper.py for extraction changes
 2. Keep functions focused and single-purpose
 3. Test with actual web pages before deploying
-4. If JavaScript is required, use browser_client.py instead of http_client.py
+4. If JavaScript is required, use src/scrape/browser_client.py instead of http_client.py
 
 ### Adding new analysis
-1. Create a new module in src/ (e.g., new_analysis.py)
-2. Follow the pattern of breeder_matrix.py or dealer_matrix.py
-3. Import and call from scrape_spidershop_spiderlings.py main()
+1. Create a new module in src/scrape/ (e.g., new_analysis.py)
+2. Follow the pattern of src/scrape/breeder_matrix.py or dealer_matrix.py
+3. Import and call from src/scrape/scrape_spidershop_spiderlings.py main()
 4. Update workflow to upload new artifact files
-5. Update generate_website.py if the analysis should appear on the website
+5. Update `src/website/generate_website.py` if the analysis should appear on the website
 
 ### Modifying website generation
-1. Edit generate_website.py
-2. Test locally by running: `python src/generate_website.py`
+1. Edit `src/website/generate_website.py`
+2. Test locally by running: `python -m website` (with PYTHONPATH set to src/)
 3. Check generated HTML files in `website/` directory
 4. Ensure CSV files are copied to output directory
 5. Verify markdown-to-HTML conversion for analysis sections

@@ -12,9 +12,31 @@ src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
 # Import make_row from legend_examples (production code)
-from legend_examples import make_row
+from scrape.legend_examples import make_row
 
-__all__ = ['make_row']
+# Import test helpers
+from helpers.test_helpers import (
+    create_temp_markdown_file,
+    create_temp_csv_file,
+    write_csv_file,
+    read_file_content,
+    create_csv_content,
+    create_breeder_csv_content,
+    create_dealer_csv_content,
+    create_history_csv_content,
+)
+
+__all__ = [
+    'make_row',
+    'create_temp_markdown_file',
+    'create_temp_csv_file',
+    'write_csv_file',
+    'read_file_content',
+    'create_csv_content',
+    'create_breeder_csv_content',
+    'create_dealer_csv_content',
+    'create_history_csv_content',
+]
 
 
 @pytest.fixture(autouse=True)
