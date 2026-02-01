@@ -1,0 +1,65 @@
+# serializer version: 1
+# name: TestParseMarkdownToHtml.test_markdown_conversion_matches_expected_output
+  '''
+  <h3>🕷️ Test Markdown Elements</h3>
+  <p><strong>Bold text</strong> and <em>italic text</em> and <code>inline code</code> for testing.</p>
+  <h4>Headers and Lists</h4>
+  <p>Unordered list:</p>
+  <ul>
+  <li>🔼 Item with emoji</li>
+  <li><strong>Bold item</strong></li>
+  <li>
+  <p>Nested items:</p>
+  </li>
+  <li>
+  <p>Sub-item one</p>
+  </li>
+  <li>Sub-item two</li>
+  </ul>
+  <p>Ordered list:</p>
+  <ol>
+  <li>First item</li>
+  <li>Second item with <a href="https://example.com">a link</a></li>
+  <li>Third item</li>
+  </ol>
+  <h4>Tables</h4>
+  <p>Simple table with emoji and alignment:</p>
+  <table class="data-table markdown-table">
+  <thead>
+  <tr>
+  <th>Species</th>
+  <th style="text-align: right;">Size (cm)</th>
+  <th>Signal</th>
+  <th>Recommendation</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+  <td data-label="Species">Phormictopus sp. "Azul"</td>
+  <td data-label="Size (cm)" style="text-align: right;">2</td>
+  <td data-label="Signal">🔥</td>
+  <td data-label="Recommendation">Consider pairing — emerging scarcity</td>
+  </tr>
+  <tr>
+  <td data-label="Species">Brachypelma hamorii</td>
+  <td data-label="Size (cm)" style="text-align: right;">1</td>
+  <td data-label="Signal">⚠️</td>
+  <td data-label="Recommendation">Watch closely — high demand</td>
+  </tr>
+  </tbody>
+  </table>
+  <p><em>Italic text for notes.</em></p>
+  <h3>Second Level Header</h3>
+  <p>More content with <strong>bold</strong>, <em>italic</em>, and mixed <strong><em>bold italic</em></strong> text.</p>
+  <details>
+  <summary><strong>ℹ️ Collapsible Section</strong></summary>
+  <h4>Nested Header</h4>
+  <p>Content inside details block:</p>
+  <ul>
+  <li>List item one</li>
+  <li>List item two</li>
+  </ul>
+  <p>Paragraph with special characters: &amp; &lt; &gt; " '</p>
+  </details>
+  '''
+# ---
