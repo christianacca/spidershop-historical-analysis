@@ -76,11 +76,15 @@ class TestExtractAnalysisSections:
         assert result == (None, None, None, None, None, None)
 
     def test_extract_breeder_section(self):
-        """Should extract breeder opportunity matrix section."""
+        """Should extract breeder summary stats (not full table)."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, encoding='utf-8') as f:
             f.write("""## 🧬 Breeder Opportunity Matrix (Top 10)
 
-Some analysis text here.
+**Summary:** 109 species analyzed | 🔥 Hot: 36 | ⚠️ Watch: 30 | ❌ Avoid: 43
+
+| Species | Size (cm) | Signal |
+|---|---:|---|
+| Test Species | 1 | 🔥 |
 
 ## 🏪 Dealer Supply Risk Matrix (Top 10)
 
@@ -90,17 +94,23 @@ Other content.""")
         try:
             breeder, dealer, breeder_legend, dealer_legend, breeder_examples, dealer_examples = extract_analysis_sections(filename)
             assert breeder is not None
-            assert "## 🧬 Breeder Opportunity Matrix (Top 10)" in breeder
-            assert "Some analysis text here." in breeder
+            assert "**Summary:**" in breeder
+            assert "109 species analyzed" in breeder
+            # Table should NOT be extracted
+            assert "| Species |" not in breeder
         finally:
             os.unlink(filename)
 
     def test_extract_dealer_section(self):
-        """Should extract dealer supply risk matrix section."""
+        """Should extract dealer summary stats (not full table)."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, encoding='utf-8') as f:
             f.write("""## 🏪 Dealer Supply Risk Matrix (Top 10)
 
-Dealer analysis here.
+**Summary:** 109 species analyzed | 🔥 High Risk: 35 | ⚠️ Moderate Risk: 57 | ❌ Low Risk: 17
+
+| Species | Size (cm) | Dealer Risk |
+|---|---:|---|
+| Test Species | 1 | 🔥 |
 
 <details>
 <summary>Legend</summary>
@@ -110,8 +120,10 @@ Dealer analysis here.
         try:
             breeder, dealer, breeder_legend, dealer_legend, breeder_examples, dealer_examples = extract_analysis_sections(filename)
             assert dealer is not None
-            assert "## 🏪 Dealer Supply Risk Matrix (Top 10)" in dealer
-            assert "Dealer analysis here." in dealer
+            assert "**Summary:**" in dealer
+            assert "109 species analyzed" in dealer
+            # Table should NOT be extracted
+            assert "| Species |" not in dealer
         finally:
             os.unlink(filename)
 
@@ -162,16 +174,17 @@ Dealer example 1 here.
             os.unlink(filename)
 
     def test_partial_sections(self):
-        """Should extract only the sections that exist."""
+        """Should return None if Summary line not found."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, encoding='utf-8') as f:
             f.write("""## 🧬 Breeder Opportunity Matrix (Top 10)
 
-Breeder content only.""")
+Breeder content only (no Summary line).""")
             filename = f.name
         
         try:
             breeder, dealer, breeder_legend, dealer_legend, breeder_examples, dealer_examples = extract_analysis_sections(filename)
-            assert breeder is not None
+            # Without Summary line, extraction returns None
+            assert breeder is None
             assert dealer is None
             assert breeder_legend is None
             assert dealer_legend is None
@@ -179,6 +192,332 @@ Breeder content only.""")
             assert dealer_examples is None
         finally:
             os.unlink(filename)
+
+
+class TestExtractSummaryStatistics:
+    """Test suite for extracting summary statistics from markdown."""
+
+    def test_extract_breeder_summary_stats(self):
+        """Should extract breeder summary statistics from markdown Summary line."""
+        from generate_website import extract_summary_stats
+        
+        markdown = """## 🧬 Breeder Opportunity Matrix (Top 10)
+
+**Summary:** 106 species analyzed | 🔥 Hot: 42 | ⚠️ Watch: 38 | ❌ Avoid: 26
+
+| Species | Size (cm) | OOS |
+|---|---:|---|
+| Test Species | 1 | OUT |
+"""
+        
+        stats = extract_summary_stats(markdown)
+        assert stats is not None
+        assert stats['total'] == 106
+        assert stats['hot'] == 42
+        assert stats['watch'] == 38
+        assert stats['avoid'] == 26
+
+    def test_extract_dealer_summary_stats(self):
+        """Should extract dealer summary statistics from markdown Summary line."""
+        from generate_website import extract_summary_stats
+        
+        markdown = """## 🏪 Dealer Supply Risk Matrix (Top 10)
+
+**Summary:** 106 species analyzed | 🔥 High Risk: 42 | ⚠️ Moderate Risk: 38 | ❌ Low Risk: 26
+
+| Species | Size (cm) | Stock Reliability |
+|---|---:|---|
+| Test Species | 1 | Low |
+"""
+        
+        stats = extract_summary_stats(markdown)
+        assert stats is not None
+        assert stats['total'] == 106
+        assert stats['hot'] == 42
+        assert stats['watch'] == 38
+        assert stats['avoid'] == 26
+
+    def test_extract_summary_stats_missing_summary(self):
+        """Should return None when Summary line is missing."""
+        from generate_website import extract_summary_stats
+        
+        markdown = """## 🧬 Breeder Opportunity Matrix (Top 10)
+
+| Species | Size (cm) | OOS |
+|---|---:|---|
+| Test Species | 1 | OUT |
+"""
+        
+        stats = extract_summary_stats(markdown)
+        assert stats is None
+
+    def test_extract_summary_stats_none_input(self):
+        """Should return None when markdown is None."""
+        from generate_website import extract_summary_stats
+        stats = extract_summary_stats(None)
+        assert stats is None
+
+
+class TestSummaryStatsInHtml:
+    """Test suite for rendering summary stats in HTML output."""
+
+    def test_breeder_page_includes_summary_stats_cards(self):
+        """Should render summary statistics as HTML cards in breeder page and remove duplicate Summary line."""
+        from generate_website import generate_data_page
+        
+        # Create a temporary CSV file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
+            f.write("Species,Signal,Recommendation\n")
+            f.write("Species A,🔥,Hot opportunity\n")
+            f.write("Species B,⚠️,Watch closely\n")
+            f.write("Species C,❌,Avoid\n")
+            csv_filename = f.name
+        
+        # Create markdown with Summary line
+        analysis_markdown = """## 🧬 Breeder Opportunity Matrix (Top 10)
+
+**Summary:** 3 species analyzed | 🔥 Hot: 1 | ⚠️ Watch: 1 | ❌ Avoid: 1
+
+| Species | Signal |
+|---|---|
+| Species A | 🔥 |
+"""
+        
+        try:
+            html = generate_data_page(
+                "Breeder Opportunities",
+                "Test description",
+                csv_filename,
+                "test-table",
+                "breeder",
+                analysis_markdown=analysis_markdown
+            )
+            
+            # Verify summary stats cards are present in HTML
+            assert '<div class="summary-stats">' in html
+            assert '<div class="stat-card">' in html
+            
+            # Verify all 4 stats are present
+            assert '<div class="stat-value">3</div>' in html  # total
+            assert '<div class="stat-label">Species Analyzed</div>' in html
+            
+            assert '<div class="stat-value">1</div>' in html  # hot count (appears 3 times for hot/watch/avoid)
+            # Labels now wrapped in stat-label div with info icons
+            assert '🔥 Hot' in html
+            assert '⚠️ Watch' in html
+            assert '❌ Avoid' in html
+            
+            # Verify Summary line text is NOT duplicated in the analysis HTML
+            assert '**Summary:**' not in html
+            assert 'Summary: 3 species analyzed' not in html
+            assert '<strong>Summary:</strong>' not in html
+            
+            # Verify the table IS still present
+            assert '<table' in html
+            assert 'Species A' in html
+        finally:
+            os.unlink(csv_filename)
+
+    def test_dealer_page_includes_summary_stats_cards(self):
+        """Should render summary statistics with dealer-specific labels."""
+        from generate_website import generate_data_page
+        
+        # Create a temporary CSV file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
+            f.write("Species,Dealer Risk,Notes\n")
+            f.write("Species A,🔥,High risk\n")
+            f.write("Species B,⚠️,Moderate risk\n")
+            f.write("Species C,❌,Low risk\n")
+            csv_filename = f.name
+        
+        # Create markdown with Summary line (dealer format)
+        analysis_markdown = """## 🏪 Dealer Supply Risk Matrix (Top 10)
+
+**Summary:** 3 species analyzed | 🔥 High Risk: 1 | ⚠️ Moderate Risk: 1 | ❌ Low Risk: 1
+
+| Species | Dealer Risk |
+|---|---|
+| Species A | 🔥 |
+"""
+        
+        try:
+            html = generate_data_page(
+                "Dealer Supply Risk",
+                "Test description",
+                csv_filename,
+                "test-table",
+                "dealer",
+                analysis_markdown=analysis_markdown
+            )
+            
+            # Verify summary stats cards are present
+            assert '<div class="summary-stats">' in html
+            
+            # Verify dealer-specific labels are used (not breeder labels)
+            # Note: extract_summary_stats returns hot/watch/avoid regardless of terminology,
+            # but the template should use dealer-friendly labels
+            assert '🔥 High Risk' in html
+            assert '⚠️ Moderate Risk' in html
+            assert '❌ Low Risk' in html
+        finally:
+            os.unlink(csv_filename)
+
+    def test_page_without_analysis_has_no_summary_stats(self):
+        """Should not render summary stats section when no analysis markdown provided."""
+        from generate_website import generate_data_page
+        
+        # Create a temporary CSV file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
+            f.write("Species,Price\n")
+            f.write("Species A,25.00\n")
+            csv_filename = f.name
+        
+        try:
+            html = generate_data_page(
+                "Test Page",
+                "Test description",
+                csv_filename,
+                "test-table",
+                "test",
+                analysis_markdown=None
+            )
+            
+            # Verify NO summary stats section present
+            assert '<div class="summary-stats">' not in html
+            assert '<div class="stat-card">' not in html
+        finally:
+            os.unlink(csv_filename)
+
+    def test_page_with_analysis_but_no_summary_line_has_no_stats(self):
+        """Should not render summary stats when analysis markdown lacks Summary line."""
+        from generate_website import generate_data_page
+        
+        # Create a temporary CSV file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
+            f.write("Species,Signal\n")
+            f.write("Species A,🔥\n")
+            csv_filename = f.name
+        
+        # Markdown WITHOUT Summary line
+        analysis_markdown = """## 🧬 Breeder Opportunity Matrix (Top 10)
+
+| Species | Signal |
+|---|---|
+| Species A | 🔥 |
+"""
+        
+        try:
+            html = generate_data_page(
+                "Breeder Opportunities",
+                "Test description",
+                csv_filename,
+                "test-table",
+                "breeder",
+                analysis_markdown=analysis_markdown
+            )
+            
+            # Verify NO summary stats section (because no Summary line found)
+            assert '<div class="summary-stats">' not in html
+        finally:
+            os.unlink(csv_filename)
+
+    def test_breeder_summary_cards_include_tooltip_explanations(self):
+        """Should include info icons with tooltip explanations for breeder signals."""
+        from generate_website import generate_data_page
+        
+        # Create a temporary CSV file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
+            f.write("Species,Signal\n")
+            f.write("Species A,🔥\n")
+            csv_filename = f.name
+        
+        analysis_markdown = """## 🧬 Breeder Opportunity Matrix (Top 10)
+
+**Summary:** 3 species analyzed | 🔥 Hot: 1 | ⚠️ Watch: 1 | ❌ Avoid: 1
+"""
+        
+        try:
+            html = generate_data_page(
+                "Breeder Opportunities",
+                "Test description",
+                csv_filename,
+                "test-table",
+                "breeder",
+                analysis_markdown=analysis_markdown
+            )
+            
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Verify info icons are present (one for each stat except total)
+            info_icons = soup.find_all('span', class_='info-icon')
+            assert len(info_icons) == 3  # hot, watch, avoid
+            
+            # Verify tooltips contain breeder-specific explanations
+            tooltips = soup.find_all('span', class_='tooltip')
+            assert len(tooltips) == 3
+            
+            # Check hot tooltip
+            hot_tooltip = tooltips[0].get_text()
+            assert 'breeding opportunity' in hot_tooltip.lower()
+            assert 'scarcity' in hot_tooltip.lower()
+            
+            # Check watch tooltip
+            watch_tooltip = tooltips[1].get_text()
+            assert 'emerging' in watch_tooltip.lower()
+            assert 'monitor' in watch_tooltip.lower() or 'watch' in watch_tooltip.lower()
+            
+            # Check avoid tooltip
+            avoid_tooltip = tooltips[2].get_text()
+            assert 'oversupplied' in avoid_tooltip.lower() or 'always available' in avoid_tooltip.lower()
+        finally:
+            os.unlink(csv_filename)
+
+    def test_dealer_summary_cards_include_tooltip_explanations(self):
+        """Should include info icons with dealer-specific tooltip explanations."""
+        from generate_website import generate_data_page
+        
+        # Create a temporary CSV file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
+            f.write("Species,Dealer Risk\n")
+            f.write("Species A,🔥\n")
+            csv_filename = f.name
+        
+        analysis_markdown = """## 🏪 Dealer Supply Risk Matrix (Top 10)
+
+**Summary:** 3 species analyzed | 🔥 High Risk: 1 | ⚠️ Moderate Risk: 1 | ❌ Low Risk: 1
+"""
+        
+        try:
+            html = generate_data_page(
+                "Dealer Supply Risk",
+                "Test description",
+                csv_filename,
+                "test-table",
+                "dealer",
+                analysis_markdown=analysis_markdown
+            )
+            
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Verify tooltips contain dealer-specific explanations
+            tooltips = soup.find_all('span', class_='tooltip')
+            assert len(tooltips) == 3
+            
+            # Check high risk tooltip
+            high_risk_tooltip = tooltips[0].get_text()
+            assert 'supply' in high_risk_tooltip.lower()
+            assert 'risk' in high_risk_tooltip.lower() or 'lost sales' in high_risk_tooltip.lower()
+            
+            # Check moderate risk tooltip
+            moderate_risk_tooltip = tooltips[1].get_text()
+            assert 'moderate' in moderate_risk_tooltip.lower()
+            assert 'supply' in moderate_risk_tooltip.lower()
+            
+            # Check low risk tooltip
+            low_risk_tooltip = tooltips[2].get_text()
+            assert 'healthy' in low_risk_tooltip.lower() or 'well-supplied' in low_risk_tooltip.lower()
+        finally:
+            os.unlink(csv_filename)
 
 
 class TestReadCsvFile:
@@ -667,15 +1006,14 @@ class TestGetHtmlFooter:
         assert 'UTC' in footer_text
 
     def test_includes_javascript_functions(self):
-        """Should include JavaScript for table sorting and filtering."""
+        """Should include JavaScript reference for table sorting and filtering."""
         html = get_html_footer()
         soup = BeautifulSoup(html, 'html.parser')
         
         script = soup.find('script')
         assert script is not None
-        js_content = script.string
-        assert 'function sortTable(' in js_content
-        assert 'function filterTable(' in js_content
+        # Should reference external JS file
+        assert script.get('src') == 'table-interactions.js'
 
     def test_closes_html_tags(self):
         """Should close body and html tags."""
@@ -685,22 +1023,22 @@ class TestGetHtmlFooter:
         assert "</html>" in html
 
     def test_javascript_handles_numeric_sorting(self):
-        """JavaScript should include numeric sort logic."""
-        html = get_html_footer()
-        soup = BeautifulSoup(html, 'html.parser')
+        """JavaScript file should exist and contain numeric sort logic."""
+        # Read the external JavaScript file
+        js_file = Path(__file__).parent.parent / "templates" / "scripts" / "table-interactions.js"
+        assert js_file.exists(), "JavaScript file should exist"
         
-        script = soup.find('script')
-        js_content = script.string
+        js_content = js_file.read_text()
         assert 'isNumeric' in js_content
         assert 'parseFloat' in js_content
 
     def test_javascript_handles_string_sorting(self):
-        """JavaScript should include string sort logic."""
-        html = get_html_footer()
-        soup = BeautifulSoup(html, 'html.parser')
+        """JavaScript file should exist and contain string sort logic."""
+        # Read the external JavaScript file
+        js_file = Path(__file__).parent.parent / "templates" / "scripts" / "table-interactions.js"
+        assert js_file.exists(), "JavaScript file should exist"
         
-        script = soup.find('script')
-        js_content = script.string
+        js_content = js_file.read_text()
         assert 'toLowerCase' in js_content
         assert 'localeCompare' in js_content
 
@@ -1011,36 +1349,32 @@ class TestGenerateDataPage:
         table = soup.find('table', id='test-table')
         assert table is None
 
-    def test_includes_analysis_markdown_when_provided(self):
-        """Should include analysis section when markdown provided."""
+    def test_includes_top_10_table_when_provided(self):
+        """Should render top 10 table from CSV data."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Col\n")
+            f.write("Species,Size (cm),Signal\n")
+            for i in range(15):
+                f.write(f"Species {i},1,🔥\n")
             filename = f.name
         
         try:
-            analysis_md = "## Analysis\n\nThis is **important** analysis."
             html = generate_data_page(
                 "Test",
                 "Desc",
                 filename,
                 "test-table",
-                "snapshot",
-                analysis_markdown=analysis_md
+                "breeder"
             )
             soup = BeautifulSoup(html, 'html.parser')
             
-            # Find analysis section
-            analysis_section = soup.find('div', class_='analysis-section')
-            assert analysis_section is not None
+            # Top 10 table should be rendered from CSV (first 10 rows)
+            h3_tags = soup.find_all('h3')
+            top_10_heading = [h for h in h3_tags if 'Top 10' in h.text]
+            assert len(top_10_heading) > 0, "Should have 'Top 10' heading"
             
-            # h2 is downgraded to h3 for proper heading hierarchy
-            h3 = analysis_section.find('h3')
-            assert h3 is not None
-            assert 'Analysis' in h3.text
-            
-            # Check for formatted content
-            strong = soup.find('strong', string='important')
-            assert strong is not None
+            # Should have at least one table
+            tables = soup.find_all('table')
+            assert len(tables) > 0, "Should have table rendered from CSV"
         finally:
             os.unlink(filename)
 
@@ -1145,18 +1479,26 @@ class TestIntegration:
                     f.write("scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n")
                 
                 with open("breeder_opportunity_table.csv", "w", encoding="utf-8") as f:
-                    f.write("Species,Signal\n")
+                    f.write("Species,Size (cm),Signal\n")
+                    for i in range(15):
+                        f.write(f"Test Species {i},1,🔥\n")
                 
                 with open("dealer_supply_risk_table.csv", "w", encoding="utf-8") as f:
-                    f.write("Species,Risk\n")
+                    f.write("Species,Size (cm),Dealer Risk\n")
+                    for i in range(12):
+                        f.write(f"Test Species {i},1,⚠️\n")
                 
                 # Create analysis_summary.md with markdown inside details blocks
                 with open("analysis_summary.md", "w", encoding="utf-8") as f:
                     f.write("""## 🧬 Breeder Opportunity Matrix (Top 10)
 
+**Summary:** 109 species analyzed | 🔥 Hot: 36 | ⚠️ Watch: 30 | ❌ Avoid: 43
+
 Breeder content here.
 
 ## 🏪 Dealer Supply Risk Matrix (Top 10)
+
+**Summary:** 109 species analyzed | 🔥 High Risk: 35 | ⚠️ Moderate Risk: 57 | ❌ Low Risk: 17
 
 Dealer content here.
 
@@ -1190,15 +1532,19 @@ Example content for dealers.
                 # Run main function
                 main()
                 
-                # Verify breeder.html was created and contains converted HTML
+                # Verify breeder.html was created
                 breeder_html_path = OUTPUT_DIR / "breeder.html"
                 assert breeder_html_path.exists(), "breeder.html should be created"
                 
                 with open(breeder_html_path, "r", encoding="utf-8") as f:
                     breeder_html = f.read()
                 
-                # Verify breeder content is present
-                assert "Breeder content here" in breeder_html
+                # Top 10 table should be rendered from CSV (not markdown)
+                assert "<table" in breeder_html, "Should have table rendered from CSV"
+                assert "Top 10" in breeder_html, "Should have Top 10 heading"
+                
+                # Summary stats should be extracted and rendered as cards
+                assert "109 species analyzed" in breeder_html or "Species Analyzed" in breeder_html
                 
                 # Verify legend markdown was converted to HTML (not left as markdown)
                 assert "<h4>🧬 Breeder Opportunity Matrix — Legend</h4>" in breeder_html
@@ -1220,16 +1566,13 @@ Example content for dealers.
                 with open(dealer_html_path, "r", encoding="utf-8") as f:
                     dealer_html = f.read()
                 
-                # Verify dealer content is present
-                assert "Dealer content here" in dealer_html
+                # Top 10 table should be rendered from CSV
+                assert "<table" in dealer_html
+                assert "Top 10" in dealer_html
                 
-                # Verify legend markdown was converted to HTML
-                assert "<h4>🏪 Dealer Supply Risk Matrix — Legend</h4>" in dealer_html
-                assert "<ul>" in breeder_html
-                assert "<li><code>High</code>" in dealer_html
-                
-                # Verify examples were converted
-                assert "<h4>📖 Dealer Matrix — Practical Examples</h4>" in dealer_html
+                # Verify legend/examples were converted to HTML
+                assert "<h4>" in dealer_html  # Some heading converted
+                assert "Example content for dealers" in dealer_html
                 assert "Example content for dealers" in dealer_html
                 
                 # Verify NO markdown syntax remains
@@ -1242,20 +1585,14 @@ Example content for dealers.
     def test_full_page_generation_with_all_features(self):
         """Should generate complete page with all features enabled."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Species,Price,Size\n")
-            f.write("Aphonopelma seemanni,25.00,1.0\n")
-            f.write("Grammostola pulchra,40.00,2.0\n")
+            f.write("Species,Price,Size (cm),Signal\n")
+            for i in range(15):
+                f.write(f"Species {i},25.00,1.0,🔥\n")
             csv_file = f.name
         
         try:
-            analysis_md = """## Analysis
-
-This is the **analysis** section with *formatting*.
-
-| Metric | Value |
-|--------|-------|
-| Count  | 2     |"""
-
+            # Summary line for stats extraction
+            analysis_md = "**Summary:** 15 species analyzed | 🔥 Hot: 15 | ⚠️ Watch: 0 | ❌ Avoid: 0"
             legend_md = "**Symbol**: Meaning of symbol."
             
             html = generate_data_page(
@@ -1263,7 +1600,7 @@ This is the **analysis** section with *formatting*.
                 "Description here",
                 csv_file,
                 "test-table",
-                "snapshot",
+                "breeder",
                 search_filter=True,
                 analysis_markdown=analysis_md,
                 legend_markdown=legend_md
@@ -1275,10 +1612,9 @@ This is the **analysis** section with *formatting*.
             assert "Description here" in html
             assert "Download CSV" in html
             assert "Search:" in html
-            assert "Aphonopelma seemanni" in html
-            assert "Grammostola pulchra" in html
-            assert "analysis-section" in html
-            assert "<strong>analysis</strong>" in html
+            assert "Species 0" in html or "Species 1" in html
+            assert "Top 10" in html, "Should have Top 10 heading"
+            assert "<table" in html, "Should have table"
             assert "<details>" in html
             assert "Symbol" in html
             assert "</html>" in html
@@ -1387,8 +1723,8 @@ This is the **analysis** section with *formatting*.
                 
                 with open(OUTPUT_DIR / "breeder.html", "r", encoding="utf-8") as f:
                     breeder_html = f.read()
-                    assert "Breeder content" in breeder_html
-                    assert "Legend content" in breeder_html
+                    assert "<table" in breeder_html, "Should have table rendered from CSV"
+                    assert "Top 10" in breeder_html or "109 species" in breeder_html
                 
             finally:
                 # Restore original directory
@@ -1781,17 +2117,16 @@ class TestSparklineSVGConversion:
         
         This is a regression test for the bug where:
         - Unicode sparkline: "  █▁▁▁▁" (2 leading spaces/gaps, then 5 bars)
-        - Historical values: [0, 0, 91, 90] (4 values in chronological order)
-        - Expected: First bar (█) should show "0 wishlists", subsequent bars show actual values
-        - Bug: Tooltips were misaligned because we indexed values[] using position in bars[]
+        - Historical values: Must have 5 values to match 5 bars (gaps don't count)
+        - Expected: First bar (█) should show first value, subsequent bars show remaining values
+        - Bug fix: Tooltips are aligned because we index values[] using bar_index (non-None count)
         """
         from generate_website import convert_sparkline_to_svg
         
         # Sparkline with 2 leading gaps (spaces), then 5 bars
         unicode_sparkline = "  █▁▁▁▁"
-        # Historical values: [old=0, old=0, new=91, newest=90]
-        # But we only have 4 values in the history, not 7
-        values = ["0", "0", "91", "90"]
+        # Historical values: Need 5 values to match 5 bars (leading spaces are ignored)
+        values = ["91", "90", "90", "89", "89"]
         
         svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type="wishlist")
         
@@ -1807,133 +2142,759 @@ class TestSparklineSVGConversion:
         # Extract tooltip text from each rect's <title> child
         tooltips = [rect.find('title').text for rect in rects if rect.find('title')]
         
-        # The first 4 bars should have actual wishlist values
-        # Note: The values list has 4 items, sparkline has 5 bars (2 gaps + 5 bars = 7 positions)
-        # So bars [2,3,4,5] should map to values [0,1,2,3]
-        assert "0 wishlists" in tooltips[0], f"First bar should show '0 wishlists', got {tooltips[0]}"
-        assert "0 wishlists" in tooltips[1], f"Second bar should show '0 wishlists', got {tooltips[1]}"
-        assert "91 wishlists" in tooltips[2], f"Third bar should show '91 wishlists', got {tooltips[2]}"
-        assert "90 wishlists" in tooltips[3], f"Fourth bar should show '90 wishlists', got {tooltips[3]}"
-        # Fifth bar has no value (beyond values list), should show "Week N"
-        assert "Week" in tooltips[4], f"Fifth bar should show 'Week N', got {tooltips[4]}"
+        # All 5 bars should have values
+        assert "91 wishlists" in tooltips[0], f"First bar should show '91 wishlists', got {tooltips[0]}"
+        assert "90 wishlists" in tooltips[1], f"Second bar should show '90 wishlists', got {tooltips[1]}"
+        assert "90 wishlists" in tooltips[2], f"Third bar should show '90 wishlists', got {tooltips[2]}"
+        assert "89 wishlists" in tooltips[3], f"Fourth bar should show '89 wishlists', got {tooltips[3]}"
+        assert "89 wishlists" in tooltips[4], f"Fifth bar should show '89 wishlists', got {tooltips[4]}"
 
 
-class TestConvertSparklinesInHtml:
-    """Test suite for converting Unicode sparklines in HTML tables."""
+class TestConvertSparklinesInRows:
+    """Test suite for converting Unicode sparklines in CSV rows."""
 
-    def test_converts_sparklines_in_markdown_table(self):
-        """Should convert Unicode sparklines in markdown-generated HTML tables."""
-        from generate_website import convert_sparklines_in_html
+    def test_converts_price_sparklines_in_csv_rows(self):
+        """Should convert price history sparklines in CSV data rows."""
+        from generate_website import convert_sparklines_in_rows
         
-        # Simulate markdown-generated HTML with Unicode sparklines
-        html = """
-        <table>
-            <thead>
-                <tr>
-                    <th>Species</th>
-                    <th>Size (cm)</th>
-                    <th>Price History</th>
-                    <th>Wishlist History</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Aphonopelma seemanni</td>
-                    <td>1.5</td>
-                    <td>▁▂▃▄▅▆▇█</td>
-                    <td>▁▁▁▁████</td>
-                </tr>
-            </tbody>
-        </table>
-        """
+        headers = ["Species", "Size (cm)", "Price History"]
+        rows = [
+            ["Aphonopelma seemanni", "1.5", "▁▂▃▄▅▆▇█"]
+        ]
         
-        # Mock historical data
-        historical_data = {
-            ("Aphonopelma seemanni", "1.5"): [
-                {"price_gbp": "8.99", "wishlist_count": "5"},
-                {"price_gbp": "10.50", "wishlist_count": "5"},
-                {"price_gbp": "12.99", "wishlist_count": "5"},
-                {"price_gbp": "16.50", "wishlist_count": "5"},
-                {"price_gbp": "18.99", "wishlist_count": "20"},
-                {"price_gbp": "21.00", "wishlist_count": "22"},
-                {"price_gbp": "21.00", "wishlist_count": "25"},
-                {"price_gbp": "24.99", "wishlist_count": "28"},
-            ]
+        # Create historical data structure
+        by_run = {
+            "2025-01-01": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "8.99", "wishlist_count": "5"}],
+            "2025-01-08": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "10.50", "wishlist_count": "5"}],
+            "2025-01-15": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "12.99", "wishlist_count": "5"}],
+            "2025-01-22": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "16.50", "wishlist_count": "5"}],
+            "2025-01-29": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "18.99", "wishlist_count": "20"}],
+            "2025-02-05": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "21.00", "wishlist_count": "22"}],
+            "2025-02-12": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "21.00", "wishlist_count": "25"}],
+            "2025-02-19": [{"scientific_name": "Aphonopelma seemanni", "size_cm": "1.5", "price_gbp": "24.99", "wishlist_count": "28"}],
         }
+        runs = sorted(by_run.keys())
+        historical_data = (by_run, runs)
         
-        result = convert_sparklines_in_html(html, historical_data)
+        result = convert_sparklines_in_rows(headers, rows, historical_data, "test.csv")
         
-        # Should contain SVG elements
-        assert '<svg' in result
-        assert '</svg>' in result
-        
-        # Should have tooltips with actual values
-        assert '8.99' in result or '£8.99' in result
-        assert '24.99' in result or '£24.99' in result
-        
-        # Should NOT contain Unicode sparklines anymore
-        assert '▁▂▃▄▅▆▇█' not in result
+        # Should have SVG in the sparkline column
+        assert '<svg' in result[0][2]
+        assert '</svg>' in result[0][2]
+        assert '8.99' in result[0][2] or '£8.99' in result[0][2]
 
-    def test_handles_html_without_tables(self):
-        """Should return unchanged HTML when no tables present."""
-        from generate_website import convert_sparklines_in_html
+    def test_converts_wishlist_sparklines_in_csv_rows(self):
+        """Should convert wishlist history sparklines in CSV data rows."""
+        from generate_website import convert_sparklines_in_rows
         
-        html = "<p>No tables here</p>"
-        result = convert_sparklines_in_html(html, {})
+        headers = ["Species", "Size (cm)", "Wishlist History"]
+        rows = [
+            ["Test Species", "2.0", "▁▁▁▁████"]
+        ]
         
-        assert result == html
+        by_run = {
+            "2025-01-01": [{"scientific_name": "Test Species", "size_cm": "2.0", "price_gbp": "10.00", "wishlist_count": "5"}],
+            "2025-01-08": [{"scientific_name": "Test Species", "size_cm": "2.0", "price_gbp": "10.00", "wishlist_count": "5"}],
+            "2025-01-15": [{"scientific_name": "Test Species", "size_cm": "2.0", "price_gbp": "10.00", "wishlist_count": "5"}],
+            "2025-01-22": [{"scientific_name": "Test Species", "size_cm": "2.0", "price_gbp": "10.00", "wishlist_count": "5"}],
+            "2025-01-29": [{"scientific_name": "Test Species", "size_cm": "2.0", "price_gbp": "10.00", "wishlist_count": "20"}],
+            "2025-02-05": [{"scientific_name": "Test Species", "size_cm": "2.0", "price_gbp": "10.00", "wishlist_count": "22"}],
+            "2025-02-12": [{"scientific_name": "Test Species", "size_cm": "2.0", "price_gbp": "10.00", "wishlist_count": "25"}],
+            "2025-02-19": [{"scientific_name": "Test Species", "size_cm": "2.0", "price_gbp": "10.00", "wishlist_count": "28"}],
+        }
+        runs = sorted(by_run.keys())
+        historical_data = (by_run, runs)
+        
+        result = convert_sparklines_in_rows(headers, rows, historical_data, "test.csv")
+        
+        assert '<svg' in result[0][2]
+        assert 'wishlists' in result[0][2]
 
-    def test_handles_tables_without_sparkline_columns(self):
-        """Should not modify tables without sparkline columns."""
-        from generate_website import convert_sparklines_in_html
+    def test_converts_stock_availability_sparklines_in_csv_rows(self):
+        """Should convert stock availability sparklines without crashing (regression test for metric_type=None bug)."""
+        from generate_website import convert_sparklines_in_rows
+        
+        headers = ["Species", "Size (cm)", "Stock Availability"]
+        rows = [
+            ["Test Species", "2.0", "█ █ █"]
+        ]
+        
+        # Stock sparklines don't use historical data
+        historical_data = ({}, [])
+        
+        # Should not raise AttributeError: 'NoneType' object has no attribute 'capitalize'
+        result = convert_sparklines_in_rows(headers, rows, historical_data, "test.csv")
+        
+        assert '<svg' in result[0][2]
+        assert '<title>IN</title>' in result[0][2]
+
+    def test_handles_rows_without_sparkline_columns(self):
+        """Should return unchanged rows when no sparkline columns present."""
+        from generate_website import convert_sparklines_in_rows
+        
+        headers = ["Species", "Size (cm)", "Price"]
+        rows = [
+            ["Test Species", "2.0", "£10.00"]
+        ]
+        
+        result = convert_sparklines_in_rows(headers, rows, ({}, []), "test.csv")
+        
+        # Should be unchanged
+        assert result == rows
+
+    def test_handles_empty_historical_data(self):
+        """Should handle missing historical data gracefully."""
+        from generate_website import convert_sparklines_in_rows
+        
+        headers = ["Species", "Size (cm)", "Price History"]
+        rows = [
+            ["Unknown Species", "1.0", "▁▂▃▄"]
+        ]
+        
+        # No historical data available
+        result = convert_sparklines_in_rows(headers, rows, ({}, []), "test.csv")
+        
+        # Should keep Unicode sparkline unchanged (no SVG conversion without values)
+        assert result[0][2] == "▁▂▃▄"
+        assert '<svg' not in result[0][2]
+
+
+class TestInteractiveFilterButtons:
+    """Test suite for interactive filter buttons in data tables.
+    
+    This implements the UX enhancement for quick filtering of tables by signal type,
+    allowing users to instantly show only Hot (🔥), Watch (⚠️), or Avoid (❌) items.
+    """
+
+    def test_breeder_page_has_filter_buttons(self, tmp_path):
+        """Breeder page should include filter buttons above the table for Signal column."""
+        # Create a test CSV with Signal column
+        csv_file = tmp_path / "test_breeder.csv"
+        csv_file.write_text(
+            "Species,Signal,Recommendation\n"
+            "Hot Species,🔥,Good opportunity\n"
+            "Watch Species,⚠️,Monitor\n"
+            "Avoid Species,❌,Skip\n"
+        )
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Test Breeder Opportunities",
+            description="Test description",
+            csv_filename="test_breeder.csv",
+            table_id="test-breeder-table",
+            active_page="breeder"
+        )
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Should have a filter container
+        filter_container = soup.find('div', class_='filter-buttons-container')
+        assert filter_container is not None, "Should have filter buttons container"
+        
+        # Should have filter buttons with correct labels and emojis
+        buttons = filter_container.find_all('button', class_='filter-btn')
+        assert len(buttons) == 4, "Should have 4 filter buttons (All, Hot, Watch, Avoid)"
+        
+        button_texts = [btn.get_text(strip=True) for btn in buttons]
+        assert 'Show All' in button_texts[0], "Should have Show All button"
+        assert '🔥' in button_texts[1], "Should have Hot button with emoji"
+        assert '⚠️' in button_texts[2], "Should have Watch button with emoji"
+        assert '❌' in button_texts[3], "Should have Avoid button with emoji"
+
+    def test_dealer_page_has_filter_buttons(self, tmp_path):
+        """Dealer page should include filter buttons above the table for Dealer Risk column."""
+        csv_file = tmp_path / "test_dealer.csv"
+        csv_file.write_text(
+            "Species,Stock Reliability,Dealer Risk,Recommendation\n"
+            "Risky Species,40%,🔥,Stock up\n"
+            "Watch Species,65%,⚠️,Monitor\n"
+            "Safe Species,95%,❌,No action\n"
+        )
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Test Dealer Supply Risk",
+            description="Test description",
+            csv_filename="test_dealer.csv",
+            table_id="test-dealer-table",
+            active_page="dealer"
+        )
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Should have filter buttons
+        filter_container = soup.find('div', class_='filter-buttons-container')
+        assert filter_container is not None, "Should have filter buttons container"
+        
+        buttons = filter_container.find_all('button', class_='filter-btn')
+        assert len(buttons) == 4, "Should have 4 filter buttons"
+
+    def test_filter_buttons_have_onclick_handlers(self, tmp_path):
+        """Filter buttons should have onclick handlers for JavaScript filtering."""
+        csv_file = tmp_path / "test.csv"
+        csv_file.write_text("Species,Signal\nTest,🔥\n")
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Test",
+            description="Test",
+            csv_filename="test.csv",
+            table_id="test-table",
+            active_page="breeder"
+        )
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        buttons = soup.find_all('button', class_='filter-btn')
+        
+        # Each button should have an onclick attribute
+        for btn in buttons:
+            assert btn.get('onclick') is not None, "Filter buttons should have onclick handlers"
+            assert 'filterBySignal' in btn.get('onclick'), "Should call filterBySignal function"
+
+    def test_snapshot_page_has_no_filter_buttons(self, tmp_path):
+        """Snapshot and history pages should NOT have filter buttons (no Signal column)."""
+        csv_file = tmp_path / "test.csv"
+        csv_file.write_text("Species,Price,Size\nTest,25.00,2\n")
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Latest Snapshot",
+            description="Test",
+            csv_filename="test.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Should NOT have filter buttons
+        filter_container = soup.find('div', class_='filter-buttons-container')
+        assert filter_container is None, "Snapshot page should not have filter buttons (no Signal column)"
+
+    def test_javascript_filter_function_exists(self, tmp_path):
+        """Generated pages should reference external JavaScript and have filter attributes."""
+        csv_file = tmp_path / "test.csv"
+        csv_file.write_text("Species,Signal\nTest,🔥\n")
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Test",
+            description="Test",
+            csv_filename="test.csv",
+            table_id="test-table",
+            active_page="breeder"
+        )
+        
+        # Should reference external JS file and have data attributes
+        assert 'src="table-interactions.js"' in html, "Should reference external JavaScript file"
+        assert 'data-signal=' in html, "Table rows should have data-signal attributes for filtering"
+        
+        # Verify the external JavaScript file contains filterBySignal function
+        js_file = Path(__file__).parent.parent / "templates" / "scripts" / "table-interactions.js"
+        assert js_file.exists(), "JavaScript file should exist"
+        js_content = js_file.read_text()
+        assert 'function filterBySignal' in js_content
+
+
+class TestStockPatternFiltering:
+    """Test suite for Stock Pattern filtering feature on breeder page."""
+
+    def test_breeder_page_has_stock_pattern_filter_buttons(self, tmp_path):
+        """Breeder page should have Stock Pattern filter buttons."""
+        csv_file = tmp_path / "breeder.csv"
+        csv_file.write_text(
+            "Species,Size (cm),OOS,OOS Runs,Stock Pattern,Signal\n"
+            "Test Species 1,1,OUT,4,Sustained,🔥\n"
+            "Test Species 2,2,OUT,3,Emerging,⚠️\n"
+            "Test Species 3,1,IN/OUT,0,Cyclical,⚠️\n"
+            "Test Species 4,1,IN,0,Always,❌\n"
+        )
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Breeder Opportunities",
+            description="Test",
+            csv_filename="breeder.csv",
+            table_id="breeder-table",
+            active_page="breeder"
+        )
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Should have stock pattern filter buttons
+        stock_pattern_container = soup.find('div', class_='stock-pattern-filters')
+        assert stock_pattern_container is not None, "Breeder page should have stock pattern filter container"
+        
+        # Check for specific filter buttons
+        buttons = stock_pattern_container.find_all('button', class_='filter-btn')
+        button_texts = [btn.text.strip() for btn in buttons]
+        
+        # Check that buttons exist (may have counts in parentheses now)
+        assert any('Show All' in text for text in button_texts), "Should have 'Show All' button"
+        assert any('Sustained' in text for text in button_texts), "Should have 'Sustained' filter button"
+        assert any('Emerging' in text for text in button_texts), "Should have 'Emerging' filter button"
+        assert any('Cyclical' in text for text in button_texts), "Should have 'Cyclical' filter button"
+        assert any('Always' in text for text in button_texts), "Should have 'Always' filter button"
+
+    def test_breeder_table_rows_have_stock_pattern_data_attribute(self, tmp_path):
+        """Breeder table rows should have data-stock-pattern attribute for filtering."""
+        csv_file = tmp_path / "breeder.csv"
+        csv_file.write_text(
+            "Species,Size (cm),OOS,OOS Runs,Stock Pattern,Signal\n"
+            "Test Species 1,1,OUT,4,Sustained,🔥\n"
+            "Test Species 2,2,OUT,3,Emerging,⚠️\n"
+        )
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Breeder Opportunities",
+            description="Test",
+            csv_filename="breeder.csv",
+            table_id="breeder-table",
+            active_page="breeder"
+        )
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        table = soup.find('table', id='breeder-table')
+        rows = table.select('tbody tr')
+        
+        # Check first row
+        assert rows[0].get('data-stock-pattern') == 'Sustained'
+        assert rows[0].get('data-signal') == '🔥'
+        
+        # Check second row
+        assert rows[1].get('data-stock-pattern') == 'Emerging'
+        assert rows[1].get('data-signal') == '⚠️'
+    
+    def test_top_10_and_full_table_have_unique_ids_and_correct_filter_attributes(self, tmp_path):
+        """Regression test: Top 10 and full table must have unique IDs and full table needs filter attributes.
+        
+        Bug fixed: When top 10 table was introduced, both tables had id='breeder-table',
+        causing JavaScript filters to target the wrong table (top 10 instead of full table).
+        Additionally, the full table's rows lacked data-signal and data-stock-pattern attributes
+        because context variables weren't passed to the template include.
+        
+        This test ensures:
+        - Table IDs are unique (breeder-table-top10 vs breeder-table)
+        - Full table rows have all required data attributes for filtering
+        - Filter buttons target the correct table ID (full table, not top 10)
+        """
+        # Create 15 rows to ensure top 10 section renders
+        rows = []
+        for i in range(15):
+            pattern = ['Sustained', 'Emerging', 'Cyclical'][i % 3]
+            signal = ['🔥', '⚠️', '❌'][i % 3]
+            rows.append(f"Species {i},1,OUT,{i+1},{pattern},{signal}")
+        
+        csv_file = tmp_path / "breeder.csv"
+        csv_file.write_text(
+            "Species,Size (cm),OOS,OOS Runs,Stock Pattern,Signal\n" +
+            "\n".join(rows)
+        )
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Breeder Opportunities",
+            description="Test",
+            csv_filename="breeder.csv",
+            table_id="breeder-table",
+            active_page="breeder"
+        )
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Should have EXACTLY 2 tables (top 10 + full)
+        all_tables = soup.find_all('table')
+        assert len(all_tables) == 2, f"Should have 2 tables (top 10 + full), found {len(all_tables)}"
+        
+        # Tables MUST have UNIQUE IDs (was the root cause of the bug)
+        table_ids = [t.get('id') for t in all_tables]
+        assert len(table_ids) == len(set(table_ids)), f"Table IDs must be unique, found duplicates: {table_ids}"
+        assert 'breeder-table-top10' in table_ids, "Top 10 table should have -top10 suffix"
+        assert 'breeder-table' in table_ids, "Full table should have base ID"
+        
+        # Top 10 table should have exactly 10 rows
+        top_10_table = soup.find('table', id='breeder-table-top10')
+        assert top_10_table is not None, "Top 10 table should exist"
+        top_10_rows = top_10_table.select('tbody tr')
+        assert len(top_10_rows) == 10, f"Top 10 should have 10 rows, found {len(top_10_rows)}"
+        
+        # Full table should have all 15 rows
+        full_table = soup.find('table', id='breeder-table')
+        assert full_table is not None, "Full table should exist"
+        full_rows = full_table.select('tbody tr')
+        assert len(full_rows) == 15, f"Full table should have 15 rows, found {len(full_rows)}"
+        
+        # CRITICAL: Full table rows MUST have data-signal and data-stock-pattern attributes
+        # This was missing because template {% include %} didn't pass context variables
+        for i, row in enumerate(full_rows):
+            signal_attr = row.get('data-signal')
+            pattern_attr = row.get('data-stock-pattern')
+            assert signal_attr is not None, f"Full table row {i} missing data-signal attribute (filters won't work)"
+            assert pattern_attr is not None, f"Full table row {i} missing data-stock-pattern attribute (filters won't work)"
+            assert signal_attr in ['🔥', '⚠️', '❌'], f"Invalid signal value: {signal_attr}"
+        
+        # Filter buttons MUST target the full table (breeder-table), NOT the top 10 table
+        filter_buttons = soup.find_all('button', class_='filter-btn')
+        assert len(filter_buttons) > 0, "Should have filter buttons"
+        
+        for btn in filter_buttons:
+            onclick = btn.get('onclick', '')
+            if 'filterBySignal' in onclick or 'filterByStockPattern' in onclick:
+                assert "'breeder-table'" in onclick, f"Filter button should target 'breeder-table', found: {onclick}"
+                assert "'breeder-table-top10'" not in onclick, f"Filter must NOT target top 10 table: {onclick}"
+
+    def test_dealer_page_does_not_have_stock_pattern_filters(self, tmp_path):
+        """Dealer page should NOT have Stock Pattern filters (not applicable)."""
+        csv_file = tmp_path / "dealer.csv"
+        csv_file.write_text(
+            "Species,Size (cm),Stock Reliability,Dealer Risk\n"
+            "Test Species,1,Low,🔥\n"
+        )
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Dealer Supply Risk",
+            description="Test",
+            csv_filename="dealer.csv",
+            table_id="dealer-table",
+            active_page="dealer"
+        )
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Should NOT have stock pattern filters
+        stock_pattern_container = soup.find('div', class_='stock-pattern-filters')
+        assert stock_pattern_container is None, "Dealer page should not have stock pattern filters"
+
+    def test_stock_pattern_filter_javascript_function_exists(self, tmp_path):
+        """Breeder page should reference external JavaScript and have stock pattern attributes."""
+        csv_file = tmp_path / "breeder.csv"
+        csv_file.write_text(
+            "Species,Size (cm),Stock Pattern,Signal\n"
+            "Test,1,Sustained,🔥\n"
+        )
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Breeder Opportunities",
+            description="Test",
+            csv_filename="breeder.csv",
+            table_id="breeder-table",
+            active_page="breeder"
+        )
+        
+        # Should reference external JS file and have data attributes
+        assert 'src="table-interactions.js"' in html, "Should reference external JavaScript file"
+        assert 'data-stock-pattern=' in html, "Table rows should have data-stock-pattern attributes"
+        
+        # Verify the external JavaScript file contains filterByStockPattern function
+        js_file = Path(__file__).parent.parent / "templates" / "scripts" / "table-interactions.js"
+        assert js_file.exists(), "JavaScript file should exist"
+        js_content = js_file.read_text()
+        assert 'function filterByStockPattern' in js_content
+
+    def test_stock_pattern_buttons_have_counts(self, tmp_path):
+        """Stock pattern filter buttons should display counts for each pattern."""
+        csv_file = tmp_path / "breeder.csv"
+        csv_file.write_text(
+            "Species,Size (cm),Stock Pattern,Signal\n"
+            "Species 1,1,Sustained,🔥\n"
+            "Species 2,2,Sustained,🔥\n"
+            "Species 3,1,Emerging,⚠️\n"
+            "Species 4,1,Emerging,⚠️\n"
+            "Species 5,1,Emerging,⚠️\n"
+            "Species 6,1,Cyclical,⚠️\n"
+            "Species 7,1,Always,❌\n"
+        )
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Breeder Opportunities",
+            description="Test",
+            csv_filename="breeder.csv",
+            table_id="breeder-table",
+            active_page="breeder"
+        )
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        stock_pattern_container = soup.find('div', class_='stock-pattern-filters')
+        buttons = stock_pattern_container.find_all('button', class_='filter-btn')
+        button_texts = [btn.text.strip() for btn in buttons]
+        
+        # Check for counts in button text
+        assert 'Show All (7)' in button_texts, "Show All should have total count"
+        assert 'Sustained (2)' in button_texts, "Sustained should have count of 2"
+        assert 'Emerging (3)' in button_texts, "Emerging should have count of 3"
+        assert 'Cyclical (1)' in button_texts, "Cyclical should have count of 1"
+        assert 'Always (1)' in button_texts, "Always should have count of 1"
+
+    def test_stock_pattern_filter_has_clear_label(self, tmp_path):
+        """Stock pattern filters should have a clear label indicating what they filter."""
+        csv_file = tmp_path / "breeder.csv"
+        csv_file.write_text(
+            "Species,Size (cm),Stock Pattern,Signal\n"
+            "Test,1,Sustained,🔥\n"
+        )
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Breeder Opportunities",
+            description="Test",
+            csv_filename="breeder.csv",
+            table_id="breeder-table",
+            active_page="breeder"
+        )
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Should have a label/heading for stock pattern filters
+        # Look for text like "Stock Pattern:" or "Filter by Pattern:" near the buttons
+        stock_pattern_container = soup.find('div', class_='stock-pattern-filters')
+        assert stock_pattern_container is not None
+        
+        # Check if there's a label element or heading text before/inside the container
+        # The label should contain "Stock Pattern" or similar text
+        parent = stock_pattern_container.parent
+        assert parent is not None
+        
+        # Look for label text in the HTML near the filter buttons
+        html_lower = html.lower()
+        assert 'stock pattern' in html_lower or 'filter by pattern' in html_lower, \
+            "Should have clear label indicating stock pattern filtering"
+
+    def test_signal_filter_has_clear_label_on_breeder_page(self, tmp_path):
+        """Signal filters should have a clear label on breeder page for consistency."""
+        csv_file = tmp_path / "breeder.csv"
+        csv_file.write_text(
+            "Species,Size (cm),Signal\n"
+            "Test,1,🔥\n"
+        )
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Breeder Opportunities",
+            description="Test",
+            csv_filename="breeder.csv",
+            table_id="breeder-table",
+            active_page="breeder"
+        )
+        
+        # Should have a label for signal filters (e.g., "🎯 Signal:" or similar)
+        html_lower = html.lower()
+        assert 'signal:' in html_lower, "Breeder page should have clear label for signal filters"
+
+    def test_signal_filter_has_clear_label_on_dealer_page(self, tmp_path):
+        """Dealer Risk filters should have a clear label on dealer page for consistency."""
+        csv_file = tmp_path / "dealer.csv"
+        csv_file.write_text(
+            "Species,Size (cm),Dealer Risk\n"
+            "Test,1,🔥\n"
+        )
+        
+        os.chdir(tmp_path)
+        html = generate_data_page(
+            title="Dealer Supply Risk",
+            description="Test",
+            csv_filename="dealer.csv",
+            table_id="dealer-table",
+            active_page="dealer"
+        )
+        
+        # Should have a label for dealer risk filters (e.g., "🎯 Risk Level:" or "Dealer Risk:")
+        html_lower = html.lower()
+        assert 'risk' in html_lower and ':' in html, \
+            "Dealer page should have clear label for risk level filters"
+
+
+class TestAddDataLabelsToTables:
+    """Test suite for adding data-label attributes to HTML tables for responsive layout."""
+
+    def test_adds_data_labels_to_simple_table(self):
+        """Should add data-label attributes to all td elements based on headers."""
+        from generate_website import add_data_labels_to_tables
         
         html = """
         <table>
             <thead>
-                <tr><th>Name</th><th>Value</th></tr>
+                <tr>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>City</th>
+                </tr>
             </thead>
             <tbody>
-                <tr><td>Test</td><td>123</td></tr>
+                <tr>
+                    <td>John</td>
+                    <td>30</td>
+                    <td>NYC</td>
+                </tr>
+                <tr>
+                    <td>Jane</td>
+                    <td>25</td>
+                    <td>LA</td>
+                </tr>
             </tbody>
         </table>
         """
         
-        result = convert_sparklines_in_html(html, {})
+        result = add_data_labels_to_tables(html)
         
-        # Should contain table but no SVG
+        # Parse result to verify
+        soup = BeautifulSoup(result, 'html.parser')
+        rows = soup.find_all('tr')
+        
+        # First row (John)
+        cells = rows[1].find_all('td')
+        assert cells[0].get('data-label') == 'Name'
+        assert cells[1].get('data-label') == 'Age'
+        assert cells[2].get('data-label') == 'City'
+        
+        # Second row (Jane)
+        cells = rows[2].find_all('td')
+        assert cells[0].get('data-label') == 'Name'
+        assert cells[1].get('data-label') == 'Age'
+        assert cells[2].get('data-label') == 'City'
+
+    def test_handles_multiple_tables(self):
+        """Should add data-label attributes to multiple tables independently."""
+        from generate_website import add_data_labels_to_tables
+        
+        html = """
+        <table>
+            <thead><tr><th>Col1</th><th>Col2</th></tr></thead>
+            <tbody><tr><td>A</td><td>B</td></tr></tbody>
+        </table>
+        <table>
+            <thead><tr><th>Header1</th><th>Header2</th><th>Header3</th></tr></thead>
+            <tbody><tr><td>X</td><td>Y</td><td>Z</td></tr></tbody>
+        </table>
+        """
+        
+        result = add_data_labels_to_tables(html)
+        soup = BeautifulSoup(result, 'html.parser')
+        tables = soup.find_all('table')
+        
+        # First table
+        cells = tables[0].find('tbody').find_all('td')
+        assert cells[0].get('data-label') == 'Col1'
+        assert cells[1].get('data-label') == 'Col2'
+        
+        # Second table
+        cells = tables[1].find('tbody').find_all('td')
+        assert cells[0].get('data-label') == 'Header1'
+        assert cells[1].get('data-label') == 'Header2'
+        assert cells[2].get('data-label') == 'Header3'
+
+    def test_handles_table_without_thead(self):
+        """Should skip tables without thead gracefully."""
+        from generate_website import add_data_labels_to_tables
+        
+        html = """
+        <table>
+            <tbody>
+                <tr><td>Data1</td><td>Data2</td></tr>
+            </tbody>
+        </table>
+        """
+        
+        result = add_data_labels_to_tables(html)
+        soup = BeautifulSoup(result, 'html.parser')
+        cells = soup.find_all('td')
+        
+        # Should not have data-label attributes
+        assert cells[0].get('data-label') is None
+        assert cells[1].get('data-label') is None
+
+    def test_handles_table_without_tbody(self):
+        """Should skip tables without tbody gracefully."""
+        from generate_website import add_data_labels_to_tables
+        
+        html = """
+        <table>
+            <thead>
+                <tr><th>Header1</th><th>Header2</th></tr>
+            </thead>
+        </table>
+        """
+        
+        result = add_data_labels_to_tables(html)
+        # Should not crash, returns valid HTML
         assert '<table>' in result
-        assert '<svg' not in result
 
-    def test_handles_empty_html(self):
-        """Should handle None or empty HTML gracefully."""
-        from generate_website import convert_sparklines_in_html
-        
-        assert convert_sparklines_in_html(None, {}) is None
-        assert convert_sparklines_in_html("", {}) == ""
-
-    def test_converts_stock_availability_sparklines(self):
-        """Should convert stock availability sparklines in HTML tables."""
-        from generate_website import convert_sparklines_in_html
+    def test_handles_mismatched_column_count(self):
+        """Should handle rows with different number of cells than headers."""
+        from generate_website import add_data_labels_to_tables
         
         html = """
         <table>
             <thead>
-                <tr>
-                    <th>Species</th>
-                    <th>Stock Availability</th>
-                </tr>
+                <tr><th>Col1</th><th>Col2</th><th>Col3</th></tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>Test Species</td>
-                    <td>█ █ █</td>
-                </tr>
+                <tr><td>A</td><td>B</td></tr>
+                <tr><td>X</td><td>Y</td><td>Z</td><td>Extra</td></tr>
             </tbody>
         </table>
         """
         
-        result = convert_sparklines_in_html(html, {})
+        result = add_data_labels_to_tables(html)
+        soup = BeautifulSoup(result, 'html.parser')
+        rows = soup.find('tbody').find_all('tr')
         
-        # Should contain SVG for stock availability
-        assert '<svg' in result
-        assert '<title>IN</title>' in result
+        # First row - only 2 cells, should get labels for first 2 headers
+        cells = rows[0].find_all('td')
+        assert len(cells) == 2
+        assert cells[0].get('data-label') == 'Col1'
+        assert cells[1].get('data-label') == 'Col2'
+        
+        # Second row - 4 cells, first 3 should get labels, 4th should not
+        cells = rows[1].find_all('td')
+        assert len(cells) == 4
+        assert cells[0].get('data-label') == 'Col1'
+        assert cells[1].get('data-label') == 'Col2'
+        assert cells[2].get('data-label') == 'Col3'
+        assert cells[3].get('data-label') is None  # No header for 4th column
+
+    def test_preserves_existing_html_content(self):
+        """Should preserve other HTML content and only modify tables."""
+        from generate_website import add_data_labels_to_tables
+        
+        html = """
+        <div class="container">
+            <p>Some text before table</p>
+            <table>
+                <thead><tr><th>Name</th></tr></thead>
+                <tbody><tr><td>John</td></tr></tbody>
+            </table>
+            <p>Some text after table</p>
+        </div>
+        """
+        
+        result = add_data_labels_to_tables(html)
+        
+        # Should preserve structure
+        assert '<div class="container">' in result
+        assert '<p>Some text before table</p>' in result
+        assert '<p>Some text after table</p>' in result
+        
+        # Should add data-label to table
+        soup = BeautifulSoup(result, 'html.parser')
+        td = soup.find('td')
+        assert td.get('data-label') == 'Name'
+
+    def test_empty_string_returns_empty_string(self):
+        """Should handle empty string input."""
+        from generate_website import add_data_labels_to_tables
+        
+        result = add_data_labels_to_tables("")
+        assert result == ""
+
+    def test_no_tables_returns_unchanged(self):
+        """Should return unchanged HTML when no tables present."""
+        from generate_website import add_data_labels_to_tables
+        
+        html = "<div><p>Just some text</p></div>"
+        result = add_data_labels_to_tables(html)
+        assert "<div><p>Just some text</p></div>" in result

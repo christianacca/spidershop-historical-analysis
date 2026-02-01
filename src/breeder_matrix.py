@@ -4,7 +4,7 @@ from history import group_by_run, k2
 from config import BREEDER_TABLE_FILE
 from assertions import get_summary_path
 from wishlist_analysis import compute_wishlist_pressure, get_oos_wishlist_carryover, compute_wishlist_delta
-from sparkline_helpers import generate_sparkline, extract_historical_values_with_carryforward
+from sparkline_helpers import extract_historical_values_with_carryforward
 
 # =====================
 # BREEDER MATRIX (PRICE AWARE) — FIXED TO INCLUDE OUT-OF-STOCK ITEMS
@@ -192,11 +192,11 @@ def build_breeder_opportunity_table(history_rows):
 
         # Generate sparklines for price and wishlist trends
         # Use carry-forward to show persistent values when OUT (price/wishlist don't disappear)
-        price_history_values = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp", max_runs=8)
-        wishlist_history_values = extract_historical_values_with_carryforward(key, by_run, runs, "wishlist_count", max_runs=8)
+        price_history = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp", max_runs=8)
+        wishlist_history = extract_historical_values_with_carryforward(key, by_run, runs, "wishlist_count", max_runs=8)
         
-        price_sparkline = generate_sparkline(price_history_values, max_length=8)
-        wishlist_sparkline = generate_sparkline(wishlist_history_values, max_length=8)
+        price_sparkline = price_history['unicode']
+        wishlist_sparkline = wishlist_history['unicode']
 
         table.append({
             "Species": row.get("scientific_name", key[0]),
@@ -247,11 +247,22 @@ def write_breeder_outputs(table):
     total = len(table) if table else 0
     shown = min(10, total)
 
+    # Calculate signal statistics
+    signal_counts = {"🔥": 0, "⚠️": 0, "❌": 0}
+    if table:
+        for row in table:
+            signal = row.get("Signal", "")
+            if signal in signal_counts:
+                signal_counts[signal] += 1
+
     with open(summary_path, "a", encoding="utf-8") as f:
         f.write("\n## 🧬 Breeder Opportunity Matrix (Top 10)\n\n")
         if total == 0:
             f.write("_No breeding opportunities detected (conservative analysis requires sufficient historical data)._\n")
         else:
+            # Write summary statistics
+            f.write(f"**Summary:** {total} species analyzed | 🔥 Hot: {signal_counts['🔥']} | ⚠️ Watch: {signal_counts['⚠️']} | ❌ Avoid: {signal_counts['❌']}\n\n")
+            
             f.write("| Species | Size (cm) | OOS | OOS Runs | Stock Pattern | Price Trend | Price History | Wishlist Pressure | Wishlist Delta | Wishlist History | Signal | Recommendation |\n")
             f.write("|---|---:|---|---:|---|---|---|---|---|---|---|---|\n")
             for r in table[:shown]:

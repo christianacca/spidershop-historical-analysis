@@ -98,10 +98,13 @@ def extract_historical_values_with_carryforward(key, by_run, runs, field_name, m
         max_runs: Maximum number of runs to look back (default 8)
     
     Returns:
-        List of values in chronological order (oldest to newest) with carry-forward,
-        starting from the first run where the species appeared
+        Dictionary with:
+            'values': List of values in chronological order (oldest to newest) with carry-forward
+            'is_carried_forward': List of booleans indicating which values were carried forward
+            'unicode': Unicode sparkline string for CSV display
     """
     values = []
+    is_carried_forward = []
     recent_runs = runs[-max_runs:] if len(runs) > max_runs else runs
     last_known_value = None
     first_appearance = False  # Track if we've seen the species yet
@@ -112,6 +115,7 @@ def extract_historical_values_with_carryforward(key, by_run, runs, field_name, m
             # Species present - get current value and update last_known
             current_value = row_map[key].get(field_name, "")
             values.append(current_value)
+            is_carried_forward.append(False)
             last_known_value = current_value
             first_appearance = True
         else:
@@ -119,9 +123,17 @@ def extract_historical_values_with_carryforward(key, by_run, runs, field_name, m
             if first_appearance:
                 # We've seen the species before - carry forward last known value
                 values.append(last_known_value)
+                is_carried_forward.append(True)
             # else: species hasn't appeared yet - don't add anything (skip leading Nones)
     
-    return values
+    # Generate Unicode sparkline for CSV display
+    unicode_sparkline = generate_sparkline(values, max_length=max_runs)
+    
+    return {
+        'values': values,
+        'is_carried_forward': is_carried_forward,
+        'unicode': unicode_sparkline
+    }
 
 
 def generate_stock_availability_sparkline(key, by_run, runs, max_runs=8):

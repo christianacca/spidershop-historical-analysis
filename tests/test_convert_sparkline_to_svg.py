@@ -1,7 +1,7 @@
 """
 Comprehensive tests for SVG sparkline conversion.
 
-Tests cover all behavioral rules from docs/SPARKLINES_SVG.md:
+Tests cover all behavioral rules from docs/SPARKLINES.md (Part 2: SVG Sparklines):
 - Rule 1: Price/Wishlist show continuous bars (no gaps)
 - Rule 2: Stock availability shows gaps for OUT periods
 - Tooltip formatting with square brackets for carried-forward values
@@ -17,12 +17,13 @@ class TestBasicConversion:
     """Test basic SVG generation from Unicode characters."""
     
     def test_converts_single_bar(self):
-        """Single bar renders as SVG with mid-height."""
+        """Single bar renders as SVG with proportional height."""
         svg = convert_sparkline_to_svg("▄", values=["15.00"], metric_type="price")
         
         assert '<svg' in svg
         assert '<rect' in svg
-        assert 'height="10.0"' in svg  # Single value falls back to Unicode height (4/8 * 20)
+        # Single value: 15/15 = 100% → 10% + 100%*90% = 100% → 20.0px
+        assert 'height="20.0"' in svg
         assert '<title>£15.00</title>' in svg
     
     def test_converts_rising_trend(self):
@@ -159,21 +160,21 @@ class TestColorCoding:
     
     def test_uptrend_gets_green(self):
         """Rising trend (last > first) gets green color."""
-        svg = convert_sparkline_to_svg("▁▃▅▇█", metric_type="price")
+        svg = convert_sparkline_to_svg("▁▃▅▇█", values=["10", "12", "15", "18", "20"], metric_type="price")
         
         # Green: #22c55e
         assert 'fill="#22c55e"' in svg
     
     def test_downtrend_gets_red(self):
         """Falling trend (last < first) gets red color."""
-        svg = convert_sparkline_to_svg("█▇▅▃▁", metric_type="price")
+        svg = convert_sparkline_to_svg("█▇▅▃▁", values=["20", "18", "15", "12", "10"], metric_type="price")
         
         # Red: #ef4444
         assert 'fill="#ef4444"' in svg
     
     def test_flat_line_gets_blue(self):
         """Flat line (no change) gets blue color."""
-        svg = convert_sparkline_to_svg("▄▄▄▄", metric_type="price")
+        svg = convert_sparkline_to_svg("▄▄▄▄", values=["15", "15", "15", "15"], metric_type="price")
         
         # Blue: #3b82f6
         assert 'fill="#3b82f6"' in svg
@@ -288,15 +289,7 @@ class TestTooltipFormatting:
         
         assert '<title>7 wishlists</title>' in svg
         assert '<title>[7 wishlists]</title>' in svg
-    
-    def test_fallback_to_week_number_when_no_values(self):
-        """When values not provided, use week number as fallback."""
-        svg = convert_sparkline_to_svg("▁▃▅", metric_type="price")
-        
-        # Should fall back to "Week N" format
-        assert '<title>Week 1</title>' in svg
-        assert '<title>Week 2</title>' in svg
-        assert '<title>Week 3</title>' in svg
+
 
 
 class TestEdgeCases:
@@ -328,15 +321,32 @@ class TestEdgeCases:
         # Should return dash since no bars can be rendered
         assert result == "-"
     
-    def test_values_mismatch_falls_back_gracefully(self):
-        """Mismatched values array length falls back to week numbers."""
-        # 4 bars but only 2 values provided
-        svg = convert_sparkline_to_svg("▁▃▅▇", values=["10", "12"], metric_type="price")
-        
-        # Should still render but use fallback for missing values
+    def test_price_sparkline_without_values_fails(self):
+        """Price sparklines require values - fail fast if missing."""
+        with pytest.raises(AssertionError, match="Values required for price sparklines"):
+            convert_sparkline_to_svg("▁▃▅▇", values=None, metric_type="price")
+    
+    def test_wishlist_sparkline_without_values_fails(self):
+        """Wishlist sparklines require values - fail fast if missing."""
+        with pytest.raises(AssertionError, match="Values required for wishlist sparklines"):
+            convert_sparkline_to_svg("▁▃▅▇", values=None, metric_type="wishlist")
+    
+    def test_price_sparkline_with_empty_values_fails(self):
+        """Price sparklines require non-empty values array."""
+        with pytest.raises(AssertionError, match="Values array cannot be empty"):
+            convert_sparkline_to_svg("▁▃▅▇", values=[], metric_type="price")
+    
+    def test_price_sparkline_with_invalid_values_fails(self):
+        """Price sparklines require numeric values - fail fast on invalid data."""
+        with pytest.raises(AssertionError, match="Invalid non-numeric value"):
+            convert_sparkline_to_svg("▁▃▅▇", values=["10", "abc", "15", "20"], metric_type="price")
+    
+    def test_stock_sparkline_without_values_succeeds(self):
+        """Stock sparklines don't require values (uses Unicode heights)."""
+        svg = convert_sparkline_to_svg("██ █", metric_type="stock")
+        assert '<svg' in svg
         assert '<rect' in svg
-        assert '<title>£10</title>' in svg or '<title>£10.00</title>' in svg
-        assert '<title>Week ' in svg  # Fallback for missing values
+        assert '<title>IN</title>' in svg
 
 
 class TestSVGStructure:
@@ -368,22 +378,16 @@ class TestSVGStructure:
     
     def test_svg_has_overall_title(self):
         """SVG element has descriptive title based on metric type."""
-        svg_price = convert_sparkline_to_svg("▄▄", metric_type="price")
-        svg_wishlist = convert_sparkline_to_svg("▄▄", metric_type="wishlist")
+        svg_price = convert_sparkline_to_svg("▄▄", values=["15", "15"], metric_type="price")
+        svg_wishlist = convert_sparkline_to_svg("▄▄", values=["5", "5"], metric_type="wishlist")
         svg_stock = convert_sparkline_to_svg("▄▄", metric_type="stock")
         
         assert '<title>Price History</title>' in svg_price
         assert '<title>Wishlist History</title>' in svg_wishlist
         assert '<title>Stock History</title>' in svg_stock
-    
-    def test_svg_unknown_metric_type_title(self):
-        """Unknown metric type falls back to capitalized type + History."""
-        svg = convert_sparkline_to_svg("▄▄", metric_type="custom")
-        assert '<title>Custom History</title>' in svg
-
 
 class TestComprehensiveScenarios:
-    """Test complete scenarios from SPARKLINES_SVG.md."""
+    """Test complete scenarios from SPARKLINES.md (Part 2: SVG Sparklines)."""
     
     def test_price_rising_with_out_period(self):
         """Scenario: Price rising with OUT period in middle."""

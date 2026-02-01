@@ -54,26 +54,26 @@
   </thead>
   <tbody>
   <tr>
-  <td>S</td>
-  <td>p</td>
-  <td>e</td>
-  <td>c</td>
-  <td>i</td>
-  <td>e</td>
-  <td>s</td>
+  <td data-label="b">S</td>
+  <td data-label="r">p</td>
+  <td data-label="e">e</td>
+  <td data-label="e">c</td>
+  <td data-label="d">i</td>
+  <td data-label="e">e</td>
+  <td data-label="r">s</td>
   </tr>
   <tr>
-  <td>S</td>
-  <td>i</td>
-  <td>g</td>
-  <td>n</td>
-  <td>a</td>
-  <td>l</td>
+  <td data-label="b">S</td>
+  <td data-label="r">i</td>
+  <td data-label="e">g</td>
+  <td data-label="e">n</td>
+  <td data-label="d">a</td>
+  <td data-label="e">l</td>
   </tr>
   <tr>
-  <td>O</td>
-  <td>O</td>
-  <td>S</td>
+  <td data-label="b">O</td>
+  <td data-label="r">O</td>
+  <td data-label="e">S</td>
   </tr>
   </tbody>
   </table>
@@ -115,16 +115,16 @@
   </thead>
   <tbody>
   <tr>
-  <td>Phormictopus sp. "Azul"</td>
-  <td style="text-align: right;">2</td>
-  <td>🔥</td>
-  <td>Consider pairing — emerging scarcity</td>
+  <td data-label="Species">Phormictopus sp. "Azul"</td>
+  <td data-label="Size (cm)" style="text-align: right;">2</td>
+  <td data-label="Signal">🔥</td>
+  <td data-label="Recommendation">Consider pairing — emerging scarcity</td>
   </tr>
   <tr>
-  <td>Brachypelma hamorii</td>
-  <td style="text-align: right;">1</td>
-  <td>⚠️</td>
-  <td>Watch closely — high demand</td>
+  <td data-label="Species">Brachypelma hamorii</td>
+  <td data-label="Size (cm)" style="text-align: right;">1</td>
+  <td data-label="Signal">⚠️</td>
+  <td data-label="Recommendation">Watch closely — high demand</td>
   </tr>
   </tbody>
   </table>

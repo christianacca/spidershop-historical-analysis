@@ -3,6 +3,8 @@
   '''
   ## 🏪 Dealer Supply Risk Matrix (Top 10)
   
+  **Summary:** 3 species analyzed | 🔥 High Risk: 1 | ⚠️ Moderate Risk: 0 | ❌ Low Risk: 2
+  
   | Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Price History | Wishlist Pressure | Wishlist Delta | Wishlist History | Stock Availability | Dealer Risk | Dealer Recommendation |
   |---|---:|---|---:|---|---|---|---|---|---|---|---|---|
   | Cyriocosmus elegans | 0.5 | Medium | 1.0 | Fast | → | ▄▄▄ | 🔥 | ↑ | ▁▁█ | █ █ | 🔥 | Actively seek breeders — surging demand, variable supply |

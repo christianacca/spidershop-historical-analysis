@@ -48,19 +48,19 @@ def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price"
     
     Args:
         unicode_sparkline: String of Unicode sparkline characters (e.g., "▁▂▃▄▅▆▇█")
-        values: List of actual numeric values (for tooltips), or None for stock availability
-        metric_type: "price", "wishlist", or "stock" (affects formatting and colors)
+        values: List of actual numeric values for price/wishlist, None for stock
+        metric_type: "price", "wishlist", or "stock"
         is_carried_forward: List of booleans indicating which values are carried-forward (optional)
     
     Returns:
         String containing SVG markup, or original string if conversion not possible
+        
+    Raises:
+        AssertionError: If values are required but missing/invalid for price/wishlist
     """
     # Don't convert if it's just a dash or empty string
     if not unicode_sparkline or unicode_sparkline == "-":
         return unicode_sparkline
-    
-    # Handle whitespace-only strings - treat as "no data" after parsing
-    # (but don't exit early - need to check if it's all spaces which means all gaps)
     
     # Parse Unicode characters into bar heights
     bars = []
@@ -77,16 +77,24 @@ def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price"
     if not non_none_bars:
         return "-"
     
+    # For price/wishlist: values must be provided and valid (fail fast)
+    if metric_type in ["price", "wishlist"]:
+        assert values is not None, f"Values required for {metric_type} sparklines"
+        assert len(values) > 0, f"Values array cannot be empty for {metric_type} sparklines"
+        # Validate all values are numeric
+        for v in values:
+            assert v is not None and str(v).replace('.', '').replace('-', '').isdigit(), \
+                f"Invalid non-numeric value in {metric_type} sparkline: {v}"
+    
     # Determine trend direction for color coding
-    # For carried-forward values: check if ALL non-None bars after first are carried forward
-    # If so, treat as neutral (no actual change occurred)
-    if len(non_none_bars) >= 2 and is_carried_forward:
-        # Check if we have actual change by examining is_carried_forward flags
+    # For stock: always green
+    if metric_type == "stock":
+        color = "#22c55e"  # Green
+        trend = "stock"
+    # For price/wishlist: check for actual changes
+    elif len(non_none_bars) >= 2 and is_carried_forward:
+        # Check if ALL values after first are carried forward (no actual change)
         non_none_indices = [i for i, b in enumerate(bars) if b is not None]
-        first_idx = non_none_indices[0]
-        last_idx = non_none_indices[-1]
-        
-        # Check if all values after first are carried forward
         all_carried_after_first = all(
             is_carried_forward[i] 
             for i in non_none_indices[1:] 
@@ -98,10 +106,10 @@ def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price"
             color = "#3b82f6"  # Blue
             trend = "stable"
         else:
-            # Has actual changes - use trend color
+            # Has actual changes - use trend color based on first vs last
             first_val = non_none_bars[0]
             last_val = non_none_bars[-1]
-            if last_val > first_val + 1:  # Rising (allow for minor fluctuation)
+            if last_val > first_val + 1:  # Rising
                 color = "#22c55e"  # Green
                 trend = "rising"
             elif last_val < first_val - 1:  # Falling
@@ -114,7 +122,7 @@ def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price"
         # No is_carried_forward info - use simple trend detection
         first_val = non_none_bars[0]
         last_val = non_none_bars[-1]
-        if last_val > first_val + 1:  # Rising (allow for minor fluctuation)
+        if last_val > first_val + 1:  # Rising
             color = "#22c55e"  # Green
             trend = "rising"
         elif last_val < first_val - 1:  # Falling
@@ -124,13 +132,9 @@ def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price"
             color = "#3b82f6"  # Blue (stable)
             trend = "stable"
     else:
+        # Single bar
         color = "#3b82f6"  # Blue
         trend = "stable"
-    
-    # For stock availability, always use green for IN bars
-    if metric_type == "stock":
-        color = "#22c55e"  # Green
-        trend = "stock"
     
     # Generate SVG bars
     svg_bars = []
@@ -140,32 +144,17 @@ def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price"
     svg_height = 20
     max_bar_height = svg_height
     
-    # Determine if we should use actual values for proportional heights
-    # Use actual values when available and metric is price or wishlist
-    # Allow partial values - as long as we have SOME values for price/wishlist
-    use_proportional_values = (values is not None and 
-                               len(values) > 0 and 
-                               metric_type in ["price", "wishlist"])
-    
-    # Calculate min/max for proportional scaling if using actual values
-    if use_proportional_values:
-        # Only use numeric values that exist
-        numeric_values = []
-        for v in values:
-            try:
-                numeric_values.append(float(v))
-            except (ValueError, TypeError):
-                pass
-        
-        if len(numeric_values) >= 2:
-            # Use zero-based normalization for better proportional representation
-            # This ensures that similar values (e.g., 120 vs 126) look similar
-            min_val = 0  # Always use zero as baseline
-            max_val = max(numeric_values)
-            value_range = max_val if max_val > 0 else 1.0
-        else:
-            # Not enough values for proportional scaling
-            use_proportional_values = False
+    # Calculate bar heights based on metric type
+    if metric_type == "stock":
+        # Stock: Use Unicode character heights (IN/OUT status, not numeric)
+        bar_heights_method = "unicode"
+    else:
+        # Price/Wishlist: Use zero-based proportional scaling from actual values
+        bar_heights_method = "proportional"
+        numeric_values = [float(v) for v in values]
+        max_val = max(numeric_values)
+        min_val = 0  # Zero-based normalization
+        value_range = max_val if max_val > 0 else 1.0
     
     # Track how many non-None bars we've processed for proper values indexing
     bar_index = 0
@@ -174,66 +163,50 @@ def convert_sparkline_to_svg(unicode_sparkline, values=None, metric_type="price"
         x = i * bar_spacing
         
         if height is None:
-            # Gap - represents OUT-of-stock or periods before species first appeared
+            # Gap - represents OUT-of-stock (only used in stock sparklines)
             # Don't render anything (true gap)
             continue
+        
+        # Calculate bar height
+        if bar_heights_method == "proportional":
+            # Use actual numeric value for proportional height
+            val_float = numeric_values[bar_index]
+            # Normalize to 0-1 range, then scale to max height
+            # Add small minimum (10%) to ensure all bars are visible
+            normalized = (val_float - min_val) / value_range
+            bar_height = (0.1 + normalized * 0.9) * max_bar_height
         else:
-            # Calculate bar height
-            if use_proportional_values and bar_index < len(values):
-                try:
-                    # Use actual numeric value for proportional height
-                    val_float = float(values[bar_index])
-                    # Normalize to 0-1 range, then scale to max height
-                    # Add small minimum (10%) to ensure all bars are visible
-                    normalized = (val_float - min_val) / value_range
-                    bar_height = (0.1 + normalized * 0.9) * max_bar_height
-                except (ValueError, TypeError):
-                    # Value doesn't exist or isn't numeric - fall back to Unicode height
-                    bar_height = (height / 8.0) * max_bar_height
-            else:
-                # Use Unicode character height (for stock or when no values)
-                bar_height = (height / 8.0) * max_bar_height
-            
-            y = svg_height - bar_height
-            
-            # Check if this bar is carried-forward
-            is_carried = is_carried_forward and bar_index < len(is_carried_forward) and is_carried_forward[bar_index]
-            
-            # Generate tooltip
-            # Use bar_index (count of non-None bars) to index into values list
-            if values and bar_index < len(values):
-                val = values[bar_index]
-                if metric_type == "price":
-                    # Format price with square brackets if carried forward
-                    if is_carried:
-                        tooltip = f"[£{val}]"
-                    else:
-                        tooltip = f"£{val}"
-                elif metric_type == "wishlist":
-                    # Format wishlist count with singular/plural and square brackets
-                    plural = "wishlist" if val == "1" else "wishlists"
-                    if is_carried:
-                        tooltip = f"[{val} {plural}]"
-                    else:
-                        tooltip = f"{val} {plural}"
-                else:  # stock
-                    tooltip = "IN"
-            else:
-                if metric_type == "stock":
-                    tooltip = "IN"
-                else:
-                    tooltip = f"Week {bar_index + 1}"
-            
-            # Adjust opacity based on position (gradient effect)
-            opacity = 0.7 + (i / len(bars)) * 0.3
-            
-            svg_bars.append(
-                f'<rect x="{x}" y="{y:.1f}" width="{bar_width}" height="{bar_height:.1f}" '
-                f'fill="{color}" opacity="{opacity:.2f}"><title>{tooltip}</title></rect>'
-            )
-            
-            # Increment bar_index only for rendered bars
-            bar_index += 1
+            # Stock: Use Unicode character height
+            bar_height = (height / 8.0) * max_bar_height
+        
+        y = svg_height - bar_height
+        
+        # Check if this bar is carried-forward
+        is_carried = is_carried_forward and bar_index < len(is_carried_forward) and is_carried_forward[bar_index]
+        
+        # Generate tooltip
+        if metric_type == "price":
+            val = values[bar_index]
+            # Format price with square brackets if carried forward
+            tooltip = f"[£{val}]" if is_carried else f"£{val}"
+        elif metric_type == "wishlist":
+            val = values[bar_index]
+            # Format wishlist count with singular/plural and square brackets
+            plural = "wishlist" if val == "1" else "wishlists"
+            tooltip = f"[{val} {plural}]" if is_carried else f"{val} {plural}"
+        else:  # stock
+            tooltip = "IN"
+        
+        # Adjust opacity based on position (gradient effect)
+        opacity = 0.7 + (i / len(bars)) * 0.3
+        
+        svg_bars.append(
+            f'<rect x="{x}" y="{y:.1f}" width="{bar_width}" height="{bar_height:.1f}" '
+            f'fill="{color}" opacity="{opacity:.2f}"><title>{tooltip}</title></rect>'
+        )
+        
+        # Increment bar_index only for rendered bars
+        bar_index += 1
     
     # Assemble final SVG
     if metric_type == "price":
@@ -261,6 +234,7 @@ def parse_markdown_to_html(markdown_text):
     
     Uses the 'tables', 'fenced_code', and 'md_in_html' extensions.
     Downgrades heading levels (h2→h3, h3→h4) to maintain proper hierarchy.
+    Adds data-label attributes to table cells for responsive card layout.
     """
     if not markdown_text:
         return ""
@@ -275,6 +249,9 @@ def parse_markdown_to_html(markdown_text):
     # Add our custom class to tables for styling consistency
     html = html.replace('<table>', '<table class="data-table markdown-table">')
     
+    # Add data-label attributes to table cells for mobile responsive layout
+    html = add_data_labels_to_tables(html)
+    
     # Downgrade heading levels to maintain semantic hierarchy
     # h2 → h3, h3 → h4, h4 → h5, h5 → h6
     # Process in reverse order to avoid double-replacements
@@ -286,30 +263,97 @@ def parse_markdown_to_html(markdown_text):
     return html
 
 
+def add_data_labels_to_tables(html):
+    """Add data-label attributes to table cells for mobile responsive layout.
+    
+    Parses HTML tables and adds data-label attributes to each <td> element
+    based on the corresponding <th> header text. This enables CSS-based
+    responsive card layouts where labels appear on mobile devices.
+    """
+    from bs4 import BeautifulSoup
+    
+    soup = BeautifulSoup(html, 'html.parser')
+    tables = soup.find_all('table')
+    
+    for table in tables:
+        # Extract headers
+        thead = table.find('thead')
+        if not thead:
+            continue
+        
+        header_row = thead.find('tr')
+        if not header_row:
+            continue
+        
+        headers = [th.get_text(strip=True) for th in header_row.find_all('th')]
+        
+        # Add data-label to each cell in tbody
+        tbody = table.find('tbody')
+        if not tbody:
+            continue
+        
+        for row in tbody.find_all('tr'):
+            cells = row.find_all('td')
+            for i, cell in enumerate(cells):
+                if i < len(headers):
+                    cell['data-label'] = headers[i]
+    
+    return str(soup)
+
+
+def extract_summary_stats(markdown):
+    """
+    Extract summary statistics from markdown content.
+    
+    Looks for line like: **Summary:** 106 species analyzed | 🔥 Hot: 42 | ⚠️ Watch: 38 | ❌ Avoid: 26
+    or: **Summary:** 106 species analyzed | 🔥 High Risk: 42 | ⚠️ Moderate Risk: 38 | ❌ Low Risk: 26
+    
+    Returns dict with keys: total, hot, watch, avoid, or None if not found.
+    """
+    if not markdown:
+        return None
+    
+    # Match either "Hot/Watch/Avoid" or "High Risk/Moderate Risk/Low Risk" format
+    pattern = r'\*\*Summary:\*\*\s*(\d+)\s*species analyzed\s*\|.*?🔥\s*(?:Hot|High Risk):\s*(\d+)\s*\|.*?⚠️\s*(?:Watch|Moderate Risk):\s*(\d+)\s*\|.*?❌\s*(?:Avoid|Low Risk):\s*(\d+)'
+    match = re.search(pattern, markdown)
+    
+    if match:
+        return {
+            'total': int(match.group(1)),
+            'hot': int(match.group(2)),
+            'watch': int(match.group(3)),
+            'avoid': int(match.group(4))
+        }
+    
+    return None
+
 
 def extract_analysis_sections(markdown_file):
-    """Extract breeder and dealer analysis sections from markdown file."""
+    """
+    Extract analysis text (summary stats only) from markdown file.
+    
+    Tables are no longer extracted - they will be rendered directly from CSV files.
+    This function only extracts the Summary line for statistics.
+    """
     if not os.path.exists(markdown_file):
         return None, None, None, None, None, None
     
     with open(markdown_file, 'r', encoding='utf-8') as f:
         content = f.read()
     
-    # Extract breeder section
-    breeder_match = re.search(
-        r'## 🧬 Breeder Opportunity Matrix \(Top 10\)\n\n(.*?)(?=\n## |\n<details>|$)',
-        content,
-        re.DOTALL
+    # Extract breeder summary line only (no table)
+    breeder_summary_match = re.search(
+        r'\*\*Summary:\*\*\s*\d+\s*species analyzed\s*\|[^\n]+',
+        content
     )
-    breeder_md = breeder_match.group(0) if breeder_match else None
+    breeder_md = breeder_summary_match.group(0) if breeder_summary_match else None
     
-    # Extract dealer section
-    dealer_match = re.search(
-        r'## 🏪 Dealer Supply Risk Matrix \(Top 10\)\n\n(.*?)(?=\n<details>|$)',
-        content,
-        re.DOTALL
+    # Extract dealer summary line only (no table)
+    dealer_summary_match = re.search(
+        r'## 🏪 Dealer Supply Risk Matrix \(Top 10\)\n\n\*\*Summary:\*\*\s*\d+\s*species analyzed\s*\|[^\n]+',
+        content
     )
-    dealer_md = dealer_match.group(0) if dealer_match else None
+    dealer_md = dealer_summary_match.group(0) if dealer_summary_match else None
     
     # Extract full legend content
     legend_match = re.search(
@@ -327,19 +371,22 @@ def extract_analysis_sections(markdown_file):
     
     if legend_full:
         # Split at breeder examples heading
-        breeder_examples_split = re.split(r'### 📖 Breeder Matrix — Practical Examples', legend_full)
-        breeder_legend = breeder_examples_split[0].strip()
-        remaining = breeder_examples_split[1]
-        
-        # Split remaining at dealer legend heading
-        dealer_split = re.split(r'### 🏪 Dealer Supply Risk Matrix — Legend', remaining)
-        breeder_examples = '### 📖 Breeder Matrix — Practical Examples' + dealer_split[0]
-        remaining_dealer = dealer_split[1]
-        
-        # Split dealer remaining at dealer examples heading
-        dealer_examples_split = re.split(r'### 📖 Dealer Matrix — Practical Examples', remaining_dealer)
-        dealer_legend = '### 🏪 Dealer Supply Risk Matrix — Legend' + dealer_examples_split[0].strip()
-        dealer_examples = '### 📖 Dealer Matrix — Practical Examples' + dealer_examples_split[1]
+        breeder_examples_parts = re.split(r'### 📖 Breeder Matrix — Practical Examples', legend_full)
+        if len(breeder_examples_parts) >= 2:
+            breeder_legend = breeder_examples_parts[0].strip()
+            remaining = breeder_examples_parts[1]
+            
+            # Split remaining at dealer legend heading
+            dealer_split = re.split(r'### 🏪 Dealer Supply Risk Matrix — Legend', remaining)
+            if len(dealer_split) >= 2:
+                breeder_examples = '### 📖 Breeder Matrix — Practical Examples' + dealer_split[0]
+                remaining_dealer = dealer_split[1]
+                
+                # Split dealer remaining at dealer examples heading
+                dealer_examples_split = re.split(r'### 📖 Dealer Matrix — Practical Examples', remaining_dealer)
+                if len(dealer_examples_split) >= 2:
+                    dealer_legend = '### 🏪 Dealer Supply Risk Matrix — Legend' + dealer_examples_split[0].strip()
+                    dealer_examples = '### 📖 Dealer Matrix — Practical Examples' + dealer_examples_split[1]
     
     return breeder_md, dealer_md, breeder_legend, dealer_legend, breeder_examples, dealer_examples
 
@@ -381,11 +428,28 @@ def generate_table_html(headers, rows, table_id, sortable=True):
     # Find column indices for special rendering
     page_url_idx = None
     scientific_name_idx = None
+    signal_col_idx = None
+    stock_pattern_col_idx = None
     try:
         page_url_idx = headers.index('page_url')
         scientific_name_idx = headers.index('scientific_name')
     except ValueError:
         pass  # Columns not found, render normally
+    
+    # Find Signal or Dealer Risk column for color-coding
+    try:
+        signal_col_idx = headers.index('Signal')
+    except ValueError:
+        try:
+            signal_col_idx = headers.index('Dealer Risk')
+        except ValueError:
+            pass  # No signal column found
+    
+    # Find Stock Pattern column for breeder filtering
+    try:
+        stock_pattern_col_idx = headers.index('Stock Pattern')
+    except ValueError:
+        pass  # No stock pattern column (not breeder table)
     
     # Enumerate headers and rows for template
     headers_enum = list(enumerate(headers))
@@ -398,7 +462,9 @@ def generate_table_html(headers, rows, table_id, sortable=True):
         rows=rows_enum,
         sortable=sortable,
         page_url_idx=page_url_idx,
-        scientific_name_idx=scientific_name_idx
+        scientific_name_idx=scientific_name_idx,
+        signal_col_idx=signal_col_idx,
+        stock_pattern_col_idx=stock_pattern_col_idx
     )
 
 
@@ -443,70 +509,7 @@ def get_html_footer():
         <p>Generated: {timestamp}</p>
     </footer>
     
-    <script>
-        function sortTable(columnIndex, tableId) {{
-            const table = document.getElementById(tableId);
-            const tbody = table.querySelector('tbody');
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            
-            // Determine if column is numeric
-            let isNumeric = true;
-            for (let i = 0; i < Math.min(5, rows.length); i++) {{
-                const cellText = rows[i].cells[columnIndex].textContent.trim();
-                if (cellText && isNaN(parseFloat(cellText.replace(/[^0-9.-]/g, '')))) {{
-                    isNumeric = false;
-                    break;
-                }}
-            }}
-            
-            // Get current sort direction
-            const header = table.querySelectorAll('th')[columnIndex];
-            const currentDirection = header.getAttribute('data-sort-direction') || 'asc';
-            const newDirection = currentDirection === 'asc' ? 'desc' : 'asc';
-            
-            // Clear all sort indicators
-            table.querySelectorAll('th').forEach(th => {{
-                th.removeAttribute('data-sort-direction');
-            }});
-            
-            // Set new sort direction
-            header.setAttribute('data-sort-direction', newDirection);
-            
-            // Sort rows
-            rows.sort((a, b) => {{
-                let aVal = a.cells[columnIndex].textContent.trim();
-                let bVal = b.cells[columnIndex].textContent.trim();
-                
-                if (isNumeric) {{
-                    aVal = parseFloat(aVal.replace(/[^0-9.-]/g, '')) || 0;
-                    bVal = parseFloat(bVal.replace(/[^0-9.-]/g, '')) || 0;
-                    return newDirection === 'asc' ? aVal - bVal : bVal - aVal;
-                }} else {{
-                    aVal = aVal.toLowerCase();
-                    bVal = bVal.toLowerCase();
-                    if (newDirection === 'asc') {{
-                        return aVal.localeCompare(bVal);
-                    }} else {{
-                        return bVal.localeCompare(aVal);
-                    }}
-                }}
-            }});
-            
-            // Reappend sorted rows
-            rows.forEach(row => tbody.appendChild(row));
-        }}
-        
-        function filterTable(searchInput, tableId) {{
-            const filter = searchInput.value.toLowerCase();
-            const table = document.getElementById(tableId);
-            const rows = table.querySelectorAll('tbody tr');
-            
-            rows.forEach(row => {{
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(filter) ? '' : 'none';
-            }});
-        }}
-    </script>
+    <script src="table-interactions.js"></script>
 </body>
 </html>"""
 
@@ -523,39 +526,34 @@ def generate_homepage(last_scrape_time=None):
 
 def load_historical_sparkline_data():
     """
-    Load historical data from history CSV to enable tooltips with actual values.
+    Load historical data from history CSV in format ready for sparkline extraction.
     
     Returns:
-        Dictionary mapping (species, size) to list of historical data points
-        Each data point is a dict with: scrape_datetime, price_gbp, wishlist_count
+        Tuple of (by_run, runs) where:
+        - by_run: Dictionary mapping run_id (scrape_datetime) to list of rows
+        - runs: Sorted list of run IDs (scrape_datetime values)
     """
+    from history import group_by_run
+    
     history_file = "spidershop_spiderlings_history.csv"
     if not os.path.exists(history_file):
-        return {}
-    
-    historical_data = {}
+        return {}, []
     
     try:
+        history = []
         with open(history_file, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
-                species = row.get("scientific_name", "")
-                size = row.get("size_cm", "")
-                key = (species, size)
-                
-                if key not in historical_data:
-                    historical_data[key] = []
-                
-                historical_data[key].append({
-                    "scrape_datetime": row.get("scrape_datetime", ""),
-                    "price_gbp": row.get("price_gbp", ""),
-                    "wishlist_count": row.get("wishlist_count", "0"),
-                })
+                history.append(row)
+        
+        # Group by run and get sorted runs
+        by_run = group_by_run(history)
+        runs = sorted(by_run)
+        
+        return by_run, runs
     except Exception as e:
         print(f"Warning: Could not load historical data: {e}")
-        return {}
-    
-    return historical_data
+        return {}, []
 
 
 def convert_sparklines_in_rows(headers, rows, historical_data, csv_filename):
@@ -565,20 +563,24 @@ def convert_sparklines_in_rows(headers, rows, historical_data, csv_filename):
     Args:
         headers: List of column names
         rows: List of data rows
-        historical_data: Dictionary with historical values for tooltips
+        historical_data: Tuple of (by_run, runs) for sparkline extraction
         csv_filename: Name of the CSV file being processed
     
     Returns:
         Modified rows with sparklines converted to SVG
     """
+    from sparkline_helpers import extract_historical_values_with_carryforward
+    
+    by_run, runs = historical_data
+    
     # Identify sparkline columns
     sparkline_columns = {}
     for i, header in enumerate(headers):
         if "History" in header or "Availability" in header:
             if "Price" in header:
-                sparkline_columns[i] = "price"
+                sparkline_columns[i] = "price_gbp"
             elif "Wishlist" in header:
-                sparkline_columns[i] = "wishlist"
+                sparkline_columns[i] = "wishlist_count"
             elif "Stock" in header or "Availability" in header:
                 sparkline_columns[i] = "stock"
     
@@ -600,129 +602,41 @@ def convert_sparklines_in_rows(headers, rows, historical_data, csv_filename):
         key = (species, size) if species and size else None
         
         # Convert each sparkline column
-        for col_idx, metric_type in sparkline_columns.items():
+        for col_idx, field_name in sparkline_columns.items():
             if col_idx < len(new_row):
                 unicode_sparkline = new_row[col_idx]
                 
-                # Extract last 8 values from historical data
+                # Extract values with carried-forward tracking using the same logic as matrix generation
                 values = None
-                if key and key in historical_data and metric_type != "stock":
-                    history = historical_data[key]
-                    # Take last 8 data points
-                    recent = history[-8:] if len(history) > 8 else history
-                    
-                    if metric_type == "price":
-                        values = [h.get("price_gbp", "") for h in recent]
-                    elif metric_type == "wishlist":
-                        values = [h.get("wishlist_count", "0") for h in recent]
+                is_carried_forward = None
                 
-                # Convert to SVG
-                svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type)
-                new_row[col_idx] = svg
+                # Determine metric type from field_name
+                if field_name == "stock":
+                    metric_type = "stock"
+                elif field_name == "price_gbp":
+                    metric_type = "price"
+                elif field_name == "wishlist_count":
+                    metric_type = "wishlist"
+                else:
+                    metric_type = None
+                
+                # Extract historical values if available
+                if field_name != "stock" and key and by_run:
+                    result = extract_historical_values_with_carryforward(key, by_run, runs, field_name, max_runs=8)
+                    values = result['values']
+                    is_carried_forward = result['is_carried_forward']
+                
+                # Convert to SVG only if we have valid data
+                # For price/wishlist: skip conversion if no values (keep Unicode sparkline)
+                # For stock: always convert (doesn't need values)
+                if metric_type == "stock" or (values and len(values) > 0):
+                    svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type, is_carried_forward=is_carried_forward)
+                    new_row[col_idx] = svg
+                # else: keep Unicode sparkline unchanged
         
         converted_rows.append(new_row)
     
     return converted_rows
-
-
-def convert_sparklines_in_html(html, historical_data):
-    """
-    Convert Unicode sparklines to SVG in HTML tables (post-processing).
-    
-    This handles sparklines in markdown-generated HTML tables (e.g., Top 10 analysis tables).
-    
-    Args:
-        html: HTML string containing tables with Unicode sparklines
-        historical_data: Dictionary with historical values for tooltips
-    
-    Returns:
-        HTML string with sparklines converted to SVG
-    """
-    if not html:
-        return html
-    
-    from bs4 import BeautifulSoup
-    
-    soup = BeautifulSoup(html, 'html.parser')
-    tables = soup.find_all('table')
-    
-    for table in tables:
-        # Find header row to identify column positions
-        thead = table.find('thead')
-        if not thead:
-            continue
-        
-        header_row = thead.find('tr')
-        if not header_row:
-            continue
-        
-        headers = [th.get_text(strip=True) for th in header_row.find_all('th')]
-        
-        # Identify sparkline columns and their types
-        sparkline_columns = {}
-        for i, header in enumerate(headers):
-            if "Price History" in header:
-                sparkline_columns[i] = "price"
-            elif "Wishlist History" in header:
-                sparkline_columns[i] = "wishlist"
-            elif "Stock Availability" in header or "Stock" in header:
-                sparkline_columns[i] = "stock"
-        
-        if not sparkline_columns:
-            continue
-        
-        # Find species and size columns
-        species_idx = None
-        size_idx = None
-        try:
-            species_idx = headers.index("Species")
-        except ValueError:
-            pass
-        try:
-            size_idx = headers.index("Size (cm)")
-        except ValueError:
-            pass
-        
-        # Process each data row
-        tbody = table.find('tbody')
-        if not tbody:
-            continue
-        
-        for row in tbody.find_all('tr'):
-            cells = row.find_all('td')
-            
-            # Get species/size for looking up historical values
-            species = cells[species_idx].get_text(strip=True) if species_idx is not None and species_idx < len(cells) else None
-            size = cells[size_idx].get_text(strip=True) if size_idx is not None and size_idx < len(cells) else None
-            key = (species, size) if species and size else None
-            
-            # Convert sparklines in this row
-            for col_idx, metric_type in sparkline_columns.items():
-                if col_idx >= len(cells):
-                    continue
-                
-                cell = cells[col_idx]
-                unicode_sparkline = cell.get_text(strip=True)
-                
-                # Extract last 8 values from historical data
-                values = None
-                if key and key in historical_data and metric_type != "stock":
-                    history = historical_data[key]
-                    recent = history[-8:] if len(history) > 8 else history
-                    
-                    if metric_type == "price":
-                        values = [h.get("price_gbp", "") for h in recent]
-                    elif metric_type == "wishlist":
-                        values = [h.get("wishlist_count", "0") for h in recent]
-                
-                # Convert to SVG
-                svg = convert_sparkline_to_svg(unicode_sparkline, values, metric_type)
-                
-                # Replace cell content with SVG (mark as safe HTML)
-                cell.clear()
-                cell.append(BeautifulSoup(svg, 'html.parser'))
-    
-    return str(soup)
 
 
 def generate_data_page(title, description, csv_filename, table_id, active_page, search_filter=True, analysis_markdown=None, legend_markdown=None, examples_markdown=None):
@@ -736,12 +650,45 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
     if headers and rows:
         rows = convert_sparklines_in_rows(headers, rows, historical_data, csv_filename)
     
-    # Convert markdown to HTML if provided
-    analysis_html = parse_markdown_to_html(analysis_markdown) if analysis_markdown else None
+    # Extract summary stats from analysis markdown
+    summary_stats = extract_summary_stats(analysis_markdown) if analysis_markdown else None
     
-    # Convert sparklines in analysis HTML (Top 10 tables from markdown)
-    if analysis_html:
-        analysis_html = convert_sparklines_in_html(analysis_html, historical_data)
+    # Generate top 10 table from CSV (first 10 rows, already sorted by analysis modules)
+    top_10_headers = None
+    top_10_rows = None
+    if headers and rows and len(rows) > 0:
+        top_10_headers = headers
+        top_10_rows = rows[:10]  # CSV is already sorted by breeder_matrix/dealer_matrix
+    
+    # No markdown to HTML conversion for analysis - no tables to render
+    analysis_html = None
+    
+    # Determine labels and tooltips based on page type (breeder vs dealer)
+    stats_labels = None
+    tooltips = None
+    if summary_stats:
+        if active_page == "dealer":
+            stats_labels = {
+                'hot': '🔥 High Risk',
+                'watch': '⚠️ Moderate Risk',
+                'avoid': '❌ Low Risk'
+            }
+            tooltips = {
+                'hot': 'High risk of lost sales due to supply constraints. Low stock reliability (<40% of runs) or slow restock speed, often with rising demand.',
+                'watch': 'Moderate supply concerns. Medium reliability (40-79% of runs) or intermittent restock patterns. Monitor carefully for escalating demand.',
+                'avoid': 'Healthy supply with high reliability (≥80% of runs). No urgency — these species consistently restock and are well-supplied.'
+            }
+        else:  # breeder or other pages
+            stats_labels = {
+                'hot': '🔥 Hot',
+                'watch': '⚠️ Watch',
+                'avoid': '❌ Avoid'
+            }
+            tooltips = {
+                'hot': 'Strong breeding opportunity. Sustained or emerging scarcity patterns (4+ weeks out of stock) with rising prices or high demand signals.',
+                'watch': 'Emerging opportunity forming. Species showing early scarcity (2-3 weeks) or cyclical patterns. Monitor for escalating signals.',
+                'avoid': 'Oversupplied or always available. No meaningful scarcity pattern detected, regardless of demand spikes.'
+            }
     
     examples_html = parse_markdown_to_html(examples_markdown) if examples_markdown else None
     
@@ -754,16 +701,51 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
     # Find column indices for special rendering
     page_url_idx = None
     scientific_name_idx = None
+    signal_col_idx = None
+    stock_pattern_col_idx = None
     if headers:
         try:
             page_url_idx = headers.index('page_url')
             scientific_name_idx = headers.index('scientific_name')
         except ValueError:
             pass
+        
+        # Find Signal or Dealer Risk column for color-coding
+        try:
+            signal_col_idx = headers.index('Signal')
+        except ValueError:
+            try:
+                signal_col_idx = headers.index('Dealer Risk')
+            except ValueError:
+                pass  # No signal column found
+        
+        # Find Stock Pattern column for breeder filtering
+        try:
+            stock_pattern_col_idx = headers.index('Stock Pattern')
+        except ValueError:
+            pass  # No stock pattern column (not breeder table)
+    
+    # Calculate stock pattern counts for filter buttons
+    stock_pattern_counts = None
+    if stock_pattern_col_idx is not None and rows:
+        from collections import Counter
+        patterns = [row[stock_pattern_col_idx] for row in rows if stock_pattern_col_idx < len(row)]
+        pattern_counter = Counter(patterns)
+        stock_pattern_counts = {
+            'total': len(patterns),
+            'sustained': pattern_counter.get('Sustained', 0),
+            'emerging': pattern_counter.get('Emerging', 0),
+            'cyclical': pattern_counter.get('Cyclical', 0),
+            'always': pattern_counter.get('Always', 0)
+        }
     
     # Enumerate headers and rows for template
     headers_enum = list(enumerate(headers)) if headers else []
     rows_enum = [list(enumerate(row)) for row in rows] if rows else []
+    
+    # Enumerate top 10 headers and rows for separate rendering
+    top_10_headers_enum = list(enumerate(top_10_headers)) if top_10_headers else []
+    top_10_rows_enum = [list(enumerate(row)) for row in top_10_rows] if top_10_rows else []
     
     template = jinja_env.get_template('data_page.html')
     return template.render(
@@ -774,13 +756,21 @@ def generate_data_page(title, description, csv_filename, table_id, active_page, 
         active_page=active_page,
         search_filter=search_filter,
         analysis_html=analysis_html,
+        summary_stats=summary_stats,
+        stats_labels=stats_labels,
+        tooltips=tooltips,
         legend_html=legend_html,
         examples_html=examples_html,
+        top_10_headers=top_10_headers_enum,
+        top_10_rows=top_10_rows_enum,
         headers=headers_enum,
         rows=rows_enum,
         sortable=True,
         page_url_idx=page_url_idx,
         scientific_name_idx=scientific_name_idx,
+        signal_col_idx=signal_col_idx,
+        stock_pattern_col_idx=stock_pattern_col_idx,
+        stock_pattern_counts=stock_pattern_counts,
         timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     )
 
@@ -882,6 +872,16 @@ def main():
             with open(OUTPUT_DIR / csv_file, "w", encoding="utf-8") as dst:
                 dst.write(content)
             print(f"    Copied {csv_file}")
+    
+    # Copy JavaScript file to output directory
+    print("  Copying JavaScript files...")
+    js_source = Path(__file__).parent.parent / "templates" / "scripts" / "table-interactions.js"
+    if js_source.exists():
+        with open(js_source, "r", encoding="utf-8") as src:
+            content = src.read()
+        with open(OUTPUT_DIR / "table-interactions.js", "w", encoding="utf-8") as dst:
+            dst.write(content)
+        print(f"    Copied table-interactions.js")
     
     print(f"\n✅ Website generated successfully in '{OUTPUT_DIR}' directory")
     print(f"   Total HTML pages: 5")

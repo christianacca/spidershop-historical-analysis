@@ -4,7 +4,7 @@ from history import group_by_run, k2
 from config import DEALER_TABLE_FILE
 from assertions import get_summary_path
 from wishlist_analysis import compute_wishlist_pressure, get_oos_wishlist_carryover, compute_wishlist_delta
-from sparkline_helpers import generate_sparkline, extract_historical_values_with_carryforward, generate_stock_availability_sparkline
+from sparkline_helpers import extract_historical_values_with_carryforward, generate_stock_availability_sparkline
 
 # =====================
 # DEALER MATRIX (Option B: Price Pressure informational)
@@ -139,11 +139,11 @@ def build_dealer_supply_risk_table(history_rows):
 
         # Generate sparklines for historical trends (last 8 weeks)
         # Use carry-forward to show persistent values when OUT (price/wishlist don't disappear)
-        price_history_values = extract_historical_values_with_carryforward((sci, size), by_run, runs, "price_gbp", max_runs=8)
-        price_history_sparkline = generate_sparkline(price_history_values, max_length=8)
+        price_history = extract_historical_values_with_carryforward((sci, size), by_run, runs, "price_gbp", max_runs=8)
+        price_history_sparkline = price_history['unicode']
         
-        wishlist_history_values = extract_historical_values_with_carryforward((sci, size), by_run, runs, "wishlist_count", max_runs=8)
-        wishlist_history_sparkline = generate_sparkline(wishlist_history_values, max_length=8)
+        wishlist_history = extract_historical_values_with_carryforward((sci, size), by_run, runs, "wishlist_count", max_runs=8)
+        wishlist_history_sparkline = wishlist_history['unicode']
         
         stock_availability_sparkline = generate_stock_availability_sparkline((sci, size), by_run, runs, max_runs=8)
 
@@ -198,11 +198,22 @@ def write_dealer_outputs(table):
     total = len(table) if table else 0
     shown = min(10, total)
 
+    # Calculate risk statistics
+    risk_counts = {"🔥": 0, "⚠️": 0, "❌": 0}
+    if table:
+        for row in table:
+            risk = row.get("Dealer Risk", "")
+            if risk in risk_counts:
+                risk_counts[risk] += 1
+
     with open(summary_path, "a", encoding="utf-8") as f:
         f.write("\n## 🏪 Dealer Supply Risk Matrix (Top 10)\n\n")
         if total == 0:
             f.write("_No supply risks detected (conservative analysis requires sufficient historical data)._\n")
         else:
+            # Write summary statistics
+            f.write(f"**Summary:** {total} species analyzed | 🔥 High Risk: {risk_counts['🔥']} | ⚠️ Moderate Risk: {risk_counts['⚠️']} | ❌ Low Risk: {risk_counts['❌']}\n\n")
+            
             f.write("| Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Price History | Wishlist Pressure | Wishlist Delta | Wishlist History | Stock Availability | Dealer Risk | Dealer Recommendation |\n")
             f.write("|---|---:|---|---:|---|---|---|---|---|---|---|---|---|\n")
             for r in table[:shown]:

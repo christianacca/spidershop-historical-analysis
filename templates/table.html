@@ -6,6 +6,7 @@
    - sortable: whether to make headers sortable (default True)
    - page_url_idx: index of page_url column (optional)
    - scientific_name_idx: index of scientific_name column (optional)
+   - signal_col_idx: index of Signal or Dealer Risk column (optional)
 #}
 {% if not headers or not rows %}
 <p>No data available.</p>
@@ -24,21 +25,36 @@
   </thead>
   <tbody>
     {% for row in rows %}
-    <tr>
-      {% for i, cell in row %}
-      {% if i == page_url_idx and page_url_idx is not none and scientific_name_idx is not none %}
+    {% set signal_value = row[signal_col_idx][1]|string|trim if signal_col_idx is not none and signal_col_idx < row|length else '' %}
+    {% set stock_pattern_value = row[stock_pattern_col_idx][1]|string|trim if stock_pattern_col_idx is not none and stock_pattern_col_idx < row|length else '' %}
+    <tr{% if signal_value %} data-signal="{{ signal_value }}"{% endif %}{% if stock_pattern_value %} data-stock-pattern="{{ stock_pattern_value }}"{% endif %}>
+      {% for cell_idx, cell in row %}
+      {% set header_text = headers[cell_idx][1] if cell_idx < headers|length else '' %}
+      {% if cell_idx == page_url_idx and page_url_idx is not none and scientific_name_idx is not none %}
         {% set url = cell|trim %}
         {% set scientific_name = row[scientific_name_idx][1] if scientific_name_idx < row|length else "" %}
         {% if url %}
-      <td><a href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ scientific_name }}</a></td>
+      <td data-label="{{ header_text }}"><a href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ scientific_name }}</a></td>
         {% else %}
-      <td>{{ cell }}</td>
+      <td data-label="{{ header_text }}">{{ cell }}</td>
+        {% endif %}
+      {% elif cell_idx == signal_col_idx and signal_col_idx is not none %}
+        {# Signal/Risk column - add color-coded CSS class #}
+        {% set cell_str = cell|string|trim %}
+        {% if '🔥' in cell_str %}
+      <td class="signal-hot" data-label="{{ header_text }}">{{ cell }}</td>
+        {% elif '⚠️' in cell_str %}
+      <td class="signal-watch" data-label="{{ header_text }}">{{ cell }}</td>
+        {% elif '❌' in cell_str %}
+      <td class="signal-avoid" data-label="{{ header_text }}">{{ cell }}</td>
+        {% else %}
+      <td data-label="{{ header_text }}">{{ cell }}</td>
         {% endif %}
       {% elif cell|string|trim|truncate(5, True, '') == '<svg ' %}
       {# Cell contains SVG sparkline - don't escape #}
-      <td>{{ cell|safe }}</td>
+      <td data-label="{{ header_text }}">{{ cell|safe }}</td>
       {% else %}
-      <td>{{ cell }}</td>
+      <td data-label="{{ header_text }}">{{ cell }}</td>
       {% endif %}
       {% endfor %}
     </tr>
