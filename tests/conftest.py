@@ -40,20 +40,41 @@ __all__ = [
 
 
 @pytest.fixture(autouse=True)
-def ensure_github_env(monkeypatch, tmp_path):
+def isolate_test_execution(tmp_path, monkeypatch):
     """
-    Ensure GITHUB_STEP_SUMMARY is always set during tests to match production.
+    Isolate test execution to prevent file pollution in project root.
     
-    Production code always runs in GitHub Actions where GITHUB_STEP_SUMMARY is set.
-    This fixture ensures tests run in a similar environment, preventing environment-
-    dependent test behavior where tests pass locally but fail in CI (or vice versa).
+    This fixture:
+    1. Changes working directory to a temporary directory for each test
+    2. Ensures GITHUB_STEP_SUMMARY is set for production parity
+    3. Maintains Python path to src directory
     
-    Sets GITHUB_STEP_SUMMARY to a temporary file that tests can write to.
-    Tests that need to verify "no env var" behavior can explicitly remove it
-    using monkeypatch.delenv("GITHUB_STEP_SUMMARY").
+    This prevents tests from creating CSV, HTML, or other artifacts in the
+    project root directory. All file operations in tests will be relative
+    to the temporary directory, which is automatically cleaned up.
+    
+    Tests can explicitly opt-out by using monkeypatch.chdir() to change
+    to a different directory if needed.
     """
-    # Only set if not already set (respect existing CI environment)
+    # Save original directory
+    original_dir = Path.cwd()
+    
+    # Change to temporary directory for test execution
+    os.chdir(tmp_path)
+    
+    # Ensure GITHUB_STEP_SUMMARY is set (for production parity)
     if "GITHUB_STEP_SUMMARY" not in os.environ:
         summary_file = tmp_path / "github_step_summary.md"
         summary_file.touch()
         monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary_file))
+    
+    # Ensure PYTHONPATH includes the original src directory
+    # (since we changed CWD, relative imports might break)
+    src_path = original_dir / "src"
+    monkeypatch.setenv("PYTHONPATH", f"{src_path}:{os.environ.get('PYTHONPATH', '')}")
+    
+    # Yield control back to the test
+    yield
+    
+    # Restore original directory after test completes
+    os.chdir(original_dir)

@@ -4,10 +4,11 @@ Helper functions for generating Unicode sparklines for trend visualization.
 
 Sparklines show historical trends compactly using characters like ▁▂▃▄▅▆▇█
 """
+from typing import List, Dict, Any, Optional, Union
 from sparklines import sparklines
 
 
-def generate_sparkline(values, max_length=8):
+def generate_sparkline(values: List[Optional[Union[str, float, int]]], max_length: int = 8) -> str:
     """
     Generate a Unicode sparkline from a list of numeric values.
     
@@ -51,7 +52,7 @@ def generate_sparkline(values, max_length=8):
     return sparkline_str if sparkline_str.strip() else "-"
 
 
-def extract_historical_values(key, by_run, runs, field_name, max_runs=8):
+def extract_historical_values(key: tuple, by_run: Dict[str, List[Dict[str, Any]]], runs: List[str], field_name: str, max_runs: int = 8) -> List[Optional[str]]:
     """
     Extract historical values for a specific (species, size) across runs.
     
@@ -79,7 +80,7 @@ def extract_historical_values(key, by_run, runs, field_name, max_runs=8):
     return values
 
 
-def extract_historical_values_with_carryforward(key, by_run, runs, field_name, max_runs=8):
+def extract_historical_values_with_carryforward(key: tuple, by_run: Dict[str, List[Dict[str, Any]]], runs: List[str], field_name: str, max_runs: int = 8) -> Dict[str, Any]:
     """
     Extract historical values with carry-forward for OUT-of-stock periods.
     
@@ -136,7 +137,7 @@ def extract_historical_values_with_carryforward(key, by_run, runs, field_name, m
     }
 
 
-def generate_stock_availability_sparkline(key, by_run, runs, max_runs=8):
+def generate_stock_availability_sparkline(key: tuple, by_run: Dict[str, List[Dict[str, Any]]], runs: List[str], max_runs: int = 8) -> str:
     """
     Generate a stock availability sparkline showing IN/OUT status over time.
     

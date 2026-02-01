@@ -5,8 +5,9 @@ Shared utility functions for working with historical data rows.
 These functions provide common patterns for grouping and identifying
 historical scrape data, used by both analysis and website generation.
 """
+from typing import Dict, List, Any, Tuple
 
-def group_by_run(rows):
+def group_by_run(rows: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
     """Group historical rows by scrape_datetime (run ID).
     
     Args:
@@ -20,16 +21,32 @@ def group_by_run(rows):
         by_run.setdefault(r["scrape_datetime"], []).append(r)
     return by_run
 
-def k3(r):
+def create_species_key_with_common_name(row: Dict[str, Any]) -> Tuple[str, str, str]:
     """Create 3-tuple key: (scientific_name, common_name, size_cm).
     
     Used for grouping species that may have different common names.
+    
+    Args:
+        row: Dictionary containing species data
+        
+    Returns:
+        Tuple of (scientific_name, common_name, size_cm)
     """
-    return (r["scientific_name"], r["common_name"], r["size_cm"])
+    return (row["scientific_name"], row["common_name"], row["size_cm"])
 
-def k2(r):
+def create_species_key(row: Dict[str, Any]) -> Tuple[str, str]:
     """Create 2-tuple key: (scientific_name, size_cm).
     
     Used for grouping species regardless of common name variations.
+    
+    Args:
+        row: Dictionary containing species data
+        
+    Returns:
+        Tuple of (scientific_name, size_cm)
     """
-    return (r["scientific_name"], r["size_cm"])
+    return (row["scientific_name"], row["size_cm"])
+
+# Backward compatibility aliases
+k3 = create_species_key_with_common_name
+k2 = create_species_key

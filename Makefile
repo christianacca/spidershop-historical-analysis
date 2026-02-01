@@ -12,7 +12,7 @@
 #   All commands automatically activate the .venv virtual environment
 #   Ensure .venv exists and has dependencies installed first
 
-.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only clean-cache clean-artifacts clean-all test coverage .check-venv .check-gh
+.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only clean-cache clean-artifacts clean-all test test-file test-snapshots test-snapshots-diff test-update-snapshots coverage .check-venv .check-gh
 
 # Shell configuration
 SHELL := /bin/bash
@@ -50,10 +50,15 @@ help:
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test                   Run pytest with coverage"
+	@echo "  make test-file FILE=<path>  Run specific test file with coverage"
 	@echo "  make test-snapshots         Run snapshot tests only"
 	@echo "  make test-snapshots-diff    Show detailed diffs for snapshot tests"
 	@echo "  make test-update-snapshots  Update all snapshots (review diffs first!)"
 	@echo "  make coverage               View coverage report in browser"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make test-file FILE=tests/website_module/test_csv.py"
+	@echo "  make test-file FILE=tests/scrape_module/test_breeder_matrix.py"
 	@echo ""
 	@echo "Cleanup:"
 	@echo "  make clean-cache            Clear Python bytecode cache (.pyc, __pycache__)"
@@ -147,6 +152,18 @@ serve-only: .check-venv
 
 test: .check-venv
 	source $(VENV)/bin/activate && pytest --cov=src --cov-report=html --cov-report=term-missing --cov-report=json
+
+test-file: .check-venv
+	@if [ -z "$(FILE)" ]; then \
+		echo "❌ Please specify a test file: make test-file FILE=tests/path/to/test.py"; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(FILE)" ]; then \
+		echo "❌ Test file not found: $(FILE)"; \
+		exit 1; \
+	fi
+	@echo "Running test file: $(FILE)"
+	source $(VENV)/bin/activate && pytest $(FILE) --cov=src --cov-report=html --cov-report=term-missing --cov-report=json -v
 
 test-snapshots: .check-venv
 	@echo "Running snapshot tests only..."

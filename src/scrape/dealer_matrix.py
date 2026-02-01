@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import csv
 from shared.history_utils import group_by_run, k2
-from shared.config import DEALER_TABLE_FILE
+from shared.config import DEALER_TABLE_FILE, SIGNAL_PRIORITY, TREND_PRIORITY
 from shared.assertions import get_summary_path
 from scrape.wishlist_analysis import compute_wishlist_pressure, get_oos_wishlist_carryover, compute_wishlist_delta
 from shared.sparkline_helpers import extract_historical_values_with_carryforward, generate_stock_availability_sparkline
@@ -166,9 +166,9 @@ def build_dealer_supply_risk_table(history_rows):
     # Sort: Dealer Risk (🔥 > ⚠️ > ❌), then Wishlist Pressure (🔥 > ⚠️ > ❌), 
     # then Wishlist Delta (↑ > → > ↓), then Avg OOS Duration (desc)
     table.sort(key=lambda r: (
-        {"🔥": 0, "⚠️": 1, "❌": 2}[r["Dealer Risk"]],
-        {"🔥": 0, "⚠️": 1, "❌": 2}[r["Wishlist Pressure"]],
-        {"↑": 0, "→": 1, "↓": 2}[r["Wishlist Delta"]],
+        SIGNAL_PRIORITY[r["Dealer Risk"]],
+        SIGNAL_PRIORITY[r["Wishlist Pressure"]],
+        TREND_PRIORITY[r["Wishlist Delta"]],
         -r["Avg OOS Duration"]
     ))
     return table

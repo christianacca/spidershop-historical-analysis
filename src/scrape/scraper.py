@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from typing import List, Tuple
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from scrape.http_client import fetch
@@ -9,7 +10,7 @@ from shared.parsing import normalize_whitespace, remove_size_parenthetical_only,
 # SCRAPING
 # =====================
 
-def extract_product_urls(category_html: str, category_url: str):
+def extract_product_urls(category_html: str, category_url: str) -> List[str]:
     soup = BeautifulSoup(category_html, "html.parser")
     urls, seen = [], set()
 
@@ -24,7 +25,7 @@ def extract_product_urls(category_html: str, category_url: str):
 
     return urls
 
-def scrape_product(product_url: str):
+def scrape_product(product_url: str) -> Tuple[str, str, str, str, str]:
     # Use browser automation to handle JavaScript-rendered wishlist counter
     # Wait for the wishlist element to load (with timeout fallback)
     html = fetch_with_browser(product_url, wait_for_selector=".yith-wcwl-add-to-wishlist__counter", timeout=10)

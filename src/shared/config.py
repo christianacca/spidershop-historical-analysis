@@ -34,3 +34,15 @@ SIZE_RE = re.compile(
     re.IGNORECASE,
 )
 WISHLIST_COUNT_RE = re.compile(r"(\d+)\s+users?\s+(?:has|have)\s+this\s+item\s+in\s+their\s+wishlists?", re.IGNORECASE)
+
+# Wishlist analysis thresholds
+WISHLIST_DELTA_INCREASE_THRESHOLD = 5
+WISHLIST_DELTA_DECREASE_THRESHOLD = -5
+WISHLIST_OOS_CARRYOVER_LOOKBACK = 5
+WISHLIST_DELTA_LOOKBACK = 3
+WISHLIST_DELTA_PREV_LOOKBACK = 12
+WISHLIST_SMALL_N_FLATTEN_THRESHOLD = 1
+
+# Signal priority for sorting (lower number = higher priority)
+SIGNAL_PRIORITY = {"🔥": 0, "⚠️": 1, "❌": 2}
+TREND_PRIORITY = {"↑": 0, "→": 1, "↓": 2}

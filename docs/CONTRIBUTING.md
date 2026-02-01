@@ -266,6 +266,16 @@ pip list           # Should show installed packages
 
 ## Running Tests
 
+### ⚠️ Always Use Make Commands
+
+**CRITICAL**: Always use `make` commands for testing. Never run pytest or test files directly.
+
+**Why?** Running pytest directly (e.g., `pytest tests/...`) causes:
+
+- CSV files created in wrong directories (project root instead of `tmp/local-testing/`)
+- Artifacts scattered outside designated folders
+- Tests failing due to incorrect working directory context
+
 ### Run all tests with coverage (recommended)
 ```sh
 make test
@@ -275,6 +285,15 @@ This runs pytest with full coverage reporting, showing:
 - Overall coverage percentage
 - Coverage per module
 - **Missing column**: Specific line numbers that aren't tested (e.g., "15-22, 34-40")
+
+### Run individual test file
+
+```sh
+make test-file FILE=tests/website_module/test_csv.py
+make test-file FILE=tests/scrape_module/test_breeder_matrix.py
+```
+
+Use this when working on specific functionality to get faster feedback.
 
 ### View interactive HTML coverage report
 ```sh
@@ -310,27 +329,7 @@ This project uses [pytest-syrupy](https://github.com/tophat/syrupy) for snapshot
 
 ### Additional Testing Options
 
-If you need more control, you can use pytest directly.
-
-> **⚠️ Important:** Make sure your virtual environment is activated when running pytest directly!
-> 
-> ```sh
-> # Activate virtual environment first
-> source .venv/bin/activate          # macOS/Linux
-> .venv\Scripts\activate.bat         # Windows (CMD)
-> .venv\Scripts\Activate.ps1         # Windows (PowerShell)
-> ```
-
-```sh
-# Run specific test file
-pytest tests/scrape_module/test_breeder_matrix.py
-
-# Run with verbose output
-pytest -v
-
-# Check coverage for specific module
-pytest tests/scrape_module/test_breeder_matrix.py --cov=src.breeder_matrix --cov-report=term-missing
-```
+**Learn more:** [pytest-syrupy documentation](https://github.com/tophat/syrupy)
 
 ### Advanced Coverage Tools
 

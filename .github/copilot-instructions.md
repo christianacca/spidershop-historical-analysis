@@ -1,19 +1,51 @@
 # Copilot Instructions for spidershop-historical-analysis
 
+## Python Code Hygiene Guidelines
+
+**Descriptive Naming**: Use clear, descriptive names for variables and functions (snake_case) and classes (PascalCase). Avoid nonstandard abbreviations or single-letter names.
+
+**Small, Focused Functions**: Write short functions that each serve a single purpose. Avoid deep nesting or high cyclomatic complexity—split complex logic into helper functions if needed.
+
+**Minimize Side Effects**: Prefer pure functions and immutability whenever possible. Avoid global state or hidden side effects that make code harder to reason about.
+
+**Clean OOP Structure**: Design classes with a single responsibility and clear purpose. Favor composition over deep inheritance to reduce tight coupling and keep logic easy to follow.
+
+**Avoid Duplicate Code**: Do not copy-paste or duplicate logic. Refactor common functionality into reusable functions or methods to keep code DRY.
+
+**Use Type Annotations**: Add Python type hints for function parameters, return values, and important variables. This improves code clarity and catches many issues early.
+
+**Consistent Style and Formatting**: Format code with an auto-formatter (e.g. Black) to enforce PEP 8 standards, and use a linter (like Ruff) to detect issues and ensure consistent style.
+
+**Self-Documenting Code**: Write code that is clear by itself, minimizing the need for inline comments.
+
 ## ⚠️ CRITICAL: Testing Workflow (BLOCKING) ⚠️
 
-**A CODE CHANGE IS NOT COMPLETE UNTIL ALL STEPS BELOW PASS.**
+**A code change is complete only when all tests pass and coverage meets thresholds (80%).**
 
-For ANY file edit in `src/`, you MUST immediately execute:
+### ✅ MANDATORY: Always Use Make Commands
 
-1. `.venv/bin/python -m pytest --cov=src --cov-report=html --cov-report=term-missing --cov-report=json`
+**NEVER run pytest directly.** Make commands ensure proper working directory and artifact management.
+
+**For ANY edit in `src/`:**
+1. `make test` (all tests with coverage)
 2. `.venv/bin/python scripts/check_coverage.py --module=<edited_file>.py`
 
-**DO NOT respond "done" to the user until both commands execute successfully.**
+**Individual test files:**
+```bash
+make test-file FILE=tests/website_module/test_csv.py
+make test-file FILE=tests/scrape_module/test_breeder_matrix.py
+```
 
-**New functionality requires new tests BEFORE you call it done.** Never assume existing tests cover new code.
+**Why make commands?** Direct pytest execution causes:
+- CSV files in wrong directories (project root vs `tmp/local-testing/`)
+- Scattered artifacts outside designated folders
+- Incorrect working directory context
 
-Tests validate logic, content, structure, formatting, and output. Coverage thresholds (80%) are minimums. Even documentation changes need test validation. Tests run in <1 second - there is NO excuse to skip them.
+**Key rules:**
+- New functionality requires new tests FIRST (TDD)
+- Never assume existing tests cover new code
+- DO NOT respond "done" until tests pass and coverage verified
+- Tests run in <1 second — no excuse to skip
 
 ### Test-Driven Development (TDD) Protocol — MANDATORY
 
@@ -36,22 +68,6 @@ For ANY feature or bug fix, follow this exact sequence:
 3. **REFACTOR Phase — Optional**:
    - Only needed if the initial implementation has structural issues
    - Re-run tests after any refactoring to ensure they remain green
-
-**Example TDD workflow:**
-```bash
-# 1. RED: Write test, confirm it fails
-pytest tests/test_new_feature.py::test_my_new_feature -v
-# Expected: FAILED - AttributeError: 'MyClass' has no attribute 'new_method'
-
-# 2. GREEN: Implement clean, quality code
-# ... edit src/my_module.py ...
-
-# 3. Confirm test passes and verify coverage
-pytest tests/test_new_feature.py::test_my_new_feature -v
-# Expected: PASSED
-
-make coverage
-```
 
 ### ⛔ Snapshot Test Protocol (MANDATORY)
 
@@ -80,30 +96,20 @@ Snapshot files are located in module-specific subdirectories (`tests/scrape_modu
 Choose the appropriate test style based on what you're validating:
 
 #### 1. **HTML Snapshot Testing** (`syrupy` fixtures)
-- **Use when**: Testing complete HTML output for regressions (prefer small, focused snapshots)
-- **Best for**: Small HTML fragments, specific components, targeted HTML sections
-- **Pattern**: Capture minimal necessary HTML as snapshot, detect any change
-- **Example**: `test_generate_website.py` — validates focused page sections
-- **Pros**: Catches unintended changes, easy to write
-- **Cons**: Can be brittle, requires manual review on updates, large snapshots are hard to maintain
+- **Use when**: Testing small, focused HTML fragments for regressions
+- **Pattern**: Capture minimal necessary HTML, detect any change
+- **Important**: Keep snapshots small. Large/complex outputs → use Structure Validation
 - **Update protocol**: MUST follow "Snapshot Test Protocol" above
-- **IMPORTANT**: Keep snapshots small and focused. If snapshot would be large or complex, favor HTML Structure Validation instead
 
 #### 2. **CSS Validation Tests** (Targeted checks)
 - **Use when**: Verifying specific CSS classes, styles, or attributes
-- **Best for**: Ensuring specific visual elements exist (e.g., risk badges, table classes)
 - **Pattern**: Parse HTML, assert specific class names or styles present
-- **Example**: `test_generate_website.py` — checks for `risk-high`, `table-container`
-- **Pros**: Focused, less brittle than snapshots
-- **Cons**: Requires explicit assertions for each element
+- **Example**: Checks for `risk-high`, `table-container`
 
 #### 3. **HTML Structure Validation** (Classic unit tests)
-- **Use when**: Testing logical correctness of data processing OR when snapshots would be too large
-- **Best for**: Business logic, data transformations, calculations, validating HTML structure without full snapshots
+- **Use when**: Testing logic/data processing OR when snapshots would be too large
 - **Pattern**: Arrange data → Act (call function) → Assert expected output
-- **Example**: `test_breeder_matrix.py` — validates opportunity signals from data
-- **Pros**: Tests logic independent of presentation, most maintainable, no snapshot brittleness
-- **Cons**: Doesn't catch visual/formatting issues (but CSS validation can supplement)
+- **Best for**: Business logic, calculations, most maintainable approach
 
 **Decision tree:**
 ```
@@ -161,10 +167,11 @@ def test_parse_price(input, expected):
 
 ```bash
 # Run all tests
-pytest
+make test
 
-# Run with coverage (REQUIRED after any code change)
-pytest --cov=src --cov-report=html --cov-report=term-missing --cov-report=json
+# Run individual test file (REQUIRED when testing specific functionality)
+make test-file FILE=tests/website_module/test_csv.py
+make test-file FILE=tests/scrape_module/test_breeder_matrix.py
 
 # Check specific module coverage
 python scripts/check_coverage.py --module=scrape/breeder_matrix.py
@@ -172,43 +179,30 @@ python scripts/check_coverage.py --module=scrape/breeder_matrix.py
 
 ### Test Coverage Requirements
 
-1. **Write tests FIRST** following TDD protocol above (RED → GREEN)
+**Process:**
+1. **Write tests FIRST** (TDD: RED → GREEN → optional REFACTOR)
 2. **Choose test style** based on what you're validating (snapshot/CSS/structure)
 3. **Modify existing tests** when possible instead of creating duplicates
-4. **Use synthetic data** to simulate scraping results, not live web scraping
-5. **Cover all code branches** and edge cases
-6. **Use descriptive test names** that explain what is being validated
+4. **Use synthetic data** to simulate scraping, not live web scraping
+5. **Cover all branches** and edge cases with descriptive test names
 
-**Verify coverage after changes:**
+**Verification:**
 ```bash
-# For scrape modules
 python scripts/check_coverage.py --module=scrape/breeder_matrix.py --threshold=80
-
-# For shared modules
 python scripts/check_coverage.py --module=shared/parsing.py --threshold=80
-
-# For website modules
 python scripts/check_coverage.py --module=website/generate_website.py --threshold=80
 ```
 
-**Coverage artifacts:**
-- `tmp/coverage/coverage.json` - Machine-readable coverage data
-- `tmp/coverage/html/` - Visual HTML report
-- Use `scripts/view_coverage.py` for formatted summary
+**Artifacts:** `tmp/coverage/coverage.json`, `tmp/coverage/html/`, use `scripts/view_coverage.py` for summary
 
-**Coverage thresholds:**
-- Minimum threshold: 80% per module
-- RED-GREEN-REFACTOR cycle is mandatory for all new functionality
-- Test must fail FIRST, then pass after implementation
-- Write quality code from the start (refactoring should rarely be needed)
-- Favor modifying existing tests over creating duplicates
+**Threshold:** 80% minimum per module
 
 ---
 
 ## GitHub Workflows Troubleshooting
 - **Fetching Workflow Logs**: Use the GitHub API to download logs as a zip file, not `gh run view` which opens a pager:
   ```bash
-  gh api repos/christianacca/web-api-starter/actions/runs/<RUN_ID>/logs > /tmp/workflow-logs.zip
+  gh api repos/christianacca/spidershop-historical-analysis/actions/runs/<RUN_ID>/logs > /tmp/workflow-logs.zip
   unzip -o /tmp/workflow-logs.zip -d /tmp
   cat /tmp/<job-log-file>.txt
   ```
@@ -343,19 +337,17 @@ Use these helpers to reduce boilerplate and improve test readability.
 
 ### Website Generation Output Location
 
-**CRITICAL**: The location of the generated `website/` folder depends on the working directory when the website generation module is executed:
+**Key principle:** `OUTPUT_DIR = Path("website")` is relative to the current working directory.
 
-- **Coding agent / Direct execution**: Running `python -m website` from project root creates `website/` at **project root level** (same level as `src/`, `tmp/`, `.github/`)
-- **GitHub workflow**: Runs from project root → creates `website/` at **project root level** 
-- **Make commands** (developer local testing): Changes to `tmp/local-testing/` first → creates `website/` at **`tmp/local-testing/website/`**
+**Location by context:**
+- **Direct execution** (`python -m website` from root) → `website/` at project root
+- **GitHub workflow** (runs from root) → `website/` at project root
+- **Make commands** (`make generate-website`) → `tmp/local-testing/website/`
 
-The `OUTPUT_DIR` constant in `src/website/generate_website.py` is `Path("website")`, which is always **relative to the current working directory**.
-
-**When testing or verifying website generation:**
-- If you ran the module directly → look for `website/` at project root
-- If user ran `make generate-website` → look for `tmp/local-testing/website/`
-- DO NOT assume files are in `tmp/local-testing/website/` when YOU run the script
-- DO NOT get confused by seeing existing files in `tmp/local-testing/website/` from user's previous make commands
+**When verifying output:**
+- Check project root if you/workflow ran the module directly
+- Check `tmp/local-testing/website/` if user ran make command
+- Don't assume location without checking execution context
 
 ### CSV Schema
 
