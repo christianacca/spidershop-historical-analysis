@@ -4,10 +4,25 @@
 
 **A CODE CHANGE IS NOT COMPLETE UNTIL ALL STEPS BELOW PASS.**
 
+### ✅ MANDATORY: Always Use Make Commands for Testing
+
+**NEVER run pytest or test files directly.** Always use make commands to ensure proper working directory and file artifact management.
+
 For ANY file edit in `src/`, you MUST immediately execute:
 
-1. `.venv/bin/python -m pytest --cov=src --cov-report=html --cov-report=term-missing --cov-report=json`
+1. `make test` (runs all tests with coverage)
 2. `.venv/bin/python scripts/check_coverage.py --module=<edited_file>.py`
+
+For individual test files:
+```bash
+make test-file FILE=tests/website_module/test_csv.py
+make test-file FILE=tests/scrape_module/test_breeder_matrix.py
+```
+
+**Why?** Running pytest directly (e.g., `pytest tests/...` or `.venv/bin/python -m pytest`) causes:
+- CSV files created in wrong directories (project root instead of `tmp/local-testing/`)
+- Artifacts scattered outside designated folders
+- Tests failing due to incorrect working directory context
 
 **DO NOT respond "done" to the user until both commands execute successfully.**
 
@@ -40,14 +55,14 @@ For ANY feature or bug fix, follow this exact sequence:
 **Example TDD workflow:**
 ```bash
 # 1. RED: Write test, confirm it fails
-pytest tests/test_new_feature.py::test_my_new_feature -v
+make test-file FILE=tests/test_new_feature.py
 # Expected: FAILED - AttributeError: 'MyClass' has no attribute 'new_method'
 
 # 2. GREEN: Implement clean, quality code
 # ... edit src/my_module.py ...
 
 # 3. Confirm test passes and verify coverage
-pytest tests/test_new_feature.py::test_my_new_feature -v
+make test-file FILE=tests/test_new_feature.py
 # Expected: PASSED
 
 make coverage
@@ -161,10 +176,11 @@ def test_parse_price(input, expected):
 
 ```bash
 # Run all tests
-pytest
+make test
 
-# Run with coverage (REQUIRED after any code change)
-pytest --cov=src --cov-report=html --cov-report=term-missing --cov-report=json
+# Run individual test file (REQUIRED when testing specific functionality)
+make test-file FILE=tests/website_module/test_csv.py
+make test-file FILE=tests/scrape_module/test_breeder_matrix.py
 
 # Check specific module coverage
 python scripts/check_coverage.py --module=scrape/breeder_matrix.py
