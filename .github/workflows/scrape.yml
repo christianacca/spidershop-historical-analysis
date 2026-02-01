@@ -93,8 +93,10 @@ jobs:
       # --------------------------------
       - name: Run Spider Shop scraper
         id: scraper
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
         run: |
-          python src/scrape_spidershop_spiderlings.py
+          python -m scrape.scrape_spidershop_spiderlings
           
           # Capture the summary markdown as a step output
           if [ -f "$GITHUB_STEP_SUMMARY" ]; then

@@ -213,7 +213,7 @@ def load_historical_sparkline_data() -> Tuple[Dict[str, List[Dict[str, str]]], L
         - by_run: Dictionary mapping run_id (scrape_datetime) to list of rows
         - runs: Sorted list of run IDs (scrape_datetime values)
     """
-    from history import group_by_run
+    from shared.history_utils import group_by_run
     
     history_file = "spidershop_spiderlings_history.csv"
     if not os.path.exists(history_file):
@@ -249,7 +249,7 @@ def convert_sparklines_in_rows(headers: List[str], rows: List[List[str]], histor
     Returns:
         Modified rows with sparklines converted to SVG
     """
-    from sparkline_helpers import extract_historical_values_with_carryforward
+    from shared.sparkline_helpers import extract_historical_values_with_carryforward
     
     by_run, runs = historical_data
     

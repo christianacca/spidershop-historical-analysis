@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import requests
-from config import HEADERS
+from shared.config import HEADERS
 
 # =====================
 # HTTP CLIENT

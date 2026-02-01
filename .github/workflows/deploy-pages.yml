@@ -126,8 +126,10 @@ jobs:
       # Generate static website
       # --------------------------------
       - name: Generate HTML website
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
         run: |
-          python src/website/generate_website.py
+          python -m website
 
       # --------------------------------
       # Setup GitHub Pages

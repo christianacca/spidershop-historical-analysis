@@ -9,9 +9,9 @@ This module validates that:
 4. The synthetic data produces expected outcomes
 """
 import pytest
-from breeder_matrix import build_breeder_opportunity_table
-from dealer_matrix import build_dealer_supply_risk_table
-from legend_examples import (
+from scrape.breeder_matrix import build_breeder_opportunity_table
+from scrape.dealer_matrix import build_dealer_supply_risk_table
+from scrape.legend_examples import (
     generate_breeder_examples,
     generate_dealer_examples,
     generate_breeder_example_1,
@@ -225,7 +225,7 @@ class TestSparklineLegendDocumentation:
     
     def test_breeder_legend_documents_price_history(self):
         """Breeder legend should document Price History sparkline column."""
-        from legend import write_summary_legend
+        from scrape.legend import write_summary_legend
         import tempfile
         import os
         
@@ -255,7 +255,7 @@ class TestSparklineLegendDocumentation:
     
     def test_breeder_legend_documents_wishlist_history(self):
         """Breeder legend should document Wishlist History sparkline column."""
-        from legend import write_summary_legend
+        from scrape.legend import write_summary_legend
         import tempfile
         import os
         
@@ -280,7 +280,7 @@ class TestSparklineLegendDocumentation:
     
     def test_dealer_legend_documents_price_history(self):
         """Dealer legend should document Price History sparkline column."""
-        from legend import write_summary_legend
+        from scrape.legend import write_summary_legend
         import tempfile
         import os
         
@@ -304,7 +304,7 @@ class TestSparklineLegendDocumentation:
     
     def test_dealer_legend_documents_wishlist_history(self):
         """Dealer legend should document Wishlist History sparkline column."""
-        from legend import write_summary_legend
+        from scrape.legend import write_summary_legend
         import tempfile
         import os
         
@@ -327,7 +327,7 @@ class TestSparklineLegendDocumentation:
     
     def test_dealer_legend_documents_stock_availability(self):
         """Dealer legend should document Stock Availability sparkline column (unique to dealer matrix)."""
-        from legend import write_summary_legend
+        from scrape.legend import write_summary_legend
         import tempfile
         import os
         
@@ -355,7 +355,7 @@ class TestSparklineLegendDocumentation:
     
     def test_breeder_legend_does_not_have_stock_availability(self):
         """Breeder legend should NOT have Stock Availability (it's dealer-only)."""
-        from legend import write_summary_legend
+        from scrape.legend import write_summary_legend
         import tempfile
         import os
         
@@ -379,7 +379,7 @@ class TestSparklineLegendDocumentation:
     
     def test_sparkline_documentation_includes_examples(self):
         """Sparkline documentation should include example patterns."""
-        from legend import write_summary_legend
+        from scrape.legend import write_summary_legend
         import tempfile
         import os
         

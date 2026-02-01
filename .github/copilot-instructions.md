@@ -167,7 +167,7 @@ pytest
 pytest --cov=src --cov-report=html --cov-report=term-missing --cov-report=json
 
 # Check specific module coverage
-python scripts/check_coverage.py --module=breeder_matrix.py
+python scripts/check_coverage.py --module=scrape/breeder_matrix.py
 ```
 
 ### Test Coverage Requirements
@@ -181,7 +181,14 @@ python scripts/check_coverage.py --module=breeder_matrix.py
 
 **Verify coverage after changes:**
 ```bash
-python scripts/check_coverage.py --module=your_module.py --threshold=80
+# For scrape modules
+python scripts/check_coverage.py --module=scrape/breeder_matrix.py --threshold=80
+
+# For shared modules
+python scripts/check_coverage.py --module=shared/parsing.py --threshold=80
+
+# For website modules
+python scripts/check_coverage.py --module=website/generate_website.py --threshold=80
 ```
 
 **Coverage artifacts:**
@@ -223,13 +230,27 @@ This is a Python web scraper that captures pricing data for tarantula spiderling
 
 ## Project Structure
 
-The project uses a modular architecture with focused modules in the `src/` directory. Key modules include:
-- Main scraper orchestration and entry point
+The project is organized into three main modules:
+
+**`src/scrape/`** - Main scraping and analysis:
+- Main scraper orchestration and entry point (scrape_spidershop_spiderlings.py)
 - HTTP and browser clients for web scraping
-- Text parsing and data extraction utilities
 - Historical data management
-- Analysis engines (breeder/dealer opportunity matrices)
-- Static website generation
+- Analysis engines (breeder_matrix.py, dealer_matrix.py, wishlist_analysis.py)
+- Pricing summary and legend generation
+
+**`src/shared/`** - Shared utilities used by both scrape and website:
+- Configuration (config.py)
+- Text parsing utilities (parsing.py)
+- Validation helpers (assertions.py)
+- Sparkline generation (sparkline_helpers.py)
+- History utilities (history_utils.py)
+
+**`src/website/`** - Static website generation:
+- HTML page generation
+- Markdown to HTML conversion
+- CSV processing and table rendering
+- Sparkline conversion to SVG
 
 Explore the `src/` directory for the complete list of modules.
 
@@ -252,9 +273,9 @@ pip install -r requirements-dev.txt
 3. **Imports**: Use absolute imports from src modules
 4. **String handling**: Use UTF-8 encoding for file operations
 5. **Error handling**: Use assertions for validation with descriptive messages
-6. **CSV format**: Use the CSV_HEADER defined in config.py for consistency
-7. **Whitespace normalization**: Use the normalize_whitespace() function from parsing.py
-8. **Regex patterns**: Define regex patterns in config.py for reusability
+6. **CSV format**: Use the CSV_HEADER defined in shared.config for consistency
+7. **Whitespace normalization**: Use the normalize_whitespace() function from shared.parsing
+8. **Regex patterns**: Define regex patterns in shared.config for reusability
 9. **Browser cleanup**: Always use try/finally to ensure driver cleanup
 
 ## Test Utilities
@@ -301,7 +322,7 @@ Use these helpers to reduce boilerplate and improve test readability.
 
 ## Web Scraping Guidelines
 
-- **User-Agent**: Use the configured User-Agent string in config.py
+- **User-Agent**: Use the configured User-Agent string in shared.config
 - **Pagination**: Handle pagination by incrementing page numbers until 404
 - **URLs**: Use urljoin() for proper URL construction
 - **Selectors**: Use CSS selectors with BeautifulSoup for HTML parsing
@@ -377,21 +398,21 @@ scrape_datetime, scientific_name, common_name, size_cm, price_gbp, wishlist_coun
 ## Common Tasks
 
 ### Adding a new parsing function
-1. Add the function to parsing.py
-2. Add any regex patterns to config.py
+1. Add the function to src/shared/parsing.py
+2. Add any regex patterns to src/shared/config.py
 3. Use normalize_whitespace() for text processing
 4. Handle edge cases with empty/None values
 
 ### Modifying scraper logic
-1. Update scraper.py for extraction changes
+1. Update src/scrape/scraper.py for extraction changes
 2. Keep functions focused and single-purpose
 3. Test with actual web pages before deploying
-4. If JavaScript is required, use browser_client.py instead of http_client.py
+4. If JavaScript is required, use src/scrape/browser_client.py instead of http_client.py
 
 ### Adding new analysis
-1. Create a new module in src/ (e.g., new_analysis.py)
-2. Follow the pattern of breeder_matrix.py or dealer_matrix.py
-3. Import and call from scrape_spidershop_spiderlings.py main()
+1. Create a new module in src/scrape/ (e.g., new_analysis.py)
+2. Follow the pattern of src/scrape/breeder_matrix.py or dealer_matrix.py
+3. Import and call from src/scrape/scrape_spidershop_spiderlings.py main()
 4. Update workflow to upload new artifact files
 5. Update `src/website/generate_website.py` if the analysis should appear on the website
 

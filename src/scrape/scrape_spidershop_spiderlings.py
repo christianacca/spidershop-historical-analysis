@@ -6,16 +6,16 @@ from urllib.parse import urljoin
 
 from requests.exceptions import HTTPError
 
-from config import BASE_URL, SNAPSHOT_FILE, HISTORY_FILE, CSV_HEADER, BREEDER_TABLE_FILE, DEALER_TABLE_FILE
-from http_client import fetch
-from scraper import extract_product_urls, scrape_product
-from browser_client import close_driver
-from history import load_history, append_history
-from pricing_summary import write_pricing_summary
-from breeder_matrix import build_breeder_opportunity_table, write_breeder_outputs
-from dealer_matrix import build_dealer_supply_risk_table, write_dealer_outputs
-from legend import write_summary_legend
-from assertions import assert_condition, csv_row_count, read_summary_text
+from shared.config import BASE_URL, SNAPSHOT_FILE, HISTORY_FILE, CSV_HEADER, BREEDER_TABLE_FILE, DEALER_TABLE_FILE
+from scrape.http_client import fetch
+from scrape.scraper import extract_product_urls, scrape_product
+from scrape.browser_client import close_driver
+from scrape.history import load_history, append_history
+from scrape.pricing_summary import write_pricing_summary
+from scrape.breeder_matrix import build_breeder_opportunity_table, write_breeder_outputs
+from scrape.dealer_matrix import build_dealer_supply_risk_table, write_dealer_outputs
+from scrape.legend import write_summary_legend
+from shared.assertions import assert_condition, csv_row_count, read_summary_text
 
 # =====================
 # MAIN

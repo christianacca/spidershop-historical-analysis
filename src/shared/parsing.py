@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import re
 from decimal import Decimal, InvalidOperation
-from config import PARENS_RE, SIZE_RE, WISHLIST_COUNT_RE
+from shared.config import PARENS_RE, SIZE_RE, WISHLIST_COUNT_RE
 
 # =====================
 # PARSING HELPERS

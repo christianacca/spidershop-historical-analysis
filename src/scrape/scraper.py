@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
-from http_client import fetch
-from browser_client import fetch_with_browser
-from parsing import normalize_whitespace, remove_size_parenthetical_only, parse_size_cm, parse_price, parse_wishlist_count
+from scrape.http_client import fetch
+from scrape.browser_client import fetch_with_browser
+from shared.parsing import normalize_whitespace, remove_size_parenthetical_only, parse_size_cm, parse_price, parse_wishlist_count
 
 # =====================
 # SCRAPING

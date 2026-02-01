@@ -14,7 +14,7 @@ Tests cover all branches including:
 import tempfile
 import os
 import pytest
-from pricing_summary import calculate_pricing_summary, write_pricing_summary
+from scrape.pricing_summary import calculate_pricing_summary, write_pricing_summary
 from conftest import make_row
 
 

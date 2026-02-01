@@ -13,7 +13,7 @@ Tests cover all branches including:
 """
 
 import pytest
-from dealer_matrix import build_dealer_supply_risk_table, write_dealer_outputs
+from scrape.dealer_matrix import build_dealer_supply_risk_table, write_dealer_outputs
 from conftest import make_row
 
 
@@ -799,7 +799,7 @@ class TestWriteDealerOutputs:
         """Should create empty CSV with headers and write summary when GITHUB_STEP_SUMMARY is set."""
         import os
         from pathlib import Path
-        from dealer_matrix import DEALER_TABLE_FILE
+        from scrape.dealer_matrix import DEALER_TABLE_FILE
         
         original_cwd = os.getcwd()
         os.chdir(tmp_path)
@@ -927,7 +927,7 @@ class TestWriteDealerOutputs:
         src_path = Path(__file__).parent.parent / "src"
         sys.path.insert(0, str(src_path))
         
-        from config import DEALER_TABLE_FILE
+        from shared.config import DEALER_TABLE_FILE
         import os
         
         # Create test data
@@ -976,7 +976,7 @@ class TestWriteDealerOutputs:
         sys.path.insert(0, str(src_path))
         
         import os
-        from assertions import extract_markdown_section
+        from shared.assertions import extract_markdown_section
         
         # Create comprehensive test data with varied scenarios
         history = [

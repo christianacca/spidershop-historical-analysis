@@ -9,7 +9,7 @@ modules (scraper, breeder_matrix, dealer_matrix, etc.).
 import os
 import pytest
 from unittest.mock import patch, mock_open, MagicMock
-from scrape_spidershop_spiderlings import main
+from scrape.scrape_spidershop_spiderlings import main
 
 
 # Minimal HTML that includes product structure
@@ -31,9 +31,9 @@ MINIMAL_PRODUCT_LIST_HTML = """
 @pytest.fixture
 def mock_scraping():
     """Fixture that patches scraping-related functions."""
-    with patch('scrape_spidershop_spiderlings.fetch') as mock_fetch, \
-         patch('scrape_spidershop_spiderlings.extract_product_urls') as mock_extract_urls, \
-         patch('scrape_spidershop_spiderlings.scrape_product') as mock_scrape_product:
+    with patch('scrape.scrape_spidershop_spiderlings.fetch') as mock_fetch, \
+         patch('scrape.scrape_spidershop_spiderlings.extract_product_urls') as mock_extract_urls, \
+         patch('scrape.scrape_spidershop_spiderlings.scrape_product') as mock_scrape_product:
         yield {
             'fetch': mock_fetch,
             'extract_urls': mock_extract_urls,
@@ -44,8 +44,8 @@ def mock_scraping():
 @pytest.fixture
 def mock_history():
     """Fixture that patches history-related functions."""
-    with patch('scrape_spidershop_spiderlings.load_history') as mock_load, \
-         patch('scrape_spidershop_spiderlings.append_history') as mock_append:
+    with patch('scrape.scrape_spidershop_spiderlings.load_history') as mock_load, \
+         patch('scrape.scrape_spidershop_spiderlings.append_history') as mock_append:
         yield {
             'load': mock_load,
             'append': mock_append
@@ -55,12 +55,12 @@ def mock_history():
 @pytest.fixture
 def mock_analysis():
     """Fixture that patches analysis and output functions."""
-    with patch('scrape_spidershop_spiderlings.write_pricing_summary') as mock_pricing, \
-         patch('scrape_spidershop_spiderlings.build_breeder_opportunity_table') as mock_build_breeder, \
-         patch('scrape_spidershop_spiderlings.write_breeder_outputs') as mock_write_breeder, \
-         patch('scrape_spidershop_spiderlings.build_dealer_supply_risk_table') as mock_build_dealer, \
-         patch('scrape_spidershop_spiderlings.write_dealer_outputs') as mock_write_dealer, \
-         patch('scrape_spidershop_spiderlings.write_summary_legend') as mock_legend:
+    with patch('scrape.scrape_spidershop_spiderlings.write_pricing_summary') as mock_pricing, \
+         patch('scrape.scrape_spidershop_spiderlings.build_breeder_opportunity_table') as mock_build_breeder, \
+         patch('scrape.scrape_spidershop_spiderlings.write_breeder_outputs') as mock_write_breeder, \
+         patch('scrape.scrape_spidershop_spiderlings.build_dealer_supply_risk_table') as mock_build_dealer, \
+         patch('scrape.scrape_spidershop_spiderlings.write_dealer_outputs') as mock_write_dealer, \
+         patch('scrape.scrape_spidershop_spiderlings.write_summary_legend') as mock_legend:
         yield {
             'pricing': mock_pricing,
             'build_breeder': mock_build_breeder,
@@ -76,8 +76,8 @@ def mock_file_system():
     """Fixture that patches file system operations."""
     with patch('builtins.open', mock_open()) as mock_file, \
          patch('os.path.exists') as mock_exists, \
-         patch('scrape_spidershop_spiderlings.csv_row_count') as mock_csv_count, \
-         patch('scrape_spidershop_spiderlings.read_summary_text') as mock_read_summary:
+         patch('scrape.scrape_spidershop_spiderlings.csv_row_count') as mock_csv_count, \
+         patch('scrape.scrape_spidershop_spiderlings.read_summary_text') as mock_read_summary:
         yield {
             'file': mock_file,
             'exists': mock_exists,
@@ -89,7 +89,7 @@ def mock_file_system():
 @pytest.fixture
 def mock_browser():
     """Fixture that patches browser cleanup."""
-    with patch('scrape_spidershop_spiderlings.close_driver') as mock_close:
+    with patch('scrape.scrape_spidershop_spiderlings.close_driver') as mock_close:
         yield mock_close
 
 
@@ -263,7 +263,7 @@ class TestMainOrchestration:
         mock_scraping['scrape_product'].return_value = ('Genus species', 'Common', '1', '25.00', '3')
         
         # Use a mock datetime that will match the scraped data
-        with patch('scrape_spidershop_spiderlings.datetime') as mock_datetime:
+        with patch('scrape.scrape_spidershop_spiderlings.datetime') as mock_datetime:
             # Create a proper mock datetime
             fixed_time = datetime(2025, 1, 8, 12, 0, tzinfo=timezone.utc)
             mock_datetime.now.return_value = fixed_time
@@ -355,7 +355,7 @@ class TestMainOrchestration:
         mock_file_system['csv_count'].return_value = 1
         
         # Mock read_summary_text to return content missing breeder section
-        with patch('scrape_spidershop_spiderlings.read_summary_text') as mock_read_summary:
+        with patch('scrape.scrape_spidershop_spiderlings.read_summary_text') as mock_read_summary:
             mock_read_summary.return_value = "## 🏪 Dealer Supply Risk Matrix (Top 10)"
             
             # Execute and expect SystemExit (from assert_condition)

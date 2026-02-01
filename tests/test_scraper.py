@@ -12,7 +12,7 @@ Tests cover:
 
 import pytest
 from unittest.mock import patch, MagicMock
-from scraper import extract_product_urls, scrape_product
+from scrape.scraper import extract_product_urls, scrape_product
 
 
 class TestExtractProductUrls:
@@ -220,7 +220,7 @@ class TestExtractProductUrls:
 class TestScrapeProduct:
     """Test suite for scrape_product function."""
 
-    @patch('scraper.fetch_with_browser')
+    @patch('scrape.scraper.fetch_with_browser')
     def test_scrape_complete_product(self, mock_fetch):
         """Should scrape all product details correctly."""
         mock_html = """
@@ -244,7 +244,7 @@ class TestScrapeProduct:
         assert wishlist_count == "5"
         mock_fetch.assert_called_once_with("https://example.com/product/test", wait_for_selector=".yith-wcwl-add-to-wishlist__counter", timeout=10)
 
-    @patch('scraper.fetch_with_browser')
+    @patch('scrape.scraper.fetch_with_browser')
     def test_scrape_product_with_decimal_size(self, mock_fetch):
         """Should handle decimal sizes correctly."""
         mock_html = """
@@ -263,7 +263,7 @@ class TestScrapeProduct:
 
         assert size_cm == "2.5"
 
-    @patch('scraper.fetch_with_browser')
+    @patch('scrape.scraper.fetch_with_browser')
     def test_scrape_product_with_size_range(self, mock_fetch):
         """Should extract upper bound from size range."""
         mock_html = """
@@ -282,7 +282,7 @@ class TestScrapeProduct:
 
         assert size_cm == "3"
 
-    @patch('scraper.fetch_with_browser')
+    @patch('scrape.scraper.fetch_with_browser')
     def test_scrape_product_missing_h1(self, mock_fetch):
         """Should handle missing h1 element."""
         mock_html = """
@@ -301,7 +301,7 @@ class TestScrapeProduct:
         assert scientific_name == ""
         assert common_name == "Common Name"
 
-    @patch('scraper.fetch_with_browser')
+    @patch('scrape.scraper.fetch_with_browser')
     def test_scrape_product_missing_h2(self, mock_fetch):
         """Should handle missing h2 element."""
         mock_html = """
@@ -321,7 +321,7 @@ class TestScrapeProduct:
         assert common_name == ""
         assert size_cm == ""
 
-    @patch('scraper.fetch_with_browser')
+    @patch('scrape.scraper.fetch_with_browser')
     def test_scrape_product_missing_price(self, mock_fetch):
         """Should handle missing price element."""
         mock_html = """
@@ -339,7 +339,7 @@ class TestScrapeProduct:
 
         assert price_gbp == ""
 
-    @patch('scraper.fetch_with_browser')
+    @patch('scrape.scraper.fetch_with_browser')
     def test_scrape_product_missing_wishlist(self, mock_fetch):
         """Should handle missing wishlist element."""
         mock_html = """
@@ -357,7 +357,7 @@ class TestScrapeProduct:
 
         assert wishlist_count == "0"
 
-    @patch('scraper.fetch_with_browser')
+    @patch('scrape.scraper.fetch_with_browser')
     def test_scrape_product_with_extra_whitespace(self, mock_fetch):
         """Should normalize whitespace in extracted text."""
         mock_html = """
@@ -379,7 +379,7 @@ class TestScrapeProduct:
         assert price_gbp == "25.00"
         assert wishlist_count == "5"
 
-    @patch('scraper.fetch_with_browser')
+    @patch('scrape.scraper.fetch_with_browser')
     def test_scrape_product_with_unicode_characters(self, mock_fetch):
         """Should handle unicode characters in product details."""
         mock_html = """
@@ -399,7 +399,7 @@ class TestScrapeProduct:
         assert scientific_name == "Brachypelma boehmei"
         assert price_gbp == "35.00"
 
-    @patch('scraper.fetch_with_browser')
+    @patch('scrape.scraper.fetch_with_browser')
     def test_scrape_product_zero_wishlist_count(self, mock_fetch):
         """Should handle zero wishlist count."""
         mock_html = """
@@ -418,7 +418,7 @@ class TestScrapeProduct:
 
         assert wishlist_count == "0"
 
-    @patch('scraper.fetch_with_browser')
+    @patch('scrape.scraper.fetch_with_browser')
     def test_scrape_product_single_user_wishlist(self, mock_fetch):
         """Should handle singular wishlist text."""
         mock_html = """
@@ -437,7 +437,7 @@ class TestScrapeProduct:
 
         assert wishlist_count == "1"
 
-    @patch('scraper.fetch_with_browser')
+    @patch('scrape.scraper.fetch_with_browser')
     def test_scrape_product_no_size_in_common_name(self, mock_fetch):
         """Should handle common name without size parenthetical."""
         mock_html = """
@@ -457,7 +457,7 @@ class TestScrapeProduct:
         assert common_name == "Costa Rican Zebra"
         assert size_cm == ""
 
-    @patch('scraper.fetch_with_browser')
+    @patch('scrape.scraper.fetch_with_browser')
     def test_scrape_product_calls_browser_with_correct_parameters(self, mock_fetch):
         """Should call fetch_with_browser with correct selector and timeout."""
         mock_html = "<html><body><h1>Test</h1></body></html>"
@@ -471,7 +471,7 @@ class TestScrapeProduct:
         assert call_args[1]["wait_for_selector"] == ".yith-wcwl-add-to-wishlist__counter"
         assert call_args[1]["timeout"] == 10
 
-    @patch('scraper.fetch_with_browser')
+    @patch('scrape.scraper.fetch_with_browser')
     def test_scrape_product_with_price_formatting(self, mock_fetch):
         """Should handle various price formats."""
         mock_html = """
@@ -490,7 +490,7 @@ class TestScrapeProduct:
 
         assert price_gbp == "1250.50"
 
-    @patch('scraper.fetch_with_browser')
+    @patch('scrape.scraper.fetch_with_browser')
     def test_scrape_product_with_actual_html_structure(self, mock_fetch):
         """Should scrape product using actual Spider Shop HTML structure."""
         mock_html = """

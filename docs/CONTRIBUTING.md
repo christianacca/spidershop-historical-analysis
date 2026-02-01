@@ -341,7 +341,7 @@ For detailed coverage analysis, use the helper scripts:
 python scripts/view_coverage.py
 
 # Check specific module coverage with threshold
-python scripts/check_coverage.py --module=breeder_matrix.py --verbose
+python scripts/check_coverage.py --module=scrape/breeder_matrix.py --verbose
 ```
 
 ---
@@ -659,7 +659,10 @@ python3 scripts/test_website_locally.py --serve --port 3000
 
 ```
 spidershop-historical-analysis/
-├── src/                   # Source code modules
+├── src/
+│   ├── scrape/            # Scraping and analysis modules
+│   ├── shared/            # Shared utilities (config, parsing, etc.)
+│   └── website/           # Static website generation
 ├── tests/                 # Test suite
 ├── .github/workflows/     # CI/CD workflows
 ├── docs/                  # Documentation
@@ -669,18 +672,23 @@ spidershop-historical-analysis/
 └── Makefile              # Build automation
 ```
 
-For a complete list of modules and their purposes, see the project's main README or explore the `src/` directory.
+The codebase is organized around two main tasks:
+- **Scraping/Analysis** (`src/scrape/`) - Weekly data collection and matrix generation
+- **Website Generation** (`src/website/`) - Static site from analysis outputs
+- **Shared utilities** (`src/shared/`) - Common code used by both modules
+
+For detailed module information, see the project's main README or explore the `src/` directory.
 
 ---
 
 ## Code Style
 
 - Follow **PEP 8** conventions
-- Use absolute imports from `src/` modules
+- Use absolute imports with module prefixes (`from shared.config import ...`)
 - Use UTF-8 encoding for file operations
-- Use assertions from `assertions.py` for validation
-- Normalize whitespace with `parsing.normalize_whitespace()`
-- Define regex patterns in `config.py` for reusability
+- Use assertions from `shared.assertions` for validation
+- Normalize whitespace with `shared.parsing.normalize_whitespace()`
+- Define regex patterns in `shared.config` for reusability
 
 ---
 

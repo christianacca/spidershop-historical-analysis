@@ -11,7 +11,7 @@ Tests cover all parsing functions including:
 """
 
 import pytest
-from parsing import (
+from shared.parsing import (
     normalize_whitespace,
     first_cm_parenthetical,
     parse_size_cm,

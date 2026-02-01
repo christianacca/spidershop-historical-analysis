@@ -3,8 +3,8 @@ import os
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
-from assertions import get_summary_path
-from legend_examples import generate_breeder_examples, generate_dealer_examples
+from shared.assertions import get_summary_path
+from scrape.legend_examples import generate_breeder_examples, generate_dealer_examples
 
 # =====================
 # LEGEND
@@ -15,8 +15,8 @@ def write_summary_legend():
     if not summary_path:
         return
 
-    # Set up Jinja2 environment
-    templates_dir = Path(__file__).parent.parent / "templates"
+    # Set up Jinja2 environment - templates are at project root
+    templates_dir = Path(__file__).parent.parent.parent / "templates"
     env = Environment(loader=FileSystemLoader(templates_dir))
     template = env.get_template("legend.md")
     

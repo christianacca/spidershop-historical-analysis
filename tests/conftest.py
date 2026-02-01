@@ -12,7 +12,7 @@ src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
 # Import make_row from legend_examples (production code)
-from legend_examples import make_row
+from scrape.legend_examples import make_row
 
 # Import test helpers
 from test_helpers import (

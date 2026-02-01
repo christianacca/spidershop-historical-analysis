@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-from history import group_by_run, k3
-from assertions import get_summary_path
+from shared.history_utils import group_by_run, k3
+from shared.assertions import get_summary_path
 
 # =====================
 # JOB SUMMARY — PRICING

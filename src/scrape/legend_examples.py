@@ -9,8 +9,8 @@ are then formatted as markdown examples for inclusion in the legend.
 This approach ensures examples are always accurate and stay synchronized with
 the computation logic automatically.
 """
-from breeder_matrix import build_breeder_opportunity_table
-from dealer_matrix import build_dealer_supply_risk_table
+from scrape.breeder_matrix import build_breeder_opportunity_table
+from scrape.dealer_matrix import build_dealer_supply_risk_table
 
 
 def make_row(scrape_datetime, scientific_name, size_cm, price_gbp, wishlist_count="0"):

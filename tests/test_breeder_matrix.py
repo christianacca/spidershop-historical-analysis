@@ -14,7 +14,7 @@ Tests cover all branches including:
 """
 
 import pytest
-from breeder_matrix import build_breeder_opportunity_table
+from scrape.breeder_matrix import build_breeder_opportunity_table
 from conftest import make_row
 
 
@@ -562,8 +562,8 @@ class TestBuildBreederOpportunityTable:
         src_path = Path(__file__).parent.parent / "src"
         sys.path.insert(0, str(src_path))
         
-        from breeder_matrix import write_breeder_outputs
-        from assertions import extract_markdown_section
+        from scrape.breeder_matrix import write_breeder_outputs
+        from shared.assertions import extract_markdown_section
         
         # Create comprehensive test data with varied scenarios
         history = [
@@ -618,7 +618,7 @@ class TestSummaryStatistics:
         """Should include summary statistics line before the table in markdown output."""
         import tempfile
         import os
-        from breeder_matrix import write_breeder_outputs
+        from scrape.breeder_matrix import write_breeder_outputs
         
         # Create table with mix of signals
         table = [
