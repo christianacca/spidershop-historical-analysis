@@ -68,7 +68,7 @@ Snapshot tests are regression detectors. When a snapshot test fails:
 4. **EXPLAIN** - Document what changed and why it's correct
 5. **ONLY THEN** - Update the snapshot if changes are verified as intentional
 
-Snapshot files in `tests/__snapshots__/*.ambr` contain expected outputs. They catch:
+Snapshot files are located in module-specific subdirectories (`tests/scrape_module/__snapshots__/*.ambr`, `tests/website_module/__snapshots__/*.ambr`). They catch:
 - Unintended changes to output format
 - Logic regressions that alter analysis results
 - Documentation changes that affect generated content
@@ -280,7 +280,7 @@ pip install -r requirements-dev.txt
 
 ## Test Utilities
 
-Common test helper functions are available in `tests/test_helpers.py` and exported via `tests/conftest.py`:
+Common test helper functions are available in `tests/helpers/test_helpers.py` and exported via `tests/conftest.py`:
 
 - **File creation helpers**:
   - `create_temp_markdown_file(content)` - Create temporary markdown file

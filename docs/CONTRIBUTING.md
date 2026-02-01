@@ -323,13 +323,13 @@ If you need more control, you can use pytest directly.
 
 ```sh
 # Run specific test file
-pytest tests/test_breeder_matrix.py
+pytest tests/scrape_module/test_breeder_matrix.py
 
 # Run with verbose output
 pytest -v
 
 # Check coverage for specific module
-pytest tests/test_breeder_matrix.py --cov=src.breeder_matrix --cov-report=term-missing
+pytest tests/scrape_module/test_breeder_matrix.py --cov=src.breeder_matrix --cov-report=term-missing
 ```
 
 ### Advanced Coverage Tools
@@ -664,6 +664,10 @@ spidershop-historical-analysis/
 │   ├── shared/            # Shared utilities (config, parsing, etc.)
 │   └── website/           # Static website generation
 ├── tests/                 # Test suite
+│   ├── scrape_module/     # Tests for src/scrape/
+│   ├── shared_module/     # Tests for src/shared/
+│   ├── website_module/    # Tests for src/website/
+│   └── helpers/           # Test utility functions
 ├── .github/workflows/     # CI/CD workflows
 ├── docs/                  # Documentation
 ├── requirements.txt       # Production dependencies

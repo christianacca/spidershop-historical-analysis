@@ -15,7 +15,7 @@ sys.path.insert(0, str(src_path))
 from scrape.legend_examples import make_row
 
 # Import test helpers
-from test_helpers import (
+from helpers.test_helpers import (
     create_temp_markdown_file,
     create_temp_csv_file,
     write_csv_file,
