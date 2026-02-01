@@ -124,7 +124,7 @@ scrape-only: .check-venv clean-cache
 		touch analysis_summary.md && \
 		export GITHUB_STEP_SUMMARY="$$PWD/analysis_summary.md" && \
 		export PYTHONPATH="$$PWD/../../src:$$PYTHONPATH" && \
-		python -m scrape.scrape_spidershop_spiderlings
+		python -m scrape
 	@echo "✅ Scrape complete. CSV files saved to $(TESTING_DIR)/"
 
 generate-website: .check-venv clean-cache

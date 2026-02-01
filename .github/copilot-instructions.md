@@ -345,7 +345,7 @@ Use these helpers to reduce boilerplate and improve test readability.
 
 **CRITICAL**: The location of the generated `website/` folder depends on the working directory when the website generation module is executed:
 
-- **Coding agent / Direct execution**: Running `python src/website/generate_website.py` from project root creates `website/` at **project root level** (same level as `src/`, `tmp/`, `.github/`)
+- **Coding agent / Direct execution**: Running `python -m website` from project root creates `website/` at **project root level** (same level as `src/`, `tmp/`, `.github/`)
 - **GitHub workflow**: Runs from project root → creates `website/` at **project root level** 
 - **Make commands** (developer local testing): Changes to `tmp/local-testing/` first → creates `website/` at **`tmp/local-testing/website/`**
 
@@ -418,7 +418,7 @@ scrape_datetime, scientific_name, common_name, size_cm, price_gbp, wishlist_coun
 
 ### Modifying website generation
 1. Edit `src/website/generate_website.py`
-2. Test locally by running: `python src/website/generate_website.py`
+2. Test locally by running: `python -m website` (with PYTHONPATH set to src/)
 3. Check generated HTML files in `website/` directory
 4. Ensure CSV files are copied to output directory
 5. Verify markdown-to-HTML conversion for analysis sections

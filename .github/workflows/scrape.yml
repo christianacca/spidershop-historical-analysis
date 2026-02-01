@@ -96,7 +96,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}/src
         run: |
-          python -m scrape.scrape_spidershop_spiderlings
+          python -m scrape
           
           # Capture the summary markdown as a step output
           if [ -f "$GITHUB_STEP_SUMMARY" ]; then
