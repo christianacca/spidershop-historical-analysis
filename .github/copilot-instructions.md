@@ -1,5 +1,23 @@
 # Copilot Instructions for spidershop-historical-analysis
 
+## Python Code Hygiene Guidelines
+
+**Descriptive Naming**: Use clear, descriptive names for variables and functions (snake_case) and classes (PascalCase). Avoid nonstandard abbreviations or single-letter names.
+
+**Small, Focused Functions**: Write short functions that each serve a single purpose. Avoid deep nesting or high cyclomatic complexity—split complex logic into helper functions if needed.
+
+**Minimize Side Effects**: Prefer pure functions and immutability whenever possible. Avoid global state or hidden side effects that make code harder to reason about.
+
+**Clean OOP Structure**: Design classes with a single responsibility and clear purpose. Favor composition over deep inheritance to reduce tight coupling and keep logic easy to follow.
+
+**Avoid Duplicate Code**: Do not copy-paste or duplicate logic. Refactor common functionality into reusable functions or methods to keep code DRY.
+
+**Use Type Annotations**: Add Python type hints for function parameters, return values, and important variables. This improves code clarity and catches many issues early.
+
+**Consistent Style and Formatting**: Format code with an auto-formatter (e.g. Black) to enforce PEP 8 standards, and use a linter (like Ruff) to detect issues and ensure consistent style.
+
+**Self-Documenting Code**: Write code that is clear by itself, minimizing the need for inline comments.
+
 ## ⚠️ CRITICAL: Testing Workflow (BLOCKING) ⚠️
 
 **A code change is complete only when all tests pass and coverage meets thresholds (80%).**
