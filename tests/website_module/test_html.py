@@ -455,3 +455,76 @@ class TestGetHtmlFooter:
         js_content = js_file.read_text()
         assert 'toLowerCase' in js_content
         assert 'localeCompare' in js_content
+
+
+class TestSpeciesPageLinking:
+    """Test internal linking to species detail pages for breeder/dealer tables."""
+
+    def test_breeder_table_links_to_species_pages_internally(self):
+        """Breeder tables should link to internal species pages, not external Spider Shop."""
+        headers = ["Species", "Size (cm)", "Signal", "page_url"]
+        rows = [
+            ["Brachypelma hamorii", "2.0", "🔥", "https://example.com/external"],
+        ]
+        
+        html = generate_table_html(headers, rows, "breeder-table", link_to_species_page=True)
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Find the Species column link
+        data_rows = soup.select('tbody tr')
+        first_row = data_rows[0]
+        species_cell = first_row.find_all('td')[0]  # First column
+        link = species_cell.find('a')
+        
+        # Should link to internal species page
+        assert link is not None
+        assert 'species/' in link['href']
+        assert 'brachypelma-hamorii' in link['href']  # Slugified
+        assert '?view=breeder' in link['href'] or '&view=breeder' in link['href']  # Include view parameter
+        assert 'size=2.0' in link['href']  # Include size
+        assert link.text == 'Brachypelma hamorii'
+        
+        # Should NOT be external link (no target="_blank")
+        assert 'target' not in link.attrs or link.get('target') != '_blank'
+
+    def test_dealer_table_links_to_species_pages_internally(self):
+        """Dealer tables should link to internal species pages with dealer view."""
+        headers = ["Species", "Size (cm)", "Dealer Risk", "page_url"]
+        rows = [
+            ["Tliltocatl albopilosus", "1.5", "⚠️", "https://example.com/external"],
+        ]
+        
+        html = generate_table_html(headers, rows, "dealer-table", link_to_species_page=True, table_view="dealer")
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        data_rows = soup.select('tbody tr')
+        first_row = data_rows[0]
+        species_cell = first_row.find_all('td')[0]
+        link = species_cell.find('a')
+        
+        assert link is not None
+        assert 'species/' in link['href']
+        assert 'tliltocatl-albopilosus' in link['href']
+        assert '?view=dealer' in link['href'] or '&view=dealer' in link['href']  # Dealer view parameter
+        assert 'size=1.5' in link['href']
+
+    def test_history_table_keeps_external_links(self):
+        """History tables should keep external Spider Shop links (no change)."""
+        headers = ["scientific_name", "common_name", "page_url"]
+        rows = [
+            ["Brachypelma hamorii", "Mexican Red Knee", "https://thespidershop.co.uk/product/123"],
+        ]
+        
+        # Default behavior (link_to_species_page=False or omitted)
+        html = generate_table_html(headers, rows, "history-table")
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        data_rows = soup.select('tbody tr')
+        first_row = data_rows[0]
+        page_url_cell = first_row.find_all('td')[2]  # Third column
+        link = page_url_cell.find('a')
+        
+        # Should be external link
+        assert link is not None
+        assert link['href'] == 'https://thespidershop.co.uk/product/123'
+        assert link['target'] == '_blank'  # External link behavior

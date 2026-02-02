@@ -1,0 +1,423 @@
+{% extends "base.html" %}
+
+{% block title %}{{ scientific_name }} - Species Detail{% endblock %}
+
+{% block content %}
+<div class="content">
+  <div class="breadcrumbs">
+    {% if default_view == 'breeder' %}
+      <a href="breeder.html">Breeder</a> → <span>Species</span> → <strong>{{ scientific_name }}</strong>
+    {% elif default_view == 'dealer' %}
+      <a href="dealer.html">Dealer</a> → <span>Species</span> → <strong>{{ scientific_name }}</strong>
+    {% else %}
+      <a href="index.html">Home</a> → <span>Species</span> → <strong>{{ scientific_name }}</strong>
+    {% endif %}
+  </div>
+
+  <h2>{{ scientific_name }}</h2>
+  <div class="subtitle">{{ common_name }}</div>
+
+  <div class="badge-row">
+    {% if species_data.breeder %}
+    <span class="badge {% if species_data.breeder.signal == '🔥' %}hot{% elif species_data.breeder.signal == '⚠️' %}watch{% else %}avoid{% endif %}">Breeder Signal: {{ species_data.breeder.signal | default('—') }}</span>
+    {% endif %}
+    {% if species_data.dealer %}
+    <span class="badge {% if species_data.dealer.risk == '🔥' %}hot{% elif species_data.dealer.risk == '⚠️' %}watch{% else %}avoid{% endif %}">Dealer Risk: {{ species_data.dealer.risk | default('—') }}</span>
+    {% endif %}
+    <span class="badge">Showing size: {{ size }}cm</span>
+  </div>
+
+  <div class="meta-row">
+    <div class="meta-note">Pages generated for <strong>current tables only</strong> (Breeder/Dealer CSV outputs), not all historical species.</div>
+  </div>
+
+  <div class="badge-row" style="align-items:center;">
+    <div class="segment" role="tablist" aria-label="Perspective selector">
+      <button id="tab-breeder" role="tab" aria-controls="panel-breeder" 
+              aria-selected="{% if default_view == 'breeder' %}true{% else %}false{% endif %}" 
+              data-view="breeder">Breeder view</button>
+      <button id="tab-dealer" role="tab" aria-controls="panel-dealer" 
+              aria-selected="{% if default_view == 'dealer' %}true{% else %}false{% endif %}" 
+              data-view="dealer">Dealer view</button>
+    </div>
+    <div class="view-hint" id="view-hint">
+      {% if default_view == 'breeder' %}
+        Breeder view: focuses on opportunity signals and scarcity.
+      {% else %}
+        Dealer view: focuses on supply risk, reliability, and restock speed.
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Breeder perspective -->
+  <section id="panel-breeder" role="tabpanel" aria-labelledby="tab-breeder" data-view-section
+           {% if default_view != 'breeder' %}style="display:none;"{% endif %}>
+    {% if species_data.breeder %}
+    <div class="callouts">
+      <strong>Breeder perspective:</strong>
+      {% if species_data.breeder.signal == '🔥' %}
+        Sustained scarcity signal detected. Consider breeding potential if pattern persists.
+      {% elif species_data.breeder.signal == '⚠️' %}
+        Emerging opportunity signal. Monitor for sustained scarcity pattern.
+      {% else %}
+        Always available species. Low breeding opportunity value.
+      {% endif %}
+    </div>
+
+    <div class="summary-stats">
+      <div class="stat-card stat-{% if species_data.breeder.signal == '🔥' %}hot{% elif species_data.breeder.signal == '⚠️' %}watch{% else %}avoid{% endif %}">
+        <div class="stat-value">{{ species_data.breeder.signal | default('—') }}</div>
+        <div class="stat-label">Opportunity Signal</div>
+        <div class="stat-note">Conservative classification</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ species_data.breeder.oos_runs | default('—') }}</div>
+        <div class="stat-label">OOS Runs (Current)</div>
+        <div class="stat-note">Supply-side driver</div>
+      </div>
+      <div class="stat-card stat-{% if species_data.breeder.wishlist_pressure == 'High' %}watch{% endif %}">
+        <div class="stat-value">{{ species_data.breeder.wishlist_pressure | default('—') }}</div>
+        <div class="stat-label">Wishlist Pressure</div>
+        <div class="stat-note">Amplifier only</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ species_data.breeder.wishlist_delta | default('—') }}</div>
+        <div class="stat-label">Wishlist Delta</div>
+        <div class="stat-note">Meaningful change (Δ ≥ +5)</div>
+      </div>
+    </div>
+    {% else %}
+    <p class="meta-note">This species is not present in the breeder opportunity table.</p>
+    {% endif %}
+  </section>
+
+  <!-- Dealer perspective -->
+  <section id="panel-dealer" role="tabpanel" aria-labelledby="tab-dealer" data-view-section
+           {% if default_view != 'dealer' %}style="display:none;"{% endif %}>
+    {% if species_data.dealer %}
+    <div class="callouts">
+      <strong>Dealer perspective:</strong>
+      {% if species_data.dealer.risk == '🔥' %}
+        High supply risk detected. Low reliability and/or slow restock speed.
+      {% elif species_data.dealer.risk == '⚠️' %}
+        Moderate supply risk. Monitor stock reliability and restock patterns.
+      {% else %}
+        Reliable supply. Low restocking risk for dealers.
+      {% endif %}
+    </div>
+
+    <div class="summary-stats">
+      <div class="stat-card stat-{% if species_data.dealer.risk == '🔥' %}hot{% elif species_data.dealer.risk == '⚠️' %}watch{% else %}avoid{% endif %}">
+        <div class="stat-value">{{ species_data.dealer.risk | default('—') }}</div>
+        <div class="stat-label">Supply Risk</div>
+        <div class="stat-note">Conservative classification</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ species_data.dealer.stock_reliability | default('—') }}</div>
+        <div class="stat-label">Stock Reliability</div>
+        <div class="stat-note">IN consistency matters</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ species_data.dealer.restock_speed | default('—') }}</div>
+        <div class="stat-label">Restock Speed</div>
+        <div class="stat-note">Avg OOS duration proxy</div>
+      </div>
+      <div class="stat-card stat-{% if species_data.dealer.wishlist_pressure == 'High' %}watch{% endif %}">
+        <div class="stat-value">{{ species_data.dealer.wishlist_pressure | default('—') }}</div>
+        <div class="stat-label">Demand Context</div>
+        <div class="stat-note">Wishlist is a modifier</div>
+      </div>
+    </div>
+    {% else %}
+    <p class="meta-note">This species is not present in the dealer supply risk table.</p>
+    {% endif %}
+  </section>
+
+  <!-- Evidence section (shared) -->
+  <div class="section-title">Evidence <span class="shared-tag">Shared</span></div>
+  <div class="section-subtitle">Charts and history table: the "source of truth" regardless of perspective.</div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <h3>Price Trend (last 26 runs)</h3>
+      <div class="panel-sub">Shows price evolution over time. Gaps indicate "not observed" (out of stock).</div>
+      <div class="chart-frame">
+        <div id="price-chart"></div>
+        <div class="chart-legend">
+          <span><span class="legend-dot" style="background:#3498db"></span>Price (GBP)</span>
+          <span><span class="legend-dot" style="background:#94a3b8"></span>Gaps indicate not observed</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Wishlist Trend (last 26 runs)</h3>
+      <div class="panel-sub">Conservative framing: wishlist modifies urgency, never triggers alone.</div>
+      <div class="chart-frame">
+        <div id="wishlist-chart"></div>
+        <div class="chart-legend">
+          <span><span class="legend-dot" style="background:#16a34a"></span>Wishlist count</span>
+          <span><span class="legend-dot" style="background:#94a3b8"></span>Only recorded when observed</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="stock-strip" style="grid-column: 1 / -1;" aria-label="Observed timeline">
+      <div class="stock-strip-title">Observed timeline (26 runs)</div>
+      <div id="stock-strip"></div>
+      <div class="stock-legend">
+        <span><span class="legend-swatch" style="background:#dcfce7; border-color:#16a34a"></span>Observed (listed in scrape)</span>
+        <span><span class="legend-swatch" style="background:#f1f5f9; border-color:#94a3b8"></span>Not observed (gap)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top: 20px;">
+    <h3>Observed history (last 26 runs)</h3>
+    <div class="panel-sub">Only observations are stored (rows exist only when present in the history CSV). This view shows observations within the last 26 runs.</div>
+    
+    {% if chart_data.runs %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Scrape Date</th>
+          <th>Size (cm)</th>
+          <th>Price (GBP)</th>
+          <th>Wishlist Count</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for run in chart_data.runs %}
+        {% if run.observed %}
+        <tr>
+          <td>{{ run.date }}</td>
+          <td>{{ size }}</td>
+          <td>£{{ run.price }}</td>
+          <td>{{ run.wishlist }}</td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+    <div style="margin-top: 10px; color:#607080; font-size:0.92rem;">
+      "Not observed" runs show up as gaps in the charts/strip rather than rows in this table.
+    </div>
+    {% else %}
+    <p class="meta-note">No historical observations found for this species and size.</p>
+    {% endif %}
+
+    <div class="actions">
+      <a id="back-breeder" class="btn secondary {% if default_view == 'breeder' %}origin-btn{% endif %}" href="breeder.html">← Back to Breeder Table</a>
+      <a id="back-dealer" class="btn secondary {% if default_view == 'dealer' %}origin-btn{% endif %}" href="dealer.html">← Back to Dealer Table</a>
+      {% if page_url %}
+      <a class="btn" href="{{ page_url }}" target="_blank" rel="noopener noreferrer">Open SpiderShop Listing ↗</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+// Tab switching
+document.querySelectorAll('[role="tab"]').forEach(tab => {
+  tab.addEventListener('click', (e) => {
+    const view = e.target.dataset.view;
+    
+    // Update tabs
+    document.querySelectorAll('[role="tab"]').forEach(t => {
+      t.setAttribute('aria-selected', 'false');
+    });
+    e.target.setAttribute('aria-selected', 'true');
+    
+    // Update panels
+    document.querySelectorAll('[role="tabpanel"]').forEach(panel => {
+      panel.style.display = 'none';
+    });
+    document.getElementById(`panel-${view}`).style.display = 'block';
+    
+    // Update hint text
+    const hint = document.getElementById('view-hint');
+    hint.textContent = view === 'breeder'
+      ? 'Breeder view: focuses on opportunity signals and scarcity.'
+      : 'Dealer view: focuses on supply risk, reliability, and restock speed.';
+    
+    // Update URL
+    const url = new URL(window.location);
+    url.searchParams.set('view', view);
+    window.history.pushState({}, '', url);
+  });
+});
+
+// Initialize view from URL on load
+const urlParams = new URLSearchParams(window.location.search);
+const viewParam = urlParams.get('view');
+if (viewParam && (viewParam === 'breeder' || viewParam === 'dealer')) {
+  const tab = document.querySelector(`[data-view="${viewParam}"]`);
+  if (tab) tab.click();
+}
+
+// Chart rendering functions
+const DEFAULT_RUN_WINDOW = 26;
+const chartData = {{ chart_data | tojson }};
+
+function renderLineChart({ containerId, series, stroke, yMin, yMax, yLabelTop, yLabelMid, yLabelLow, yLabelBottom, formatValue }) {
+  const container = document.getElementById(containerId);
+  const width = 640;
+  const height = 180;
+  const left = 40;
+  const right = 620;
+  const top = 20;
+  const bottom = 150;
+
+  const n = series.length;
+  const dx = n > 1 ? (right - left) / (n - 1) : 0;
+
+  const fmt = formatValue || ((v) => String(v));
+
+  const points = [];
+  const circles = [];
+  for (let i = 0; i < n; i++) {
+    const x = left + i * dx;
+    const v = series[i];
+    if (v == null) {
+      points.push(null);
+      continue;
+    }
+    const t = (v - yMin) / (yMax - yMin);
+    const y = bottom - t * (bottom - top);
+    points.push([x, Math.max(top, Math.min(bottom, y))]);
+  }
+
+  // Build polyline with gaps
+  const segments = [];
+  let current = [];
+  for (const p of points) {
+    if (!p) {
+      if (current.length >= 2) segments.push(current);
+      current = [];
+      continue;
+    }
+    current.push(p);
+  }
+  if (current.length >= 2) segments.push(current);
+
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    if (!p) continue;
+    const v = series[i];
+    const title = `Run ${i + 1} — ${fmt(v)}`;
+    circles.push(`<circle cx="${p[0].toFixed(2)}" cy="${p[1].toFixed(2)}" r="3.6"><title>${title}</title></circle>`);
+  }
+
+  const poly = segments.map(seg => {
+    const pts = seg.map(p => `${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(' ');
+    return `<polyline fill="none" stroke="${stroke}" stroke-width="3" points="${pts}" />`;
+  }).join('');
+
+  container.innerHTML = `
+    <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" role="img">
+      <rect x="0" y="0" width="${width}" height="${height}" fill="#fafafa" />
+      <g stroke="#e5e7eb" stroke-width="1">
+        <line x1="${left}" y1="${top}" x2="${left}" y2="${bottom}" />
+        <line x1="${left}" y1="${bottom}" x2="${right}" y2="${bottom}" />
+        <line x1="${left}" y1="110" x2="${right}" y2="110" />
+        <line x1="${left}" y1="70" x2="${right}" y2="70" />
+        <line x1="${left}" y1="30" x2="${right}" y2="30" />
+      </g>
+      ${poly}
+      <g fill="${stroke}">${circles.join('')}</g>
+      <g fill="#607080" font-size="12" font-family="inherit">
+        <text x="${left}" y="168">old</text>
+        <text x="${right}" y="168" text-anchor="end">recent</text>
+        <text x="10" y="34">${yLabelTop}</text>
+        <text x="10" y="74">${yLabelMid}</text>
+        <text x="10" y="114">${yLabelLow}</text>
+        <text x="10" y="154">${yLabelBottom}</text>
+      </g>
+    </svg>
+  `;
+}
+
+function renderStockStrip() {
+  const container = document.getElementById('stock-strip');
+  const width = 640;
+  const height = 34;
+  const left = 40;
+  const right = 620;
+
+  const observed = chartData.runs.map(r => r.observed);
+  const n = observed.length;
+  const available = right - left;
+  const gap = 4;
+  const blockWidth = Math.max(10, Math.floor((available - gap * (n - 1)) / n));
+  const extra = available - (blockWidth * n + gap * (n - 1));
+  const startX = left + Math.floor(extra / 2);
+
+  let x = startX;
+  const rects = [];
+  for (let i = 0; i < n; i++) {
+    const obs = observed[i];
+    const fill = obs ? '#dcfce7' : '#f1f5f9';
+    const stroke = obs ? '#16a34a' : '#94a3b8';
+    const label = obs ? 'observed' : 'not observed (gap)';
+    const title = `Run ${i + 1} — ${label}`;
+    rects.push(`<rect x="${x}" y="9" width="${blockWidth}" height="14" fill="${fill}" stroke="${stroke}"><title>${title}</title></rect>`);
+    x += blockWidth + gap;
+  }
+
+  container.innerHTML = `
+    <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Stock timeline barcode">
+      <rect x="0" y="0" width="${width}" height="${height}" fill="#ffffff" />
+      <line x1="${left}" y1="28" x2="${right}" y2="28" stroke="#e5e7eb" stroke-width="1" />
+      <g>${rects.join('')}</g>
+    </svg>
+  `;
+}
+
+// Extract price and wishlist arrays from chart_data
+const prices = chartData.runs.map(r => r.observed ? parseFloat(r.price) : null);
+const wishlists = chartData.runs.map(r => r.observed ? parseInt(r.wishlist) : null);
+
+// Calculate min/max for price chart
+const validPrices = prices.filter(p => p !== null);
+const priceMin = validPrices.length ? Math.floor(Math.min(...validPrices) / 5) * 5 : 0;
+const priceMax = validPrices.length ? Math.ceil(Math.max(...validPrices) / 5) * 5 + 5 : 50;
+const priceMid = Math.round((priceMin + priceMax) / 2);
+
+// Calculate min/max for wishlist chart
+const validWishlists = wishlists.filter(w => w !== null);
+const wishlistMin = validWishlists.length ? Math.floor(Math.min(...validWishlists) / 10) * 10 : 0;
+const wishlistMax = validWishlists.length ? Math.ceil(Math.max(...validWishlists) / 10) * 10 + 10 : 100;
+const wishlistMid = Math.round((wishlistMin + wishlistMax) / 2);
+
+// Render charts
+if (chartData.runs.length > 0) {
+  renderLineChart({
+    containerId: 'price-chart',
+    series: prices,
+    stroke: '#3498db',
+    formatValue: (v) => `£${Number(v).toFixed(2)}`,
+    yMin: priceMin,
+    yMax: priceMax,
+    yLabelTop: `£${priceMax}`,
+    yLabelMid: `£${priceMid}`,
+    yLabelLow: `£${Math.round((priceMin + priceMid) / 2)}`,
+    yLabelBottom: `£${priceMin}`
+  });
+
+  renderLineChart({
+    containerId: 'wishlist-chart',
+    series: wishlists,
+    stroke: '#16a34a',
+    formatValue: (v) => `${Number(v)}`,
+    yMin: wishlistMin,
+    yMax: wishlistMax,
+    yLabelTop: `${wishlistMax}`,
+    yLabelMid: `${wishlistMid}`,
+    yLabelLow: `${Math.round((wishlistMin + wishlistMid) / 2)}`,
+    yLabelBottom: `${wishlistMin}`
+  });
+
+  renderStockStrip();
+}
+</script>
+{% endblock %}

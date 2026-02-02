@@ -31,3 +31,5 @@ class PageConfig:
     analysis_markdown: Optional[str] = None
     legend_markdown: Optional[str] = None
     examples_markdown: Optional[str] = None
+    link_to_species_page: bool = False  # Whether to link Species column to internal pages
+    table_view: str = "breeder"  # View parameter for species page links ("breeder" or "dealer")

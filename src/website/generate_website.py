@@ -57,6 +57,15 @@ try:
         jinja_env,
     )
     from website.csv_utils import read_csv_file
+    from website.species_detail import (
+        get_species_list,
+        slugify_species,
+        get_species_data,
+        build_chart_data,
+        get_default_size,
+        get_page_url,
+        generate_species_page,
+    )
 except ModuleNotFoundError:
     from page_config import PageConfig
     from sparkline_conversion import (
@@ -169,6 +178,8 @@ def generate_data_page(config: PageConfig) -> str:
     # Find column indices for special rendering
     page_url_idx = None
     scientific_name_idx = None
+    species_idx = None
+    size_idx = None
     signal_col_idx = None
     stock_pattern_col_idx = None
     if headers:
@@ -177,6 +188,14 @@ def generate_data_page(config: PageConfig) -> str:
             scientific_name_idx = headers.index('scientific_name')
         except ValueError:
             pass
+        
+        # For breeder/dealer tables with species page linking
+        if config.link_to_species_page:
+            try:
+                species_idx = headers.index('Species')
+                size_idx = headers.index('Size (cm)')
+            except ValueError:
+                pass  # Not a breeder/dealer table
         
         # Find Signal or Dealer Risk column for color-coding
         try:
@@ -236,11 +255,120 @@ def generate_data_page(config: PageConfig) -> str:
         sortable=True,
         page_url_idx=page_url_idx,
         scientific_name_idx=scientific_name_idx,
+        species_idx=species_idx,
+        size_idx=size_idx,
+        link_to_species_page=config.link_to_species_page,
+        table_view=config.table_view,
         signal_col_idx=signal_col_idx,
         stock_pattern_col_idx=stock_pattern_col_idx,
         stock_pattern_counts=stock_pattern_counts,
         timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     )
+
+
+def _build_common_name_map(history_csv: str) -> dict:
+    """
+    Build a mapping of scientific names to common names from history CSV.
+    
+    Args:
+        history_csv: Path to history CSV file
+        
+    Returns:
+        Dict mapping scientific names to common names
+    """
+    history_headers, history_rows = read_csv_file(history_csv)
+    common_name_map = {}
+    
+    if history_headers and history_rows:
+        sci_idx = history_headers.index("scientific_name")
+        common_idx = history_headers.index("common_name")
+        for row in history_rows:
+            if sci_idx < len(row) and common_idx < len(row):
+                common_name_map[row[sci_idx]] = row[common_idx]
+    
+    return common_name_map
+
+
+def generate_species_pages() -> int:
+    """Generate individual species detail pages.
+    
+    Returns:
+        Number of species pages generated
+    """
+    # Use already-imported functions from top of module
+    # (Imports at top work because this function is called after module initialization)
+    
+    # Create species subdirectory
+    species_dir = OUTPUT_DIR / "species"
+    species_dir.mkdir(exist_ok=True)
+    
+    # Get unique species list from breeder and dealer CSVs
+    breeder_csv = "breeder_opportunity_table.csv"
+    dealer_csv = "dealer_supply_risk_table.csv"
+    history_csv = "spidershop_spiderlings_history.csv"
+    
+    # Check if CSVs exist
+    if not os.path.exists(breeder_csv) and not os.path.exists(dealer_csv):
+        print("  ⚠️ No breeder or dealer CSVs found, skipping species pages")
+        return 0
+    
+    if not os.path.exists(history_csv):
+        print("  ⚠️ No history CSV found, skipping species pages")
+        return 0
+    
+    # Get species list
+    species_list = get_species_list(
+        breeder_csv_path=breeder_csv if os.path.exists(breeder_csv) else None,
+        dealer_csv_path=dealer_csv if os.path.exists(dealer_csv) else None
+    )
+    
+    if not species_list:
+        print("  ⚠️ No species found in current tables")
+        return 0
+    
+    print(f"  Generating {len(species_list)} species pages...")
+    
+    # Build common name mapping from history
+    common_name_map = _build_common_name_map(history_csv)
+    
+    # Generate each species page
+    for scientific_name, size in species_list:
+        slug = slugify_species(scientific_name)
+        common_name = common_name_map.get(scientific_name, "")
+        
+        # Get species data from all CSVs
+        species_data = get_species_data(
+            scientific_name, size,
+            breeder_csv, dealer_csv, history_csv
+        )
+        
+        # Build chart data (last 26 runs)
+        chart_data = build_chart_data(scientific_name, size, history_csv)
+        
+        # Get page URL from most recent observation
+        page_url = get_page_url(scientific_name, size, history_csv)
+        
+        # Determine default view based on which table has data
+        default_view = "breeder" if species_data["breeder"] else "dealer"
+        
+        # Generate page HTML
+        html = generate_species_page(
+            scientific_name=scientific_name,
+            common_name=common_name,
+            size=size,
+            species_data=species_data,
+            chart_data=chart_data,
+            page_url=page_url,
+            default_view=default_view
+        )
+        
+        # Write to file
+        output_path = species_dir / f"{slug}.html"
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(html)
+    
+    print(f"    Generated {len(species_list)} species pages in species/ directory")
+    return len(species_list)
 
 
 def main() -> None:
@@ -307,7 +435,9 @@ def main() -> None:
             active_page="breeder",
             analysis_markdown=breeder_analysis,
             legend_markdown=breeder_legend,
-            examples_markdown=breeder_examples
+            examples_markdown=breeder_examples,
+            link_to_species_page=True,
+            table_view="breeder"
         )))
     
     # Generate dealer supply risk page
@@ -321,8 +451,14 @@ def main() -> None:
             active_page="dealer",
             analysis_markdown=dealer_analysis,
             legend_markdown=dealer_legend,
-            examples_markdown=dealer_examples
+            examples_markdown=dealer_examples,
+            link_to_species_page=True,
+            table_view="dealer"
         )))
+    
+    # Generate species detail pages
+    print("  Generating species detail pages...")
+    species_count = generate_species_pages()
     
     # Copy CSV files to output directory
     print("  Copying CSV files...")
@@ -352,7 +488,7 @@ def main() -> None:
         print(f"    Copied table-interactions.js")
     
     print(f"\n✅ Website generated successfully in '{OUTPUT_DIR}' directory")
-    print(f"   Total HTML pages: 5")
+    print(f"   Total HTML pages: {5 + species_count} (5 main pages + {species_count} species pages)")
 
 
 if __name__ == "__main__":
