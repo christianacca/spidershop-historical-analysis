@@ -183,6 +183,9 @@ def test_site_smoke_breeder_and_dealer_detail_flows(request) -> None:
         httpd.shutdown()
         thread.join(timeout=2)
 
+    # 🧪 INTENTIONAL FAILURE: inject fake error to test trace artifact upload
+    bad_responses.append("🧪 FAKE ERROR: Testing trace upload in CI")
+
     # Keep trace on failure for debugging
     has_errors = page_errors or console_errors or bad_responses
     if has_errors:
@@ -195,6 +198,3 @@ def test_site_smoke_breeder_and_dealer_detail_flows(request) -> None:
     assert not page_errors, "Page errors:\n" + "\n".join(page_errors)
     assert not console_errors, "Console errors:\n" + "\n".join(console_errors)
     assert not bad_responses, "Bad local responses:\n" + "\n".join(bad_responses)
-    
-    # 🧪 INTENTIONAL FAILURE: Testing e2e trace artifact upload in CI
-    assert False, "🧪 Intentionally failing to verify CI trace artifact upload works"
