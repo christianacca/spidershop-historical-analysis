@@ -2,15 +2,19 @@
 
 {% block title %}{{ scientific_name }} - Species Detail{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ path_prefix }}species-detail.css">
+{% endblock %}
+
 {% block content %}
 <div class="content">
   <div class="breadcrumbs">
     {% if default_view == 'breeder' %}
-      <a href="breeder.html">Breeder</a> → <span>Species</span> → <strong>{{ scientific_name }}</strong>
+      <a href="{{ path_prefix }}breeder.html">Breeder</a> → <span>Species</span> → <strong>{{ scientific_name }}</strong>
     {% elif default_view == 'dealer' %}
-      <a href="dealer.html">Dealer</a> → <span>Species</span> → <strong>{{ scientific_name }}</strong>
+      <a href="{{ path_prefix }}dealer.html">Dealer</a> → <span>Species</span> → <strong>{{ scientific_name }}</strong>
     {% else %}
-      <a href="index.html">Home</a> → <span>Species</span> → <strong>{{ scientific_name }}</strong>
+      <a href="{{ path_prefix }}index.html">Home</a> → <span>Species</span> → <strong>{{ scientific_name }}</strong>
     {% endif %}
   </div>
 
@@ -207,8 +211,8 @@
     {% endif %}
 
     <div class="actions">
-      <a id="back-breeder" class="btn secondary {% if default_view == 'breeder' %}origin-btn{% endif %}" href="breeder.html">← Back to Breeder Table</a>
-      <a id="back-dealer" class="btn secondary {% if default_view == 'dealer' %}origin-btn{% endif %}" href="dealer.html">← Back to Dealer Table</a>
+      <a id="back-breeder" class="btn secondary {% if default_view == 'breeder' %}origin-btn{% endif %}" href="{{ path_prefix }}breeder.html">← Back to Breeder Table</a>
+      <a id="back-dealer" class="btn secondary {% if default_view == 'dealer' %}origin-btn{% endif %}" href="{{ path_prefix }}dealer.html">← Back to Dealer Table</a>
       {% if page_url %}
       <a class="btn" href="{{ page_url }}" target="_blank" rel="noopener noreferrer">Open SpiderShop Listing ↗</a>
       {% endif %}
@@ -239,6 +243,14 @@ document.querySelectorAll('[role="tab"]').forEach(tab => {
     hint.textContent = view === 'breeder'
       ? 'Breeder view: focuses on opportunity signals and scarcity.'
       : 'Dealer view: focuses on supply risk, reliability, and restock speed.';
+
+    // Highlight the correct origin button
+    const backBreeder = document.getElementById('back-breeder');
+    const backDealer = document.getElementById('back-dealer');
+    if (backBreeder && backDealer) {
+      backBreeder.classList.toggle('origin-btn', view === 'breeder');
+      backDealer.classList.toggle('origin-btn', view === 'dealer');
+    }
     
     // Update URL
     const url = new URL(window.location);

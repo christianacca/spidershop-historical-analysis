@@ -131,3 +131,103 @@ jobs:
           else
             echo "✅ Coverage ${COVERAGE}% meets threshold ${THRESHOLD}%"
           fi
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    # Always run on master pushes (after PR merge), conditionally on PR branches
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Needed for changed-files detection
+
+      - name: Detect changed files
+        id: changes
+        uses: tj-actions/changed-files@v44
+        with:
+          files_yaml: |
+            website:
+              - 'src/website/**'
+            templates:
+              - 'templates/**'
+            e2e_tests:
+              - 'tests/e2e/**'
+          # For PRs: compare entire PR branch against base (master)
+          # For pushes to master: compare current commit against previous
+          base_sha: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+
+      - name: Check if e2e tests should run
+        id: should-run
+        run: |
+          # Always run on master pushes
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "should-run=true" >> $GITHUB_OUTPUT
+            echo "✅ Running e2e tests (master branch push)"
+            exit 0
+          fi
+          
+          # On PRs: only run if relevant files changed
+          if [[ "${{ steps.changes.outputs.website_any_changed }}" == "true" ]] || \
+             [[ "${{ steps.changes.outputs.templates_any_changed }}" == "true" ]] || \
+             [[ "${{ steps.changes.outputs.e2e_tests_any_changed }}" == "true" ]]; then
+            echo "should-run=true" >> $GITHUB_OUTPUT
+            echo "✅ Running e2e tests (relevant files changed)"
+          else
+            echo "should-run=false" >> $GITHUB_OUTPUT
+            echo "⏭️  Skipping e2e tests (no relevant file changes)"
+          fi
+
+      - name: Set up Python
+        if: steps.should-run.outputs.should-run == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        if: steps.should-run.outputs.should-run == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run E2E smoke tests
+        if: steps.should-run.outputs.should-run == 'true'
+        run: |
+          python -m playwright install chromium
+          RUN_E2E=1 pytest tests/e2e -m e2e -v
+
+      - name: Upload E2E traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-traces
+          path: |
+            tmp/e2e-trace.zip
+            website/
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Generate trace report link
+        if: failure()
+        run: |
+          echo "## 🔍 E2E Test Failure" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Download the \`e2e-traces\` artifact to debug:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "# 1. Download the e2e-traces artifact from this workflow run" >> $GITHUB_STEP_SUMMARY
+          echo "# 2. Extract it" >> $GITHUB_STEP_SUMMARY
+          echo "# 3. View the trace:" >> $GITHUB_STEP_SUMMARY
+          echo "playwright show-trace tmp/e2e-trace.zip" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The trace viewer shows:" >> $GITHUB_STEP_SUMMARY
+          echo "- 📸 Screenshots of every action" >> $GITHUB_STEP_SUMMARY
+          echo "- 🌐 Network activity" >> $GITHUB_STEP_SUMMARY
+          echo "- 📊 DOM snapshots at each step" >> $GITHUB_STEP_SUMMARY
+          echo "- ⏱️ Timeline of all operations" >> $GITHUB_STEP_SUMMARY

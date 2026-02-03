@@ -39,8 +39,18 @@ __all__ = [
 ]
 
 
+def pytest_addoption(parser):
+    """Add command-line options for test configuration."""
+    parser.addoption(
+        "--headed",
+        action="store_true",
+        default=False,
+        help="Run Playwright tests in headed mode (visible browser)",
+    )
+
+
 @pytest.fixture(autouse=True)
-def isolate_test_execution(tmp_path, monkeypatch):
+def isolate_test_execution(request, tmp_path, monkeypatch):
     """
     Isolate test execution to prevent file pollution in project root.
     
@@ -53,9 +63,14 @@ def isolate_test_execution(tmp_path, monkeypatch):
     project root directory. All file operations in tests will be relative
     to the temporary directory, which is automatically cleaned up.
     
-    Tests can explicitly opt-out by using monkeypatch.chdir() to change
-    to a different directory if needed.
+    E2E tests are excluded from isolation as they need to run from project root
+    to match CI behavior and generate artifacts in expected locations.
     """
+    # Skip isolation for e2e tests (they need to run from project root)
+    if "e2e" in request.keywords:
+        yield
+        return
+    
     # Save original directory
     original_dir = Path.cwd()
     

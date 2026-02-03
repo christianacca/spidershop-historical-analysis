@@ -95,6 +95,7 @@ def generate_homepage(last_scrape_time: Optional[str] = None) -> str:
     return template.render(
         active_page='home',
         last_scrape_time=last_scrape_time,
+        path_prefix="",
         timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     )
 
@@ -241,6 +242,7 @@ def generate_data_page(config: PageConfig) -> str:
         csv_filename=config.csv_filename,
         table_id=config.table_id,
         active_page=config.active_page,
+        path_prefix="",
         search_filter=config.search_filter,
         analysis_html=analysis_html,
         summary_stats=summary_stats,
@@ -486,6 +488,16 @@ def main() -> None:
         with open(OUTPUT_DIR / "table-interactions.js", "w", encoding="utf-8") as dst:
             dst.write(content)
         print(f"    Copied table-interactions.js")
+    
+    # Copy CSS file for species detail pages
+    print("  Copying CSS files...")
+    css_source = Path(__file__).parent.parent.parent / "templates" / "species-detail.css"
+    if css_source.exists():
+        with open(css_source, "r", encoding="utf-8") as src:
+            content = src.read()
+        with open(OUTPUT_DIR / "species-detail.css", "w", encoding="utf-8") as dst:
+            dst.write(content)
+        print(f"    Copied species-detail.css")
     
     print(f"\n✅ Website generated successfully in '{OUTPUT_DIR}' directory")
     print(f"   Total HTML pages: {5 + species_count} (5 main pages + {species_count} species pages)")
