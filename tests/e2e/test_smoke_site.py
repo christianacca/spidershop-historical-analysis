@@ -183,9 +183,6 @@ def test_site_smoke_breeder_and_dealer_detail_flows(request) -> None:
         httpd.shutdown()
         thread.join(timeout=2)
 
-    # 🧪 INTENTIONAL FAILURE: inject fake error to test trace artifact upload
-    bad_responses.append("🧪 FAKE ERROR: Testing trace upload in CI")
-
     # Keep trace on failure for debugging
     has_errors = page_errors or console_errors or bad_responses
     if has_errors:
