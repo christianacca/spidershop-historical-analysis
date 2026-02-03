@@ -441,6 +441,38 @@ class TestGenerateSpeciesPage:
         assert 'data-view="breeder"' in html
         assert 'data-view="dealer"' in html
 
+    def test_toggles_origin_button_highlight_based_on_selected_view(self):
+        """Should include JS that highlights the correct 'Back to ...' button.
+
+        This is a subtle regression surface: species pages are static HTML, but
+        the initial view can be set via `?view=dealer` links from the dealer table.
+        The page must update the highlighted origin button accordingly.
+        """
+        from website.species_detail import generate_species_page
+
+        species_data = {
+            "breeder": {"signal": "🔥"},
+            "dealer": {"risk": "⚠️"},
+        }
+        chart_data = {"runs": []}
+
+        html = generate_species_page(
+            "Aphonopelma seemanni",
+            "Common Name",
+            "1.5",
+            species_data,
+            chart_data,
+        )
+
+        assert 'id="back-breeder"' in html
+        assert 'id="back-dealer"' in html
+
+        # Implementation detail: we expect the JS to add/remove the origin-btn class.
+        assert "origin-btn" in html
+        assert "classList.toggle('origin-btn'" in html or 'classList.toggle("origin-btn"' in html
+        assert "backBreeder" in html
+        assert "backDealer" in html
+
 
 class TestGetPageUrl:
     """Tests for get_page_url function."""

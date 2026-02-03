@@ -243,6 +243,14 @@ document.querySelectorAll('[role="tab"]').forEach(tab => {
     hint.textContent = view === 'breeder'
       ? 'Breeder view: focuses on opportunity signals and scarcity.'
       : 'Dealer view: focuses on supply risk, reliability, and restock speed.';
+
+    // Highlight the correct origin button
+    const backBreeder = document.getElementById('back-breeder');
+    const backDealer = document.getElementById('back-dealer');
+    if (backBreeder && backDealer) {
+      backBreeder.classList.toggle('origin-btn', view === 'breeder');
+      backDealer.classList.toggle('origin-btn', view === 'dealer');
+    }
     
     // Update URL
     const url = new URL(window.location);
