@@ -195,3 +195,6 @@ def test_site_smoke_breeder_and_dealer_detail_flows(request) -> None:
     assert not page_errors, "Page errors:\n" + "\n".join(page_errors)
     assert not console_errors, "Console errors:\n" + "\n".join(console_errors)
     assert not bad_responses, "Bad local responses:\n" + "\n".join(bad_responses)
+    
+    # 🧪 INTENTIONAL FAILURE: Testing e2e trace artifact upload in CI
+    assert False, "🧪 Intentionally failing to verify CI trace artifact upload works"
