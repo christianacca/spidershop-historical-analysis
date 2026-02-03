@@ -144,6 +144,7 @@ def get_base_html_template(title: str, active_page: str = "") -> str:
     html = template.render(
         title=title,
         active_page=active_page,
+        path_prefix="",
         timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     )
     # Return everything up to (and including) the third <div class="container">

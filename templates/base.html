@@ -755,11 +755,11 @@
     <nav>
         <div class="container">
             <ul>
-                <li><a href="index.html" class="{% if active_page == 'home' %}active{% endif %}">Home</a></li>
-                <li><a href="snapshot.html" class="{% if active_page == 'snapshot' %}active{% endif %}">Latest Snapshot</a></li>
-                <li><a href="history.html" class="{% if active_page == 'history' %}active{% endif %}">Historical Data</a></li>
-                <li><a href="breeder.html" class="{% if active_page == 'breeder' %}active{% endif %}">Breeder Opportunities</a></li>
-                <li><a href="dealer.html" class="{% if active_page == 'dealer' %}active{% endif %}">Dealer Supply Risk</a></li>
+                <li><a href="{{ path_prefix }}index.html" class="{% if active_page == 'home' %}active{% endif %}">Home</a></li>
+                <li><a href="{{ path_prefix }}snapshot.html" class="{% if active_page == 'snapshot' %}active{% endif %}">Latest Snapshot</a></li>
+                <li><a href="{{ path_prefix }}history.html" class="{% if active_page == 'history' %}active{% endif %}">Historical Data</a></li>
+                <li><a href="{{ path_prefix }}breeder.html" class="{% if active_page == 'breeder' %}active{% endif %}">Breeder Opportunities</a></li>
+                <li><a href="{{ path_prefix }}dealer.html" class="{% if active_page == 'dealer' %}active{% endif %}">Dealer Supply Risk</a></li>
             </ul>
         </div>
     </nav>
@@ -774,6 +774,6 @@
         <p>Generated: {{ timestamp }}</p>
     </footer>
     
-    <script src="table-interactions.js"></script>
+    <script src="{{ path_prefix }}table-interactions.js"></script>
 </body>
 </html>

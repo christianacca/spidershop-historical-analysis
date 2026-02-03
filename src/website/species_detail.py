@@ -358,7 +358,8 @@ def generate_species_page(
         species_data=species_data,
         chart_data=chart_data,
         page_url=page_url,
-        default_view=default_view
+        default_view=default_view,
+        path_prefix="../",
     )
     
     return html
