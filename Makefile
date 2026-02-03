@@ -12,7 +12,7 @@
 #   All commands automatically activate the .venv virtual environment
 #   Ensure .venv exists and has dependencies installed first
 
-.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only clean-cache clean-artifacts clean-all test test-file test-snapshots test-snapshots-diff test-update-snapshots coverage .check-venv .check-gh
+.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only clean-cache clean-artifacts clean-all test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e e2e-install coverage .check-venv .check-gh
 
 # Shell configuration
 SHELL := /bin/bash
@@ -54,6 +54,8 @@ help:
 	@echo "  make test-snapshots         Run snapshot tests only"
 	@echo "  make test-snapshots-diff    Show detailed diffs for snapshot tests"
 	@echo "  make test-update-snapshots  Update all snapshots (review diffs first!)"
+	@echo "  make e2e-install            Install Playwright Chromium browser"
+	@echo "  make test-e2e               Run Playwright smoke tests (explicit)"
 	@echo "  make coverage               View coverage report in browser"
 	@echo ""
 	@echo "Examples:"
@@ -176,6 +178,15 @@ test-snapshots-diff: .check-venv
 test-update-snapshots: .check-venv
 	@echo "⚠️  Updating all snapshots. Ensure you've reviewed changes first!"
 	source $(VENV)/bin/activate && pytest --snapshot-update
+
+e2e-install: .check-venv
+	@echo "📦 Installing Playwright Chromium browser..."
+	source $(VENV)/bin/activate && python -m playwright install chromium
+	@echo "✅ Playwright Chromium installed"
+
+test-e2e: .check-venv e2e-install
+	@echo "🧪 Running Playwright e2e smoke tests..."
+	source $(VENV)/bin/activate && RUN_E2E=1 pytest tests/e2e -m e2e -v
 
 coverage:
 	@echo "Opening coverage report in browser..."

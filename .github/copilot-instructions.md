@@ -30,6 +30,35 @@
 1. `make test` (all tests with coverage)
 2. `.venv/bin/python scripts/check_coverage.py --module=<edited_file>.py`
 
+### Playwright E2E Smoke Tests (When Required)
+
+This repo includes **opt-in** Playwright E2E smoke tests (browser-based). They are designed to catch regressions that unit tests can miss, especially around:
+- broken relative links from nested pages (e.g. `website/species/*.html`)
+- missing/incorrect asset references (CSS/JS)
+- basic navigation and UI state driven by URL params
+
+**Run E2E tests in addition to `make test` when you change:**
+- Anything in `src/website/`
+- Anything in `templates/` (including `templates/scripts/`)
+- Any generated URL/path logic (e.g. `path_prefix`, link building)
+- Any bugfix or feature that is specifically “works in a browser” / interaction-based
+
+**You may skip E2E tests when you change only:**
+- `src/scrape/` or `src/shared/` logic unrelated to website output
+- Documentation-only changes
+- Pure unit-test refactors
+
+**Commands (always use make):**
+```bash
+# Install Playwright browser binary (one-time; cached by Playwright)
+make e2e-install
+
+# Run the smoke suite
+make test-e2e
+```
+
+Note: E2E tests are intentionally not part of the default `make test` run.
+
 **Individual test files:**
 ```bash
 make test-file FILE=tests/website_module/test_csv.py

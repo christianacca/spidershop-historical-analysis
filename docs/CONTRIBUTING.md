@@ -295,6 +295,27 @@ make test-file FILE=tests/scrape_module/test_breeder_matrix.py
 
 Use this when working on specific functionality to get faster feedback.
 
+### Playwright E2E smoke tests (optional)
+
+These are lightweight browser-based checks that catch issues unit tests can miss (e.g. broken relative links, missing assets, basic navigation regressions).
+
+They are **opt-in** so they don't slow down the default test suite.
+
+```sh
+make test-e2e
+```
+
+On first run, this will download the Playwright Chromium binary. You can also install it explicitly:
+
+```sh
+make e2e-install
+```
+
+Notes:
+- These tests run headless Chromium via Playwright.
+- Browser binaries are cached by Playwright (first run may take a minute).
+- If you only want the fast Python/unit suite, stick to `make test` / `make test-file`.
+
 ### View interactive HTML coverage report
 ```sh
 make coverage
