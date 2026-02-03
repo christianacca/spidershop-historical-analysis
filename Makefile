@@ -50,7 +50,7 @@ help:
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test                   Run pytest with coverage"
-	@echo "  make test-file FILE=<path>  Run specific test file with coverage"
+	@echo "  make test-file FILE=<path>  Run specific test file (no coverage)"
 	@echo "  make test-snapshots         Run snapshot tests only"
 	@echo "  make test-snapshots-diff    Show detailed diffs for snapshot tests"
 	@echo "  make test-update-snapshots  Update all snapshots (review diffs first!)"
@@ -163,7 +163,7 @@ test-file: .check-venv
 		exit 1; \
 	fi
 	@echo "Running test file: $(FILE)"
-	source $(VENV)/bin/activate && pytest $(FILE) --cov=src --cov-report=html --cov-report=term-missing --cov-report=json -v
+	source $(VENV)/bin/activate && pytest $(FILE) -v
 
 test-snapshots: .check-venv
 	@echo "Running snapshot tests only..."
