@@ -30,7 +30,13 @@
     <tr{% if signal_value %} data-signal="{{ signal_value }}"{% endif %}{% if stock_pattern_value %} data-stock-pattern="{{ stock_pattern_value }}"{% endif %}>
       {% for cell_idx, cell in row %}
       {% set header_text = headers[cell_idx][1] if cell_idx < headers|length else '' %}
-      {% if cell_idx == page_url_idx and page_url_idx is not none and scientific_name_idx is not none %}
+      {% if link_to_species_page and cell_idx == species_idx and species_idx is not none and size_idx is not none %}
+        {# Breeder/Dealer table: link Species column to internal species page #}
+        {% set species_name = cell|trim %}
+        {% set size = row[size_idx][1] if size_idx < row|length else "" %}
+        {% set slug = species_name|lower|replace(' ', '-') %}
+      <td data-label="{{ header_text }}"><a href="species/{{ slug }}.html?view={{ table_view }}&size={{ size }}">{{ species_name }}</a></td>
+      {% elif cell_idx == page_url_idx and page_url_idx is not none and scientific_name_idx is not none %}
         {% set url = cell|trim %}
         {% set scientific_name = row[scientific_name_idx][1] if scientific_name_idx < row|length else "" %}
         {% if url %}

@@ -1,0 +1,547 @@
+"""
+Tests for species detail page generation.
+
+Following TDD approach: tests written first to define expected behavior.
+"""
+
+import os
+import pytest
+from pathlib import Path
+from conftest import create_temp_csv_file, create_breeder_csv_content, create_dealer_csv_content, create_history_csv_content
+
+
+class TestGetSpeciesList:
+    """Test extraction of unique (species, size) combinations from breeder/dealer CSVs."""
+
+    def test_extracts_species_from_breeder_csv_only(self):
+        """Should extract species list when only breeder CSV is provided."""
+        from website.species_detail import get_species_list
+
+        breeder_csv = create_temp_csv_file(
+            "Species,Size (cm),Signal\n"
+            "Aphonopelma seemanni,1.5,🔥\n"
+            "Brachypelma hamorii,2.0,⚠️\n"
+        )
+        
+        try:
+            species_list = get_species_list(breeder_csv_path=breeder_csv)
+            
+            assert len(species_list) == 2
+            assert ("Aphonopelma seemanni", "1.5") in species_list
+            assert ("Brachypelma hamorii", "2.0") in species_list
+        finally:
+            Path(breeder_csv).unlink()
+
+    def test_extracts_species_from_dealer_csv_only(self):
+        """Should extract species list when only dealer CSV is provided."""
+        from website.species_detail import get_species_list
+
+        dealer_csv = create_temp_csv_file(
+            "Species,Size (cm),Dealer Risk\n"
+            "Tliltocatl albopilosus,1.0,🔥\n"
+        )
+        
+        try:
+            species_list = get_species_list(dealer_csv_path=dealer_csv)
+            
+            assert len(species_list) == 1
+            assert ("Tliltocatl albopilosus", "1.0") in species_list
+        finally:
+            Path(dealer_csv).unlink()
+
+    def test_merges_species_from_both_csvs_without_duplicates(self):
+        """Should merge species from both CSVs and remove duplicates."""
+        from website.species_detail import get_species_list
+
+        breeder_csv = create_temp_csv_file(
+            "Species,Size (cm),Signal\n"
+            "Aphonopelma seemanni,1.5,🔥\n"
+            "Brachypelma hamorii,2.0,⚠️\n"
+        )
+        dealer_csv = create_temp_csv_file(
+            "Species,Size (cm),Dealer Risk\n"
+            "Aphonopelma seemanni,1.5,🔥\n"  # Duplicate
+            "Tliltocatl albopilosus,1.0,⚠️\n"
+        )
+        
+        try:
+            species_list = get_species_list(breeder_csv_path=breeder_csv, dealer_csv_path=dealer_csv)
+            
+            assert len(species_list) == 3  # No duplicate
+            assert ("Aphonopelma seemanni", "1.5") in species_list
+            assert ("Brachypelma hamorii", "2.0") in species_list
+            assert ("Tliltocatl albopilosus", "1.0") in species_list
+        finally:
+            Path(breeder_csv).unlink()
+            Path(dealer_csv).unlink()
+    
+    def test_returns_empty_when_missing_size_column(self):
+        """Should return empty list when CSV doesn't have Size column."""
+        from website.species_detail import get_species_list
+        
+        # Breeder CSV without Size column
+        breeder_content = "Species,Signal\nTest Spider,🔥\n"
+        breeder_path = create_temp_csv_file(breeder_content)
+        
+        # Dealer CSV without Size column
+        dealer_content = "Species,Dealer Risk\nOther Spider,⚠️\n"
+        dealer_path = create_temp_csv_file(dealer_content)
+        
+        try:
+            # Both should return empty
+            assert get_species_list(breeder_csv_path=breeder_path) == []
+            assert get_species_list(dealer_csv_path=dealer_path) == []
+        finally:
+            os.unlink(breeder_path)
+            os.unlink(dealer_path)
+
+
+class TestSlugifySpecies:
+    """Test scientific name to URL slug conversion."""
+
+    def test_converts_to_lowercase_with_hyphens(self):
+        """Should convert spaces to hyphens and lowercase the name."""
+        from website.species_detail import slugify_species
+
+        assert slugify_species("Aphonopelma seemanni") == "aphonopelma-seemanni"
+        assert slugify_species("Brachypelma hamorii") == "brachypelma-hamorii"
+
+    def test_handles_multiple_spaces(self):
+        """Should handle multiple consecutive spaces."""
+        from website.species_detail import slugify_species
+
+        assert slugify_species("Grammostola  pulchra") == "grammostola-pulchra"
+
+    def test_handles_already_lowercase(self):
+        """Should work with already lowercase names."""
+        from website.species_detail import slugify_species
+
+        assert slugify_species("poecilotheria metallica") == "poecilotheria-metallica"
+
+
+class TestGetSpeciesData:
+    """Test data extraction for a specific species from all CSVs."""
+
+    def test_extracts_breeder_metrics_for_species_and_size(self):
+        """Should extract breeder-specific metrics matching species and size."""
+        from website.species_detail import get_species_data
+
+        breeder_csv = create_temp_csv_file(
+            "Species,Size (cm),OOS Runs,Stock Pattern,Signal,Recommendation\n"
+            "Aphonopelma seemanni,1.5,8,Sustained,🔥,Strong opportunity\n"
+            "Brachypelma hamorii,2.0,3,Cyclical,⚠️,Monitor\n"
+        )
+        dealer_csv = create_temp_csv_file("Species,Size (cm),Dealer Risk\nOther,1.0,❌\n")
+        history_csv = create_temp_csv_file("scrape_datetime,scientific_name,size_cm\n")
+        
+        try:
+            data = get_species_data(
+                "Aphonopelma seemanni", "1.5",
+                breeder_csv, dealer_csv, history_csv
+            )
+            
+            assert data["breeder"]["signal"] == "🔥"
+            assert data["breeder"]["oos_runs"] == "8"
+            assert data["breeder"]["stock_pattern"] == "Sustained"
+        finally:
+            Path(breeder_csv).unlink()
+            Path(dealer_csv).unlink()
+            Path(history_csv).unlink()
+
+    def test_extracts_dealer_metrics_for_species_and_size(self):
+        """Should extract dealer-specific metrics matching species and size."""
+        from website.species_detail import get_species_data
+
+        breeder_csv = create_temp_csv_file("Species,Size (cm),Signal\nOther,1.0,❌\n")
+        dealer_csv = create_temp_csv_file(
+            "Species,Size (cm),Stock Reliability,Restock Speed,Dealer Risk\n"
+            "Aphonopelma seemanni,1.5,45%,Slow,🔥\n"
+        )
+        history_csv = create_temp_csv_file("scrape_datetime,scientific_name,size_cm\n")
+        
+        try:
+            data = get_species_data(
+                "Aphonopelma seemanni", "1.5",
+                breeder_csv, dealer_csv, history_csv
+            )
+            
+            assert data["dealer"]["risk"] == "🔥"
+            assert data["dealer"]["stock_reliability"] == "45%"
+            assert data["dealer"]["restock_speed"] == "Slow"
+        finally:
+            Path(breeder_csv).unlink()
+            Path(dealer_csv).unlink()
+            Path(history_csv).unlink()
+
+    def test_returns_none_for_missing_breeder_metrics(self):
+        """Should return None for breeder metrics when species not in breeder CSV."""
+        from website.species_detail import get_species_data
+
+        breeder_csv = create_temp_csv_file("Species,Size (cm),Signal\nOther,1.0,❌\n")
+        dealer_csv = create_temp_csv_file(
+            "Species,Size (cm),Dealer Risk\nAphonopelma seemanni,1.5,🔥\n"
+        )
+        history_csv = create_temp_csv_file("scrape_datetime,scientific_name,size_cm\n")
+        
+        try:
+            data = get_species_data(
+                "Aphonopelma seemanni", "1.5",
+                breeder_csv, dealer_csv, history_csv
+            )
+            
+            assert data["breeder"] is None
+            assert data["dealer"]["risk"] == "🔥"
+        finally:
+            Path(breeder_csv).unlink()
+            Path(dealer_csv).unlink()
+            Path(history_csv).unlink()
+
+
+class TestBuildChartData:
+    """Test chart data extraction from history CSV with 26-run window."""
+
+    def test_extracts_observations_within_26_run_window(self):
+        """Should extract observed data points within the last 26 runs."""
+        from website.species_detail import build_chart_data
+
+        # Create history with 30 runs total
+        # Our target species is observed in 15 of them (every other run)
+        # Need to have SOME species in every run so we get 30 distinct run dates
+        history_entries = []
+        for i in range(30):
+            run_date = f"2025-01-{str(i+1).zfill(2)} 06:00:00"
+            if i % 2 == 0:  # Our target species observed every other run
+                history_entries.append({
+                    "scrape_datetime": run_date,
+                    "scientific_name": "Aphonopelma seemanni",
+                    "size_cm": "1.5",
+                    "price_gbp": f"{10.0 + i}",
+                    "wishlist_count": str(i * 2),
+                })
+            else:  # Other species observed on alternate runs (to create complete run timeline)
+                history_entries.append({
+                    "scrape_datetime": run_date,
+                    "scientific_name": "Other Species",
+                    "size_cm": "2.0",
+                    "price_gbp": "20.0",
+                    "wishlist_count": "10",
+                })
+        
+        history_csv = create_temp_csv_file(create_history_csv_content(history_entries))
+        
+        try:
+            chart_data = build_chart_data("Aphonopelma seemanni", "1.5", history_csv)
+            
+            # Should have 26 runs (last 26 of 30 total)
+            assert len(chart_data["runs"]) == 26
+            
+            # First run should be run 5 (index 4), not run 1
+            assert chart_data["runs"][0]["date"].startswith("2025-01-05")
+            
+            # Last run should be run 30
+            assert chart_data["runs"][25]["date"].startswith("2025-01-30")
+            assert chart_data["runs"][25]["date"].startswith("2025-01-30")
+        finally:
+            Path(history_csv).unlink()
+
+    def test_marks_gaps_for_missing_observations(self):
+        """Should mark runs as gaps when species was not observed."""
+        from website.species_detail import build_chart_data
+
+        history_entries = [
+            {"scrape_datetime": "2025-01-01 06:00:00", "scientific_name": "Aphonopelma seemanni",
+             "size_cm": "1.5", "price_gbp": "10.0", "wishlist_count": "5"},
+            # Run 2: species OUT, but OTHER species present (to create the run)
+            {"scrape_datetime": "2025-01-02 06:00:00", "scientific_name": "Other Species",
+             "size_cm": "2.0", "price_gbp": "20.0", "wishlist_count": "10"},
+            {"scrape_datetime": "2025-01-03 06:00:00", "scientific_name": "Aphonopelma seemanni",
+             "size_cm": "1.5", "price_gbp": "12.0", "wishlist_count": "8"},
+        ]
+        
+        history_csv = create_temp_csv_file(create_history_csv_content(history_entries))
+        
+        try:
+            chart_data = build_chart_data("Aphonopelma seemanni", "1.5", history_csv)
+            
+            # Run 1: observed
+            assert chart_data["runs"][0]["observed"] is True
+            assert chart_data["runs"][0]["price"] == "10.0"
+            
+            # Run 2: gap (species OUT but run exists)
+            assert chart_data["runs"][1]["observed"] is False
+            assert chart_data["runs"][1]["price"] is None
+            assert chart_data["runs"][1]["wishlist"] is None
+            
+            # Run 3: observed
+            assert chart_data["runs"][2]["observed"] is True
+            assert chart_data["runs"][2]["price"] == "12.0"
+        finally:
+            Path(history_csv).unlink()
+
+    def test_handles_species_with_no_observations(self):
+        """Should return empty chart data when species has no observations."""
+        from website.species_detail import build_chart_data
+
+        history_csv = create_temp_csv_file(
+            "scrape_datetime,scientific_name,size_cm,price_gbp,wishlist_count\n"
+            "2025-01-01 06:00:00,Other Species,1.0,10.0,5\n"
+        )
+        
+        try:
+            chart_data = build_chart_data("Aphonopelma seemanni", "1.5", history_csv)
+            
+            assert chart_data["runs"] == []
+        finally:
+            Path(history_csv).unlink()
+    
+    def test_handles_empty_history_csv(self):
+        """Should return empty runs when history CSV has no rows."""
+        from website.species_detail import build_chart_data
+        
+        # Create CSV with headers only, no data
+        content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        history_csv = create_temp_csv_file(content)
+        
+        try:
+            chart_data = build_chart_data("Aphonopelma seemanni", "1.5", history_csv)
+            
+            assert chart_data["runs"] == []
+        finally:
+            Path(history_csv).unlink()
+
+
+class TestGetDefaultSize:
+    """Test default size selection from most recent observation."""
+
+    def test_returns_most_recently_observed_size(self):
+        """Should return the size from the most recent observation."""
+        from website.species_detail import get_default_size
+
+        history_entries = [
+            {"scrape_datetime": "2025-01-01 06:00:00", "scientific_name": "Aphonopelma seemanni",
+             "size_cm": "1.0", "price_gbp": "10.0", "wishlist_count": "5"},
+            {"scrape_datetime": "2025-01-15 06:00:00", "scientific_name": "Aphonopelma seemanni",
+             "size_cm": "1.5", "price_gbp": "12.0", "wishlist_count": "8"},
+            {"scrape_datetime": "2025-01-20 06:00:00", "scientific_name": "Aphonopelma seemanni",
+             "size_cm": "2.0", "price_gbp": "15.0", "wishlist_count": "10"},
+        ]
+        
+        history_csv = create_temp_csv_file(create_history_csv_content(history_entries))
+        
+        try:
+            default_size = get_default_size("Aphonopelma seemanni", history_csv)
+            
+            assert default_size == "2.0"
+        finally:
+            Path(history_csv).unlink()
+
+    def test_returns_none_when_species_has_no_observations(self):
+        """Should return None when species has never been observed."""
+        from website.species_detail import get_default_size
+
+        history_csv = create_temp_csv_file(
+            "scrape_datetime,scientific_name,size_cm,price_gbp,wishlist_count\n"
+            "2025-01-01 06:00:00,Other Species,1.0,10.0,5\n"
+        )
+        
+        try:
+            default_size = get_default_size("Aphonopelma seemanni", history_csv)
+            
+            assert default_size is None
+        finally:
+            Path(history_csv).unlink()
+    
+    def test_returns_none_when_history_empty(self):
+        """Should return None when history has no rows."""
+        from website.species_detail import get_default_size
+        
+        content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_path = create_temp_csv_file(content)
+        
+        try:
+            result = get_default_size("Aphonopelma seemanni", csv_path)
+            assert result is None
+        finally:
+            os.unlink(csv_path)
+
+
+class TestGenerateSpeciesPage:
+    """Test species page HTML generation."""
+
+    def test_generates_html_with_breeder_and_dealer_sections(self):
+        """Should generate HTML with both perspective sections."""
+        from website.species_detail import generate_species_page
+
+        species_data = {
+            "breeder": {"signal": "🔥", "oos_runs": "8", "stock_pattern": "Sustained"},
+            "dealer": {"risk": "⚠️", "stock_reliability": "45%", "restock_speed": "Slow"},
+        }
+        chart_data = {"runs": []}
+        
+        html = generate_species_page(
+            "Aphonopelma seemanni",
+            "Common Name",
+            "1.5",
+            species_data,
+            chart_data
+        )
+        
+        # Check basic structure
+        assert "<h2>Aphonopelma seemanni</h2>" in html
+        assert "Common Name" in html
+        assert 'id="panel-breeder"' in html
+        assert 'id="panel-dealer"' in html
+        
+        # Check breeder section includes signal
+        assert "🔥" in html
+        
+        # Check dealer section includes risk
+        assert "⚠️" in html
+
+    def test_includes_breadcrumb_navigation(self):
+        """Should include breadcrumb with perspective origin."""
+        from website.species_detail import generate_species_page
+
+        species_data = {
+            "breeder": {"signal": "🔥"},
+            "dealer": None,
+        }
+        chart_data = {"runs": []}
+        
+        html = generate_species_page(
+            "Aphonopelma seemanni",
+            "Common Name",
+            "1.5",
+            species_data,
+            chart_data,
+            default_view="breeder"
+        )
+        
+        assert 'class="breadcrumbs"' in html
+        
+    def test_includes_tab_segmented_control(self):
+        """Should include tabs for switching between breeder/dealer views."""
+        from website.species_detail import generate_species_page
+
+        species_data = {
+            "breeder": {"signal": "🔥"},
+            "dealer": {"risk": "⚠️"},
+        }
+        chart_data = {"runs": []}
+        
+        html = generate_species_page(
+            "Aphonopelma seemanni",
+            "Common Name",
+            "1.5",
+            species_data,
+            chart_data
+        )
+        
+        assert 'class="segment"' in html
+        assert 'data-view="breeder"' in html
+        assert 'data-view="dealer"' in html
+
+
+class TestGetPageUrl:
+    """Tests for get_page_url function."""
+    
+    def test_returns_most_recent_page_url_for_species_and_size(self):
+        """Should return page_url from most recent observation."""
+        from website.species_detail import get_page_url
+        
+        # Create test CSV with multiple observations
+        content = create_history_csv_content([
+            {
+                "scrape_datetime": "2025-01-01 10:00:00",
+                "scientific_name": "Test Spider",
+                "common_name": "Common",
+                "size_cm": "1.5",
+                "price_gbp": "25.00",
+                "wishlist_count": "10",
+                "page_url": "https://example.com/old"
+            },
+            {
+                "scrape_datetime": "2025-01-15 10:00:00",
+                "scientific_name": "Test Spider",
+                "common_name": "Common",
+                "size_cm": "1.5",
+                "price_gbp": "26.00",
+                "wishlist_count": "12",
+                "page_url": "https://example.com/recent"
+            },
+            {
+                "scrape_datetime": "2025-01-08 10:00:00",
+                "scientific_name": "Test Spider",
+                "common_name": "Common",
+                "size_cm": "1.5",
+                "price_gbp": "25.50",
+                "wishlist_count": "11",
+                "page_url": "https://example.com/middle"
+            },
+        ])
+        csv_path = create_temp_csv_file(content)
+        
+        try:
+            result = get_page_url("Test Spider", "1.5", csv_path)
+            assert result == "https://example.com/recent"
+        finally:
+            os.unlink(csv_path)
+    
+    def test_returns_none_when_species_not_found(self):
+        """Should return None when species not in history."""
+        from website.species_detail import get_page_url
+        
+        content = create_history_csv_content([
+            {
+                "scrape_datetime": "2025-01-01 10:00:00",
+                "scientific_name": "Other Spider",
+                "common_name": "Common",
+                "size_cm": "1.5",
+                "price_gbp": "25.00",
+                "wishlist_count": "10",
+                "page_url": "https://example.com/other"
+            },
+        ])
+        csv_path = create_temp_csv_file(content)
+        
+        try:
+            result = get_page_url("Test Spider", "1.5", csv_path)
+            assert result is None
+        finally:
+            os.unlink(csv_path)
+    
+    def test_returns_none_when_size_not_found(self):
+        """Should return None when size doesn't match."""
+        from website.species_detail import get_page_url
+        
+        content = create_history_csv_content([
+            {
+                "scrape_datetime": "2025-01-01 10:00:00",
+                "scientific_name": "Test Spider",
+                "common_name": "Common",
+                "size_cm": "1.0",
+                "price_gbp": "25.00",
+                "wishlist_count": "10",
+                "page_url": "https://example.com/small"
+            },
+        ])
+        csv_path = create_temp_csv_file(content)
+        
+        try:
+            result = get_page_url("Test Spider", "1.5", csv_path)
+            assert result is None
+        finally:
+            os.unlink(csv_path)
+    
+    def test_returns_none_when_history_empty(self):
+        """Should return None when history CSV is empty."""
+        from website.species_detail import get_page_url
+        
+        content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_path = create_temp_csv_file(content)
+        
+        try:
+            result = get_page_url("Test Spider", "1.5", csv_path)
+            assert result is None
+        finally:
+            os.unlink(csv_path)

@@ -43,7 +43,14 @@ def escape_html(text: Any) -> str:
             .replace("'", "&#39;"))
 
 
-def generate_table_html(headers: Optional[List[str]], rows: List[List[str]], table_id: str, sortable: bool = True) -> str:
+def generate_table_html(
+    headers: Optional[List[str]], 
+    rows: List[List[str]], 
+    table_id: str, 
+    sortable: bool = True,
+    link_to_species_page: bool = False,
+    table_view: str = "breeder"
+) -> str:
     """Generate HTML table from headers and rows using Jinja2 template.
     
     Args:
@@ -51,6 +58,9 @@ def generate_table_html(headers: Optional[List[str]], rows: List[List[str]], tab
         rows: List of data rows
         table_id: HTML id attribute for the table
         sortable: Whether to enable sorting functionality
+        link_to_species_page: If True, link Species column to internal species detail pages
+                             instead of external page_url links (for breeder/dealer tables)
+        table_view: View parameter for species page links ("breeder" or "dealer")
         
     Returns:
         HTML string containing the rendered table
@@ -61,13 +71,24 @@ def generate_table_html(headers: Optional[List[str]], rows: List[List[str]], tab
     # Find column indices for special rendering
     page_url_idx = None
     scientific_name_idx = None
+    species_idx = None  # For breeder/dealer tables
+    size_idx = None  # For breeder/dealer tables
     signal_col_idx = None
     stock_pattern_col_idx = None
+    
     try:
         page_url_idx = headers.index('page_url')
         scientific_name_idx = headers.index('scientific_name')
     except ValueError:
         pass  # Columns not found, render normally
+    
+    # For breeder/dealer tables with internal species linking
+    if link_to_species_page:
+        try:
+            species_idx = headers.index('Species')
+            size_idx = headers.index('Size (cm)')
+        except ValueError:
+            pass  # Not a breeder/dealer table
     
     # Find Signal or Dealer Risk column for color-coding
     try:
@@ -96,6 +117,10 @@ def generate_table_html(headers: Optional[List[str]], rows: List[List[str]], tab
         sortable=sortable,
         page_url_idx=page_url_idx,
         scientific_name_idx=scientific_name_idx,
+        species_idx=species_idx,
+        size_idx=size_idx,
+        link_to_species_page=link_to_species_page,
+        table_view=table_view,
         signal_col_idx=signal_col_idx,
         stock_pattern_col_idx=stock_pattern_col_idx
     )
