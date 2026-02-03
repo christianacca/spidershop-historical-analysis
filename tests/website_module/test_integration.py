@@ -259,6 +259,25 @@ Example content for dealers.
                 assert (OUTPUT_DIR / "breeder.html").exists()
                 assert (OUTPUT_DIR / "dealer.html").exists()
                 
+                # Verify species-detail.css was copied
+                css_path = OUTPUT_DIR / "species-detail.css"
+                assert css_path.exists(), "species-detail.css should be copied to output directory"
+                
+                # Verify CSS file contains expected styles
+                with open(css_path, "r", encoding="utf-8") as f:
+                    css_content = f.read()
+                assert ".breadcrumbs" in css_content
+                assert ".badge" in css_content
+                assert ".segment" in css_content
+                
+                # Verify species pages link to CSS with correct relative path
+                species_pages = list((OUTPUT_DIR / "species").glob("*.html"))
+                if species_pages:  # Only check if species pages were generated
+                    with open(species_pages[0], "r", encoding="utf-8") as f:
+                        html_content = f.read()
+                    assert '../species-detail.css' in html_content, \
+                        "Species pages should link to CSS with relative path ../species-detail.css"
+                
                 # Verify CSV files were copied
                 assert (OUTPUT_DIR / "spidershop_spiderlings_scrape.csv").exists()
                 assert (OUTPUT_DIR / "spidershop_spiderlings_history.csv").exists()
@@ -365,5 +384,4 @@ class TestHtmlSnapshots:
         download_section = soup.find("section", class_="download-section")
         
         assert snapshot == str(download_section)
-
 
