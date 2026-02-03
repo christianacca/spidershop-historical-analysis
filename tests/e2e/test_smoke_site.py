@@ -64,7 +64,7 @@ class _SilentHandler(http.server.SimpleHTTPRequestHandler):
 
 
 @pytest.mark.e2e
-def test_site_smoke_breeder_and_dealer_detail_flows() -> None:
+def test_site_smoke_breeder_and_dealer_detail_flows(request) -> None:
     if os.environ.get("RUN_E2E") != "1":
         pytest.skip("Playwright smoke tests are opt-in; run via `make test-e2e`.")
 
@@ -90,9 +90,25 @@ def test_site_smoke_breeder_and_dealer_detail_flows() -> None:
 
         base_url = f"http://127.0.0.1:{port}"
 
+        # Support headed mode for debugging (PWHEADED=1 or --headed flag)
+        headed = os.environ.get("PWHEADED") == "1" or request.config.getoption("--headed", default=False)
+        slow_mo = int(os.environ.get("PWSLOW", "0"))  # milliseconds
+        
+        # Video recording for CI debugging (optional)
+        video_dir = cwd / "tmp" / "e2e-videos" if os.environ.get("PWVIDEO") == "1" else None
+
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            context = browser.new_context()
+            browser = p.chromium.launch(headless=not headed, slow_mo=slow_mo)
+            context_options = {}
+            if video_dir:
+                video_dir.mkdir(parents=True, exist_ok=True)
+                context_options["record_video_dir"] = str(video_dir)
+            context = browser.new_context(**context_options)
+            
+            # Enable trace recording for debugging failures
+            trace_path = cwd / "tmp" / "e2e-trace.zip"
+            trace_path.parent.mkdir(parents=True, exist_ok=True)
+            context.tracing.start(screenshots=True, snapshots=True, sources=True)
             page = context.new_page()
 
             console_errors: list[str] = []
@@ -100,7 +116,9 @@ def test_site_smoke_breeder_and_dealer_detail_flows() -> None:
             bad_responses: list[str] = []
 
             def on_console(msg):
-                if msg.type == "error":
+                # Only capture actual console.error() calls from JavaScript
+                # Ignore browser resource loading messages
+                if msg.type == "error" and not msg.text.startswith("Failed to load resource"):
                     console_errors.append(msg.text)
 
             def on_response(resp):
@@ -157,11 +175,22 @@ def test_site_smoke_breeder_and_dealer_detail_flows() -> None:
                 "#back-breeder", "el => el.classList.contains('origin-btn')"
             )
 
+            # Stop trace before closing context
+            context.tracing.stop(path=str(trace_path))
             context.close()
             browser.close()
 
         httpd.shutdown()
         thread.join(timeout=2)
+
+    # Keep trace on failure for debugging
+    has_errors = page_errors or console_errors or bad_responses
+    if has_errors:
+        print(f"\n🔍 Trace saved to: {trace_path}")
+        print(f"   View with: playwright show-trace {trace_path}")
+    else:
+        # Clean up trace on success
+        trace_path.unlink(missing_ok=True)
 
     assert not page_errors, "Page errors:\n" + "\n".join(page_errors)
     assert not console_errors, "Console errors:\n" + "\n".join(console_errors)

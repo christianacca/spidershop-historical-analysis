@@ -12,7 +12,7 @@
 #   All commands automatically activate the .venv virtual environment
 #   Ensure .venv exists and has dependencies installed first
 
-.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only clean-cache clean-artifacts clean-all test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e e2e-install coverage .check-venv .check-gh
+.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only clean-cache clean-artifacts clean-all test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install coverage .check-venv .check-gh
 
 # Shell configuration
 SHELL := /bin/bash
@@ -56,6 +56,9 @@ help:
 	@echo "  make test-update-snapshots  Update all snapshots (review diffs first!)"
 	@echo "  make e2e-install            Install Playwright Chromium browser"
 	@echo "  make test-e2e               Run Playwright smoke tests (explicit)"
+	@echo "  make test-e2e-debug         Run e2e with Playwright Inspector (PWDEBUG)"
+	@echo "  make test-e2e-headed        Run e2e with visible browser window"
+	@echo "  make test-e2e-show-trace    Open trace viewer for last e2e run"
 	@echo "  make coverage               View coverage report in browser"
 	@echo ""
 	@echo "Examples:"
@@ -185,6 +188,25 @@ e2e-install: .check-venv
 	@echo "✅ Playwright Chromium installed"
 
 test-e2e: .check-venv e2e-install
+
+test-e2e-debug: .check-venv e2e-install
+	@echo "🐛 Running e2e tests with Playwright Inspector (interactive debugger)..."
+	@echo "   Use the Inspector UI to step through actions, pause, and inspect locators"
+	source $(VENV)/bin/activate && PWDEBUG=1 RUN_E2E=1 pytest tests/e2e -m e2e -v -s
+
+test-e2e-headed: .check-venv e2e-install
+	@echo "👀 Running e2e tests with visible browser..."
+
+test-e2e-show-trace: .check-venv e2e-install
+	@if [ ! -f tmp/e2e-trace.zip ]; then \
+		echo "❌ No trace file found at tmp/e2e-trace.zip"; \
+		echo "   Trace files are only saved when e2e tests fail"; \
+		echo "   Run 'make test-e2e' to generate a trace"; \
+		exit 1; \
+	fi
+	@echo "🔍 Opening trace viewer..."
+	source $(VENV)/bin/activate && playwright show-trace tmp/e2e-trace.zip
+	source $(VENV)/bin/activate && PWHEADED=1 RUN_E2E=1 pytest tests/e2e -m e2e -v -s
 	@echo "🧪 Running Playwright e2e smoke tests..."
 	source $(VENV)/bin/activate && RUN_E2E=1 pytest tests/e2e -m e2e -v
 

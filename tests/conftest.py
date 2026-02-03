@@ -39,6 +39,16 @@ __all__ = [
 ]
 
 
+def pytest_addoption(parser):
+    """Add command-line options for test configuration."""
+    parser.addoption(
+        "--headed",
+        action="store_true",
+        default=False,
+        help="Run Playwright tests in headed mode (visible browser)",
+    )
+
+
 @pytest.fixture(autouse=True)
 def isolate_test_execution(tmp_path, monkeypatch):
     """

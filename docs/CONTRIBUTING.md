@@ -311,8 +311,44 @@ On first run, this will download the Playwright Chromium binary. You can also in
 make e2e-install
 ```
 
+**Debugging E2E Tests:**
+
+Playwright provides excellent debugging tools similar to Cypress:
+
+```sh
+# Interactive debugger - step through actions, pause, inspect locators
+make test-e2e-debug
+
+# Watch the browser as tests run (visible window)
+make test-e2e-headed
+
+# Advanced: Use environment variables for fine control
+PWHEADED=1 PWSLOW=500 make test-e2e  # Headed mode with 500ms delay between actions
+```
+
+**Trace Viewer:**
+When tests fail, a trace file is automatically saved to `tmp/e2e-trace.zip`. View it with:
+```sh
+make test-e2e-show-trace
+```
+This opens a browser UI showing screenshots, network activity, and DOM snapshots for each action.
+
+**Debugging CI Failures:**
+
+When e2e tests fail in GitHub Actions:
+1. Go to the failed workflow run
+2. Download the `e2e-traces` artifact
+3. Extract it locally
+4. View the trace:
+   ```sh
+   source .venv/bin/activate
+   playwright show-trace tmp/e2e-trace.zip
+   ```
+
+The trace shows exactly what happened in CI: every action, screenshot, network request, and DOM state.
+
 Notes:
-- These tests run headless Chromium via Playwright.
+- These tests run headless Chromium via Playwright by default.
 - Browser binaries are cached by Playwright (first run may take a minute).
 - If you only want the fast Python/unit suite, stick to `make test` / `make test-file`.
 
