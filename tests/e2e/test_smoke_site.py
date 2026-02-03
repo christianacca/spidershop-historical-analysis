@@ -137,9 +137,6 @@ def test_site_smoke_breeder_and_dealer_detail_flows(request) -> None:
             # Basic load
             page.goto(f"{base_url}/index.html", wait_until="networkidle")
             assert "Spider Shop" in page.title()
-            
-            # TEMPORARY: Force failure to test CI artifact upload
-            assert False, "🧪 INTENTIONAL FAILURE: Testing e2e artifact upload in CI"
 
             # Breeder -> species detail -> correct origin button highlighted
             page.goto(f"{base_url}/breeder.html", wait_until="networkidle")
