@@ -68,6 +68,7 @@ def isolate_test_execution(request, tmp_path, monkeypatch):
     """
     # Skip isolation for e2e tests (they need to run from project root)
     if "e2e" in request.keywords:
+        yield
         return
     
     # Save original directory
