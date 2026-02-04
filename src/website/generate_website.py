@@ -42,7 +42,7 @@ from typing import Optional
 
 # Handle both direct script execution and module import
 try:
-    from website.page_config import PageConfig
+    from website.page_config import BasePageConfig
     from website.sparkline_conversion import (
         load_historical_sparkline_data,
         convert_sparklines_in_rows,
@@ -67,7 +67,7 @@ try:
         generate_species_page,
     )
 except ModuleNotFoundError:
-    from page_config import PageConfig
+    from page_config import BasePageConfig
     from sparkline_conversion import (
         load_historical_sparkline_data,
         convert_sparklines_in_rows,
@@ -100,7 +100,7 @@ def generate_homepage(last_scrape_time: Optional[str] = None) -> str:
     )
 
 
-def generate_data_page(config: PageConfig) -> str:
+def generate_data_page(config: BasePageConfig) -> str:
     """Generate a data page with table from CSV and optional analysis using Jinja2 template.
     
     Args:
@@ -128,8 +128,9 @@ def generate_data_page(config: PageConfig) -> str:
     if headers and rows:
         rows = convert_sparklines_in_rows(headers, rows, historical_data, config.csv_filename)
     
-    # Extract summary stats from analysis markdown
-    summary_stats = extract_summary_stats(config.analysis_markdown) if config.analysis_markdown else None
+    # Extract summary stats from analysis markdown (if config has this attribute)
+    analysis_markdown = getattr(config, 'analysis_markdown', None)
+    summary_stats = extract_summary_stats(analysis_markdown) if analysis_markdown else None
     
     # Generate top 10 table from CSV (first 10 rows, already sorted by analysis modules)
     top_10_headers = None
@@ -168,12 +169,15 @@ def generate_data_page(config: PageConfig) -> str:
                 'avoid': 'Oversupplied or always available. No meaningful scarcity pattern detected, regardless of demand spikes.'
             }
     
-    examples_html = parse_markdown_to_html(config.examples_markdown) if config.examples_markdown else None
+    # Get optional markdown fields (may not exist on all config types)
+    examples_markdown = getattr(config, 'examples_markdown', None)
+    examples_html = parse_markdown_to_html(examples_markdown) if examples_markdown else None
     
     # Wrap legend markdown in details tag and convert
     legend_html = None
-    if config.legend_markdown:
-        legend_with_wrapper = f'<details markdown="1">\n<summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>\n\n{config.legend_markdown}\n\n</details>'
+    legend_markdown = getattr(config, 'legend_markdown', None)
+    if legend_markdown:
+        legend_with_wrapper = f'<details markdown="1">\n<summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>\n\n{legend_markdown}\n\n</details>'
         legend_html = parse_markdown_to_html(legend_with_wrapper)
     
     # Find column indices for special rendering
@@ -191,7 +195,8 @@ def generate_data_page(config: PageConfig) -> str:
             pass
         
         # For breeder/dealer tables with species page linking
-        if config.link_to_species_page:
+        link_to_species_page = getattr(config, 'link_to_species_page', False)
+        if link_to_species_page:
             try:
                 species_idx = headers.index('Species')
                 size_idx = headers.index('Size (cm)')
@@ -243,7 +248,7 @@ def generate_data_page(config: PageConfig) -> str:
         table_id=config.table_id,
         active_page=config.active_page,
         path_prefix="",
-        search_filter=config.search_filter,
+        search_filter=getattr(config, 'search_filter', True),
         analysis_html=analysis_html,
         summary_stats=summary_stats,
         stats_labels=stats_labels,
@@ -259,8 +264,8 @@ def generate_data_page(config: PageConfig) -> str:
         scientific_name_idx=scientific_name_idx,
         species_idx=species_idx,
         size_idx=size_idx,
-        link_to_species_page=config.link_to_species_page,
-        table_view=config.table_view,
+        link_to_species_page=getattr(config, 'link_to_species_page', False),
+        table_view=getattr(config, 'table_view', 'breeder'),
         signal_col_idx=signal_col_idx,
         stock_pattern_col_idx=stock_pattern_col_idx,
         stock_pattern_counts=stock_pattern_counts,
@@ -407,7 +412,8 @@ def main() -> None:
     # Generate snapshot page
     print("  Generating snapshot.html...")
     with open(OUTPUT_DIR / "snapshot.html", "w", encoding="utf-8") as f:
-        f.write(generate_data_page(config=PageConfig(
+        from website.page_config import SnapshotPageConfig
+        f.write(generate_data_page(config=SnapshotPageConfig(
             title="Latest Snapshot",
             description="Current scrape results showing all available tarantula spiderlings.",
             csv_filename="spidershop_spiderlings_scrape.csv",
@@ -418,7 +424,8 @@ def main() -> None:
     # Generate history page
     print("  Generating history.html...")
     with open(OUTPUT_DIR / "history.html", "w", encoding="utf-8") as f:
-        f.write(generate_data_page(config=PageConfig(
+        from website.page_config import HistoryPageConfig
+        f.write(generate_data_page(config=HistoryPageConfig(
             title="Historical Data",
             description="Accumulated historical pricing data across all scrape runs.",
             csv_filename="spidershop_spiderlings_history.csv",
@@ -429,7 +436,8 @@ def main() -> None:
     # Generate breeder opportunity page
     print("  Generating breeder.html...")
     with open(OUTPUT_DIR / "breeder.html", "w", encoding="utf-8") as f:
-        f.write(generate_data_page(config=PageConfig(
+        from website.page_config import BreederPageConfig
+        f.write(generate_data_page(config=BreederPageConfig(
             title="Breeder Opportunities",
             description="Analysis showing breeding opportunities based on market trends and pricing patterns.",
             csv_filename="breeder_opportunity_table.csv",
@@ -445,7 +453,8 @@ def main() -> None:
     # Generate dealer supply risk page
     print("  Generating dealer.html...")
     with open(OUTPUT_DIR / "dealer.html", "w", encoding="utf-8") as f:
-        f.write(generate_data_page(config=PageConfig(
+        from website.page_config import DealerPageConfig
+        f.write(generate_data_page(config=DealerPageConfig(
             title="Dealer Supply Risk",
             description="Analysis highlighting inventory availability patterns and supply risk indicators.",
             csv_filename="dealer_supply_risk_table.csv",

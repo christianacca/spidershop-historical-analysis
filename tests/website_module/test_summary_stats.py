@@ -4,7 +4,7 @@ import pytest
 import tempfile
 import os
 from bs4 import BeautifulSoup
-from website import PageConfig
+from conftest import DealerEntry, BreederEntry, create_dealer_csv_content, create_breeder_csv_content, temp_csv_file, page_config
 from website.generate_website import extract_summary_stats, generate_data_page
 
 
@@ -99,14 +99,8 @@ class TestSummaryStatsInHtml:
 """
         
         try:
-            html = generate_data_page(PageConfig(
-                title="Breeder Opportunities",
-                description="Test description",
-                csv_filename=csv_filename,
-                table_id="test-table",
-                active_page="breeder",
-                analysis_markdown=analysis_markdown
-            ))
+            config = page_config.breeder(csv_filename, analysis_markdown).with_title("Breeder Opportunities").with_description("Test description").build()
+            html = generate_data_page(config)
             
             # Verify summary stats cards are present in HTML
             assert '<div class="summary-stats">' in html
@@ -138,12 +132,11 @@ class TestSummaryStatsInHtml:
         from website.generate_website import generate_data_page
         
         # Create a temporary CSV file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Species,Dealer Risk,Notes\n")
-            f.write("Species A,🔥,High risk\n")
-            f.write("Species B,⚠️,Moderate risk\n")
-            f.write("Species C,❌,Low risk\n")
-            csv_filename = f.name
+        csv_content = create_dealer_csv_content([
+            DealerEntry(species="Species A", risk="🔥", dealer_recommendation="High risk"),
+            DealerEntry(species="Species B", risk="⚠️", dealer_recommendation="Moderate risk"),
+            DealerEntry(species="Species C", risk="❌", dealer_recommendation="Low risk"),
+        ])
         
         # Create markdown with Summary line (dealer format)
         analysis_markdown = """## 🏪 Dealer Supply Risk Matrix (Top 10)
@@ -155,15 +148,9 @@ class TestSummaryStatsInHtml:
 | Species A | 🔥 |
 """
         
-        try:
-            html = generate_data_page(PageConfig(
-                title="Dealer Supply Risk",
-                description="Test description",
-                csv_filename=csv_filename,
-                table_id="test-table",
-                active_page="dealer",
-                analysis_markdown=analysis_markdown
-            ))
+        with temp_csv_file(csv_content) as csv_filename:
+            config = page_config.dealer(csv_filename, analysis_markdown).build()
+            html = generate_data_page(config)
             
             # Verify summary stats cards are present
             assert '<div class="summary-stats">' in html
@@ -174,44 +161,34 @@ class TestSummaryStatsInHtml:
             assert '🔥 High Risk' in html
             assert '⚠️ Moderate Risk' in html
             assert '❌ Low Risk' in html
-        finally:
-            os.unlink(csv_filename)
 
     def test_page_without_analysis_has_no_summary_stats(self):
         """Should not render summary stats section when no analysis markdown provided."""
         from website.generate_website import generate_data_page
         
-        # Create a temporary CSV file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Species,Price\n")
-            f.write("Species A,25.00\n")
-            csv_filename = f.name
+        # Create a temporary CSV file with minimal columns
+        csv_content = "Species,Price\nSpecies A,25.00\n"
         
-        try:
-            html = generate_data_page(PageConfig(
+        with temp_csv_file(csv_content) as csv_filename:
+            config = page_config.custom(
                 title="Test Page",
-                description="Test description",
                 csv_filename=csv_filename,
-                table_id="test-table",
-                active_page="test",
-                analysis_markdown=None
-            ))
+                active_page="test"
+            ).build()
+            html = generate_data_page(config)
             
             # Verify NO summary stats section present
             assert '<div class="summary-stats">' not in html
             assert '<div class="stat-card">' not in html
-        finally:
-            os.unlink(csv_filename)
 
     def test_page_with_analysis_but_no_summary_line_has_no_stats(self):
         """Should not render summary stats when analysis markdown lacks Summary line."""
         from website.generate_website import generate_data_page
         
         # Create a temporary CSV file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Species,Signal\n")
-            f.write("Species A,🔥\n")
-            csv_filename = f.name
+        csv_content = create_breeder_csv_content([
+            BreederEntry(species="Species A", signal="🔥")
+        ])
         
         # Markdown WITHOUT Summary line
         analysis_markdown = """## 🧬 Breeder Opportunity Matrix (Top 10)
@@ -221,45 +198,30 @@ class TestSummaryStatsInHtml:
 | Species A | 🔥 |
 """
         
-        try:
-            html = generate_data_page(PageConfig(
-                title="Breeder Opportunities",
-                description="Test description",
-                csv_filename=csv_filename,
-                table_id="test-table",
-                active_page="breeder",
-                analysis_markdown=analysis_markdown
-            ))
+        with temp_csv_file(csv_content) as csv_filename:
+            config = page_config.breeder(csv_filename, analysis_markdown).with_title("Breeder Opportunities").with_description("Test description").build()
+            html = generate_data_page(config)
             
             # Verify NO summary stats section (because no Summary line found)
             assert '<div class="summary-stats">' not in html
-        finally:
-            os.unlink(csv_filename)
 
     def test_breeder_summary_cards_include_tooltip_explanations(self):
         """Should include info icons with tooltip explanations for breeder signals."""
         from website.generate_website import generate_data_page
         
         # Create a temporary CSV file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Species,Signal\n")
-            f.write("Species A,🔥\n")
-            csv_filename = f.name
+        csv_content = create_breeder_csv_content([
+            BreederEntry(species="Species A", signal="🔥")
+        ])
         
         analysis_markdown = """## 🧬 Breeder Opportunity Matrix (Top 10)
 
 **Summary:** 3 species analyzed | 🔥 Hot: 1 | ⚠️ Watch: 1 | ❌ Avoid: 1
 """
         
-        try:
-            html = generate_data_page(PageConfig(
-                title="Breeder Opportunities",
-                description="Test description",
-                csv_filename=csv_filename,
-                table_id="test-table",
-                active_page="breeder",
-                analysis_markdown=analysis_markdown
-            ))
+        with temp_csv_file(csv_content) as csv_filename:
+            config = page_config.breeder(csv_filename, analysis_markdown).with_title("Breeder Opportunities").with_description("Test description").build()
+            html = generate_data_page(config)
             
             soup = BeautifulSoup(html, 'html.parser')
             
@@ -284,33 +246,24 @@ class TestSummaryStatsInHtml:
             # Check avoid tooltip
             avoid_tooltip = tooltips[2].get_text()
             assert 'oversupplied' in avoid_tooltip.lower() or 'always available' in avoid_tooltip.lower()
-        finally:
-            os.unlink(csv_filename)
 
     def test_dealer_summary_cards_include_tooltip_explanations(self):
         """Should include info icons with dealer-specific tooltip explanations."""
         from website.generate_website import generate_data_page
         
         # Create a temporary CSV file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Species,Dealer Risk\n")
-            f.write("Species A,🔥\n")
-            csv_filename = f.name
+        csv_content = create_dealer_csv_content([
+            DealerEntry(species="Species A", risk="🔥")
+        ])
         
         analysis_markdown = """## 🏪 Dealer Supply Risk Matrix (Top 10)
 
 **Summary:** 3 species analyzed | 🔥 High Risk: 1 | ⚠️ Moderate Risk: 1 | ❌ Low Risk: 1
 """
         
-        try:
-            html = generate_data_page(PageConfig(
-                title="Dealer Supply Risk",
-                description="Test description",
-                csv_filename=csv_filename,
-                table_id="test-table",
-                active_page="dealer",
-                analysis_markdown=analysis_markdown
-            ))
+        with temp_csv_file(csv_content) as csv_filename:
+            config = page_config.dealer(csv_filename, analysis_markdown).with_title("Dealer Supply Risk").with_description("Test description").build()
+            html = generate_data_page(config)
             
             soup = BeautifulSoup(html, 'html.parser')
             
@@ -331,7 +284,6 @@ class TestSummaryStatsInHtml:
             # Check low risk tooltip
             low_risk_tooltip = tooltips[2].get_text()
             assert 'healthy' in low_risk_tooltip.lower() or 'well-supplied' in low_risk_tooltip.lower()
-        finally:
-            os.unlink(csv_filename)
+
 
 

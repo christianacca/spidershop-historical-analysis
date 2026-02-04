@@ -5,7 +5,8 @@ import tempfile
 import os
 from pathlib import Path
 from bs4 import BeautifulSoup
-from website import generate_table_html, get_base_html_template, get_html_footer, PageConfig
+from conftest import create_temp_csv_file, temp_csv_file, BreederEntry, create_breeder_csv_content, page_config
+from website import generate_table_html, get_base_html_template, get_html_footer
 from website.generate_website import generate_homepage, generate_data_page, main, OUTPUT_DIR
 
 
@@ -134,27 +135,16 @@ Example content for dealers.
 
     def test_full_page_generation_with_all_features(self):
         """Should generate complete page with all features enabled."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Species,Price,Size (cm),Signal\n")
-            for i in range(15):
-                f.write(f"Species {i},25.00,1.0,🔥\n")
-            csv_file = f.name
+        entries = [BreederEntry(species=f"Species {i}", size_cm="1.0", signal="🔥") for i in range(15)]
+        csv_content = create_breeder_csv_content(entries)
         
-        try:
+        with temp_csv_file(csv_content) as csv_file:
             # Summary line for stats extraction
             analysis_md = "**Summary:** 15 species analyzed | 🔥 Hot: 15 | ⚠️ Watch: 0 | ❌ Avoid: 0"
             legend_md = "**Symbol**: Meaning of symbol."
             
-            html = generate_data_page(PageConfig(
-                title="Test Page",
-                description="Description here",
-                csv_filename=csv_file,
-                table_id="test-table",
-                active_page="breeder",
-                search_filter=True,
-                analysis_markdown=analysis_md,
-                legend_markdown=legend_md
-            ))
+            config = page_config.breeder(csv_file, analysis_md).with_title("Test Page").with_description("Description here").with_legend(legend_md).with_search(True).build()
+            html = generate_data_page(config)
             
             # Verify all components present
             assert "<!DOCTYPE html>" in html
@@ -168,49 +158,33 @@ Example content for dealers.
             assert "<details>" in html
             assert "Symbol" in html
             assert "</html>" in html
-        finally:
-            os.unlink(csv_file)
 
     def test_handles_empty_csv_gracefully(self):
         """Should handle empty CSV file without errors."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            csv_file = f.name
-        
-        try:
-            html = generate_data_page(PageConfig(
-                title="Empty Data",
-                description="No data test",
-                csv_filename=csv_file,
-                table_id="test-table",
-                active_page="snapshot"
-            ))
+        with temp_csv_file("") as csv_file:
+            config = page_config.snapshot(csv_file).build()
+            html = generate_data_page(config)
             assert "No data available" in html
             assert "<!DOCTYPE html>" in html
             assert "</html>" in html
-        finally:
-            os.unlink(csv_file)
 
     def test_html_escaping_prevents_injection(self):
         """Should properly escape HTML to prevent injection attacks."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Name,Script\n")
-            f.write('<script>alert("xss")</script>,<img src=x onerror=alert(1)>\n')
-            csv_file = f.name
+        # Deliberately malicious input to test HTML escaping
+        csv_content = 'Name,Script\n<script>alert("xss")</script>,<img src=x onerror=alert(1)>\n'
         
-        try:
-            html = generate_data_page(PageConfig(
+        with temp_csv_file(csv_content) as csv_file:
+            config = page_config.custom(
                 title="<script>bad</script>",
-                description="<b>Description</b>",
                 csv_filename=csv_file,
-                table_id="test-table",
-                active_page="snapshot"
-            ))
+                active_page="snapshot",
+                description="<b>Description</b>"
+            ).build()
+            html = generate_data_page(config)
             # Verify escaping
             assert "&lt;script&gt;" in html
             assert "<script>alert" not in html
             assert "&lt;img src=" in html
-        finally:
-            os.unlink(csv_file)
 
     def test_main_function_generates_website(self):
         """Should execute main() function and generate website files."""
@@ -360,7 +334,9 @@ class TestHtmlSnapshots:
 
     def test_search_filter_snapshot(self, snapshot):
         """Should maintain consistent search filter HTML structure."""
-        html = generate_data_page(PageConfig(
+        from website.page_config import BreederPageConfig
+        
+        html = generate_data_page(BreederPageConfig(
             title="Test Page",
             description="Test description",
             csv_filename="test.csv",

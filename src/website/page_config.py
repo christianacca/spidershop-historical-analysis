@@ -1,35 +1,65 @@
-"""Configuration dataclass for website page generation."""
+"""Configuration dataclasses for website page generation."""
 
 from dataclasses import dataclass
 from typing import Optional
 
 
 @dataclass
-class PageConfig:
-    """Configuration for generating a data page.
+class BasePageConfig:
+    """Base configuration for all page types.
     
-    This encapsulates all the parameters needed to generate a complete HTML page
-    with data tables, analysis sections, and interactive features.
-    
-    Attributes:
-        title: Page title displayed in header
-        description: Brief description shown below title
-        csv_filename: Path to CSV file containing table data
-        table_id: HTML element ID for the main data table
-        active_page: Navigation identifier (e.g., 'breeder', 'dealer', 'snapshot')
-        search_filter: Whether to include text search functionality
-        analysis_markdown: Optional markdown content for analysis summary
-        legend_markdown: Optional markdown content for legend/help section
-        examples_markdown: Optional markdown content for practical examples
+    Contains fields common to all page configurations.
     """
     title: str
     description: str
     csv_filename: str
     table_id: str
     active_page: str
+
+
+@dataclass
+class BreederPageConfig(BasePageConfig):
+    """Configuration for breeder opportunity pages.
+    
+    Includes analysis, legend, examples, search, and species linking.
+    """
     search_filter: bool = True
     analysis_markdown: Optional[str] = None
     legend_markdown: Optional[str] = None
     examples_markdown: Optional[str] = None
-    link_to_species_page: bool = False  # Whether to link Species column to internal pages
-    table_view: str = "breeder"  # View parameter for species page links ("breeder" or "dealer")
+    link_to_species_page: bool = True
+    table_view: str = "breeder"
+
+
+@dataclass
+class DealerPageConfig(BasePageConfig):
+    """Configuration for dealer supply risk pages.
+    
+    Includes analysis, legend, examples, search, and species linking.
+    """
+    search_filter: bool = True
+    analysis_markdown: Optional[str] = None
+    legend_markdown: Optional[str] = None
+    examples_markdown: Optional[str] = None
+    link_to_species_page: bool = True
+    table_view: str = "dealer"
+
+
+@dataclass
+class SnapshotPageConfig(BasePageConfig):
+    """Configuration for snapshot pages.
+    
+    Simpler pages with just search and species linking (no analysis/legend).
+    """
+    search_filter: bool = True
+    link_to_species_page: bool = True
+    table_view: str = "breeder"
+
+
+@dataclass
+class HistoryPageConfig(BasePageConfig):
+    """Configuration for historical data pages.
+    
+    Simplest pages with just search (no species linking).
+    """
+    search_filter: bool = True
