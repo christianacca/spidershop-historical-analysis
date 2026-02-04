@@ -5,6 +5,7 @@ import tempfile
 import os
 from pathlib import Path
 from bs4 import BeautifulSoup
+from conftest import create_temp_csv_file, BreederEntry, create_breeder_csv_content
 from website import generate_table_html, get_base_html_template, get_html_footer, PageConfig
 from website.generate_website import generate_homepage, generate_data_page, main, OUTPUT_DIR
 
@@ -134,11 +135,9 @@ Example content for dealers.
 
     def test_full_page_generation_with_all_features(self):
         """Should generate complete page with all features enabled."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Species,Price,Size (cm),Signal\n")
-            for i in range(15):
-                f.write(f"Species {i},25.00,1.0,🔥\n")
-            csv_file = f.name
+        entries = [BreederEntry(species=f"Species {i}", size_cm="1.0", signal="🔥") for i in range(15)]
+        csv_content = create_breeder_csv_content(entries)
+        csv_file = create_temp_csv_file(csv_content)
         
         try:
             # Summary line for stats extraction
@@ -192,10 +191,9 @@ Example content for dealers.
 
     def test_html_escaping_prevents_injection(self):
         """Should properly escape HTML to prevent injection attacks."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Name,Script\n")
-            f.write('<script>alert("xss")</script>,<img src=x onerror=alert(1)>\n')
-            csv_file = f.name
+        # Deliberately malicious input to test HTML escaping
+        csv_content = 'Name,Script\n<script>alert("xss")</script>,<img src=x onerror=alert(1)>\n'
+        csv_file = create_temp_csv_file(csv_content)
         
         try:
             html = generate_data_page(PageConfig(

@@ -4,6 +4,7 @@ import pytest
 import tempfile
 import os
 from bs4 import BeautifulSoup
+from conftest import DealerEntry, BreederEntry, create_dealer_csv_content, create_breeder_csv_content, create_temp_csv_file
 from website import PageConfig
 from website.generate_website import extract_summary_stats, generate_data_page
 
@@ -138,12 +139,12 @@ class TestSummaryStatsInHtml:
         from website.generate_website import generate_data_page
         
         # Create a temporary CSV file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Species,Dealer Risk,Notes\n")
-            f.write("Species A,🔥,High risk\n")
-            f.write("Species B,⚠️,Moderate risk\n")
-            f.write("Species C,❌,Low risk\n")
-            csv_filename = f.name
+        csv_content = create_dealer_csv_content([
+            DealerEntry(species="Species A", risk="🔥", dealer_recommendation="High risk"),
+            DealerEntry(species="Species B", risk="⚠️", dealer_recommendation="Moderate risk"),
+            DealerEntry(species="Species C", risk="❌", dealer_recommendation="Low risk"),
+        ])
+        csv_filename = create_temp_csv_file(csv_content)
         
         # Create markdown with Summary line (dealer format)
         analysis_markdown = """## 🏪 Dealer Supply Risk Matrix (Top 10)
@@ -181,11 +182,9 @@ class TestSummaryStatsInHtml:
         """Should not render summary stats section when no analysis markdown provided."""
         from website.generate_website import generate_data_page
         
-        # Create a temporary CSV file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Species,Price\n")
-            f.write("Species A,25.00\n")
-            csv_filename = f.name
+        # Create a temporary CSV file with minimal columns
+        csv_content = "Species,Price\nSpecies A,25.00\n"
+        csv_filename = create_temp_csv_file(csv_content)
         
         try:
             html = generate_data_page(PageConfig(
@@ -208,10 +207,10 @@ class TestSummaryStatsInHtml:
         from website.generate_website import generate_data_page
         
         # Create a temporary CSV file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Species,Signal\n")
-            f.write("Species A,🔥\n")
-            csv_filename = f.name
+        csv_content = create_breeder_csv_content([
+            BreederEntry(species="Species A", signal="🔥")
+        ])
+        csv_filename = create_temp_csv_file(csv_content)
         
         # Markdown WITHOUT Summary line
         analysis_markdown = """## 🧬 Breeder Opportunity Matrix (Top 10)
@@ -241,10 +240,10 @@ class TestSummaryStatsInHtml:
         from website.generate_website import generate_data_page
         
         # Create a temporary CSV file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Species,Signal\n")
-            f.write("Species A,🔥\n")
-            csv_filename = f.name
+        csv_content = create_breeder_csv_content([
+            BreederEntry(species="Species A", signal="🔥")
+        ])
+        csv_filename = create_temp_csv_file(csv_content)
         
         analysis_markdown = """## 🧬 Breeder Opportunity Matrix (Top 10)
 
@@ -292,10 +291,10 @@ class TestSummaryStatsInHtml:
         from website.generate_website import generate_data_page
         
         # Create a temporary CSV file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Species,Dealer Risk\n")
-            f.write("Species A,🔥\n")
-            csv_filename = f.name
+        csv_content = create_dealer_csv_content([
+            DealerEntry(species="Species A", risk="🔥")
+        ])
+        csv_filename = create_temp_csv_file(csv_content)
         
         analysis_markdown = """## 🏪 Dealer Supply Risk Matrix (Top 10)
 
