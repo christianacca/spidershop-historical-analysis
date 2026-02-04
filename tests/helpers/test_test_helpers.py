@@ -146,8 +146,9 @@ class TestCreateBreederCsvContent:
         """Should create breeder CSV with default values."""
         result = create_breeder_csv_content()
         
-        assert "Species,Size (cm),Signal" in result
-        assert "Test Species,1.0,🔥" in result
+        assert "Species,Size (cm),OOS,OOS Runs,Stock Pattern,Price Trend,Price History,Wishlist Pressure,Wishlist Delta,Wishlist History,Signal,Recommendation" in result
+        assert "Test Species,1.0" in result
+        assert "🔥" in result
 
     def test_creates_custom_breeder_csv(self):
         """Should create breeder CSV with custom values."""
@@ -159,20 +160,23 @@ class TestCreateBreederCsvContent:
             )
         ])
         
-        assert "Custom Species,2.5,⚠️" in result
+        assert "Custom Species" in result
+        assert "2.5" in result
+        assert "⚠️" in result
 
     def test_adds_extra_columns(self):
-        """Should add extra columns when specified."""
+        """Should add all breeder columns when specified."""
         result = create_breeder_csv_content([
             BreederEntry(
-                extra_columns={"Price": "30.00", "Wishlist": "5"}
+                oos_runs="5",
+                price_trend="↑"
             )
         ])
         
-        assert "Price" in result
-        assert "Wishlist" in result
-        assert "30.00" in result
+        assert "OOS Runs" in result
+        assert "Price Trend" in result
         assert "5" in result
+        assert "↑" in result
 
 
 class TestCreateDealerCsvContent:
@@ -182,8 +186,9 @@ class TestCreateDealerCsvContent:
         """Should create dealer CSV with default values."""
         result = create_dealer_csv_content()
         
-        assert "Species,Size (cm),Dealer Risk" in result
-        assert "Test Species,1.0,🔥" in result
+        assert "Species,Size (cm),Stock Reliability,Avg OOS Duration,Restock Speed,Price Pressure,Price History,Wishlist Pressure,Wishlist Delta,Wishlist History,Stock Availability,Dealer Risk,Dealer Recommendation" in result
+        assert "Test Species,1.0" in result
+        assert "🔥" in result
 
     def test_creates_custom_dealer_csv(self):
         """Should create dealer CSV with custom values."""
@@ -195,19 +200,22 @@ class TestCreateDealerCsvContent:
             )
         ])
         
-        assert "Custom Species,3.0,❌" in result
+        assert "Custom Species" in result
+        assert "3.0" in result
+        assert "❌" in result
 
     def test_adds_extra_columns(self):
-        """Should add extra columns when specified."""
+        """Should add all dealer columns when specified."""
         result = create_dealer_csv_content([
             DealerEntry(
-                extra_columns={"Avg OOS": "2", "Reliability": "85%"}
+                stock_reliability="Low",
+                avg_oos_duration="2"
             )
         ])
         
-        assert "Reliability" in result
-        assert "Avg OOS" in result
-        assert "85%" in result
+        assert "Stock Reliability" in result
+        assert "Avg OOS Duration" in result
+        assert "Low" in result
         assert "2" in result
 
 

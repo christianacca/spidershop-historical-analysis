@@ -319,8 +319,8 @@ Common test helper functions are available in `tests/helpers/test_helpers.py` an
 
 - **CSV entry dataclasses**:
   - `HistoryEntry` - Historical scrape data (scientific_name, scrape_datetime, common_name, size_cm, price_gbp, wishlist_count, page_url)
-  - `BreederEntry` - Breeder opportunity data (species, size_cm, signal, extra_columns)
-  - `DealerEntry` - Dealer supply risk data (species, size_cm, risk, extra_columns)
+  - `BreederEntry` - Breeder opportunity data with all CSV columns as proper fields (species, size_cm, signal, oos, oos_runs, stock_pattern, price_trend, price_history, wishlist_pressure, wishlist_delta, wishlist_history, recommendation)
+  - `DealerEntry` - Dealer supply risk data with all CSV columns as proper fields (species, size_cm, risk, stock_reliability, avg_oos_duration, restock_speed, price_pressure, price_history, wishlist_pressure, wishlist_delta, wishlist_history, stock_availability, dealer_recommendation)
 
 **Usage in tests:**
 ```python
@@ -336,7 +336,8 @@ def test_example():
             species="Test Spider",
             size_cm="1.5",
             signal="🔥",
-            extra_columns={"Price": "30.00"}
+            oos_runs="4",
+            price_trend="↑"
         )
     ])
     csv_path = create_temp_csv_file(content)

@@ -28,7 +28,15 @@ class BreederEntry:
     species: str = "Test Species"
     size_cm: str = "1.0"
     signal: str = "🔥"
-    extra_columns: Dict[str, str] = field(default_factory=dict)
+    oos: str = ""
+    oos_runs: str = ""
+    stock_pattern: str = ""
+    price_trend: str = ""
+    price_history: str = ""
+    wishlist_pressure: str = ""
+    wishlist_delta: str = ""
+    wishlist_history: str = ""
+    recommendation: str = ""
 
 
 @dataclass
@@ -37,7 +45,16 @@ class DealerEntry:
     species: str = "Test Species"
     size_cm: str = "1.0"
     risk: str = "🔥"
-    extra_columns: Dict[str, str] = field(default_factory=dict)
+    stock_reliability: str = ""
+    avg_oos_duration: str = ""
+    restock_speed: str = ""
+    price_pressure: str = ""
+    price_history: str = ""
+    wishlist_pressure: str = ""
+    wishlist_delta: str = ""
+    wishlist_history: str = ""
+    stock_availability: str = ""
+    dealer_recommendation: str = ""
 
 
 def create_temp_markdown_file(content: str) -> str:
@@ -168,27 +185,36 @@ def create_breeder_csv_content(
         
     Example:
         >>> from test_helpers import BreederEntry
-        >>> entries = [BreederEntry(species="Test Spider", signal="🔥", extra_columns={"Price": "30.00"})]
+        >>> entries = [BreederEntry(species="Test Spider", signal="🔥", oos_runs="4")]
         >>> content = create_breeder_csv_content(entries)
-        >>> "Price" in content
+        >>> "OOS Runs" in content
         True
     """
     if entries is None:
         entries = [BreederEntry()]
     
-    # Collect all unique column names across all entries
-    all_extra_cols = set()
-    for entry in entries:
-        all_extra_cols.update(entry.extra_columns.keys())
-    
-    headers = ["Species", "Size (cm)", "Signal"] + sorted(all_extra_cols)
+    headers = [
+        "Species", "Size (cm)", "OOS", "OOS Runs", "Stock Pattern", 
+        "Price Trend", "Price History", "Wishlist Pressure", "Wishlist Delta", 
+        "Wishlist History", "Signal", "Recommendation"
+    ]
     
     rows = []
     for entry in entries:
-        row = [entry.species, entry.size_cm, entry.signal]
-        for col in sorted(all_extra_cols):
-            row.append(entry.extra_columns.get(col, ""))
-        rows.append(row)
+        rows.append([
+            entry.species,
+            entry.size_cm,
+            entry.oos,
+            entry.oos_runs,
+            entry.stock_pattern,
+            entry.price_trend,
+            entry.price_history,
+            entry.wishlist_pressure,
+            entry.wishlist_delta,
+            entry.wishlist_history,
+            entry.signal,
+            entry.recommendation
+        ])
     
     return create_csv_content(headers, rows)
 
@@ -206,27 +232,38 @@ def create_dealer_csv_content(
         
     Example:
         >>> from test_helpers import DealerEntry
-        >>> entries = [DealerEntry(species="Test Spider", risk="⚠️", extra_columns={"Reliability": "85%"})]
+        >>> entries = [DealerEntry(species="Test Spider", risk="⚠️", stock_reliability="Low")]
         >>> content = create_dealer_csv_content(entries)
-        >>> "Reliability" in content
+        >>> "Stock Reliability" in content
         True
     """
     if entries is None:
         entries = [DealerEntry()]
     
-    # Collect all unique column names across all entries
-    all_extra_cols = set()
-    for entry in entries:
-        all_extra_cols.update(entry.extra_columns.keys())
-    
-    headers = ["Species", "Size (cm)", "Dealer Risk"] + sorted(all_extra_cols)
+    headers = [
+        "Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration", 
+        "Restock Speed", "Price Pressure", "Price History", "Wishlist Pressure", 
+        "Wishlist Delta", "Wishlist History", "Stock Availability", "Dealer Risk", 
+        "Dealer Recommendation"
+    ]
     
     rows = []
     for entry in entries:
-        row = [entry.species, entry.size_cm, entry.risk]
-        for col in sorted(all_extra_cols):
-            row.append(entry.extra_columns.get(col, ""))
-        rows.append(row)
+        rows.append([
+            entry.species,
+            entry.size_cm,
+            entry.stock_reliability,
+            entry.avg_oos_duration,
+            entry.restock_speed,
+            entry.price_pressure,
+            entry.price_history,
+            entry.wishlist_pressure,
+            entry.wishlist_delta,
+            entry.wishlist_history,
+            entry.stock_availability,
+            entry.risk,
+            entry.dealer_recommendation
+        ])
     
     return create_csv_content(headers, rows)
 

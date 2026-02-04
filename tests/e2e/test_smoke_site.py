@@ -67,7 +67,7 @@ def _write_minimal_inputs(cwd: Path) -> None:
             BreederEntry(
                 species="Aphonopelma seemanni",
                 signal="🔥",
-                extra_columns={"OOS Runs": "4"}
+                oos_runs="4"
             )
         ]),
         encoding="utf-8",
@@ -77,10 +77,8 @@ def _write_minimal_inputs(cwd: Path) -> None:
             DealerEntry(
                 species="Aphonopelma seemanni",
                 risk="⚠️",
-                extra_columns={
-                    "Stock Reliability": "Low",
-                    "Restock Speed": "Slow"
-                }
+                stock_reliability="Low",
+                restock_speed="Slow"
             )
         ]),
         encoding="utf-8",
