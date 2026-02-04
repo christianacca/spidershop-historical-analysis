@@ -188,14 +188,26 @@ e2e-install: .check-venv
 	@echo "✅ Playwright Chromium installed"
 
 test-e2e: .check-venv e2e-install
+	@echo "🧪 Running Playwright e2e smoke tests..."
+	@mkdir -p $(TESTING_DIR)
+	source $(VENV)/bin/activate && cd $(TESTING_DIR) && \
+		export PYTHONPATH="$$PWD/../../src:$$PYTHONPATH" && \
+		RUN_E2E=1 pytest ../../tests/e2e -m e2e -v
 
 test-e2e-debug: .check-venv e2e-install
 	@echo "🐛 Running e2e tests with Playwright Inspector (interactive debugger)..."
 	@echo "   Use the Inspector UI to step through actions, pause, and inspect locators"
-	source $(VENV)/bin/activate && PWDEBUG=1 RUN_E2E=1 pytest tests/e2e -m e2e -v -s
+	@mkdir -p $(TESTING_DIR)
+	source $(VENV)/bin/activate && cd $(TESTING_DIR) && \
+		export PYTHONPATH="$$PWD/../../src:$$PYTHONPATH" && \
+		PWDEBUG=1 RUN_E2E=1 pytest ../../tests/e2e -m e2e -v -s
 
 test-e2e-headed: .check-venv e2e-install
 	@echo "👀 Running e2e tests with visible browser..."
+	@mkdir -p $(TESTING_DIR)
+	source $(VENV)/bin/activate && cd $(TESTING_DIR) && \
+		export PYTHONPATH="$$PWD/../../src:$$PYTHONPATH" && \
+		PWHEADED=1 RUN_E2E=1 pytest ../../tests/e2e -m e2e -v -s
 
 test-e2e-show-trace: .check-venv e2e-install
 	@if [ ! -f tmp/e2e-trace.zip ]; then \
@@ -206,9 +218,6 @@ test-e2e-show-trace: .check-venv e2e-install
 	fi
 	@echo "🔍 Opening trace viewer..."
 	source $(VENV)/bin/activate && playwright show-trace tmp/e2e-trace.zip
-	source $(VENV)/bin/activate && PWHEADED=1 RUN_E2E=1 pytest tests/e2e -m e2e -v -s
-	@echo "🧪 Running Playwright e2e smoke tests..."
-	source $(VENV)/bin/activate && RUN_E2E=1 pytest tests/e2e -m e2e -v
 
 coverage:
 	@echo "Opening coverage report in browser..."
