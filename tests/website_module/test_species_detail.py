@@ -12,6 +12,7 @@ from conftest import (
     BreederEntry,
     DealerEntry,
     create_temp_csv_file,
+    temp_csv_file,
     create_breeder_csv_content,
     create_dealer_csv_content,
     create_history_csv_content
@@ -89,19 +90,15 @@ class TestGetSpeciesList:
         
         # Breeder CSV without Size column
         breeder_content = "Species,Signal\nTest Spider,🔥\n"
-        breeder_path = create_temp_csv_file(breeder_content)
         
         # Dealer CSV without Size column
         dealer_content = "Species,Dealer Risk\nOther Spider,⚠️\n"
-        dealer_path = create_temp_csv_file(dealer_content)
         
-        try:
-            # Both should return empty
-            assert get_species_list(breeder_csv_path=breeder_path) == []
-            assert get_species_list(dealer_csv_path=dealer_path) == []
-        finally:
-            os.unlink(breeder_path)
-            os.unlink(dealer_path)
+        with temp_csv_file(breeder_content) as breeder_path:
+            with temp_csv_file(dealer_content) as dealer_path:
+                # Both should return empty
+                assert get_species_list(breeder_csv_path=breeder_path) == []
+                assert get_species_list(dealer_csv_path=dealer_path) == []
 
 
 class TestSlugifySpecies:
@@ -394,13 +391,10 @@ class TestGetDefaultSize:
         from website.species_detail import get_default_size
         
         content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
-        csv_path = create_temp_csv_file(content)
         
-        try:
+        with temp_csv_file(content) as csv_path:
             result = get_default_size("Aphonopelma seemanni", csv_path)
             assert result is None
-        finally:
-            os.unlink(csv_path)
 
 
 class TestGenerateSpeciesPage:
@@ -549,13 +543,10 @@ class TestGetPageUrl:
                 page_url="https://example.com/middle"
             ),
         ])
-        csv_path = create_temp_csv_file(content)
         
-        try:
+        with temp_csv_file(content) as csv_path:
             result = get_page_url("Test Spider", "1.5", csv_path)
             assert result == "https://example.com/recent"
-        finally:
-            os.unlink(csv_path)
     
     def test_returns_none_when_species_not_found(self):
         """Should return None when species not in history."""
@@ -572,13 +563,10 @@ class TestGetPageUrl:
                 page_url="https://example.com/other"
             ),
         ])
-        csv_path = create_temp_csv_file(content)
         
-        try:
+        with temp_csv_file(content) as csv_path:
             result = get_page_url("Test Spider", "1.5", csv_path)
             assert result is None
-        finally:
-            os.unlink(csv_path)
     
     def test_returns_none_when_size_not_found(self):
         """Should return None when size doesn't match."""
@@ -595,23 +583,17 @@ class TestGetPageUrl:
                 page_url="https://example.com/small"
             ),
         ])
-        csv_path = create_temp_csv_file(content)
         
-        try:
+        with temp_csv_file(content) as csv_path:
             result = get_page_url("Test Spider", "1.5", csv_path)
             assert result is None
-        finally:
-            os.unlink(csv_path)
     
     def test_returns_none_when_history_empty(self):
         """Should return None when history CSV is empty."""
         from website.species_detail import get_page_url
         
         content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
-        csv_path = create_temp_csv_file(content)
         
-        try:
+        with temp_csv_file(content) as csv_path:
             result = get_page_url("Test Spider", "1.5", csv_path)
             assert result is None
-        finally:
-            os.unlink(csv_path)

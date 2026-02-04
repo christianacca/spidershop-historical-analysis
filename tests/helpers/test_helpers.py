@@ -5,6 +5,7 @@ This module provides reusable helper functions to reduce boilerplate in tests.
 
 import tempfile
 import os
+from contextlib import contextmanager
 from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -125,6 +126,34 @@ def create_temp_csv_file(content: str) -> str:
     ) as f:
         f.write(content)
         return f.name
+
+
+@contextmanager
+def temp_csv_file(content: str):
+    """Context manager for temporary CSV file with automatic cleanup.
+    
+    Args:
+        content: CSV content to write (including header)
+        
+    Yields:
+        Path to the temporary CSV file
+        
+    Example:
+        >>> from conftest import temp_csv_file
+        >>> with temp_csv_file("Name,Age\\nAlice,30\\n") as csv_path:
+        ...     # Use csv_path
+        ...     with open(csv_path) as f:
+        ...         print(f.read())
+        # File automatically deleted after with block
+    """
+    filepath = create_temp_csv_file(content)
+    try:
+        yield filepath
+    finally:
+        try:
+            os.unlink(filepath)
+        except FileNotFoundError:
+            pass  # File already deleted
 
 
 def write_csv_file(path: Path, headers: List[str], rows: List[List[str]]) -> None:

@@ -5,7 +5,7 @@ import tempfile
 import os
 from pathlib import Path
 from bs4 import BeautifulSoup
-from conftest import create_temp_csv_file, BreederEntry, create_breeder_csv_content
+from conftest import create_temp_csv_file, temp_csv_file, BreederEntry, create_breeder_csv_content
 from website import generate_table_html, get_base_html_template, get_html_footer, PageConfig
 from website.generate_website import generate_homepage, generate_data_page, main, OUTPUT_DIR
 
@@ -137,9 +137,8 @@ Example content for dealers.
         """Should generate complete page with all features enabled."""
         entries = [BreederEntry(species=f"Species {i}", size_cm="1.0", signal="🔥") for i in range(15)]
         csv_content = create_breeder_csv_content(entries)
-        csv_file = create_temp_csv_file(csv_content)
         
-        try:
+        with temp_csv_file(csv_content) as csv_file:
             # Summary line for stats extraction
             analysis_md = "**Summary:** 15 species analyzed | 🔥 Hot: 15 | ⚠️ Watch: 0 | ❌ Avoid: 0"
             legend_md = "**Symbol**: Meaning of symbol."
@@ -167,15 +166,10 @@ Example content for dealers.
             assert "<details>" in html
             assert "Symbol" in html
             assert "</html>" in html
-        finally:
-            os.unlink(csv_file)
 
     def test_handles_empty_csv_gracefully(self):
         """Should handle empty CSV file without errors."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            csv_file = f.name
-        
-        try:
+        with temp_csv_file("") as csv_file:
             html = generate_data_page(PageConfig(
                 title="Empty Data",
                 description="No data test",
@@ -186,16 +180,13 @@ Example content for dealers.
             assert "No data available" in html
             assert "<!DOCTYPE html>" in html
             assert "</html>" in html
-        finally:
-            os.unlink(csv_file)
 
     def test_html_escaping_prevents_injection(self):
         """Should properly escape HTML to prevent injection attacks."""
         # Deliberately malicious input to test HTML escaping
         csv_content = 'Name,Script\n<script>alert("xss")</script>,<img src=x onerror=alert(1)>\n'
-        csv_file = create_temp_csv_file(csv_content)
         
-        try:
+        with temp_csv_file(csv_content) as csv_file:
             html = generate_data_page(PageConfig(
                 title="<script>bad</script>",
                 description="<b>Description</b>",
@@ -207,8 +198,6 @@ Example content for dealers.
             assert "&lt;script&gt;" in html
             assert "<script>alert" not in html
             assert "&lt;img src=" in html
-        finally:
-            os.unlink(csv_file)
 
     def test_main_function_generates_website(self):
         """Should execute main() function and generate website files."""
