@@ -4,8 +4,7 @@ import pytest
 import tempfile
 import os
 from bs4 import BeautifulSoup
-from conftest import DealerEntry, BreederEntry, create_dealer_csv_content, create_breeder_csv_content, temp_csv_file
-from website import PageConfig
+from conftest import DealerEntry, BreederEntry, create_dealer_csv_content, create_breeder_csv_content, temp_csv_file, page_config
 from website.generate_website import extract_summary_stats, generate_data_page
 
 
@@ -100,14 +99,8 @@ class TestSummaryStatsInHtml:
 """
         
         try:
-            html = generate_data_page(PageConfig(
-                title="Breeder Opportunities",
-                description="Test description",
-                csv_filename=csv_filename,
-                table_id="test-table",
-                active_page="breeder",
-                analysis_markdown=analysis_markdown
-            ))
+            config = page_config.breeder(csv_filename, analysis_markdown).with_title("Breeder Opportunities").with_description("Test description").build()
+            html = generate_data_page(config)
             
             # Verify summary stats cards are present in HTML
             assert '<div class="summary-stats">' in html
@@ -156,14 +149,8 @@ class TestSummaryStatsInHtml:
 """
         
         with temp_csv_file(csv_content) as csv_filename:
-            html = generate_data_page(PageConfig(
-                title="Dealer Supply Risk",
-                description="Test description",
-                csv_filename=csv_filename,
-                table_id="test-table",
-                active_page="dealer",
-                analysis_markdown=analysis_markdown
-            ))
+            config = page_config.dealer(csv_filename, analysis_markdown).build()
+            html = generate_data_page(config)
             
             # Verify summary stats cards are present
             assert '<div class="summary-stats">' in html
@@ -183,14 +170,12 @@ class TestSummaryStatsInHtml:
         csv_content = "Species,Price\nSpecies A,25.00\n"
         
         with temp_csv_file(csv_content) as csv_filename:
-            html = generate_data_page(PageConfig(
+            config = page_config.custom(
                 title="Test Page",
-                description="Test description",
                 csv_filename=csv_filename,
-                table_id="test-table",
-                active_page="test",
-                analysis_markdown=None
-            ))
+                active_page="test"
+            ).build()
+            html = generate_data_page(config)
             
             # Verify NO summary stats section present
             assert '<div class="summary-stats">' not in html
@@ -214,14 +199,8 @@ class TestSummaryStatsInHtml:
 """
         
         with temp_csv_file(csv_content) as csv_filename:
-            html = generate_data_page(PageConfig(
-                title="Breeder Opportunities",
-                description="Test description",
-                csv_filename=csv_filename,
-                table_id="test-table",
-                active_page="breeder",
-                analysis_markdown=analysis_markdown
-            ))
+            config = page_config.breeder(csv_filename, analysis_markdown).with_title("Breeder Opportunities").with_description("Test description").build()
+            html = generate_data_page(config)
             
             # Verify NO summary stats section (because no Summary line found)
             assert '<div class="summary-stats">' not in html
@@ -241,14 +220,8 @@ class TestSummaryStatsInHtml:
 """
         
         with temp_csv_file(csv_content) as csv_filename:
-            html = generate_data_page(PageConfig(
-                title="Breeder Opportunities",
-                description="Test description",
-                csv_filename=csv_filename,
-                table_id="test-table",
-                active_page="breeder",
-                analysis_markdown=analysis_markdown
-            ))
+            config = page_config.breeder(csv_filename, analysis_markdown).with_title("Breeder Opportunities").with_description("Test description").build()
+            html = generate_data_page(config)
             
             soup = BeautifulSoup(html, 'html.parser')
             
@@ -289,14 +262,8 @@ class TestSummaryStatsInHtml:
 """
         
         with temp_csv_file(csv_content) as csv_filename:
-            html = generate_data_page(PageConfig(
-                title="Dealer Supply Risk",
-                description="Test description",
-                csv_filename=csv_filename,
-                table_id="test-table",
-                active_page="dealer",
-                analysis_markdown=analysis_markdown
-            ))
+            config = page_config.dealer(csv_filename, analysis_markdown).with_title("Dealer Supply Risk").with_description("Test description").build()
+            html = generate_data_page(config)
             
             soup = BeautifulSoup(html, 'html.parser')
             

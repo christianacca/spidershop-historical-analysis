@@ -28,6 +28,7 @@ from helpers.test_helpers import (
     create_breeder_csv_content,
     create_dealer_csv_content,
     create_history_csv_content,
+    page_config,
 )
 
 __all__ = [
@@ -44,6 +45,7 @@ __all__ = [
     'create_breeder_csv_content',
     'create_dealer_csv_content',
     'create_history_csv_content',
+    'page_config',
 ]
 
 

@@ -340,3 +340,356 @@ def create_history_csv_content(entries: Optional[List[HistoryEntry]] = None) -> 
         True
     """
     return create_dataclass_csv_content(entries or [], HistoryEntry)
+
+
+class PageConfigBuilder:
+    """Builder for PageConfig with convenient presets and fluent API.
+    
+    Provides typed, discoverable methods for creating PageConfig instances
+    with sensible defaults and chainable customization.
+    
+    Example:
+        >>> from conftest import page_config
+        >>> # Simple preset
+        >>> config = page_config.dealer("data.csv", "Analysis content")
+        >>> 
+        >>> # Chainable customization
+        >>> config = page_config.breeder("data.csv").with_search().with_legend("Legend text")
+        >>> 
+        >>> # Custom configuration
+        >>> config = page_config.custom(
+        ...     title="Custom Page",
+        ...     csv_filename="data.csv",
+        ...     active_page="custom"
+        ... )
+    """
+    
+    def __init__(self, csv_filename: str, active_page: str):
+        """Initialize base builder with minimal required fields."""
+        self._csv_filename = csv_filename
+        self._active_page = active_page
+        self._title = ""
+        self._description = ""
+        self._table_id = f"{active_page}-table"
+    
+    def with_title(self, title: str) -> 'PageConfigBuilder':
+        """Override the default title."""
+        self._title = title
+        return self
+    
+    def with_description(self, description: str) -> 'PageConfigBuilder':
+        """Override the default description."""
+        self._description = description
+        return self
+
+
+class BreederPageConfigBuilder(PageConfigBuilder):
+    """Specialized builder for breeder opportunity pages."""
+    
+    def __init__(self, csv_filename: str, analysis_markdown: str = ""):
+        super().__init__(csv_filename, "breeder")
+        self._analysis_markdown = analysis_markdown
+        self._legend_markdown = None
+        self._examples_markdown = None
+        self._search_filter = True
+        self._link_to_species_page = True
+        self._table_view = "breeder"
+    
+    def with_search(self, enabled: bool = True) -> 'BreederPageConfigBuilder':
+        """Enable or disable search filter."""
+        self._search_filter = enabled
+        return self
+    
+    def with_analysis(self, markdown: str) -> 'BreederPageConfigBuilder':
+        """Add analysis markdown content."""
+        self._analysis_markdown = markdown
+        return self
+    
+    def with_legend(self, markdown: str) -> 'BreederPageConfigBuilder':
+        """Add legend markdown content."""
+        self._legend_markdown = markdown
+        return self
+    
+    def with_examples(self, markdown: str) -> 'BreederPageConfigBuilder':
+        """Add examples markdown content."""
+        self._examples_markdown = markdown
+        return self
+    
+    def with_species_links(self, enabled: bool = True, view: str = "breeder") -> 'BreederPageConfigBuilder':
+        """Enable species column links to detail pages."""
+        self._link_to_species_page = enabled
+        self._table_view = view
+        return self
+    
+    def build(self):
+        """Build BreederPageConfig instance."""
+        from website import BreederPageConfig
+        return BreederPageConfig(
+            title=self._title,
+            description=self._description,
+            csv_filename=self._csv_filename,
+            table_id=self._table_id,
+            active_page=self._active_page,
+            search_filter=self._search_filter,
+            analysis_markdown=self._analysis_markdown,
+            legend_markdown=self._legend_markdown,
+            examples_markdown=self._examples_markdown,
+            link_to_species_page=self._link_to_species_page,
+            table_view=self._table_view
+        )
+
+
+class DealerPageConfigBuilder(PageConfigBuilder):
+    """Specialized builder for dealer supply risk pages."""
+    
+    def __init__(self, csv_filename: str, analysis_markdown: str = ""):
+        super().__init__(csv_filename, "dealer")
+        self._analysis_markdown = analysis_markdown
+        self._legend_markdown = None
+        self._examples_markdown = None
+        self._search_filter = True
+        self._link_to_species_page = True
+        self._table_view = "dealer"
+    
+    def with_search(self, enabled: bool = True) -> 'DealerPageConfigBuilder':
+        """Enable or disable search filter."""
+        self._search_filter = enabled
+        return self
+    
+    def with_analysis(self, markdown: str) -> 'DealerPageConfigBuilder':
+        """Add analysis markdown content."""
+        self._analysis_markdown = markdown
+        return self
+    
+    def with_legend(self, markdown: str) -> 'DealerPageConfigBuilder':
+        """Add legend markdown content."""
+        self._legend_markdown = markdown
+        return self
+    
+    def with_examples(self, markdown: str) -> 'DealerPageConfigBuilder':
+        """Add examples markdown content."""
+        self._examples_markdown = markdown
+        return self
+    
+    def with_species_links(self, enabled: bool = True, view: str = "dealer") -> 'DealerPageConfigBuilder':
+        """Enable species column links to detail pages."""
+        self._link_to_species_page = enabled
+        self._table_view = view
+        return self
+    
+    def build(self):
+        """Build DealerPageConfig instance."""
+        from website import DealerPageConfig
+        return DealerPageConfig(
+            title=self._title,
+            description=self._description,
+            csv_filename=self._csv_filename,
+            table_id=self._table_id,
+            active_page=self._active_page,
+            search_filter=self._search_filter,
+            analysis_markdown=self._analysis_markdown,
+            legend_markdown=self._legend_markdown,
+            examples_markdown=self._examples_markdown,
+            link_to_species_page=self._link_to_species_page,
+            table_view=self._table_view
+        )
+
+
+class SnapshotPageConfigBuilder(PageConfigBuilder):
+    """Specialized builder for snapshot pages."""
+    
+    def __init__(self, csv_filename: str):
+        super().__init__(csv_filename, "snapshot")
+        self._search_filter = True
+        self._link_to_species_page = True
+        self._table_view = "breeder"
+    
+    def with_search(self, enabled: bool = True) -> 'SnapshotPageConfigBuilder':
+        """Enable or disable search filter."""
+        self._search_filter = enabled
+        return self
+    
+    def with_species_links(self, enabled: bool = True, view: str = "breeder") -> 'SnapshotPageConfigBuilder':
+        """Enable species column links to detail pages."""
+        self._link_to_species_page = enabled
+        self._table_view = view
+        return self
+    
+    def build(self):
+        """Build SnapshotPageConfig instance."""
+        from website import SnapshotPageConfig
+        return SnapshotPageConfig(
+            title=self._title,
+            description=self._description,
+            csv_filename=self._csv_filename,
+            table_id=self._table_id,
+            active_page=self._active_page,
+            search_filter=self._search_filter,
+            link_to_species_page=self._link_to_species_page,
+            table_view=self._table_view
+        )
+
+
+class HistoryPageConfigBuilder(PageConfigBuilder):
+    """Specialized builder for history pages."""
+    
+    def __init__(self, csv_filename: str):
+        super().__init__(csv_filename, "history")
+        self._search_filter = True
+    
+    def with_search(self, enabled: bool = True) -> 'HistoryPageConfigBuilder':
+        """Enable or disable search filter."""
+        self._search_filter = enabled
+        return self
+    
+    def build(self):
+        """Build HistoryPageConfig instance."""
+        from website import HistoryPageConfig
+        return HistoryPageConfig(
+            title=self._title,
+            description=self._description,
+            csv_filename=self._csv_filename,
+            table_id=self._table_id,
+            active_page=self._active_page,
+            search_filter=self._search_filter
+        )
+
+
+class CustomPageConfigBuilder(PageConfigBuilder):
+    """Builder for custom/test pages using BasePageConfig."""
+    
+    def __init__(self, title: str, csv_filename: str, active_page: str, description: str = ""):
+        super().__init__(csv_filename, active_page)
+        self._title = title
+        self._description = description
+    
+    def build(self):
+        """Build BasePageConfig instance."""
+        from website import BasePageConfig
+        return BasePageConfig(
+            title=self._title,
+            description=self._description,
+            csv_filename=self._csv_filename,
+            table_id=self._table_id,
+            active_page=self._active_page
+        )
+
+
+class PageConfigPresets:
+    """Convenient preset configurations for common page types.
+    
+    Use as: `from conftest import page_config`
+    Then: `config = page_config.dealer(csv_file, analysis)`
+    """
+    
+    @staticmethod
+    def breeder(
+        csv_filename: str,
+        analysis_markdown: str = ""
+    ) -> BreederPageConfigBuilder:
+        """Create breeder opportunity page configuration.
+        
+        Args:
+            csv_filename: Path to breeder CSV file
+            analysis_markdown: Optional analysis content
+            
+        Returns:
+            BreederPageConfigBuilder for further customization
+            
+        Example:
+            >>> config = page_config.breeder("breeder.csv", "Analysis text")
+            >>> config = page_config.breeder("breeder.csv").with_legend("Legend")
+        """
+        builder = BreederPageConfigBuilder(csv_filename, analysis_markdown)
+        builder._title = "Breeder Opportunities"
+        builder._description = "Market opportunities for tarantula breeders"
+        return builder
+    
+    @staticmethod
+    def dealer(
+        csv_filename: str,
+        analysis_markdown: str = ""
+    ) -> DealerPageConfigBuilder:
+        """Create dealer supply risk page configuration.
+        
+        Args:
+            csv_filename: Path to dealer CSV file
+            analysis_markdown: Optional analysis content
+            
+        Returns:
+            DealerPageConfigBuilder for further customization
+            
+        Example:
+            >>> config = page_config.dealer("dealer.csv", "Analysis text")
+            >>> config = page_config.dealer("dealer.csv").with_search(False)
+        """
+        builder = DealerPageConfigBuilder(csv_filename, analysis_markdown)
+        builder._title = "Dealer Supply Risk"
+        builder._description = "Supply chain reliability analysis for tarantula dealers"
+        return builder
+    
+    @staticmethod
+    def snapshot(csv_filename: str) -> SnapshotPageConfigBuilder:
+        """Create snapshot page configuration.
+        
+        Args:
+            csv_filename: Path to snapshot CSV file
+            
+        Returns:
+            SnapshotPageConfigBuilder for further customization
+            
+        Example:
+            >>> config = page_config.snapshot("snapshot.csv")
+            >>> config = page_config.snapshot("snapshot.csv").with_title("Custom Title")
+        """
+        builder = SnapshotPageConfigBuilder(csv_filename)
+        builder._title = "Latest Snapshot"
+        builder._description = "Latest snapshot of spiderling availability and pricing"
+        return builder
+    
+    @staticmethod
+    def history(csv_filename: str) -> HistoryPageConfigBuilder:
+        """Create history page configuration.
+        
+        Args:
+            csv_filename: Path to history CSV file
+            
+        Returns:
+            HistoryPageConfigBuilder for further customization
+            
+        Example:
+            >>> config = page_config.history("history.csv")
+            >>> config = page_config.history("history.csv").with_search(False)
+        """
+        builder = HistoryPageConfigBuilder(csv_filename)
+        builder._title = "Historical Data"
+        builder._description = "Accumulated pricing history over time"
+        return builder
+    
+    @staticmethod
+    def custom(
+        title: str,
+        csv_filename: str,
+        active_page: str,
+        description: str = ""
+    ) -> CustomPageConfigBuilder:
+        """Create custom page configuration using BasePageConfig.
+        
+        Args:
+            title: Page title
+            csv_filename: Path to CSV file
+            active_page: Page type identifier
+            description: Optional page description
+            
+        Returns:
+            CustomPageConfigBuilder for further customization
+            
+        Example:
+            >>> config = page_config.custom("Custom Page", "data.csv", "custom")
+        """
+        return CustomPageConfigBuilder(title, csv_filename, active_page, description)
+
+
+# Create singleton instance for convenient access
+page_config = PageConfigPresets()
+

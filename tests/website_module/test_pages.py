@@ -5,7 +5,7 @@ import tempfile
 import os
 from pathlib import Path
 from bs4 import BeautifulSoup
-from website import PageConfig
+from conftest import page_config, temp_csv_file
 from website.generate_website import generate_homepage, generate_data_page, main, OUTPUT_DIR
 
 
@@ -135,19 +135,12 @@ class TestGenerateDataPage:
 
     def test_generates_complete_html_page(self):
         """Should generate complete HTML page."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Name,Price\n")
-            f.write("Species A,25.00\n")
-            filename = f.name
+        from conftest import temp_csv_file
         
-        try:
-            html = generate_data_page(PageConfig(
-                title="Test Page",
-                description="Test description",
-                csv_filename=filename,
-                table_id="test-table",
-                active_page="snapshot"
-            ))
+        csv_content = "Name,Price\nSpecies A,25.00\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.snapshot(filename).with_title("Test Page").with_description("Test description").build()
+            html = generate_data_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
             # Check DOCTYPE
@@ -156,23 +149,15 @@ class TestGenerateDataPage:
             
             # Check HTML structure
             assert soup.find('html') is not None
-        finally:
-            os.unlink(filename)
 
     def test_includes_title_and_description(self):
         """Should include page title and description."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Col\n")
-            filename = f.name
+        from conftest import temp_csv_file
         
-        try:
-            html = generate_data_page(PageConfig(
-                title="My Title",
-                description="My description text",
-                csv_filename=filename,
-                table_id="test-table",
-                active_page="snapshot"
-            ))
+        csv_content = "Col\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.snapshot(filename).with_title("My Title").with_description("My description text").build()
+            html = generate_data_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
             # Check title in head
@@ -182,24 +167,16 @@ class TestGenerateDataPage:
             
             # Check description in content
             assert 'My description text' in html
-        finally:
-            os.unlink(filename)
 
     def test_includes_download_link(self):
         """Should include download link for CSV file."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Col\n")
-            filename = os.path.basename(f.name)
-            temp_name = f.name
+        from conftest import temp_csv_file
         
-        try:
-            html = generate_data_page(PageConfig(
-                title="Test",
-                description="Desc",
-                csv_filename=filename,
-                table_id="test-table",
-                active_page="snapshot"
-            ))
+        csv_content = "Col\n"
+        with temp_csv_file(csv_content) as temp_path:
+            filename = os.path.basename(temp_path)
+            config = page_config.snapshot(filename).with_title("Test").with_description("Desc").build()
+            html = generate_data_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
             # Find download link
@@ -209,25 +186,15 @@ class TestGenerateDataPage:
             # Check for "Download CSV" text
             link_texts = [link.text for link in download_links]
             assert any('Download CSV' in text for text in link_texts)
-        finally:
-            if os.path.exists(temp_name):
-                os.unlink(temp_name)
 
     def test_includes_search_filter_when_enabled(self):
         """Should include search filter when search_filter=True."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Col\nVal\n")
-            filename = f.name
+        from conftest import temp_csv_file
         
-        try:
-            html = generate_data_page(PageConfig(
-                title="Test",
-                description="Desc",
-                csv_filename=filename,
-                table_id="test-table",
-                active_page="snapshot",
-                search_filter=True
-            ))
+        csv_content = "Col\nVal\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.snapshot(filename).with_description("Desc").with_title("Test").with_search(True).build()
+            html = generate_data_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
             # Find search input
@@ -235,56 +202,40 @@ class TestGenerateDataPage:
             assert search_input is not None
             assert 'oninput' in search_input.attrs or 'onkeyup' in search_input.attrs
             assert 'filterTable' in html
-        finally:
-            os.unlink(filename)
 
     def test_omits_search_filter_when_disabled(self):
         """Should omit search filter when search_filter=False."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Col\nVal\n")
-            filename = f.name
-        
-        try:
-            html = generate_data_page(PageConfig(
-                title="Test",
-                description="Desc",
-                csv_filename=filename,
-                table_id="test-table",
-                active_page="snapshot",
-                search_filter=False
-            ))
+        csv_content = "Col\nVal\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.snapshot(filename) \
+                .with_title("Test") \
+                .with_description("Desc") \
+                .with_search(False) \
+                .build()
+            html = generate_data_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
             # Should not have table-controls div or search input
             table_controls = soup.find('div', class_='table-controls')
             assert table_controls is None or soup.find('input', type='text') is None
-        finally:
-            os.unlink(filename)
 
     def test_includes_data_table_from_csv(self):
         """Should include data table generated from CSV."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Name,Price\n")
-            f.write("Species A,25.00\n")
-            f.write("Species B,30.00\n")
-            filename = f.name
-        
-        try:
-            html = generate_data_page(PageConfig(
-                title="Test",
-                description="Desc",
-                csv_filename=filename,
-                table_id="test-table",
-                active_page="snapshot"
-            ))
+        csv_content = "Name,Price\nSpecies A,25.00\nSpecies B,30.00\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.snapshot(filename) \
+                .with_title("Test") \
+                .with_description("Desc") \
+                .build()
+            html = generate_data_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
             # Find "Full Data Table" heading
             headings = soup.find_all('h3')
             assert any('Full Data Table' in h.text for h in headings)
             
-            # Find the table
-            table = soup.find('table', id='test-table')
+            # Find the table (snapshot builder uses snapshot-table as ID)
+            table = soup.find('table', id='snapshot-table')
             assert table is not None
             
             # Verify data content
@@ -294,18 +245,14 @@ class TestGenerateDataPage:
             # Check for row count
             assert 'Total rows:' in html
             assert '2' in html
-        finally:
-            os.unlink(filename)
 
     def test_handles_nonexistent_csv_file(self):
         """Should show 'no data' message for nonexistent file."""
-        html = generate_data_page(PageConfig(
-            title="Test",
-            description="Desc",
-            csv_filename="/nonexistent/file.csv",
-            table_id="test-table",
-            active_page="snapshot"
-        ))
+        config = page_config.snapshot("/nonexistent/file.csv") \
+            .with_title("Test") \
+            .with_description("Desc") \
+            .build()
+        html = generate_data_page(config)
         soup = BeautifulSoup(html, 'html.parser')
         
         # Should have "No data available" message
@@ -317,20 +264,13 @@ class TestGenerateDataPage:
 
     def test_includes_top_10_table_when_provided(self):
         """Should render top 10 table from CSV data."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Species,Size (cm),Signal\n")
-            for i in range(15):
-                f.write(f"Species {i},1,🔥\n")
-            filename = f.name
-        
-        try:
-            html = generate_data_page(PageConfig(
-                title="Test",
-                description="Desc",
-                csv_filename=filename,
-                table_id="test-table",
-                active_page="breeder"
-            ))
+        csv_content = "Species,Size (cm),Signal\n" + "".join(f"Species {i},1,🔥\n" for i in range(15))
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.breeder(filename) \
+                .with_title("Test") \
+                .with_description("Desc") \
+                .build()
+            html = generate_data_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
             # Top 10 table should be rendered from CSV (first 10 rows)
@@ -341,48 +281,34 @@ class TestGenerateDataPage:
             # Should have at least one table
             tables = soup.find_all('table')
             assert len(tables) > 0, "Should have table rendered from CSV"
-        finally:
-            os.unlink(filename)
 
     def test_omits_analysis_section_when_none(self):
         """Should omit analysis section when markdown not provided."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Col\n")
-            filename = f.name
-        
-        try:
-            html = generate_data_page(PageConfig(
-                title="Test",
-                description="Desc",
-                csv_filename=filename,
-                table_id="test-table",
-                active_page="snapshot",
-                analysis_markdown=None
-            ))
+        csv_content = "Col\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.snapshot(filename) \
+                .with_title("Test") \
+                .with_description("Desc") \
+                .build()
+            html = generate_data_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
             # Should not have analysis-section div
             analysis_section = soup.find('div', class_='analysis-section')
             assert analysis_section is None
-        finally:
-            os.unlink(filename)
 
     def test_includes_legend_when_provided(self):
         """Should include legend in details block when provided."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Col\n")
-            filename = f.name
-        
-        try:
-            legend_md = "**Legend**: This explains the symbols."
-            html = generate_data_page(PageConfig(
-                title="Test",
-                description="Desc",
-                csv_filename=filename,
-                table_id="test-table",
-                active_page="snapshot",
-                legend_markdown=legend_md
-            ))
+        csv_content = "Col\n"
+        legend_md = "**Legend**: This explains the symbols."
+        with temp_csv_file(csv_content) as filename:
+            # Use breeder config which supports legend_markdown (snapshot doesn't)
+            config = page_config.breeder(filename) \
+                .with_title("Test") \
+                .with_description("Desc") \
+                .with_legend(legend_md) \
+                .build()
+            html = generate_data_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
             # Find details element
@@ -397,40 +323,32 @@ class TestGenerateDataPage:
             # Check for legend content
             strong = details.find('strong', string='Legend')
             assert strong is not None
-        finally:
-            os.unlink(filename)
 
     def test_omits_legend_when_none(self):
         """Should omit legend when not provided."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
-            f.write("Col\n")
-            filename = f.name
-        
-        try:
-            html = generate_data_page(PageConfig(
-                title="Test",
-                description="Desc",
-                csv_filename=filename,
-                table_id="test-table",
-                active_page="snapshot",
-                legend_markdown=None
-            ))
+        csv_content = "Col\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.snapshot(filename) \
+                .with_title("Test") \
+                .with_description("Desc") \
+                .build()
+            html = generate_data_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
             # Should not have details element with legend
             details_elements = soup.find_all('details')
             for details in details_elements:
                 assert 'How to read these tables' not in details.text
-        finally:
-            os.unlink(filename)
 
 
 class TestPageConfig:
     """Tests for PageConfig dataclass and its usage."""
 
     def test_pageconfig_with_all_required_fields(self):
-        """PageConfig should accept all required fields."""
-        config = PageConfig(
+        """BreederPageConfig should accept all required fields with defaults."""
+        from website.page_config import BreederPageConfig
+        
+        config = BreederPageConfig(
             title="Test Title",
             description="Test Description",
             csv_filename="test.csv",
@@ -449,8 +367,10 @@ class TestPageConfig:
         assert config.examples_markdown is None
 
     def test_pageconfig_with_optional_fields(self):
-        """PageConfig should accept optional fields."""
-        config = PageConfig(
+        """BreederPageConfig should accept optional fields."""
+        from website.page_config import BreederPageConfig
+        
+        config = BreederPageConfig(
             title="Test",
             description="Desc",
             csv_filename="test.csv",
@@ -468,13 +388,15 @@ class TestPageConfig:
         assert config.examples_markdown == "### Examples"
 
     def test_generate_data_page_with_pageconfig(self, tmp_path):
-        """generate_data_page should work with PageConfig parameter."""
+        """generate_data_page should work with BasePageConfig parameter."""
+        from website.page_config import BasePageConfig
+        
         csv_file = tmp_path / "test.csv"
         csv_file.write_text("Species,Price\nTest Spider,£10.00\n")
         
         os.chdir(tmp_path)
         
-        config = PageConfig(
+        config = BasePageConfig(
             title="Test Page",
             description="Test description using PageConfig",
             csv_filename="test.csv",
@@ -491,14 +413,16 @@ class TestPageConfig:
         assert "Test Spider" in html
 
     def test_pageconfig_improves_readability(self, tmp_path):
-        """PageConfig makes complex calls more readable."""
+        """BreederPageConfig makes complex calls more readable."""
+        from website.page_config import BreederPageConfig
+        
         csv_file = tmp_path / "breeder.csv"
         csv_file.write_text("Species,Signal\nTest,🔥\n")
         
         os.chdir(tmp_path)
         
         # New style: much more readable with named fields
-        config = PageConfig(
+        config = BreederPageConfig(
             title="Breeder Opportunities",
             description="Analysis of breeding opportunities",
             csv_filename="breeder.csv",

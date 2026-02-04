@@ -5,8 +5,8 @@ import tempfile
 import os
 from pathlib import Path
 from bs4 import BeautifulSoup
-from conftest import create_temp_csv_file, temp_csv_file, BreederEntry, create_breeder_csv_content
-from website import generate_table_html, get_base_html_template, get_html_footer, PageConfig
+from conftest import create_temp_csv_file, temp_csv_file, BreederEntry, create_breeder_csv_content, page_config
+from website import generate_table_html, get_base_html_template, get_html_footer
 from website.generate_website import generate_homepage, generate_data_page, main, OUTPUT_DIR
 
 
@@ -143,16 +143,8 @@ Example content for dealers.
             analysis_md = "**Summary:** 15 species analyzed | 🔥 Hot: 15 | ⚠️ Watch: 0 | ❌ Avoid: 0"
             legend_md = "**Symbol**: Meaning of symbol."
             
-            html = generate_data_page(PageConfig(
-                title="Test Page",
-                description="Description here",
-                csv_filename=csv_file,
-                table_id="test-table",
-                active_page="breeder",
-                search_filter=True,
-                analysis_markdown=analysis_md,
-                legend_markdown=legend_md
-            ))
+            config = page_config.breeder(csv_file, analysis_md).with_title("Test Page").with_description("Description here").with_legend(legend_md).with_search(True).build()
+            html = generate_data_page(config)
             
             # Verify all components present
             assert "<!DOCTYPE html>" in html
@@ -170,13 +162,8 @@ Example content for dealers.
     def test_handles_empty_csv_gracefully(self):
         """Should handle empty CSV file without errors."""
         with temp_csv_file("") as csv_file:
-            html = generate_data_page(PageConfig(
-                title="Empty Data",
-                description="No data test",
-                csv_filename=csv_file,
-                table_id="test-table",
-                active_page="snapshot"
-            ))
+            config = page_config.snapshot(csv_file).build()
+            html = generate_data_page(config)
             assert "No data available" in html
             assert "<!DOCTYPE html>" in html
             assert "</html>" in html
@@ -187,13 +174,13 @@ Example content for dealers.
         csv_content = 'Name,Script\n<script>alert("xss")</script>,<img src=x onerror=alert(1)>\n'
         
         with temp_csv_file(csv_content) as csv_file:
-            html = generate_data_page(PageConfig(
+            config = page_config.custom(
                 title="<script>bad</script>",
-                description="<b>Description</b>",
                 csv_filename=csv_file,
-                table_id="test-table",
-                active_page="snapshot"
-            ))
+                active_page="snapshot",
+                description="<b>Description</b>"
+            ).build()
+            html = generate_data_page(config)
             # Verify escaping
             assert "&lt;script&gt;" in html
             assert "<script>alert" not in html
@@ -347,7 +334,9 @@ class TestHtmlSnapshots:
 
     def test_search_filter_snapshot(self, snapshot):
         """Should maintain consistent search filter HTML structure."""
-        html = generate_data_page(PageConfig(
+        from website.page_config import BreederPageConfig
+        
+        html = generate_data_page(BreederPageConfig(
             title="Test Page",
             description="Test description",
             csv_filename="test.csv",
