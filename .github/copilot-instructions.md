@@ -311,27 +311,34 @@ Common test helper functions are available in `tests/helpers/test_helpers.py` an
   - `write_csv_file(path, headers, rows)` - Write CSV to path
   - `read_file_content(path)` - Read file with UTF-8 encoding
 
-- **CSV content generators**:
+- **CSV content generators with dataclasses**:
   - `create_csv_content(headers, rows)` - Generate CSV string
-  - `create_breeder_csv_content(species, size, signal, extra_columns)` - Breeder CSV
-  - `create_dealer_csv_content(species, size, risk, extra_columns)` - Dealer CSV
-  - `create_history_csv_content(entries)` - Historical scrape data CSV
+  - `create_breeder_csv_content(entries)` - Breeder CSV from `List[BreederEntry]`
+  - `create_dealer_csv_content(entries)` - Dealer CSV from `List[DealerEntry]`
+  - `create_history_csv_content(entries)` - Historical scrape data from `List[HistoryEntry]`
+
+- **CSV entry dataclasses**:
+  - `HistoryEntry` - Historical scrape data (scientific_name, scrape_datetime, common_name, size_cm, price_gbp, wishlist_count, page_url)
+  - `BreederEntry` - Breeder opportunity data (species, size_cm, signal, extra_columns)
+  - `DealerEntry` - Dealer supply risk data (species, size_cm, risk, extra_columns)
 
 **Usage in tests:**
 ```python
-from conftest import create_temp_csv_file, create_breeder_csv_content
+from conftest import create_temp_csv_file, BreederEntry, create_breeder_csv_content
 
 def test_example():
     # Simple approach
     csv_path = create_temp_csv_file("Header1,Header2\nValue1,Value2\n")
     
-    # Or use generator
-    content = create_breeder_csv_content(
-        species="Test Spider",
-        size="1.5",
-        signal="🔥",
-        extra_columns={"Price": "30.00"}
-    )
+    # Or use dataclass with generator
+    content = create_breeder_csv_content([
+        BreederEntry(
+            species="Test Spider",
+            size_cm="1.5",
+            signal="🔥",
+            extra_columns={"Price": "30.00"}
+        )
+    ])
     csv_path = create_temp_csv_file(content)
     
     try:

@@ -5,8 +5,39 @@ This module provides reusable helper functions to reduce boilerplate in tests.
 
 import tempfile
 import os
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional
+
+
+@dataclass
+class HistoryEntry:
+    """Entry for historical scrape CSV data."""
+    scientific_name: str = "Test species"
+    scrape_datetime: str = "2024-01-01 10:00:00"
+    common_name: str = "Test Common Name"
+    size_cm: str = "1.0"
+    price_gbp: str = "25.00"
+    wishlist_count: str = "0"
+    page_url: str = ""  # Auto-generated if empty
+
+
+@dataclass
+class BreederEntry:
+    """Entry for breeder opportunity CSV data."""
+    species: str = "Test Species"
+    size_cm: str = "1.0"
+    signal: str = "🔥"
+    extra_columns: Dict[str, str] = field(default_factory=dict)
+
+
+@dataclass
+class DealerEntry:
+    """Entry for dealer supply risk CSV data."""
+    species: str = "Test Species"
+    size_cm: str = "1.0"
+    risk: str = "🔥"
+    extra_columns: Dict[str, str] = field(default_factory=dict)
 
 
 def create_temp_markdown_file(content: str) -> str:
@@ -125,93 +156,101 @@ def create_csv_content(headers: List[str], rows: List[List[str]]) -> str:
 
 
 def create_breeder_csv_content(
-    species: str = "Test Species",
-    size: str = "1.0",
-    signal: str = "🔥",
-    extra_columns: Optional[Dict[str, str]] = None
+    entries: Optional[List[BreederEntry]] = None
 ) -> str:
     """Generate standard breeder opportunity CSV content for testing.
     
     Args:
-        species: Species name
-        size: Size in cm
-        signal: Signal emoji (🔥/⚠️/❌)
-        extra_columns: Additional columns to include (e.g., {"Price": "25.00"})
+        entries: List of BreederEntry objects. If None, creates a single default entry.
         
     Returns:
         CSV content string with standard breeder columns
         
     Example:
-        >>> content = create_breeder_csv_content(extra_columns={"Price": "30.00"})
+        >>> from test_helpers import BreederEntry
+        >>> entries = [BreederEntry(species="Test Spider", signal="🔥", extra_columns={"Price": "30.00"})]
+        >>> content = create_breeder_csv_content(entries)
         >>> "Price" in content
         True
     """
-    headers = ["Species", "Size (cm)", "Signal"]
-    row = [species, size, signal]
+    if entries is None:
+        entries = [BreederEntry()]
     
-    if extra_columns:
-        headers.extend(extra_columns.keys())
-        row.extend(extra_columns.values())
+    # Collect all unique column names across all entries
+    all_extra_cols = set()
+    for entry in entries:
+        all_extra_cols.update(entry.extra_columns.keys())
     
-    return create_csv_content(headers, [row])
+    headers = ["Species", "Size (cm)", "Signal"] + sorted(all_extra_cols)
+    
+    rows = []
+    for entry in entries:
+        row = [entry.species, entry.size_cm, entry.signal]
+        for col in sorted(all_extra_cols):
+            row.append(entry.extra_columns.get(col, ""))
+        rows.append(row)
+    
+    return create_csv_content(headers, rows)
 
 
 def create_dealer_csv_content(
-    species: str = "Test Species",
-    size: str = "1.0",
-    risk: str = "🔥",
-    extra_columns: Optional[Dict[str, str]] = None
+    entries: Optional[List[DealerEntry]] = None
 ) -> str:
     """Generate standard dealer supply risk CSV content for testing.
     
     Args:
-        species: Species name
-        size: Size in cm
-        risk: Risk emoji (🔥/⚠️/❌)
-        extra_columns: Additional columns to include
+        entries: List of DealerEntry objects. If None, creates a single default entry.
         
     Returns:
         CSV content string with standard dealer columns
         
     Example:
-        >>> content = create_dealer_csv_content(extra_columns={"Reliability": "85%"})
+        >>> from test_helpers import DealerEntry
+        >>> entries = [DealerEntry(species="Test Spider", risk="⚠️", extra_columns={"Reliability": "85%"})]
+        >>> content = create_dealer_csv_content(entries)
         >>> "Reliability" in content
         True
     """
-    headers = ["Species", "Size (cm)", "Dealer Risk"]
-    row = [species, size, risk]
+    if entries is None:
+        entries = [DealerEntry()]
     
-    if extra_columns:
-        headers.extend(extra_columns.keys())
-        row.extend(extra_columns.values())
+    # Collect all unique column names across all entries
+    all_extra_cols = set()
+    for entry in entries:
+        all_extra_cols.update(entry.extra_columns.keys())
     
-    return create_csv_content(headers, [row])
+    headers = ["Species", "Size (cm)", "Dealer Risk"] + sorted(all_extra_cols)
+    
+    rows = []
+    for entry in entries:
+        row = [entry.species, entry.size_cm, entry.risk]
+        for col in sorted(all_extra_cols):
+            row.append(entry.extra_columns.get(col, ""))
+        rows.append(row)
+    
+    return create_csv_content(headers, rows)
 
 
-def create_history_csv_content(entries: Optional[List[Dict[str, str]]] = None) -> str:
+def create_history_csv_content(entries: Optional[List[HistoryEntry]] = None) -> str:
     """Generate historical scrape data CSV content.
     
     Args:
-        entries: List of dictionaries with scrape data fields
-                 If None, creates a single default entry
+        entries: List of HistoryEntry objects. If None, creates a single default entry.
+                 page_url is auto-generated from scientific_name if not provided (empty string).
         
     Returns:
         CSV content with standard history columns
         
     Example:
-        >>> entries = [
-        ...     {
-        ...         "scrape_datetime": "2024-01-01 10:00:00",
-        ...         "scientific_name": "Test species",
-        ...         "size_cm": "1.0",
-        ...         "price_gbp": "25.00",
-        ...         "wishlist_count": "5"
-        ...     }
-        ... ]
+        >>> from test_helpers import HistoryEntry
+        >>> entries = [HistoryEntry(scientific_name="Test species", wishlist_count="5")]
         >>> content = create_history_csv_content(entries)
         >>> "Test species" in content
         True
     """
+    if entries is None:
+        entries = [HistoryEntry()]
+    
     headers = [
         "scrape_datetime",
         "scientific_name",
@@ -222,21 +261,23 @@ def create_history_csv_content(entries: Optional[List[Dict[str, str]]] = None) -
         "page_url"
     ]
     
-    if entries is None:
-        # Default entry
-        entries = [{
-            "scrape_datetime": "2024-01-01 10:00:00",
-            "scientific_name": "Test species",
-            "common_name": "Test common",
-            "size_cm": "1.0",
-            "price_gbp": "25.00",
-            "wishlist_count": "0",
-            "page_url": "http://example.com"
-        }]
-    
     rows = []
     for entry in entries:
-        row = [entry.get(h, "") for h in headers]
+        # Generate page_url if not provided
+        page_url = entry.page_url
+        if not page_url:
+            url_slug = entry.scientific_name.lower().replace(" ", "-")
+            page_url = f"https://www.thespidershop.co.uk/spiderlings/{url_slug}"
+        
+        row = [
+            entry.scrape_datetime,
+            entry.scientific_name,
+            entry.common_name,
+            entry.size_cm,
+            entry.price_gbp,
+            entry.wishlist_count,
+            page_url
+        ]
         rows.append(row)
     
     return create_csv_content(headers, rows)

@@ -7,7 +7,15 @@ Following TDD approach: tests written first to define expected behavior.
 import os
 import pytest
 from pathlib import Path
-from conftest import create_temp_csv_file, create_breeder_csv_content, create_dealer_csv_content, create_history_csv_content
+from conftest import (
+    HistoryEntry,
+    BreederEntry,
+    DealerEntry,
+    create_temp_csv_file,
+    create_breeder_csv_content,
+    create_dealer_csv_content,
+    create_history_csv_content
+)
 
 
 class TestGetSpeciesList:
@@ -211,21 +219,21 @@ class TestBuildChartData:
         for i in range(30):
             run_date = f"2025-01-{str(i+1).zfill(2)} 06:00:00"
             if i % 2 == 0:  # Our target species observed every other run
-                history_entries.append({
-                    "scrape_datetime": run_date,
-                    "scientific_name": "Aphonopelma seemanni",
-                    "size_cm": "1.5",
-                    "price_gbp": f"{10.0 + i}",
-                    "wishlist_count": str(i * 2),
-                })
+                history_entries.append(HistoryEntry(
+                    scrape_datetime=run_date,
+                    scientific_name="Aphonopelma seemanni",
+                    size_cm="1.5",
+                    price_gbp=f"{10.0 + i}",
+                    wishlist_count=str(i * 2),
+                ))
             else:  # Other species observed on alternate runs (to create complete run timeline)
-                history_entries.append({
-                    "scrape_datetime": run_date,
-                    "scientific_name": "Other Species",
-                    "size_cm": "2.0",
-                    "price_gbp": "20.0",
-                    "wishlist_count": "10",
-                })
+                history_entries.append(HistoryEntry(
+                    scrape_datetime=run_date,
+                    scientific_name="Other Species",
+                    size_cm="2.0",
+                    price_gbp="20.0",
+                    wishlist_count="10",
+                ))
         
         history_csv = create_temp_csv_file(create_history_csv_content(history_entries))
         
@@ -249,13 +257,28 @@ class TestBuildChartData:
         from website.species_detail import build_chart_data
 
         history_entries = [
-            {"scrape_datetime": "2025-01-01 06:00:00", "scientific_name": "Aphonopelma seemanni",
-             "size_cm": "1.5", "price_gbp": "10.0", "wishlist_count": "5"},
+            HistoryEntry(
+                scrape_datetime="2025-01-01 06:00:00",
+                scientific_name="Aphonopelma seemanni",
+                size_cm="1.5",
+                price_gbp="10.0",
+                wishlist_count="5"
+            ),
             # Run 2: species OUT, but OTHER species present (to create the run)
-            {"scrape_datetime": "2025-01-02 06:00:00", "scientific_name": "Other Species",
-             "size_cm": "2.0", "price_gbp": "20.0", "wishlist_count": "10"},
-            {"scrape_datetime": "2025-01-03 06:00:00", "scientific_name": "Aphonopelma seemanni",
-             "size_cm": "1.5", "price_gbp": "12.0", "wishlist_count": "8"},
+            HistoryEntry(
+                scrape_datetime="2025-01-02 06:00:00",
+                scientific_name="Other Species",
+                size_cm="2.0",
+                price_gbp="20.0",
+                wishlist_count="10"
+            ),
+            HistoryEntry(
+                scrape_datetime="2025-01-03 06:00:00",
+                scientific_name="Aphonopelma seemanni",
+                size_cm="1.5",
+                price_gbp="12.0",
+                wishlist_count="8"
+            ),
         ]
         
         history_csv = create_temp_csv_file(create_history_csv_content(history_entries))
@@ -318,12 +341,27 @@ class TestGetDefaultSize:
         from website.species_detail import get_default_size
 
         history_entries = [
-            {"scrape_datetime": "2025-01-01 06:00:00", "scientific_name": "Aphonopelma seemanni",
-             "size_cm": "1.0", "price_gbp": "10.0", "wishlist_count": "5"},
-            {"scrape_datetime": "2025-01-15 06:00:00", "scientific_name": "Aphonopelma seemanni",
-             "size_cm": "1.5", "price_gbp": "12.0", "wishlist_count": "8"},
-            {"scrape_datetime": "2025-01-20 06:00:00", "scientific_name": "Aphonopelma seemanni",
-             "size_cm": "2.0", "price_gbp": "15.0", "wishlist_count": "10"},
+            HistoryEntry(
+                scrape_datetime="2025-01-01 06:00:00",
+                scientific_name="Aphonopelma seemanni",
+                size_cm="1.0",
+                price_gbp="10.0",
+                wishlist_count="5"
+            ),
+            HistoryEntry(
+                scrape_datetime="2025-01-15 06:00:00",
+                scientific_name="Aphonopelma seemanni",
+                size_cm="1.5",
+                price_gbp="12.0",
+                wishlist_count="8"
+            ),
+            HistoryEntry(
+                scrape_datetime="2025-01-20 06:00:00",
+                scientific_name="Aphonopelma seemanni",
+                size_cm="2.0",
+                price_gbp="15.0",
+                wishlist_count="10"
+            ),
         ]
         
         history_csv = create_temp_csv_file(create_history_csv_content(history_entries))
@@ -483,33 +521,33 @@ class TestGetPageUrl:
         
         # Create test CSV with multiple observations
         content = create_history_csv_content([
-            {
-                "scrape_datetime": "2025-01-01 10:00:00",
-                "scientific_name": "Test Spider",
-                "common_name": "Common",
-                "size_cm": "1.5",
-                "price_gbp": "25.00",
-                "wishlist_count": "10",
-                "page_url": "https://example.com/old"
-            },
-            {
-                "scrape_datetime": "2025-01-15 10:00:00",
-                "scientific_name": "Test Spider",
-                "common_name": "Common",
-                "size_cm": "1.5",
-                "price_gbp": "26.00",
-                "wishlist_count": "12",
-                "page_url": "https://example.com/recent"
-            },
-            {
-                "scrape_datetime": "2025-01-08 10:00:00",
-                "scientific_name": "Test Spider",
-                "common_name": "Common",
-                "size_cm": "1.5",
-                "price_gbp": "25.50",
-                "wishlist_count": "11",
-                "page_url": "https://example.com/middle"
-            },
+            HistoryEntry(
+                scrape_datetime="2025-01-01 10:00:00",
+                scientific_name="Test Spider",
+                common_name="Common",
+                size_cm="1.5",
+                price_gbp="25.00",
+                wishlist_count="10",
+                page_url="https://example.com/old"
+            ),
+            HistoryEntry(
+                scrape_datetime="2025-01-15 10:00:00",
+                scientific_name="Test Spider",
+                common_name="Common",
+                size_cm="1.5",
+                price_gbp="26.00",
+                wishlist_count="12",
+                page_url="https://example.com/recent"
+            ),
+            HistoryEntry(
+                scrape_datetime="2025-01-08 10:00:00",
+                scientific_name="Test Spider",
+                common_name="Common",
+                size_cm="1.5",
+                price_gbp="25.50",
+                wishlist_count="11",
+                page_url="https://example.com/middle"
+            ),
         ])
         csv_path = create_temp_csv_file(content)
         
@@ -524,15 +562,15 @@ class TestGetPageUrl:
         from website.species_detail import get_page_url
         
         content = create_history_csv_content([
-            {
-                "scrape_datetime": "2025-01-01 10:00:00",
-                "scientific_name": "Other Spider",
-                "common_name": "Common",
-                "size_cm": "1.5",
-                "price_gbp": "25.00",
-                "wishlist_count": "10",
-                "page_url": "https://example.com/other"
-            },
+            HistoryEntry(
+                scrape_datetime="2025-01-01 10:00:00",
+                scientific_name="Other Spider",
+                common_name="Common",
+                size_cm="1.5",
+                price_gbp="25.00",
+                wishlist_count="10",
+                page_url="https://example.com/other"
+            ),
         ])
         csv_path = create_temp_csv_file(content)
         
@@ -547,15 +585,15 @@ class TestGetPageUrl:
         from website.species_detail import get_page_url
         
         content = create_history_csv_content([
-            {
-                "scrape_datetime": "2025-01-01 10:00:00",
-                "scientific_name": "Test Spider",
-                "common_name": "Common",
-                "size_cm": "1.0",
-                "price_gbp": "25.00",
-                "wishlist_count": "10",
-                "page_url": "https://example.com/small"
-            },
+            HistoryEntry(
+                scrape_datetime="2025-01-01 10:00:00",
+                scientific_name="Test Spider",
+                common_name="Common",
+                size_cm="1.0",
+                price_gbp="25.00",
+                wishlist_count="10",
+                page_url="https://example.com/small"
+            ),
         ])
         csv_path = create_temp_csv_file(content)
         

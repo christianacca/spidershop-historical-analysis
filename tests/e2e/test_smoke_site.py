@@ -23,28 +23,66 @@ import pytest
 
 
 def _write_minimal_inputs(cwd: Path) -> None:
+    from conftest import HistoryEntry, BreederEntry, DealerEntry
+    from conftest import create_history_csv_content, create_breeder_csv_content, create_dealer_csv_content
+    
+    # Snapshot CSV
     (cwd / "spidershop_spiderlings_scrape.csv").write_text(
-        "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
-        "2026-01-01,Aphonopelma seemanni,Costa Rican Zebra,2.0,25.00,5,https://example.com/a\n",
+        create_history_csv_content([
+            HistoryEntry(
+                scrape_datetime="2026-01-01",
+                scientific_name="Aphonopelma seemanni",
+                common_name="Costa Rican Zebra",
+                price_gbp="25.00",
+                wishlist_count="5"
+            )
+        ]),
         encoding="utf-8",
     )
 
+    # History CSV
     (cwd / "spidershop_spiderlings_history.csv").write_text(
-        "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
-        "2025-12-25,Aphonopelma seemanni,Costa Rican Zebra,2.0,24.00,4,https://example.com/a\n"
-        "2026-01-01,Aphonopelma seemanni,Costa Rican Zebra,2.0,25.00,5,https://example.com/a\n",
+        create_history_csv_content([
+            HistoryEntry(
+                scrape_datetime="2025-12-25",
+                scientific_name="Aphonopelma seemanni",
+                common_name="Costa Rican Zebra",
+                price_gbp="24.00",
+                wishlist_count="4"
+            ),
+            HistoryEntry(
+                scrape_datetime="2026-01-01",
+                scientific_name="Aphonopelma seemanni",
+                common_name="Costa Rican Zebra",
+                price_gbp="25.00",
+                wishlist_count="5"
+            )
+        ]),
         encoding="utf-8",
     )
 
     # Include Size (cm) so species pages can be generated.
     (cwd / "breeder_opportunity_table.csv").write_text(
-        "Species,Size (cm),Signal,OOS Runs\n"
-        "Aphonopelma seemanni,2.0,🔥,4\n",
+        create_breeder_csv_content([
+            BreederEntry(
+                species="Aphonopelma seemanni",
+                signal="🔥",
+                extra_columns={"OOS Runs": "4"}
+            )
+        ]),
         encoding="utf-8",
     )
     (cwd / "dealer_supply_risk_table.csv").write_text(
-        "Species,Size (cm),Dealer Risk,Stock Reliability,Restock Speed\n"
-        "Aphonopelma seemanni,2.0,⚠️,Low,Slow\n",
+        create_dealer_csv_content([
+            DealerEntry(
+                species="Aphonopelma seemanni",
+                risk="⚠️",
+                extra_columns={
+                    "Stock Reliability": "Low",
+                    "Restock Speed": "Slow"
+                }
+            )
+        ]),
         encoding="utf-8",
     )
 

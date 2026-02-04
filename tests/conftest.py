@@ -16,6 +16,9 @@ from scrape.legend_examples import make_row
 
 # Import test helpers
 from helpers.test_helpers import (
+    HistoryEntry,
+    BreederEntry,
+    DealerEntry,
     create_temp_markdown_file,
     create_temp_csv_file,
     write_csv_file,
@@ -28,6 +31,9 @@ from helpers.test_helpers import (
 
 __all__ = [
     'make_row',
+    'HistoryEntry',
+    'BreederEntry',
+    'DealerEntry',
     'create_temp_markdown_file',
     'create_temp_csv_file',
     'write_csv_file',

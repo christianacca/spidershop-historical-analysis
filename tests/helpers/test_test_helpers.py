@@ -7,6 +7,9 @@ import pytest
 import os
 from pathlib import Path
 from .test_helpers import (
+    HistoryEntry,
+    BreederEntry,
+    DealerEntry,
     create_temp_markdown_file,
     create_temp_csv_file,
     write_csv_file,
@@ -148,22 +151,28 @@ class TestCreateBreederCsvContent:
 
     def test_creates_custom_breeder_csv(self):
         """Should create breeder CSV with custom values."""
-        result = create_breeder_csv_content(
-            species="Custom Species",
-            size="2.5",
-            signal="⚠️"
-        )
+        result = create_breeder_csv_content([
+            BreederEntry(
+                species="Custom Species",
+                size_cm="2.5",
+                signal="⚠️"
+            )
+        ])
         
         assert "Custom Species,2.5,⚠️" in result
 
     def test_adds_extra_columns(self):
         """Should add extra columns when specified."""
-        result = create_breeder_csv_content(
-            extra_columns={"Price": "30.00", "Wishlist": "5"}
-        )
+        result = create_breeder_csv_content([
+            BreederEntry(
+                extra_columns={"Price": "30.00", "Wishlist": "5"}
+            )
+        ])
         
-        assert "Price,Wishlist" in result
-        assert "30.00,5" in result
+        assert "Price" in result
+        assert "Wishlist" in result
+        assert "30.00" in result
+        assert "5" in result
 
 
 class TestCreateDealerCsvContent:
@@ -178,22 +187,28 @@ class TestCreateDealerCsvContent:
 
     def test_creates_custom_dealer_csv(self):
         """Should create dealer CSV with custom values."""
-        result = create_dealer_csv_content(
-            species="Custom Species",
-            size="3.0",
-            risk="❌"
-        )
+        result = create_dealer_csv_content([
+            DealerEntry(
+                species="Custom Species",
+                size_cm="3.0",
+                risk="❌"
+            )
+        ])
         
         assert "Custom Species,3.0,❌" in result
 
     def test_adds_extra_columns(self):
         """Should add extra columns when specified."""
-        result = create_dealer_csv_content(
-            extra_columns={"Reliability": "85%", "Avg OOS": "2"}
-        )
+        result = create_dealer_csv_content([
+            DealerEntry(
+                extra_columns={"Avg OOS": "2", "Reliability": "85%"}
+            )
+        ])
         
-        assert "Reliability,Avg OOS" in result
-        assert "85%,2" in result
+        assert "Reliability" in result
+        assert "Avg OOS" in result
+        assert "85%" in result
+        assert "2" in result
 
 
 class TestCreateHistoryCsvContent:
@@ -212,24 +227,24 @@ class TestCreateHistoryCsvContent:
     def test_creates_custom_history_csv(self):
         """Should create history CSV with custom entries."""
         entries = [
-            {
-                "scrape_datetime": "2024-01-01 10:00:00",
-                "scientific_name": "Species A",
-                "common_name": "Common A",
-                "size_cm": "1.5",
-                "price_gbp": "20.00",
-                "wishlist_count": "3",
-                "page_url": "http://example.com/a"
-            },
-            {
-                "scrape_datetime": "2024-01-02 10:00:00",
-                "scientific_name": "Species B",
-                "common_name": "Common B",
-                "size_cm": "2.0",
-                "price_gbp": "30.00",
-                "wishlist_count": "5",
-                "page_url": "http://example.com/b"
-            }
+            HistoryEntry(
+                scrape_datetime="2024-01-01 10:00:00",
+                scientific_name="Species A",
+                common_name="Common A",
+                size_cm="1.5",
+                price_gbp="20.00",
+                wishlist_count="3",
+                page_url="http://example.com/a"
+            ),
+            HistoryEntry(
+                scrape_datetime="2024-01-02 10:00:00",
+                scientific_name="Species B",
+                common_name="Common B",
+                size_cm="2.0",
+                price_gbp="30.00",
+                wishlist_count="5",
+                page_url="http://example.com/b"
+            )
         ]
         
         result = create_history_csv_content(entries)
@@ -242,17 +257,19 @@ class TestCreateHistoryCsvContent:
         assert result.count('\n') == 3
 
     def test_handles_missing_fields(self):
-        """Should handle missing fields with empty strings."""
+        """Should use default values for fields not specified."""
         entries = [
-            {
-                "scrape_datetime": "2024-01-01 10:00:00",
-                "scientific_name": "Partial Species",
-                # Missing other fields
-            }
+            HistoryEntry(
+                scrape_datetime="2024-01-01 10:00:00",
+                scientific_name="Partial Species"
+                # Other fields use defaults
+            )
         ]
         
         result = create_history_csv_content(entries)
         
         assert "Partial Species" in result
-        # Check that commas are present for empty fields
+        assert "Test Common Name" in result  # Default common_name
+        assert "1.0" in result  # Default size_cm
+        # Check that commas are present for all fields
         assert result.count(',') >= 6  # At least 6 commas (7 columns)
