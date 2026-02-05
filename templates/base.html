@@ -156,6 +156,7 @@
             font-size: 1.8rem;
             padding: 8px;
             font-weight: bold;
+            white-space: nowrap;
         }
         
         .data-table .signal-watch {
@@ -165,6 +166,7 @@
             font-size: 1.8rem;
             padding: 8px;
             font-weight: bold;
+            white-space: nowrap;
         }
         
         .data-table .signal-avoid {
@@ -174,6 +176,7 @@
             font-size: 1.8rem;
             padding: 8px;
             font-weight: bold;
+            white-space: nowrap;
         }
         
         .info-box {
@@ -290,7 +293,8 @@
             padding: 12px 16px;
             border-radius: 6px;
             font-size: 0.85rem;
-            width: 280px;
+            min-width: 200px;
+            max-width: 400px;
             text-align: left;
             text-transform: none;
             letter-spacing: normal;
@@ -299,6 +303,9 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
             transition: opacity 0.3s, visibility 0.3s;
             pointer-events: none;
+            white-space: normal;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         
         /* Tooltip arrow */

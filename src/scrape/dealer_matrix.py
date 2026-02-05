@@ -10,6 +10,52 @@ from shared.sparkline_helpers import extract_historical_values_with_carryforward
 # DEALER MATRIX (Option B: Price Pressure informational)
 # =====================
 
+def _generate_dealer_drivers_text(reliability, speed, price_pressure, wishlist_pressure, wishlist_delta):
+    """Generate structured explanation of risk drivers using semicolon separators.
+    
+    Args:
+        reliability: Stock reliability level (High/Medium/Low)
+        speed: Restock speed (Fast/Moderate/Slow)
+        price_pressure: Price direction (↑/→/↓)
+        wishlist_pressure: Demand level (🔥/⚠️/❌)
+        wishlist_delta: Momentum (↑/→/↓)
+        
+    Returns:
+        Semicolon-separated string explaining the risk drivers
+        
+    Example:
+        "Stock: Reliability Low (Restock Slow); Demand: Wishlist High + rising; Price: Rising"
+    """
+    # Stock section
+    stock_section = f"Stock: Reliability {reliability} (Restock {speed})"
+    
+    # Demand section
+    pressure_text = {
+        "🔥": "High",
+        "⚠️": "Moderate",
+        "❌": "Low"
+    }.get(wishlist_pressure, wishlist_pressure)
+    
+    delta_text = {
+        "↑": "rising",
+        "→": "stable",
+        "↓": "falling"
+    }.get(wishlist_delta, wishlist_delta)
+    
+    demand_section = f"Demand: Wishlist {pressure_text} + {delta_text}"
+    
+    # Price section
+    price_text = {
+        "↑": "Rising",
+        "→": "Stable",
+        "↓": "Falling"
+    }.get(price_pressure, price_pressure)
+    
+    price_section = f"Price: {price_text}"
+    
+    return f"{stock_section}; {demand_section}; {price_section}"
+
+
 def build_dealer_supply_risk_table(history_rows):
     by_run = group_by_run(history_rows)
     runs = sorted(by_run)
@@ -146,6 +192,15 @@ def build_dealer_supply_risk_table(history_rows):
         wishlist_history_sparkline = wishlist_history['unicode']
         
         stock_availability_sparkline = generate_stock_availability_sparkline((sci, size), by_run, runs, max_runs=8)
+        
+        # Generate structured explanation of risk drivers
+        drivers = _generate_dealer_drivers_text(
+            reliability=reliability,
+            speed=speed,
+            price_pressure=pp,
+            wishlist_pressure=wishlist_pressure,
+            wishlist_delta=wishlist_delta
+        )
 
         table.append({
             "Species": sci,
@@ -161,6 +216,7 @@ def build_dealer_supply_risk_table(history_rows):
             "Stock Availability": stock_availability_sparkline,
             "Dealer Risk": risk,
             "Dealer Recommendation": rec,
+            "Drivers": drivers
         })
 
     # Sort: Dealer Risk (🔥 > ⚠️ > ❌), then Wishlist Pressure (🔥 > ⚠️ > ❌), 
@@ -185,7 +241,7 @@ def write_dealer_outputs(table):
         fieldnames = ["Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration", 
                       "Restock Speed", "Price Pressure", "Price History", "Wishlist Pressure", 
                       "Wishlist Delta", "Wishlist History", "Stock Availability", "Dealer Risk", 
-                      "Dealer Recommendation"]
+                      "Dealer Recommendation", "Drivers"]
         with open(DEALER_TABLE_FILE, "w", newline="", encoding="utf-8") as f:
             w = csv.DictWriter(f, fieldnames=fieldnames)
             w.writeheader()

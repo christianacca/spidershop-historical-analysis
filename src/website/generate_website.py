@@ -240,6 +240,10 @@ def generate_data_page(config: BasePageConfig) -> str:
     top_10_headers_enum = list(enumerate(top_10_headers)) if top_10_headers else []
     top_10_rows_enum = [list(enumerate(row)) for row in top_10_rows] if top_10_rows else []
     
+    # Find drivers column index for tooltip rendering
+    # Drivers column exists in breeder/dealer tables but not history/snapshot
+    drivers_col_idx = headers.index('Drivers') if headers and 'Drivers' in headers else None
+    
     template = jinja_env.get_template('data_page.html')
     return template.render(
         page_title=config.title,
@@ -259,6 +263,7 @@ def generate_data_page(config: BasePageConfig) -> str:
         top_10_rows=top_10_rows_enum,
         headers=headers_enum,
         rows=rows_enum,
+        drivers_col_idx=drivers_col_idx,
         sortable=True,
         page_url_idx=page_url_idx,
         scientific_name_idx=scientific_name_idx,

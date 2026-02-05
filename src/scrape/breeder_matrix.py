@@ -10,6 +10,56 @@ from shared.sparkline_helpers import extract_historical_values_with_carryforward
 # BREEDER MATRIX (PRICE AWARE) — FIXED TO INCLUDE OUT-OF-STOCK ITEMS
 # =====================
 
+def _generate_breeder_drivers_text(oos_status, oos_runs, pattern, price_trend, wishlist_pressure, wishlist_delta):
+    """Generate structured explanation of signal drivers using semicolon separators.
+    
+    Args:
+        oos_status: Current stock status (IN/OUT/IN/OUT)
+        oos_runs: Number of consecutive OOS runs
+        pattern: Stock pattern (Sustained/Emerging/Cyclical/Always)
+        price_trend: Price direction (↑/→/↓)
+        wishlist_pressure: Demand level (🔥/⚠️/❌)
+        wishlist_delta: Momentum (↑/→/↓)
+        
+    Returns:
+        Semicolon-separated string explaining the signal drivers
+        
+    Example:
+        "Stock: Emerging (OOS 2 runs; currently OUT); Demand: Wishlist 🔥 + rising; Price: Stable"
+    """
+    # Stock section
+    oos_text = f"OOS {oos_runs} run{'s' if int(oos_runs) != 1 else ''}" if int(oos_runs) > 0 else ""
+    status_text = f"currently {oos_status}" if oos_status else ""
+    stock_detail = "; ".join(filter(None, [oos_text, status_text]))
+    stock_section = f"Stock: {pattern} ({stock_detail})" if stock_detail else f"Stock: {pattern}"
+    
+    # Demand section
+    pressure_text = {
+        "🔥": "High",
+        "⚠️": "Moderate", 
+        "❌": "Low"
+    }.get(wishlist_pressure, wishlist_pressure)
+    
+    delta_text = {
+        "↑": "rising",
+        "→": "stable",
+        "↓": "falling"
+    }.get(wishlist_delta, wishlist_delta)
+    
+    demand_section = f"Demand: Wishlist {pressure_text} + {delta_text}"
+    
+    # Price section
+    price_text = {
+        "↑": "Rising",
+        "→": "Stable",
+        "↓": "Falling"
+    }.get(price_trend, price_trend)
+    
+    price_section = f"Price: {price_text}"
+    
+    return f"{stock_section}; {demand_section}; {price_section}"
+
+
 def build_breeder_opportunity_table(history_rows):
     by_run = group_by_run(history_rows)
     runs = sorted(by_run)
@@ -197,6 +247,16 @@ def build_breeder_opportunity_table(history_rows):
         
         price_sparkline = price_history['unicode']
         wishlist_sparkline = wishlist_history['unicode']
+        
+        # Generate structured explanation of signal drivers
+        drivers = _generate_breeder_drivers_text(
+            oos_status=oos_status,
+            oos_runs=oos_runs,
+            pattern=pattern,
+            price_trend=price_trend,
+            wishlist_pressure=wishlist_pressure,
+            wishlist_delta=wishlist_delta
+        )
 
         table.append({
             "Species": row.get("scientific_name", key[0]),
@@ -211,6 +271,7 @@ def build_breeder_opportunity_table(history_rows):
             "Wishlist History": wishlist_sparkline,
             "Signal": signal,
             "Recommendation": rec,
+            "Drivers": drivers
         })
 
     # Sort: Signal priority (🔥 > ⚠️ > ❌), then Wishlist Pressure (🔥 > ⚠️ > ❌), 
@@ -234,7 +295,7 @@ def write_breeder_outputs(table):
         # Create empty CSV with header row
         fieldnames = ["Species", "Size (cm)", "OOS", "OOS Runs", "Stock Pattern", 
                       "Price Trend", "Price History", "Wishlist Pressure", "Wishlist Delta", 
-                      "Wishlist History", "Signal", "Recommendation"]
+                      "Wishlist History", "Signal", "Recommendation", "Drivers"]
         with open(BREEDER_TABLE_FILE, "w", newline="", encoding="utf-8") as f:
             w = csv.DictWriter(f, fieldnames=fieldnames)
             w.writeheader()

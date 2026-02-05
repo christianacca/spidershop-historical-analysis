@@ -7,6 +7,7 @@
    - page_url_idx: index of page_url column (optional)
    - scientific_name_idx: index of scientific_name column (optional)
    - signal_col_idx: index of Signal or Dealer Risk column (optional)
+   - drivers_col_idx: index of Drivers column (optional, hidden if present)
 #}
 {% if not headers or not rows %}
 <p>No data available.</p>
@@ -15,7 +16,9 @@
   <thead>
     <tr>
       {% for i, header in headers %}
-      {% if sortable %}
+      {% if drivers_col_idx is defined and i == drivers_col_idx and drivers_col_idx is not none %}
+        {# Hide Drivers column header #}
+      {% elif sortable %}
       <th onclick="sortTable({{ i }}, '{{ table_id }}')">{{ header }} <span class="sort-indicator">⇅</span></th>
       {% else %}
       <th>{{ header }}</th>
@@ -27,10 +30,13 @@
     {% for row in rows %}
     {% set signal_value = row[signal_col_idx][1]|string|trim if signal_col_idx is not none and signal_col_idx < row|length else '' %}
     {% set stock_pattern_value = row[stock_pattern_col_idx][1]|string|trim if stock_pattern_col_idx is not none and stock_pattern_col_idx < row|length else '' %}
+    {% set drivers_value = row[drivers_col_idx][1]|string|trim if drivers_col_idx is defined and drivers_col_idx is not none and drivers_col_idx < row|length else '' %}
     <tr{% if signal_value %} data-signal="{{ signal_value }}"{% endif %}{% if stock_pattern_value %} data-stock-pattern="{{ stock_pattern_value }}"{% endif %}>
       {% for cell_idx, cell in row %}
       {% set header_text = headers[cell_idx][1] if cell_idx < headers|length else '' %}
-      {% if link_to_species_page and cell_idx == species_idx and species_idx is not none and size_idx is not none %}
+      {% if drivers_col_idx is defined and cell_idx == drivers_col_idx and drivers_col_idx is not none %}
+        {# Hide Drivers column cell #}
+      {% elif link_to_species_page and cell_idx == species_idx and species_idx is not none and size_idx is not none %}
         {# Breeder/Dealer table: link Species column to internal species page #}
         {% set species_name = cell|trim %}
         {% set size = row[size_idx][1] if size_idx < row|length else "" %}
@@ -45,16 +51,25 @@
       <td data-label="{{ header_text }}">{{ cell }}</td>
         {% endif %}
       {% elif cell_idx == signal_col_idx and signal_col_idx is not none %}
-        {# Signal/Risk column - add color-coded CSS class #}
-        {% set cell_str = cell|string|trim %}
+        {# Signal/Risk column - add color-coded CSS class and info icon with drivers tooltip #}
+        {% set cell_value = cell[1] if cell is iterable and cell is not string else cell %}
+        {% set cell_str = cell_value|string|trim %}
         {% if '🔥' in cell_str %}
-      <td class="signal-hot" data-label="{{ header_text }}">{{ cell }}</td>
+      <td class="signal-hot" data-label="{{ header_text }}">{{ cell_value }}{% if drivers_value %}<span class="info-icon" tabindex="0">ℹ️
+                    <span class="tooltip">{{ drivers_value }}</span>
+                </span>{% endif %}</td>
         {% elif '⚠️' in cell_str %}
-      <td class="signal-watch" data-label="{{ header_text }}">{{ cell }}</td>
+      <td class="signal-watch" data-label="{{ header_text }}">{{ cell_value }}{% if drivers_value %}<span class="info-icon" tabindex="0">ℹ️
+                    <span class="tooltip">{{ drivers_value }}</span>
+                </span>{% endif %}</td>
         {% elif '❌' in cell_str %}
-      <td class="signal-avoid" data-label="{{ header_text }}">{{ cell }}</td>
+      <td class="signal-avoid" data-label="{{ header_text }}">{{ cell_value }}{% if drivers_value %}<span class="info-icon" tabindex="0">ℹ️
+                    <span class="tooltip">{{ drivers_value }}</span>
+                </span>{% endif %}</td>
         {% else %}
-      <td data-label="{{ header_text }}">{{ cell }}</td>
+      <td data-label="{{ header_text }}">{{ cell_value }}{% if drivers_value %}<span class="info-icon" tabindex="0">ℹ️
+                    <span class="tooltip">{{ drivers_value }}</span>
+                </span>{% endif %}</td>
         {% endif %}
       {% elif cell|string|trim|truncate(5, True, '') == '<svg ' %}
       {# Cell contains SVG sparkline - don't escape #}
