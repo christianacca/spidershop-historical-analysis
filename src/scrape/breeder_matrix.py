@@ -5,6 +5,7 @@ from shared.config import BREEDER_TABLE_FILE, SIGNAL_PRIORITY, TREND_PRIORITY
 from shared.assertions import get_summary_path
 from scrape.wishlist_analysis import compute_wishlist_pressure, get_oos_wishlist_carryover, compute_wishlist_delta
 from shared.sparkline_helpers import extract_historical_values_with_carryforward
+from shared.driver_text_helpers import format_wishlist_pressure, format_delta, format_price_trend
 
 # =====================
 # BREEDER MATRIX (PRICE AWARE) — FIXED TO INCLUDE OUT-OF-STOCK ITEMS
@@ -34,27 +35,12 @@ def _generate_breeder_drivers_text(oos_status, oos_runs, pattern, price_trend, w
     stock_section = f"Stock: {pattern} ({stock_detail})" if stock_detail else f"Stock: {pattern}"
     
     # Demand section
-    pressure_text = {
-        "🔥": "High",
-        "⚠️": "Moderate", 
-        "❌": "Low"
-    }.get(wishlist_pressure, wishlist_pressure)
-    
-    delta_text = {
-        "↑": "rising",
-        "→": "stable",
-        "↓": "falling"
-    }.get(wishlist_delta, wishlist_delta)
-    
+    pressure_text = format_wishlist_pressure(wishlist_pressure)
+    delta_text = format_delta(wishlist_delta)
     demand_section = f"Demand: Wishlist {pressure_text} + {delta_text}"
     
     # Price section
-    price_text = {
-        "↑": "Rising",
-        "→": "Stable",
-        "↓": "Falling"
-    }.get(price_trend, price_trend)
-    
+    price_text = format_price_trend(price_trend)
     price_section = f"Price: {price_text}"
     
     return f"{stock_section}; {demand_section}; {price_section}"

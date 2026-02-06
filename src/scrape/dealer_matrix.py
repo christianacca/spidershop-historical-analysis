@@ -5,6 +5,7 @@ from shared.config import DEALER_TABLE_FILE, SIGNAL_PRIORITY, TREND_PRIORITY
 from shared.assertions import get_summary_path
 from scrape.wishlist_analysis import compute_wishlist_pressure, get_oos_wishlist_carryover, compute_wishlist_delta
 from shared.sparkline_helpers import extract_historical_values_with_carryforward, generate_stock_availability_sparkline
+from shared.driver_text_helpers import format_wishlist_pressure, format_delta, format_price_trend
 
 # =====================
 # DEALER MATRIX (Option B: Price Pressure informational)
@@ -30,27 +31,12 @@ def _generate_dealer_drivers_text(reliability, speed, price_pressure, wishlist_p
     stock_section = f"Stock: Reliability {reliability} (Restock {speed})"
     
     # Demand section
-    pressure_text = {
-        "🔥": "High",
-        "⚠️": "Moderate",
-        "❌": "Low"
-    }.get(wishlist_pressure, wishlist_pressure)
-    
-    delta_text = {
-        "↑": "rising",
-        "→": "stable",
-        "↓": "falling"
-    }.get(wishlist_delta, wishlist_delta)
-    
+    pressure_text = format_wishlist_pressure(wishlist_pressure)
+    delta_text = format_delta(wishlist_delta)
     demand_section = f"Demand: Wishlist {pressure_text} + {delta_text}"
     
     # Price section
-    price_text = {
-        "↑": "Rising",
-        "→": "Stable",
-        "↓": "Falling"
-    }.get(price_pressure, price_pressure)
-    
+    price_text = format_price_trend(price_pressure)
     price_section = f"Price: {price_text}"
     
     return f"{stock_section}; {demand_section}; {price_section}"
