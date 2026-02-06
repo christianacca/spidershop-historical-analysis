@@ -71,7 +71,7 @@
     <div class="summary-stats">
       <div class="stat-card stat-{% if species_data.breeder.signal == '🔥' %}hot{% elif species_data.breeder.signal == '⚠️' %}watch{% else %}avoid{% endif %}">
         <div class="stat-value">{{ species_data.breeder.signal | default('—') }}</div>
-        <div class="stat-label">Opportunity Signal</div>
+        <div class="stat-label">Opportunity Signal<span class="info-icon" tabindex="0">ℹ️<span class="tooltip">{{ species_data.breeder.drivers }}</span></span></div>
         <div class="stat-note">Conservative classification</div>
       </div>
       <div class="stat-card">
@@ -113,7 +113,7 @@
     <div class="summary-stats">
       <div class="stat-card stat-{% if species_data.dealer.risk == '🔥' %}hot{% elif species_data.dealer.risk == '⚠️' %}watch{% else %}avoid{% endif %}">
         <div class="stat-value">{{ species_data.dealer.risk | default('—') }}</div>
-        <div class="stat-label">Supply Risk</div>
+        <div class="stat-label">Supply Risk<span class="info-icon" tabindex="0">ℹ️<span class="tooltip">{{ species_data.dealer.drivers }}</span></span></div>
         <div class="stat-note">Conservative classification</div>
       </div>
       <div class="stat-card">

@@ -597,3 +597,136 @@ class TestGetPageUrl:
         with temp_csv_file(content) as csv_path:
             result = get_page_url("Test Spider", "1.5", csv_path)
             assert result is None
+
+
+class TestSignalTooltipDrivers:
+    """Test signal driver tooltips in Opportunity Signal cards."""
+
+    def test_breeder_signal_card_includes_drivers_tooltip(self):
+        """Should include info icon with drivers tooltip in breeder Opportunity Signal card."""
+        from website.species_detail import generate_species_page
+
+        species_data = {
+            "breeder": {
+                "signal": "🔥",
+                "oos_runs": "4",
+                "oos": "OUT",
+                "stock_pattern": "Sustained",
+                "price_trend": "↑",
+                "wishlist_pressure": "🔥",
+                "wishlist_delta": "↑",
+                "drivers": "Stock: Sustained (OOS 4 runs; currently OUT); Demand: Wishlist High + rising; Price: Rising"
+            },
+            "dealer": None,
+        }
+        chart_data = {"runs": []}
+        
+        html = generate_species_page(
+            "Test Spider",
+            "Common Name",
+            "1.5",
+            species_data,
+            chart_data,
+            default_view="breeder"
+        )
+        
+        # Check that the Opportunity Signal card label has the info icon structure
+        assert '<div class="stat-label">Opportunity Signal' in html
+        
+        # Check for info icon with tooltip structure matching table implementation
+        assert '<span class="info-icon" tabindex="0">ℹ️' in html
+        assert '<span class="tooltip">' in html
+        
+        # Check that the drivers text is in the tooltip
+        assert "Stock: Sustained (OOS 4 runs; currently OUT)" in html
+        assert "Demand: Wishlist High + rising" in html
+        assert "Price: Rising" in html
+
+    def test_dealer_signal_card_includes_drivers_tooltip(self):
+        """Should include info icon with drivers tooltip in dealer Supply Risk card."""
+        from website.species_detail import generate_species_page
+
+        species_data = {
+            "breeder": None,
+            "dealer": {
+                "risk": "🔥",
+                "stock_reliability": "Low",
+                "restock_speed": "Slow",
+                "price_pressure": "↑",
+                "wishlist_pressure": "🔥",
+                "wishlist_delta": "↑",
+                "drivers": "Stock: Reliability Low (Restock Slow); Demand: Wishlist High + rising; Price: Rising"
+            },
+        }
+        chart_data = {"runs": []}
+        
+        html = generate_species_page(
+            "Test Spider",
+            "Common Name",
+            "1.5",
+            species_data,
+            chart_data,
+            default_view="dealer"
+        )
+        
+        # Check that the Supply Risk card label has the info icon structure
+        assert '<div class="stat-label">Supply Risk' in html
+        
+        # Check for info icon with tooltip structure
+        assert '<span class="info-icon" tabindex="0">ℹ️' in html
+        assert '<span class="tooltip">' in html
+        
+        # Check that the drivers text is in the tooltip
+        assert "Stock: Reliability Low (Restock Slow)" in html
+        assert "Demand: Wishlist High + rising" in html
+        assert "Price: Rising" in html
+
+    def test_tooltip_always_present_when_species_data_exists(self):
+        """Should always include tooltip when species data is present (drivers always populated in CSV)."""
+        from website.species_detail import generate_species_page
+
+        # Test breeder perspective
+        species_data = {
+            "breeder": {
+                "signal": "🔥",
+                "oos_runs": "4",
+                "drivers": "Stock: Sustained (OOS 4 runs; currently OUT); Demand: Wishlist High + rising; Price: Rising"
+            },
+            "dealer": None,
+        }
+        chart_data = {"runs": []}
+        
+        html = generate_species_page(
+            "Test Spider",
+            "Common Name",
+            "1.5",
+            species_data,
+            chart_data,
+            default_view="breeder"
+        )
+        
+        # Check that the card exists with tooltip
+        assert '<div class="stat-label">Opportunity Signal<span class="info-icon"' in html
+        assert 'Stock: Sustained (OOS 4 runs; currently OUT)' in html
+        
+        # Test dealer perspective
+        species_data = {
+            "breeder": None,
+            "dealer": {
+                "risk": "⚠️",
+                "drivers": "Stock: Reliability Medium (Restock Slow); Demand: Wishlist Moderate + stable; Price: Stable"
+            },
+        }
+        
+        html = generate_species_page(
+            "Test Spider",
+            "Common Name",
+            "1.5",
+            species_data,
+            chart_data,
+            default_view="dealer"
+        )
+        
+        # Check that the card exists with tooltip
+        assert '<div class="stat-label">Supply Risk<span class="info-icon"' in html
+        assert 'Stock: Reliability Medium (Restock Slow)' in html
