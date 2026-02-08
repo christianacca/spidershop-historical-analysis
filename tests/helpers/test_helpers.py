@@ -51,6 +51,7 @@ class BreederEntry:
     wishlist_history: str = ""
     signal: str = "🔥"
     recommendation: str = ""
+    drivers: str = ""
 
 
 @dataclass
@@ -72,6 +73,7 @@ class DealerEntry:
     stock_availability: str = ""
     risk: str = "🔥"
     dealer_recommendation: str = ""
+    drivers: str = ""
 
 
 def create_temp_markdown_file(content: str) -> str:

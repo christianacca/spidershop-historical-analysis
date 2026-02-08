@@ -311,17 +311,18 @@ class TestGenerateDataPage:
             html = generate_data_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
-            # Find details element
-            details = soup.find('details')
-            assert details is not None
+            # Find details element with legend (not instruction box)
+            details_elements = soup.find_all('details')
+            legend_details = [d for d in details_elements if 'How to read these tables' in d.text]
+            assert len(legend_details) > 0, "Should have legend details element"
             
             # Check summary text
-            summary = details.find('summary')
+            summary = legend_details[0].find('summary')
             assert summary is not None
             assert 'How to read these tables' in summary.text
             
             # Check for legend content
-            strong = details.find('strong', string='Legend')
+            strong = legend_details[0].find('strong', string='Legend')
             assert strong is not None
 
     def test_omits_legend_when_none(self):
@@ -339,6 +340,86 @@ class TestGenerateDataPage:
             details_elements = soup.find_all('details')
             for details in details_elements:
                 assert 'How to read these tables' not in details.text
+
+    def test_includes_instruction_box_for_breeder_page(self):
+        """Should include 'How to use this page' instruction box for breeder pages."""
+        csv_content = "Species,Size (cm),Signal\nTest Spider,1.5,🔥\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.breeder(filename) \
+                .with_title("Breeder Opportunities") \
+                .with_description("Test") \
+                .build()
+            html = generate_data_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Should have instruction box
+            instruction_box = soup.find('details', class_='instruction-box')
+            assert instruction_box is not None, "Should have instruction box details element"
+            
+            # Should have summary with "How to use this page"
+            summary = instruction_box.find('summary')
+            assert summary is not None
+            assert 'How to use this page' in summary.text
+            
+            # Should mention 60 seconds
+            assert '60 second' in summary.text.lower() or '60-second' in summary.text.lower()
+            
+            # Should include key breeder concepts
+            text = instruction_box.text
+            assert 'breeding' in text.lower()  # "breeding investment"
+            assert 'opportunity' in text.lower()
+            assert '🔥' in text
+            assert 'ℹ️' in text or 'info icon' in text.lower()
+            
+            # Should explain strategic context
+            assert 'signal' in text.lower()
+            assert 'stock pattern' in text.lower()
+
+    def test_includes_instruction_box_for_dealer_page(self):
+        """Should include 'How to use this page' instruction box for dealer pages."""
+        csv_content = "Species,Size (cm),Risk\nTest Spider,1.5,🔥\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.dealer(filename) \
+                .with_title("Dealer Supply Risk") \
+                .with_description("Test") \
+                .build()
+            html = generate_data_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Should have instruction box
+            instruction_box = soup.find('details', class_='instruction-box')
+            assert instruction_box is not None, "Should have instruction box details element"
+            
+            # Should have summary with "How to use this page"
+            summary = instruction_box.find('summary')
+            assert summary is not None
+            assert 'How to use this page' in summary.text
+            
+            # Should include key dealer concepts  
+            text = instruction_box.text
+            assert 'risk' in text.lower()  # "High Risk", "Moderate Risk", etc.
+            assert 'supply' in text.lower()  # "supply reliability"
+            assert '🔥' in text
+            assert 'ℹ️' in text or 'info icon' in text.lower()
+            
+            # Should explain strategic context
+            assert 'restock' in text.lower()
+            assert 'inventory' in text.lower()
+
+    def test_omits_instruction_box_for_snapshot_page(self):
+        """Should NOT include instruction box for snapshot pages (simple pages)."""
+        csv_content = "Col\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.snapshot(filename) \
+                .with_title("Snapshot") \
+                .with_description("Test") \
+                .build()
+            html = generate_data_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Should not have instruction box
+            instruction_box = soup.find('details', class_='instruction-box')
+            assert instruction_box is None, "Snapshot pages should not have instruction box"
 
 
 class TestPageConfig:

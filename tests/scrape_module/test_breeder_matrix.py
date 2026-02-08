@@ -394,11 +394,9 @@ class TestBuildBreederOpportunityTable:
         expected_keys = {
             "Species", "Size (cm)", "OOS", "OOS Runs", "Stock Pattern",
             "Price Trend", "Price History", "Wishlist Pressure", "Wishlist Delta", 
-            "Wishlist History", "Signal", "Recommendation"
+            "Wishlist History", "Signal", "Recommendation", "Drivers"
         }
         assert set(entry.keys()) == expected_keys
-        
-        # Verify data types
         assert isinstance(entry["Species"], str)
         assert isinstance(entry["OOS Runs"], str)  # Stored as string
         assert entry["Signal"] in ["🔥", "⚠️", "❌"]
@@ -725,4 +723,35 @@ class TestSparklineColumns:
         assert len(entry["Price History"]) <= 2
         assert len(entry["Wishlist History"]) <= 2
 
-
+    def test_drivers_column_exists_and_uses_semicolons(self):
+        """Should include Drivers column with semicolon-separated explanation (not commas)."""
+        history = [
+            # Run 1: Present
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "10"),
+            make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "15"),
+            
+            # Run 2: seemanni goes OUT
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "16"),
+            
+            # Run 3: seemanni still OUT (2 consecutive = Emerging)
+            make_row("2025-01-15", "Grammostola pulchra", "2.0", "42.00", "17"),
+        ]
+        
+        table = build_breeder_opportunity_table(history)
+        entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+        
+        # Drivers column should exist
+        assert "Drivers" in entry
+        drivers = entry["Drivers"]
+        
+        # Should be non-empty
+        assert drivers != ""
+        
+        # Should use semicolons as separators, NOT commas (to avoid CSV delimiter conflicts)
+        assert ";" in drivers
+        assert drivers.count(";") >= 2  # At least 3 sections separated by semicolons
+        
+        # Should contain key information structured
+        assert "Stock" in drivers or "Pattern" in drivers
+        assert "Demand" in drivers or "Wishlist" in drivers
+        assert "Price" in drivers

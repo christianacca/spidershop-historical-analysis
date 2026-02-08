@@ -1,0 +1,49 @@
+{# Reusable macros for templates #}
+
+{# Render tooltip icon with driver explanation text 
+   Parameters:
+   - drivers_text: The tooltip text to display
+   - tabindex: Tab order for keyboard navigation (default: 0 for natural tab order)
+#}
+{% macro driver_tooltip(drivers_text, tabindex=0) -%}
+{% if drivers_text %}<span class="info-icon" tabindex="{{ tabindex }}">ℹ️<span class="tooltip">{{ drivers_text }}</span></span>{% endif %}
+{%- endmacro %}
+
+{# Render instruction box for breeder or dealer pages
+   Parameters:
+   - page_type: Either "breeder" or "dealer" to determine content
+#}
+{% macro instruction_box(page_type) -%}
+<details class="instruction-box">
+    <summary><strong>💡 How to use this page (60 seconds)</strong></summary>
+    <div class="instruction-content">
+        {% if page_type == "breeder" %}
+        <p><strong>What do the signals mean?</strong></p>
+        <ul>
+            <li><strong>🔥 Hot (Strong Opportunity)</strong> – Sustained market scarcity, ideal for breeding investment</li>
+            <li><strong>⚠️ Watch (Emerging Opportunity)</strong> – Increasing scarcity pattern, potential opportunity developing</li>
+            <li><strong>❌ Avoid (Low Opportunity)</strong> – Consistently available in market, low breeding value</li>
+        </ul>
+        <p><strong>How to interpret the data:</strong></p>
+        <ul>
+            <li>Hover over the <strong>ℹ️ info icon</strong> next to any signal to see specific drivers (stock patterns, demand trends, price movements)</li>
+            <li>Use <strong>filters</strong> to focus on Hot or Watch signals for actionable opportunities</li>
+            <li>Check <strong>Stock Pattern</strong> and <strong>OOS Runs</strong> to understand market consistency</li>
+        </ul>
+        {% elif page_type == "dealer" %}
+        <p><strong>What do the risk levels mean?</strong></p>
+        <ul>
+            <li><strong>🔥 High Risk</strong> – Frequent stockouts, slow restocks, supply reliability issues</li>
+            <li><strong>⚠️ Moderate Risk</strong> – Occasional stock gaps, monitor for changes</li>
+            <li><strong>❌ Low Risk (Reliable)</strong> – Consistent availability, dependable supply</li>
+        </ul>
+        <p><strong>How to interpret the data:</strong></p>
+        <ul>
+            <li>Hover over the <strong>ℹ️ info icon</strong> next to any risk rating to see specific drivers (reliability metrics, restock speed, demand pressure)</li>
+            <li>Use <strong>filters</strong> to identify High Risk species requiring attention or backup suppliers</li>
+            <li>Check <strong>Avg OOS Duration</strong> and <strong>Restock Speed</strong> to plan inventory</li>
+        </ul>
+        {% endif %}
+    </div>
+</details>
+{%- endmacro %}

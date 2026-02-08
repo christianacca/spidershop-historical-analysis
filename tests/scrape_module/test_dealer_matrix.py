@@ -763,11 +763,11 @@ class TestBuildDealerSupplyRiskTable:
             "Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration",
             "Restock Speed", "Price Pressure", "Price History", "Wishlist Pressure", 
             "Wishlist Delta", "Wishlist History", "Stock Availability", "Dealer Risk", 
-            "Dealer Recommendation"
+            "Dealer Recommendation", "Drivers"
         }
         assert set(entry.keys()) == expected_keys
 
-    def test_oos_events_counting_with_initial_absence(self):
+    def test_safe_oos_event_counting_with_starting_absence(self):
         """OOS event counting should handle series starting with absence."""
         history = [
             # Runs 1-2: Species not present (starts absent)
@@ -1179,3 +1179,32 @@ class TestDealerSparklineColumns:
         stock_avail = entry["Stock Availability"]
         assert stock_avail.strip() == stock_avail  # No leading/trailing spaces
         assert all(c == "█" for c in stock_avail)  # All blocks
+
+    def test_drivers_column_exists_and_uses_semicolons(self):
+        """Should include Drivers column with semicolon-separated explanation (not commas)."""
+        history = [
+            # 5 runs with low reliability (2/5 = 40%)
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "10"),
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "5"),  # seemanni OUT
+            make_row("2025-01-15", "Grammostola pulchra", "2.0", "42.00", "5"),  # seemanni OUT
+            make_row("2025-01-22", "Grammostola pulchra", "2.0", "43.00", "5"),  # seemanni OUT
+            make_row("2025-01-29", "Aphonopelma seemanni", "1.0", "25.00", "12"),
+        ]
+        
+        table = build_dealer_supply_risk_table(history)
+        entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+        
+        # Drivers column should exist
+        assert "Drivers" in entry
+        drivers = entry["Drivers"]
+        
+        # Should be non-empty
+        assert drivers != ""
+        
+        # Should use semicolons as separators, NOT commas (to avoid CSV delimiter conflicts)
+        assert ";" in drivers
+        assert drivers.count(";") >= 2  # At least 3 sections separated by semicolons
+        
+        # Should contain key information structured
+        assert "Reliability" in drivers or "Stock" in drivers
+        assert "Demand" in drivers or "Wishlist" in drivers

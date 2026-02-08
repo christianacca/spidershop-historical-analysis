@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import 'macros.html' as macros %}
 
 {% block title %}{{ page_title }}{% endblock %}
 
@@ -47,10 +48,14 @@
     </div>
     {% endif %}
     
+    {% if active_page == "breeder" or active_page == "dealer" %}
+    {{ macros.instruction_box(active_page) }}
+    {% endif %}
+    
     {% if top_10_headers and top_10_rows %}
     <h3>Top 10</h3>
     <div style="overflow-x: auto;">
-        {% with headers=top_10_headers, rows=top_10_rows, table_id=table_id + '-top10', sortable=False, signal_col_idx=None, stock_pattern_col_idx=None, page_url_idx=page_url_idx, scientific_name_idx=scientific_name_idx %}
+        {% with headers=top_10_headers, rows=top_10_rows, table_id=table_id + '-top10', sortable=False, signal_col_idx=signal_col_idx, stock_pattern_col_idx=stock_pattern_col_idx, page_url_idx=page_url_idx, scientific_name_idx=scientific_name_idx, drivers_col_idx=drivers_col_idx %}
         {% include 'table.html' %}
         {% endwith %}
     </div>

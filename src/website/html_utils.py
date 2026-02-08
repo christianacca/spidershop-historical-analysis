@@ -76,6 +76,9 @@ def generate_table_html(
     signal_col_idx = None
     stock_pattern_col_idx = None
     
+    # Drivers column exists in breeder/dealer tables but not history/snapshot
+    drivers_col_idx = headers.index('Drivers') if headers and 'Drivers' in headers else None
+    
     try:
         page_url_idx = headers.index('page_url')
         scientific_name_idx = headers.index('scientific_name')
@@ -122,7 +125,8 @@ def generate_table_html(
         link_to_species_page=link_to_species_page,
         table_view=table_view,
         signal_col_idx=signal_col_idx,
-        stock_pattern_col_idx=stock_pattern_col_idx
+        stock_pattern_col_idx=stock_pattern_col_idx,
+        drivers_col_idx=drivers_col_idx
     )
 
 

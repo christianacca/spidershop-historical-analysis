@@ -156,6 +156,7 @@
             font-size: 1.8rem;
             padding: 8px;
             font-weight: bold;
+            white-space: nowrap;
         }
         
         .data-table .signal-watch {
@@ -165,6 +166,7 @@
             font-size: 1.8rem;
             padding: 8px;
             font-weight: bold;
+            white-space: nowrap;
         }
         
         .data-table .signal-avoid {
@@ -174,6 +176,7 @@
             font-size: 1.8rem;
             padding: 8px;
             font-weight: bold;
+            white-space: nowrap;
         }
         
         .info-box {
@@ -290,7 +293,8 @@
             padding: 12px 16px;
             border-radius: 6px;
             font-size: 0.85rem;
-            width: 280px;
+            min-width: 200px;
+            max-width: 400px;
             text-align: left;
             text-transform: none;
             letter-spacing: normal;
@@ -299,6 +303,9 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
             transition: opacity 0.3s, visibility 0.3s;
             pointer-events: none;
+            white-space: normal;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         
         /* Tooltip arrow */
@@ -598,6 +605,57 @@
             margin-left: 30px;
             margin-top: 10px;
             margin-bottom: 10px;
+        }
+        
+        /* Instruction Box Styling */
+        .instruction-box {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f0f7ff 100%);
+            border: 2px solid #2196F3;
+            border-radius: 8px;
+            margin: 25px 0;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(33, 150, 243, 0.15);
+        }
+        
+        .instruction-box summary {
+            color: #1976d2;
+            font-size: 1.1rem;
+            padding: 5px;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .instruction-box summary:hover {
+            background: rgba(33, 150, 243, 0.1);
+        }
+        
+        .instruction-box[open] summary {
+            border-bottom: 2px solid #2196F3;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+        }
+        
+        .instruction-content {
+            color: #34495e;
+            line-height: 1.7;
+        }
+        
+        .instruction-content p {
+            margin: 12px 0 8px 0;
+        }
+        
+        .instruction-content ul {
+            margin: 8px 0 15px 0;
+            padding-left: 25px;
+        }
+        
+        .instruction-content li {
+            margin: 6px 0;
+            line-height: 1.6;
+        }
+        
+        .instruction-content strong {
+            color: #2c3e50;
         }
         
         /* Mobile Responsive Card Layout */

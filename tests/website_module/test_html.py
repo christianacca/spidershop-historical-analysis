@@ -270,6 +270,64 @@ class TestGenerateTableHtml:
         assert soup.find(string='https://example.com/species1') is not None
         assert soup.find(string='https://example.com/species2') is not None
 
+    def test_signal_cells_with_drivers_column_use_custom_tooltips(self):
+        """Signal cells should use custom tooltip spans (not title attribute) when Drivers column present."""
+        headers = ["Species", "Signal", "Drivers"]
+        rows = [
+            ["Test Spider", "🔥", "Stock: Sustained (OOS 5 runs; currently OUT); Demand: High; Price: Rising"],
+        ]
+        
+        html = generate_table_html(headers, rows, "test-table")
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Find the Signal cell
+        signal_cell = soup.select('tbody tr td.signal-hot')[0]
+        
+        # Should contain info icon with custom tooltip span
+        info_icon = signal_cell.find('span', class_='info-icon')
+        assert info_icon is not None, "Should have info-icon span"
+        
+        # Should NOT use title attribute
+        assert 'title' not in info_icon.attrs, "Should not use native title attribute"
+        
+        # Should contain nested tooltip span with drivers text
+        tooltip_span = info_icon.find('span', class_='tooltip')
+        assert tooltip_span is not None, "Should have nested tooltip span"
+        assert "Stock: Sustained" in tooltip_span.text
+        assert "OOS 5 runs" in tooltip_span.text
+        
+        # Should have tabindex for keyboard accessibility
+        assert info_icon.get('tabindex') == '0', "Should be keyboard accessible"
+        
+        # Drivers column should be completely hidden (not rendered at all)
+        all_cells = soup.select('tbody tr td')
+        assert len(all_cells) == 2, f"Expected 2 cells (Species, Signal), Drivers column should be hidden, got {len(all_cells)}"
+        
+        # Verify Drivers column header is also hidden
+        headers_rendered = soup.select('thead tr th')
+        assert len(headers_rendered) == 2, "Drivers column header should also be hidden"
+        header_texts = [th.text.strip() for th in headers_rendered]
+        assert "Species" in header_texts[0]
+        assert "Signal" in header_texts[1]
+        assert "Drivers" not in str(soup), "Drivers column should not appear anywhere in rendered HTML"
+
+    def test_signal_cells_without_drivers_column_have_no_tooltips(self):
+        """Signal cells should not have info icons when Drivers column is absent."""
+        headers = ["Species", "Signal"]
+        rows = [
+            ["Test Spider", "🔥"],
+        ]
+        
+        html = generate_table_html(headers, rows, "test-table")  # No drivers_col_idx
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Find the Signal cell
+        signal_cell = soup.select('tbody tr td.signal-hot')[0]
+        
+        # Should NOT contain info icon
+        info_icon = signal_cell.find('span', class_='info-icon')
+        assert info_icon is None, "Should not have info icon when Drivers column missing"
+
 
 class TestGetBaseHtmlTemplate:
     """Test suite for base HTML template generation."""
