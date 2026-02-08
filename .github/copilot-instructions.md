@@ -149,6 +149,40 @@ Are you testing HTML generation?
   └─ NO: Testing data transformation/logic? → Structure Validation
 ```
 
+### Testing JavaScript Behavior (E2E Required)
+
+**CRITICAL RULE:** Client-side JavaScript can ONLY be tested via E2E (Playwright) tests.
+
+**When to write E2E tests:**
+- User interactions: clicking buttons, typing in inputs, selecting options
+- DOM mutations: showing/hiding elements, updating classes/attributes
+- Browser APIs: `window.history`, `localStorage`, `fetch`
+- Visual feedback: animations, transitions, dynamic content
+- Multi-filter interactions: verifying combined behavior of multiple JS functions
+- URL state management: query parameters, pushState/popState
+
+**When to keep unit tests:**
+- HTML structure: verify correct elements exist with correct attributes
+- Data attributes: verify `data-signal`, `data-stock-pattern`, `onclick` presence
+- Template logic: loops, conditionals, data transformation
+- JS file existence: verify external JS files are referenced correctly
+
+**Anti-pattern examples (DO NOT WRITE THESE):**
+- ❌ Unit test checking `onclick="sortTable(0, 'breeder-table')"` exact string content
+- ❌ Grep for function names inside `table-interactions.js` (e.g., checking for `isNumeric`)
+- ❌ Verify JS variable names or implementation details in generated HTML
+- ❌ Test CSS class changes without actually running JS in a browser
+
+**Correct approach examples:**
+- ✅ Unit test: Button has `onclick` attribute (any value) + `data-signal` attribute
+- ✅ E2E test: Click button, verify rows are filtered correctly in browser
+- ✅ Unit test: Table rows have `data-stock-pattern` attribute
+- ✅ E2E test: Click "Emerging" filter, verify only Emerging rows visible
+- ✅ Unit test: Search input has `onkeyup` handler
+- ✅ E2E test: Type in search input, verify filtering works with signal filter
+
+**E2E tests location:** `tests/e2e/` with shared utilities in `helpers.py`
+
 ### Modifying vs. Creating Tests
 
 **Default approach: MODIFY existing tests**
@@ -195,12 +229,19 @@ def test_parse_price(input, expected):
 > Your terminal prompt should show `(.venv)` at the beginning when activated.
 
 ```bash
-# Run all tests
+# Run all unit tests (fast, ~1 second)
 make test
 
 # Run individual test file (REQUIRED when testing specific functionality)
 make test-file FILE=tests/website_module/test_csv.py
 make test-file FILE=tests/scrape_module/test_breeder_matrix.py
+
+# Run E2E tests (requires Playwright, ~10-20 seconds)
+make e2e-install  # one-time setup to install Playwright browsers
+make test-e2e     # run all E2E tests (opt-in)
+
+# Debug E2E tests (show browser window with slow motion)
+PWHEADED=1 PWSLOW=500 make test-e2e
 
 # Check specific module coverage
 python scripts/check_coverage.py --module=scrape/breeder_matrix.py
@@ -210,10 +251,12 @@ python scripts/check_coverage.py --module=scrape/breeder_matrix.py
 
 **Process:**
 1. **Write tests FIRST** (TDD: RED → GREEN → optional REFACTOR)
-2. **Choose test style** based on what you're validating (snapshot/CSS/structure)
+2. **Choose test style** based on what you're validating (snapshot/CSS/structure/E2E)
 3. **Modify existing tests** when possible instead of creating duplicates
 4. **Use synthetic data** to simulate scraping, not live web scraping
 5. **Cover all branches** and edge cases with descriptive test names
+
+**JavaScript behavior:** E2E tests required for all user interactions. Unit tests verify HTML structure only.
 
 **Verification:**
 ```bash

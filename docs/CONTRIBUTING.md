@@ -295,11 +295,22 @@ make test-file FILE=tests/scrape_module/test_breeder_matrix.py
 
 Use this when working on specific functionality to get faster feedback.
 
-### Playwright E2E smoke tests (optional)
+### Playwright E2E tests (opt-in)
 
-These are lightweight browser-based checks that catch issues unit tests can miss (e.g. broken relative links, missing assets, basic navigation regressions).
+These are comprehensive browser-based tests that verify client-side JavaScript behavior that unit tests cannot check (e.g., table sorting, filtering interactions, tab switching, URL state management).
 
-They are **opt-in** so they don't slow down the default test suite.
+**Test organization:**
+- `tests/e2e/test_navigation_and_page_loads.py` - Basic page loads and navigation
+- `tests/e2e/test_table_interactions.py` - Sorting, filtering, and search functionality
+- `tests/e2e/test_species_page_interactions.py` - Tab switching and URL parameter handling
+
+They are **opt-in** to keep the default test suite fast (~1 second for unit tests vs ~10-20 seconds for E2E).
+
+**When to run E2E tests:**
+- After changes to `src/website/` or `templates/` directories
+- After changes to `templates/scripts/table-interactions.js`
+- Before submitting PRs that modify client-side behavior
+- When debugging regressions related to user interactions
 
 ```sh
 make test-e2e
