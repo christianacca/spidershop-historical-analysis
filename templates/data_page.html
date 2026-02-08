@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import 'macros.html' as macros %}
 
 {% block title %}{{ page_title }}{% endblock %}
 
@@ -45,6 +46,10 @@
             </div>
         </div>
     </div>
+    {% endif %}
+    
+    {% if active_page == "breeder" or active_page == "dealer" %}
+    {{ macros.instruction_box(active_page) }}
     {% endif %}
     
     {% if top_10_headers and top_10_rows %}
