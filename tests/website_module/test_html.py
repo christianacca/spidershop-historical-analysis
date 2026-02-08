@@ -494,25 +494,14 @@ class TestGetHtmlFooter:
         assert "</body>" in html
         assert "</html>" in html
 
-    def test_javascript_handles_numeric_sorting(self):
-        """JavaScript file should exist and contain numeric sort logic."""
-        # Read the external JavaScript file
+    def test_javascript_file_exists(self):
+        """JavaScript file should exist.
+        
+        Note: This test only verifies the file exists. Actual sorting behavior
+        (numeric vs string, ascending vs descending) is tested via E2E tests.
+        """
         js_file = Path(__file__).parent.parent.parent / "templates" / "scripts" / "table-interactions.js"
         assert js_file.exists(), "JavaScript file should exist"
-        
-        js_content = js_file.read_text()
-        assert 'isNumeric' in js_content
-        assert 'parseFloat' in js_content
-
-    def test_javascript_handles_string_sorting(self):
-        """JavaScript file should exist and contain string sort logic."""
-        # Read the external JavaScript file
-        js_file = Path(__file__).parent.parent.parent / "templates" / "scripts" / "table-interactions.js"
-        assert js_file.exists(), "JavaScript file should exist"
-        
-        js_content = js_file.read_text()
-        assert 'toLowerCase' in js_content
-        assert 'localeCompare' in js_content
 
 
 class TestSpeciesPageLinking:

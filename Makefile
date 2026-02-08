@@ -191,7 +191,7 @@ test-e2e: .check-venv e2e-install
 	@echo "🧪 Running Playwright e2e smoke tests..."
 	@mkdir -p $(TESTING_DIR)
 	source $(VENV)/bin/activate && cd $(TESTING_DIR) && \
-		export PYTHONPATH="$$PWD/../../src:$$PYTHONPATH" && \
+		export PYTHONPATH="$$PWD/../../src:$$PWD/../../tests:$$PYTHONPATH" && \
 		RUN_E2E=1 pytest ../../tests/e2e -m e2e -v
 
 test-e2e-debug: .check-venv e2e-install
@@ -199,14 +199,14 @@ test-e2e-debug: .check-venv e2e-install
 	@echo "   Use the Inspector UI to step through actions, pause, and inspect locators"
 	@mkdir -p $(TESTING_DIR)
 	source $(VENV)/bin/activate && cd $(TESTING_DIR) && \
-		export PYTHONPATH="$$PWD/../../src:$$PYTHONPATH" && \
+		export PYTHONPATH="$$PWD/../../src:$$PWD/../../tests:$$PYTHONPATH" && \
 		PWDEBUG=1 RUN_E2E=1 pytest ../../tests/e2e -m e2e -v -s
 
 test-e2e-headed: .check-venv e2e-install
 	@echo "👀 Running e2e tests with visible browser..."
 	@mkdir -p $(TESTING_DIR)
 	source $(VENV)/bin/activate && cd $(TESTING_DIR) && \
-		export PYTHONPATH="$$PWD/../../src:$$PYTHONPATH" && \
+		export PYTHONPATH="$$PWD/../../src:$$PWD/../../tests:$$PYTHONPATH" && \
 		PWHEADED=1 RUN_E2E=1 pytest ../../tests/e2e -m e2e -v -s
 
 test-e2e-show-trace: .check-venv e2e-install
