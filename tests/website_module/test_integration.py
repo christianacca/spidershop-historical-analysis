@@ -7,7 +7,7 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 from conftest import create_temp_csv_file, temp_csv_file, BreederEntry, create_breeder_csv_content, page_config
 from website import generate_table_html, get_base_html_template, get_html_footer
-from website.generate_website import generate_homepage, generate_data_page, main, OUTPUT_DIR
+from website.generate_website import generate_homepage, generate_analysis_page, generate_snapshot_page, generate_history_page, main, OUTPUT_DIR
 
 
 class TestIntegration:
@@ -144,7 +144,7 @@ Example content for dealers.
             legend_md = "**Symbol**: Meaning of symbol."
             
             config = page_config.breeder(csv_file, analysis_md).with_title("Test Page").with_description("Description here").with_legend(legend_md).with_search(True).build()
-            html = generate_data_page(config)
+            html = generate_analysis_page(config)
             
             # Verify all components present
             assert "<!DOCTYPE html>" in html
@@ -163,7 +163,7 @@ Example content for dealers.
         """Should handle empty CSV file without errors."""
         with temp_csv_file("") as csv_file:
             config = page_config.snapshot(csv_file).build()
-            html = generate_data_page(config)
+            html = generate_snapshot_page(config)
             assert "No data available" in html
             assert "<!DOCTYPE html>" in html
             assert "</html>" in html
@@ -180,7 +180,7 @@ Example content for dealers.
                 active_page="snapshot",
                 description="<b>Description</b>"
             ).build()
-            html = generate_data_page(config)
+            html = generate_snapshot_page(config)
             # Verify escaping
             assert "&lt;script&gt;" in html
             assert "<script>alert" not in html
@@ -336,12 +336,12 @@ class TestHtmlSnapshots:
         """Should maintain consistent search filter HTML structure."""
         from website.page_config import BreederPageConfig
         
-        html = generate_data_page(BreederPageConfig(
+        html = generate_analysis_page(BreederPageConfig(
             title="Test Page",
             description="Test description",
             csv_filename="test.csv",
             table_id="test-table",
-            active_page="test",
+            active_page="breeder",
             search_filter=True
         ))
         

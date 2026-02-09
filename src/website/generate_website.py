@@ -14,7 +14,7 @@ IMPORTANT - Output Location:
 Usage Example:
     
     from website import PageConfig
-    from website.generate_website import generate_data_page
+    from website.generate_website import generate_analysis_page
     
     config = PageConfig(
         title="Breeder Opportunities",
@@ -26,7 +26,7 @@ Usage Example:
         legend_markdown=breeder_legend,
         examples_markdown=breeder_examples
     )
-    html = generate_data_page(config)
+    html = generate_analysis_page(config)
 """
 
 import sys
@@ -100,8 +100,122 @@ def generate_homepage(last_scrape_time: Optional[str] = None) -> str:
     )
 
 
-def generate_data_page(config: BasePageConfig) -> str:
-    """Generate a data page with table from CSV and optional analysis using Jinja2 template.
+def generate_snapshot_page(config: BasePageConfig) -> str:
+    """Generate a snapshot page for current scrape data (raw data display)."""
+    # Read CSV file
+    headers, rows = read_csv_file(config.csv_filename)
+    
+    #Load sparkline data from history CSV for conversion
+    sparkline_data = load_historical_sparkline_data()
+    
+    # Convert Unicode sparklines to SVG in rows
+    if headers and rows:
+        rows = convert_sparklines_in_rows(headers, rows, sparkline_data, config.csv_filename)
+    
+    # Create top 10 table (first 10 rows)
+    top_10_rows = rows[:10] if rows and len(rows) > 10 else None
+    top_10_headers = headers if top_10_rows else None
+    
+    # Find column indices for special rendering
+    page_url_idx = None
+    scientific_name_idx = None
+    if headers:
+        try:
+            page_url_idx = headers.index('page_url')
+            scientific_name_idx = headers.index('scientific_name')
+        except ValueError:
+            pass
+    
+    # Enumerate headers and rows for template
+    headers_enum = list(enumerate(headers)) if headers else []
+    rows_enum = [list(enumerate(row)) for row in rows] if rows else []
+    
+    # Enumerate top 10 headers and rows for separate rendering
+    top_10_headers_enum = list(enumerate(top_10_headers)) if top_10_headers else []
+    top_10_rows_enum = [list(enumerate(row)) for row in top_10_rows] if top_10_rows else []
+    
+    template = jinja_env.get_template('snapshot_page.html')
+    return template.render(
+        page_title=config.title,
+        description=config.description,
+        csv_filename=config.csv_filename,
+        table_id=config.table_id,
+        active_page=config.active_page,
+        path_prefix="",
+        search_filter=getattr(config, 'search_filter', True),
+        headers=headers_enum,
+        rows=rows_enum,
+        top_10_headers=top_10_headers_enum,
+        top_10_rows=top_10_rows_enum,
+        page_url_idx=page_url_idx,
+        scientific_name_idx=scientific_name_idx,
+        signal_col_idx=None,  # Snapshot has no signal column
+        stock_pattern_col_idx=None,  # Snapshot has no stock pattern column
+        drivers_col_idx=None,  # Snapshot has no drivers column
+        sortable=True,
+        timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    )
+
+
+def generate_history_page(config: BasePageConfig) -> str:
+    """Generate a history page for historical scrape data (raw data display)."""
+    # Read CSV file
+    headers, rows = read_csv_file(config.csv_filename)
+    
+    # Load sparkline data from history CSV for conversion
+    sparkline_data = load_historical_sparkline_data()
+    
+    # Convert Unicode sparklines to SVG in rows
+    if headers and rows:
+        rows = convert_sparklines_in_rows(headers, rows, sparkline_data, config.csv_filename)
+    
+    # Create top 10 table (first 10 rows)
+    top_10_rows = rows[:10] if rows and len(rows) > 10 else None
+    top_10_headers = headers if top_10_rows else None
+    
+    # Find column indices for special rendering
+    page_url_idx = None
+    scientific_name_idx = None
+    if headers:
+        try:
+            page_url_idx = headers.index('page_url')
+            scientific_name_idx = headers.index('scientific_name')
+        except ValueError:
+            pass
+    
+    # Enumerate headers and rows for template
+    headers_enum = list(enumerate(headers)) if headers else []
+    rows_enum = [list(enumerate(row)) for row in rows] if rows else []
+    
+    # Enumerate top 10 headers and rows for separate rendering
+    top_10_headers_enum = list(enumerate(top_10_headers)) if top_10_headers else []
+    top_10_rows_enum = [list(enumerate(row)) for row in top_10_rows] if top_10_rows else []
+    
+    template = jinja_env.get_template('history_page.html')
+    return template.render(
+        page_title=config.title,
+        description=config.description,
+        csv_filename=config.csv_filename,
+        table_id=config.table_id,
+        active_page=config.active_page,
+        path_prefix="",
+        search_filter=getattr(config, 'search_filter', True),
+        headers=headers_enum,
+        rows=rows_enum,
+        top_10_headers=top_10_headers_enum,
+        top_10_rows=top_10_rows_enum,
+        page_url_idx=page_url_idx,
+        scientific_name_idx=scientific_name_idx,
+        signal_col_idx=None,  # History has no signal column
+        stock_pattern_col_idx=None,  # History has no stock pattern column
+        drivers_col_idx=None,  # History has no drivers column
+        sortable=True,
+        timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    )
+
+
+def generate_analysis_page(config: BasePageConfig) -> str:
+    """Generate an analysis page (breeder/dealer) with table from CSV and analysis using Jinja2 template.
     
     Args:
         config: PageConfig object containing all page generation parameters
@@ -117,8 +231,11 @@ def generate_data_page(config: BasePageConfig) -> str:
             table_id="breeder-table",
             active_page="breeder"
         )
-        html = generate_data_page(config)
+        html = generate_analysis_page(config)
     """
+    # Validate that this function is only used for analysis pages
+    assert config.active_page in ("breeder", "dealer"), \
+        f"generate_analysis_page only serves breeder/dealer pages, got: {config.active_page}"
     headers, rows = read_csv_file(config.csv_filename)
     
     # Load historical data if available to enrich sparklines with values
@@ -244,7 +361,7 @@ def generate_data_page(config: BasePageConfig) -> str:
     # Drivers column exists in breeder/dealer tables but not history/snapshot
     drivers_col_idx = headers.index('Drivers') if headers and 'Drivers' in headers else None
     
-    template = jinja_env.get_template('data_page.html')
+    template = jinja_env.get_template('analysis_page.html')
     return template.render(
         page_title=config.title,
         description=config.description,
@@ -418,7 +535,7 @@ def main() -> None:
     print("  Generating snapshot.html...")
     with open(OUTPUT_DIR / "snapshot.html", "w", encoding="utf-8") as f:
         from website.page_config import SnapshotPageConfig
-        f.write(generate_data_page(config=SnapshotPageConfig(
+        f.write(generate_snapshot_page(config=SnapshotPageConfig(
             title="Latest Snapshot",
             description="Current scrape results showing all available tarantula spiderlings.",
             csv_filename="spidershop_spiderlings_scrape.csv",
@@ -430,7 +547,7 @@ def main() -> None:
     print("  Generating history.html...")
     with open(OUTPUT_DIR / "history.html", "w", encoding="utf-8") as f:
         from website.page_config import HistoryPageConfig
-        f.write(generate_data_page(config=HistoryPageConfig(
+        f.write(generate_history_page(config=HistoryPageConfig(
             title="Historical Data",
             description="Accumulated historical pricing data across all scrape runs.",
             csv_filename="spidershop_spiderlings_history.csv",
@@ -442,7 +559,7 @@ def main() -> None:
     print("  Generating breeder.html...")
     with open(OUTPUT_DIR / "breeder.html", "w", encoding="utf-8") as f:
         from website.page_config import BreederPageConfig
-        f.write(generate_data_page(config=BreederPageConfig(
+        f.write(generate_analysis_page(config=BreederPageConfig(
             title="Breeder Opportunities",
             description="Analysis showing breeding opportunities based on market trends and pricing patterns.",
             csv_filename="breeder_opportunity_table.csv",
@@ -459,7 +576,7 @@ def main() -> None:
     print("  Generating dealer.html...")
     with open(OUTPUT_DIR / "dealer.html", "w", encoding="utf-8") as f:
         from website.page_config import DealerPageConfig
-        f.write(generate_data_page(config=DealerPageConfig(
+        f.write(generate_analysis_page(config=DealerPageConfig(
             title="Dealer Supply Risk",
             description="Analysis highlighting inventory availability patterns and supply risk indicators.",
             csv_filename="dealer_supply_risk_table.csv",
@@ -503,15 +620,19 @@ def main() -> None:
             dst.write(content)
         print(f"    Copied table-interactions.js")
     
-    # Copy CSS file for species detail pages
+    # Copy CSS files for species detail pages
     print("  Copying CSS files...")
-    css_source = Path(__file__).parent.parent.parent / "templates" / "species-detail.css"
-    if css_source.exists():
-        with open(css_source, "r", encoding="utf-8") as src:
-            content = src.read()
-        with open(OUTPUT_DIR / "species-detail.css", "w", encoding="utf-8") as dst:
-            dst.write(content)
-        print(f"    Copied species-detail.css")
+    css_files = ["common.css", "analysis.css", "species-detail.css"]
+    templates_dir = Path(__file__).parent.parent.parent / "templates"
+    
+    for css_file in css_files:
+        css_source = templates_dir / css_file
+        if css_source.exists():
+            with open(css_source, "r", encoding="utf-8") as src:
+                content = src.read()
+            with open(OUTPUT_DIR / css_file, "w", encoding="utf-8") as dst:
+                dst.write(content)
+            print(f"    Copied {css_file}")
     
     print(f"\n✅ Website generated successfully in '{OUTPUT_DIR}' directory")
     print(f"   Total HTML pages: {5 + species_count} (5 main pages + {species_count} species pages)")

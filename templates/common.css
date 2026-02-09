@@ -1,0 +1,503 @@
+/* Common CSS - Used by ALL pages */
+
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background: #f5f5f5;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Header */
+header {
+    background: #2c3e50;
+    color: white;
+    padding: 20px 0;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+header .container {
+    padding: 0 20px;
+}
+
+header h1 {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+header p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+/* Navigation */
+nav {
+    background: white;
+    padding: 15px 0;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+nav ul {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 0 20px;
+}
+
+nav a {
+    color: #2c3e50;
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    transition: background 0.3s;
+    display: block;
+}
+
+nav a:hover {
+    background: #ecf0f1;
+}
+
+nav a.active {
+    background: #3498db;
+    color: white;
+}
+
+/* Content Container */
+.content {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    margin-bottom: 30px;
+}
+
+h2 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #3498db;
+}
+
+h3 {
+    color: #34495e;
+    margin: 20px 0 15px 0;
+}
+
+/* Data Tables */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    background: white;
+    font-size: 0.95rem;
+}
+
+.data-table th {
+    background: #34495e;
+    color: white;
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.data-table th:hover {
+    background: #2c3e50;
+}
+
+.sort-indicator {
+    font-size: 0.8em;
+    margin-left: 5px;
+    opacity: 0.6;
+}
+
+.data-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.data-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.data-table tbody tr:nth-child(even) {
+    background: #fafafa;
+}
+
+.data-table tbody tr:nth-child(even):hover {
+    background: #f0f0f0;
+}
+
+/* Color-coded signal cells */
+.data-table .signal-hot {
+    background: linear-gradient(135deg, #fff5f5 0%, #ffe5e5 100%);
+    border-left: 4px solid #ef4444;
+    text-align: center;
+    font-size: 1.8rem;
+    padding: 8px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.data-table .signal-watch {
+    background: linear-gradient(135deg, #fffef5 0%, #fff7e5 100%);
+    border-left: 4px solid #f59e0b;
+    text-align: center;
+    font-size: 1.8rem;
+    padding: 8px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.data-table .signal-avoid {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-left: 4px solid #94a3b8;
+    text-align: center;
+    font-size: 1.8rem;
+    padding: 8px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+/* Info Box */
+.info-box {
+    background: #e8f4f8;
+    border-left: 4px solid #3498db;
+    padding: 15px;
+    margin: 20px 0;
+    border-radius: 4px;
+}
+
+/* Download Links */
+.download-links {
+    margin: 20px 0;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.download-links a {
+    display: inline-block;
+    background: #3498db;
+    color: white;
+    padding: 10px 20px;
+    margin: 5px 10px 5px 0;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: background 0.3s;
+}
+
+.download-links a:hover {
+    background: #2980b9;
+}
+
+/* Homepage Card Grid */
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.card {
+    background: white;
+    border: 1px solid #e1e8ed;
+    border-radius: 8px;
+    padding: 20px;
+    transition: box-shadow 0.3s;
+}
+
+.card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.card h3 {
+    margin-top: 0;
+    color: #2c3e50;
+}
+
+.card p {
+    color: #666;
+    margin: 10px 0;
+}
+
+.card a {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.card a:hover {
+    text-decoration: underline;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 30px 20px;
+    color: #7f8c8d;
+    margin-top: 50px;
+}
+
+footer a {
+    color: #3498db;
+    text-decoration: none;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
+
+/* Table Controls (Search Filter) */
+.table-controls {
+    margin: 20px 0;
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.table-controls input {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    flex: 1;
+    min-width: 200px;
+}
+
+.table-controls label {
+    font-weight: 600;
+    color: #555;
+}
+
+/* Advanced Filters Container (used for search filter on all pages) */
+.advanced-filters {
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.advanced-filters-content {
+    display: none;
+    padding: 15px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    margin-top: 10px;
+}
+
+.advanced-filters-content.show {
+    display: block;
+}
+
+.filter-row {
+    margin-bottom: 15px;
+}
+
+.filter-row:last-child {
+    margin-bottom: 0;
+}
+
+.filter-row strong {
+    color: #34495e;
+    margin-right: 10px;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* Markdown Tables */
+.markdown-table {
+    margin: 20px 0 !important;
+    font-size: 0.9rem !important;
+}
+
+/* General Details Element */
+details {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 20px 0;
+    border: 1px solid #e1e8ed;
+}
+
+details summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: #2c3e50;
+    padding: 10px;
+    border-radius: 5px;
+    transition: background 0.3s;
+}
+
+details summary:hover {
+    background: #f8f9fa;
+}
+
+details[open] summary {
+    margin-bottom: 15px;
+    border-bottom: 1px solid #e1e8ed;
+}
+
+details p {
+    margin: 15px 0;
+}
+
+details ul {
+    margin-left: 30px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+details hr {
+    margin: 30px 0;
+    border: none;
+    border-top: 2px solid #dee2e6;
+}
+
+/* Mobile Responsive Card Layout */
+@media (max-width: 768px) {
+    /* Hide table structure on mobile */
+    .data-table thead {
+        display: none;
+    }
+    
+    .data-table tbody {
+        display: block;
+    }
+    
+    .data-table tbody tr {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border: 2px solid #e1e8ed;
+        border-radius: 12px;
+        background: white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .data-table tbody tr:hover {
+        background: white;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    
+    .data-table tbody tr:nth-child(even) {
+        background: white;
+    }
+    
+    /* Card cells with labels */
+    .data-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0;
+        border: none;
+        font-size: 0.95rem;
+    }
+    
+    /* Add labels from data-label attribute */
+    .data-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #555;
+        margin-right: 15px;
+        flex-shrink: 0;
+    }
+    
+    /* Signal/Risk cells - make them prominent in card layout */
+    .data-table .signal-hot,
+    .data-table .signal-watch,
+    .data-table .signal-avoid {
+        padding: 12px 16px;
+        border-radius: 8px;
+        border-left: none;
+        border: 2px solid;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .data-table .signal-hot {
+        border-color: #ef4444;
+    }
+    
+    .data-table .signal-watch {
+        border-color: #f59e0b;
+    }
+    
+    .data-table .signal-avoid {
+        border-color: #94a3b8;
+    }
+    
+    .data-table .signal-hot::before,
+    .data-table .signal-watch::before,
+    .data-table .signal-avoid::before {
+        font-weight: 700;
+        font-size: 1rem;
+    }
+    
+    /* Sparkline cells - keep horizontal layout */
+    .data-table td svg {
+        margin-left: auto;
+    }
+    
+    /* Species name - make it larger and more prominent */
+    .data-table td:first-child {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2c3e50;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #e1e8ed;
+        margin-bottom: 8px;
+    }
+    
+    /* Responsive adjustments for other elements */
+    header h1 {
+        font-size: 1.5rem;
+    }
+    
+    nav ul {
+        flex-direction: column;
+    }
+    
+    .table-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .table-controls input {
+        min-width: 100%;
+    }
+}
+
+/* Tablet breakpoint - keep table layout but optimize spacing */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .data-table {
+        font-size: 0.9rem;
+    }
+    
+    .data-table th,
+    .data-table td {
+        padding: 10px;
+    }
+}

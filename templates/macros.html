@@ -47,3 +47,57 @@
     </div>
 </details>
 {%- endmacro %}
+
+{# Render search filter input box
+   Parameters:
+   - table_id: The table ID for the search to target
+#}
+{% macro search_filter(table_id) -%}
+<div class="filter-row">
+    <strong>🔍 Search:</strong>
+    <input type="text" id="search-{{ table_id }}" placeholder="Type to filter species, names, etc..." onkeyup="filterTable(this, '{{ table_id }}')" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem;">
+</div>
+{%- endmacro %}
+
+{# Render signal/risk filter buttons (for analysis pages)
+   Parameters:
+   - table_id: The table ID for filtering
+   - signal_label: Either "Signal" or "Risk Level"
+   - summary_stats: Dictionary with total, hot, watch, avoid counts
+   - has_advanced_filters: Whether to show "More Filters" toggle button
+#}
+{% macro signal_filter_buttons(table_id, signal_label, summary_stats, has_advanced_filters=False) -%}
+<div style="margin-bottom: 15px;">
+    <strong style="color: #34495e; margin-right: 10px;">🎯 {{ signal_label }}:</strong>
+    <div class="filter-buttons-container" style="display: inline-block;">
+        <button class="filter-btn active" onclick="filterBySignal('all', '{{ table_id }}', this)">Show All{% if summary_stats %} ({{ summary_stats.total }}){% endif %}</button>
+        <button class="filter-btn" onclick="filterBySignal('🔥', '{{ table_id }}', this)">🔥 Hot{% if summary_stats %} ({{ summary_stats.hot }}){% endif %}</button>
+        <button class="filter-btn" onclick="filterBySignal('⚠️', '{{ table_id }}', this)">⚠️ Watch{% if summary_stats %} ({{ summary_stats.watch }}){% endif %}</button>
+        <button class="filter-btn" onclick="filterBySignal('❌', '{{ table_id }}', this)">❌ Avoid{% if summary_stats %} ({{ summary_stats.avoid }}){% endif %}</button>
+        {% if has_advanced_filters %}
+        <button class="advanced-filters-toggle" onclick="toggleAdvancedFilters('advanced-filters-{{ table_id }}', this)">
+            <span class="arrow">▶</span>
+            <span>More Filters</span>
+        </button>
+        {% endif %}
+    </div>
+</div>
+{%- endmacro %}
+
+{# Render stock pattern filter buttons (for breeder page)
+   Parameters:
+   - table_id: The table ID for filtering
+   - stock_pattern_counts: Dictionary with total, sustained, emerging, cyclical, always counts
+#}
+{% macro stock_pattern_filter_buttons(table_id, stock_pattern_counts) -%}
+<div class="filter-row">
+    <strong>📊 Stock Pattern:</strong>
+    <div class="stock-pattern-filters filter-buttons-container">
+        <button class="filter-btn active" onclick="filterByStockPattern('all', '{{ table_id }}', this)">Show All{% if stock_pattern_counts %} ({{ stock_pattern_counts.total }}){% endif %}</button>
+        <button class="filter-btn" onclick="filterByStockPattern('Sustained', '{{ table_id }}', this)">Sustained{% if stock_pattern_counts %} ({{ stock_pattern_counts.sustained }}){% endif %}</button>
+        <button class="filter-btn" onclick="filterByStockPattern('Emerging', '{{ table_id }}', this)">Emerging{% if stock_pattern_counts %} ({{ stock_pattern_counts.emerging }}){% endif %}</button>
+        <button class="filter-btn" onclick="filterByStockPattern('Cyclical', '{{ table_id }}', this)">Cyclical{% if stock_pattern_counts %} ({{ stock_pattern_counts.cyclical }}){% endif %}</button>
+        <button class="filter-btn" onclick="filterByStockPattern('Always', '{{ table_id }}', this)">Always{% if stock_pattern_counts %} ({{ stock_pattern_counts.always }}){% endif %}</button>
+    </div>
+</div>
+{%- endmacro %}

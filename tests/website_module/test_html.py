@@ -68,47 +68,6 @@ class TestGenerateTableHtml:
         html = generate_table_html(["Col1", "Col2"], [], "test-table")
         assert "No data available" in html
 
-    def test_table_with_sortable_headers(self):
-        """Should generate sortable table headers by default."""
-        headers = ["Name", "Price", "Size"]
-        rows = [["Species A", "25.00", "1.0"]]
-        html = generate_table_html(headers, rows, "test-table", sortable=True)
-        soup = BeautifulSoup(html, 'html.parser')
-        
-        # Verify table structure
-        table = soup.find('table', id='test-table', class_='data-table')
-        assert table is not None
-        
-        # Verify sortable headers have onclick
-        headers_elements = table.select('thead th')
-        assert len(headers_elements) == 3
-        for i, th in enumerate(headers_elements):
-            assert 'onclick' in th.attrs
-            assert f"sortTable({i}, 'test-table')" in th['onclick']
-            # Verify sort indicator present
-            indicator = th.find('span', class_='sort-indicator')
-            assert indicator is not None
-            assert indicator.text == '⇅'
-
-    def test_table_without_sortable_headers(self):
-        """Should generate non-sortable table headers when sortable=False."""
-        headers = ["Name", "Price"]
-        rows = [["Species A", "25.00"]]
-        html = generate_table_html(headers, rows, "test-table", sortable=False)
-        soup = BeautifulSoup(html, 'html.parser')
-        
-        # Verify table structure
-        table = soup.find('table', id='test-table', class_='data-table')
-        assert table is not None
-        
-        # Verify headers do NOT have onclick or sort indicators
-        headers_elements = table.select('thead th')
-        assert len(headers_elements) == 2
-        for th in headers_elements:
-            assert 'onclick' not in th.attrs
-            indicator = th.find('span', class_='sort-indicator')
-            assert indicator is None
-
     def test_table_escapes_html_in_cells(self):
         """Should escape HTML special characters in table cells."""
         headers = ["Name", "Description"]
@@ -117,57 +76,6 @@ class TestGenerateTableHtml:
         
         assert "&lt;script&gt;" in html
         assert "Tom &amp; Jerry" in html
-
-    def test_table_with_multiple_rows(self):
-        """Should generate table with multiple data rows."""
-        headers = ["A", "B"]
-        rows = [["1", "2"], ["3", "4"], ["5", "6"]]
-        html = generate_table_html(headers, rows, "test-table")
-        soup = BeautifulSoup(html, 'html.parser')
-        
-        # Verify table structure
-        table = soup.find('table', id='test-table')
-        assert table is not None
-        
-        # Count rows: 1 header row + 3 data rows
-        all_rows = table.find_all('tr')
-        assert len(all_rows) == 4
-        
-        # Verify data rows
-        data_rows = table.select('tbody tr')
-        assert len(data_rows) == 3
-        
-        # Verify first and last cell content
-        first_cell = data_rows[0].find('td')
-        assert first_cell.text == '1'
-        last_cell = data_rows[-1].find_all('td')[-1]
-        assert last_cell.text == '6'
-
-    def test_table_structure_complete(self):
-        """Should generate complete table structure with thead and tbody."""
-        headers = ["Col"]
-        rows = [["Val"]]
-        html = generate_table_html(headers, rows, "test-table")
-        soup = BeautifulSoup(html, 'html.parser')
-        
-        # Verify table exists
-        table = soup.find('table', id='test-table')
-        assert table is not None
-        
-        # Verify table has proper structure
-        thead = table.find('thead')
-        tbody = table.find('tbody')
-        assert thead is not None
-        assert tbody is not None
-        
-        # Verify header and data
-        th = thead.find('th')
-        assert th is not None
-        assert th.text.strip().startswith('Col')
-        
-        td = tbody.find('td')
-        assert td is not None
-        assert td.text == 'Val'
 
     def test_table_renders_page_url_as_link(self):
         """Should render page_url column as clickable link with scientific name as text."""
@@ -330,10 +238,10 @@ class TestGenerateTableHtml:
 
 
 class TestGetBaseHtmlTemplate:
-    """Test suite for base HTML template generation."""
+    """Test suite for base HTML template generation - structural requirements not covered by E2E."""
 
     def test_includes_doctype_and_html_tags(self):
-        """Should include DOCTYPE and html tags."""
+        """Should include DOCTYPE and html tags with lang attribute."""
         html = get_base_html_template("Test Page")
         soup = BeautifulSoup(html, 'html.parser')
         
@@ -344,18 +252,6 @@ class TestGetBaseHtmlTemplate:
         html_tag = soup.find('html')
         assert html_tag is not None
         assert html_tag.get('lang') == 'en'
-        
-        # Base template doesn't close html (partial template)
-        assert "</html>" not in html
-
-    def test_includes_title_in_head(self):
-        """Should include title in head section."""
-        html = get_base_html_template("My Page")
-        soup = BeautifulSoup(html, 'html.parser')
-        
-        title = soup.find('title')
-        assert title is not None
-        assert title.text == "My Page - Spider Shop Historical Analysis"
 
     def test_includes_viewport_meta(self):
         """Should include viewport meta tag for responsive design."""
@@ -367,7 +263,7 @@ class TestGetBaseHtmlTemplate:
         assert viewport_meta['content'] == 'width=device-width, initial-scale=1.0'
 
     def test_includes_navigation(self):
-        """Should include navigation menu."""
+        """Should include navigation menu with all expected links."""
         html = get_base_html_template("Test", "home")
         soup = BeautifulSoup(html, 'html.parser')
         
@@ -403,19 +299,19 @@ class TestGetBaseHtmlTemplate:
         assert len(active_links) == 1
         assert active_links[0]['href'] == 'snapshot.html'
 
-    def test_includes_css_styles(self):
-        """Should include embedded CSS styles."""
+    def test_includes_css_links(self):
+        """Should include CSS stylesheet links in head."""
         html = get_base_html_template("Test")
         soup = BeautifulSoup(html, 'html.parser')
         
-        style = soup.find('style')
-        assert style is not None
-        css_content = style.string
-        assert '.data-table' in css_content
-        assert 'font-family:' in css_content
+        css_links = soup.find_all('link', rel='stylesheet')
+        assert len(css_links) > 0, "No CSS links found"
+        
+        css_hrefs = [link.get('href', '') for link in css_links]
+        assert any('common.css' in href for href in css_hrefs), "Missing common.css link"
 
     def test_includes_header(self):
-        """Should include page header with title."""
+        """Should include page header with site title."""
         html = get_base_html_template("Test")
         soup = BeautifulSoup(html, 'html.parser')
         
@@ -424,7 +320,7 @@ class TestGetBaseHtmlTemplate:
         assert 'Spider Shop Historical Analysis' in header.text
 
     def test_opens_container_div(self):
-        """Should open container div."""
+        """Should open container div for page content."""
         html = get_base_html_template("Test")
         soup = BeautifulSoup(html, 'html.parser')
         
@@ -433,7 +329,7 @@ class TestGetBaseHtmlTemplate:
 
 
 class TestGetHtmlFooter:
-    """Test suite for HTML footer generation."""
+    """Test suite for HTML footer generation - structural requirements not covered by E2E."""
 
     def test_includes_footer_tag(self):
         """Should include footer tag."""
@@ -477,14 +373,13 @@ class TestGetHtmlFooter:
         assert 'Generated:' in footer_text
         assert 'UTC' in footer_text
 
-    def test_includes_javascript_functions(self):
-        """Should include JavaScript reference for table sorting and filtering."""
+    def test_includes_javascript_reference(self):
+        """Should include JavaScript file reference."""
         html = get_html_footer()
         soup = BeautifulSoup(html, 'html.parser')
         
         script = soup.find('script')
         assert script is not None
-        # Should reference external JS file
         assert script.get('src') == 'table-interactions.js'
 
     def test_closes_html_tags(self):
@@ -493,15 +388,6 @@ class TestGetHtmlFooter:
         # These closing tags are at the end of the string
         assert "</body>" in html
         assert "</html>" in html
-
-    def test_javascript_file_exists(self):
-        """JavaScript file should exist.
-        
-        Note: This test only verifies the file exists. Actual sorting behavior
-        (numeric vs string, ascending vs descending) is tested via E2E tests.
-        """
-        js_file = Path(__file__).parent.parent.parent / "templates" / "scripts" / "table-interactions.js"
-        assert js_file.exists(), "JavaScript file should exist"
 
 
 class TestSpeciesPageLinking:

@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from bs4 import BeautifulSoup
 from conftest import page_config
-from website.generate_website import generate_data_page
+from website.generate_website import generate_analysis_page, generate_snapshot_page
 
 
 class TestInteractiveFilterButtons:
@@ -28,7 +28,7 @@ class TestInteractiveFilterButtons:
         
         os.chdir(tmp_path)
         config = page_config.breeder("test_breeder.csv").with_title("Test Breeder Opportunities").with_description("Test description").build()
-        html = generate_data_page(config)
+        html = generate_analysis_page(config)
         
         soup = BeautifulSoup(html, 'html.parser')
         
@@ -58,7 +58,7 @@ class TestInteractiveFilterButtons:
         
         os.chdir(tmp_path)
         config = page_config.dealer("test_dealer.csv").with_title("Test Dealer Supply Risk").with_description("Test description").build()
-        html = generate_data_page(config)
+        html = generate_analysis_page(config)
         
         soup = BeautifulSoup(html, 'html.parser')
         
@@ -76,7 +76,7 @@ class TestInteractiveFilterButtons:
         
         os.chdir(tmp_path)
         config = page_config.breeder("test.csv").with_title("Test").with_description("Test").build()
-        html = generate_data_page(config)
+        html = generate_analysis_page(config)
         
         soup = BeautifulSoup(html, 'html.parser')
         buttons = soup.find_all('button', class_='filter-btn')
@@ -93,7 +93,7 @@ class TestInteractiveFilterButtons:
         
         os.chdir(tmp_path)
         config = page_config.snapshot("test.csv").with_description("Test").build()
-        html = generate_data_page(config)
+        html = generate_snapshot_page(config)
         
         soup = BeautifulSoup(html, 'html.parser')
         
@@ -111,7 +111,7 @@ class TestInteractiveFilterButtons:
         
         os.chdir(tmp_path)
         config = page_config.breeder("test.csv").with_title("Test").with_description("Test").build()
-        html = generate_data_page(config)
+        html = generate_analysis_page(config)
         
         # Verify HTML includes JS reference and data attributes (structure only)
         assert 'src="table-interactions.js"' in html, "Should reference external JavaScript file"
@@ -138,7 +138,7 @@ class TestStockPatternFiltering:
         
         os.chdir(tmp_path)
         config = page_config.breeder("breeder.csv").with_title("Breeder Opportunities").with_description("Test").build()
-        html = generate_data_page(config)
+        html = generate_analysis_page(config)
         
         soup = BeautifulSoup(html, 'html.parser')
         
@@ -168,7 +168,7 @@ class TestStockPatternFiltering:
         
         os.chdir(tmp_path)
         config = page_config.breeder("breeder.csv").with_title("Breeder Opportunities").with_description("Test").build()
-        html = generate_data_page(config)
+        html = generate_analysis_page(config)
         
         soup = BeautifulSoup(html, 'html.parser')
         table = soup.find('table', id='breeder-table')
@@ -210,7 +210,7 @@ class TestStockPatternFiltering:
         
         os.chdir(tmp_path)
         config = page_config.breeder("breeder.csv").with_title("Breeder Opportunities").with_description("Test").build()
-        html = generate_data_page(config)
+        html = generate_analysis_page(config)
         
         soup = BeautifulSoup(html, 'html.parser')
         
@@ -265,7 +265,7 @@ class TestStockPatternFiltering:
         
         os.chdir(tmp_path)
         config = page_config.dealer("dealer.csv").with_title("Dealer Supply Risk").with_description("Test").build()
-        html = generate_data_page(config)
+        html = generate_analysis_page(config)
         
         soup = BeautifulSoup(html, 'html.parser')
         
@@ -283,7 +283,7 @@ class TestStockPatternFiltering:
         
         os.chdir(tmp_path)
         config = page_config.breeder("breeder.csv").with_title("Breeder Opportunities").with_description("Test").build()
-        html = generate_data_page(config)
+        html = generate_analysis_page(config)
         
         # Should reference external JS file and have data attributes
         assert 'src="table-interactions.js"' in html, "Should reference external JavaScript file"
@@ -311,7 +311,7 @@ class TestStockPatternFiltering:
         
         os.chdir(tmp_path)
         config = page_config.breeder("breeder.csv").with_title("Breeder Opportunities").with_description("Test").build()
-        html = generate_data_page(config)
+        html = generate_analysis_page(config)
         
         soup = BeautifulSoup(html, 'html.parser')
         stock_pattern_container = soup.find('div', class_='stock-pattern-filters')
@@ -335,7 +335,7 @@ class TestStockPatternFiltering:
         
         os.chdir(tmp_path)
         config = page_config.breeder("breeder.csv").with_title("Breeder Opportunities").with_description("Test").build()
-        html = generate_data_page(config)
+        html = generate_analysis_page(config)
         
         soup = BeautifulSoup(html, 'html.parser')
         
@@ -364,7 +364,7 @@ class TestStockPatternFiltering:
         
         os.chdir(tmp_path)
         config = page_config.breeder("breeder.csv").with_title("Breeder Opportunities").with_description("Test").build()
-        html = generate_data_page(config)
+        html = generate_analysis_page(config)
         
         # Should have a label for signal filters (e.g., "🎯 Signal:" or similar)
         html_lower = html.lower()
@@ -380,7 +380,7 @@ class TestStockPatternFiltering:
         
         os.chdir(tmp_path)
         config = page_config.dealer("dealer.csv").with_title("Dealer Supply Risk").with_description("Test").build()
-        html = generate_data_page(config)
+        html = generate_analysis_page(config)
         
         # Should have a label for dealer risk filters (e.g., "🎯 Risk Level:" or "Dealer Risk:")
         html_lower = html.lower()

@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from bs4 import BeautifulSoup
 from conftest import page_config, temp_csv_file
-from website.generate_website import generate_homepage, generate_data_page, main, OUTPUT_DIR
+from website.generate_website import generate_homepage, generate_analysis_page, generate_snapshot_page, generate_history_page, main, OUTPUT_DIR
 
 
 class TestGenerateHomepage:
@@ -130,8 +130,8 @@ class TestGenerateHomepage:
         assert active_links[0]['href'] == 'index.html'
 
 
-class TestGenerateDataPage:
-    """Test suite for data page generation."""
+class TestGenerateSnapshotPage:
+    """Test suite for snapshot page generation."""
 
     def test_generates_complete_html_page(self):
         """Should generate complete HTML page."""
@@ -140,7 +140,7 @@ class TestGenerateDataPage:
         csv_content = "Name,Price\nSpecies A,25.00\n"
         with temp_csv_file(csv_content) as filename:
             config = page_config.snapshot(filename).with_title("Test Page").with_description("Test description").build()
-            html = generate_data_page(config)
+            html = generate_snapshot_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
             # Check DOCTYPE
@@ -157,7 +157,7 @@ class TestGenerateDataPage:
         csv_content = "Col\n"
         with temp_csv_file(csv_content) as filename:
             config = page_config.snapshot(filename).with_title("My Title").with_description("My description text").build()
-            html = generate_data_page(config)
+            html = generate_snapshot_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
             # Check title in head
@@ -176,7 +176,7 @@ class TestGenerateDataPage:
         with temp_csv_file(csv_content) as temp_path:
             filename = os.path.basename(temp_path)
             config = page_config.snapshot(filename).with_title("Test").with_description("Desc").build()
-            html = generate_data_page(config)
+            html = generate_snapshot_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
             # Find download link
@@ -194,7 +194,7 @@ class TestGenerateDataPage:
         csv_content = "Col\nVal\n"
         with temp_csv_file(csv_content) as filename:
             config = page_config.snapshot(filename).with_description("Desc").with_title("Test").with_search(True).build()
-            html = generate_data_page(config)
+            html = generate_snapshot_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
             # Find search input
@@ -212,7 +212,7 @@ class TestGenerateDataPage:
                 .with_description("Desc") \
                 .with_search(False) \
                 .build()
-            html = generate_data_page(config)
+            html = generate_snapshot_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
             # Should not have table-controls div or search input
@@ -227,7 +227,7 @@ class TestGenerateDataPage:
                 .with_title("Test") \
                 .with_description("Desc") \
                 .build()
-            html = generate_data_page(config)
+            html = generate_snapshot_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
             # Find "Full Data Table" heading
@@ -252,7 +252,7 @@ class TestGenerateDataPage:
             .with_title("Test") \
             .with_description("Desc") \
             .build()
-        html = generate_data_page(config)
+        html = generate_snapshot_page(config)
         soup = BeautifulSoup(html, 'html.parser')
         
         # Should have "No data available" message
@@ -270,7 +270,7 @@ class TestGenerateDataPage:
                 .with_title("Test") \
                 .with_description("Desc") \
                 .build()
-            html = generate_data_page(config)
+            html = generate_analysis_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
             # Top 10 table should be rendered from CSV (first 10 rows)
@@ -290,7 +290,7 @@ class TestGenerateDataPage:
                 .with_title("Test") \
                 .with_description("Desc") \
                 .build()
-            html = generate_data_page(config)
+            html = generate_snapshot_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
             # Should not have analysis-section div
@@ -308,7 +308,7 @@ class TestGenerateDataPage:
                 .with_description("Desc") \
                 .with_legend(legend_md) \
                 .build()
-            html = generate_data_page(config)
+            html = generate_analysis_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
             # Find details element with legend (not instruction box)
@@ -333,7 +333,7 @@ class TestGenerateDataPage:
                 .with_title("Test") \
                 .with_description("Desc") \
                 .build()
-            html = generate_data_page(config)
+            html = generate_snapshot_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
             # Should not have details element with legend
@@ -349,7 +349,7 @@ class TestGenerateDataPage:
                 .with_title("Breeder Opportunities") \
                 .with_description("Test") \
                 .build()
-            html = generate_data_page(config)
+            html = generate_analysis_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
             # Should have instruction box
@@ -383,7 +383,7 @@ class TestGenerateDataPage:
                 .with_title("Dealer Supply Risk") \
                 .with_description("Test") \
                 .build()
-            html = generate_data_page(config)
+            html = generate_analysis_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
             # Should have instruction box
@@ -414,7 +414,7 @@ class TestGenerateDataPage:
                 .with_title("Snapshot") \
                 .with_description("Test") \
                 .build()
-            html = generate_data_page(config)
+            html = generate_snapshot_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
             # Should not have instruction box
@@ -468,8 +468,8 @@ class TestPageConfig:
         assert config.legend_markdown == "## Legend"
         assert config.examples_markdown == "### Examples"
 
-    def test_generate_data_page_with_pageconfig(self, tmp_path):
-        """generate_data_page should work with BasePageConfig parameter."""
+    def test_generate_snapshot_page_with_pageconfig(self, tmp_path):
+        """generate_snapshot_page should work with BasePageConfig parameter."""
         from website.page_config import BasePageConfig
         
         csv_file = tmp_path / "test.csv"
@@ -485,7 +485,7 @@ class TestPageConfig:
             active_page="test"
         )
         
-        html = generate_data_page(config=config)
+        html = generate_snapshot_page(config=config)
         
         # Verify the page was generated correctly
         assert "Test Page" in html
@@ -510,11 +510,11 @@ class TestPageConfig:
             table_id="breeder-table",
             active_page="breeder",
             search_filter=True,
-            legend_markdown="## Legend content",
+           legend_markdown="## Legend content",
             examples_markdown="### Examples content"
         )
         
-        html = generate_data_page(config=config)
+        html = generate_analysis_page(config=config)
         
         # All parameters should be respected
         assert "Breeder Opportunities" in html
