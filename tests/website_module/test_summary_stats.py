@@ -5,7 +5,7 @@ import tempfile
 import os
 from bs4 import BeautifulSoup
 from conftest import DealerEntry, BreederEntry, create_dealer_csv_content, create_breeder_csv_content, temp_csv_file, page_config
-from website.generate_website import extract_summary_stats, generate_data_page
+from website.generate_website import extract_summary_stats, generate_analysis_page
 
 
 class TestExtractSummaryStatistics:
@@ -77,7 +77,7 @@ class TestSummaryStatsInHtml:
 
     def test_breeder_page_includes_summary_stats_cards(self):
         """Should render summary statistics as HTML cards in breeder page and remove duplicate Summary line."""
-        from website.generate_website import generate_data_page
+        from website.generate_website import generate_analysis_page
         from conftest import create_temp_csv_file
         
         # Create a temporary CSV file
@@ -100,7 +100,7 @@ class TestSummaryStatsInHtml:
         
         try:
             config = page_config.breeder(csv_filename, analysis_markdown).with_title("Breeder Opportunities").with_description("Test description").build()
-            html = generate_data_page(config)
+            html = generate_analysis_page(config)
             
             # Verify summary stats cards are present in HTML
             assert '<div class="summary-stats">' in html
@@ -129,7 +129,7 @@ class TestSummaryStatsInHtml:
 
     def test_dealer_page_includes_summary_stats_cards(self):
         """Should render summary statistics with dealer-specific labels."""
-        from website.generate_website import generate_data_page
+        from website.generate_website import generate_analysis_page
         
         # Create a temporary CSV file
         csv_content = create_dealer_csv_content([
@@ -150,7 +150,7 @@ class TestSummaryStatsInHtml:
         
         with temp_csv_file(csv_content) as csv_filename:
             config = page_config.dealer(csv_filename, analysis_markdown).build()
-            html = generate_data_page(config)
+            html = generate_analysis_page(config)
             
             # Verify summary stats cards are present
             assert '<div class="summary-stats">' in html
@@ -164,18 +164,14 @@ class TestSummaryStatsInHtml:
 
     def test_page_without_analysis_has_no_summary_stats(self):
         """Should not render summary stats section when no analysis markdown provided."""
-        from website.generate_website import generate_data_page
+        from website.generate_website import generate_snapshot_page
         
         # Create a temporary CSV file with minimal columns
         csv_content = "Species,Price\nSpecies A,25.00\n"
         
         with temp_csv_file(csv_content) as csv_filename:
-            config = page_config.custom(
-                title="Test Page",
-                csv_filename=csv_filename,
-                active_page="test"
-            ).build()
-            html = generate_data_page(config)
+            config = page_config.snapshot(csv_filename).with_title("Test Page").build()
+            html = generate_snapshot_page(config)
             
             # Verify NO summary stats section present
             assert '<div class="summary-stats">' not in html
@@ -183,7 +179,7 @@ class TestSummaryStatsInHtml:
 
     def test_page_with_analysis_but_no_summary_line_has_no_stats(self):
         """Should not render summary stats when analysis markdown lacks Summary line."""
-        from website.generate_website import generate_data_page
+        from website.generate_website import generate_analysis_page
         
         # Create a temporary CSV file
         csv_content = create_breeder_csv_content([
@@ -200,14 +196,14 @@ class TestSummaryStatsInHtml:
         
         with temp_csv_file(csv_content) as csv_filename:
             config = page_config.breeder(csv_filename, analysis_markdown).with_title("Breeder Opportunities").with_description("Test description").build()
-            html = generate_data_page(config)
+            html = generate_analysis_page(config)
             
             # Verify NO summary stats section (because no Summary line found)
             assert '<div class="summary-stats">' not in html
 
     def test_breeder_summary_cards_include_tooltip_explanations(self):
         """Should include info icons with tooltip explanations for breeder signals."""
-        from website.generate_website import generate_data_page
+        from website.generate_website import generate_analysis_page
         
         # Create a temporary CSV file
         csv_content = create_breeder_csv_content([
@@ -221,7 +217,7 @@ class TestSummaryStatsInHtml:
         
         with temp_csv_file(csv_content) as csv_filename:
             config = page_config.breeder(csv_filename, analysis_markdown).with_title("Breeder Opportunities").with_description("Test description").build()
-            html = generate_data_page(config)
+            html = generate_analysis_page(config)
             
             soup = BeautifulSoup(html, 'html.parser')
             
@@ -249,7 +245,7 @@ class TestSummaryStatsInHtml:
 
     def test_dealer_summary_cards_include_tooltip_explanations(self):
         """Should include info icons with dealer-specific tooltip explanations."""
-        from website.generate_website import generate_data_page
+        from website.generate_website import generate_analysis_page
         
         # Create a temporary CSV file
         csv_content = create_dealer_csv_content([
@@ -263,7 +259,7 @@ class TestSummaryStatsInHtml:
         
         with temp_csv_file(csv_content) as csv_filename:
             config = page_config.dealer(csv_filename, analysis_markdown).with_title("Dealer Supply Risk").with_description("Test description").build()
-            html = generate_data_page(config)
+            html = generate_analysis_page(config)
             
             soup = BeautifulSoup(html, 'html.parser')
             
