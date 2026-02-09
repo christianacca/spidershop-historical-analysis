@@ -28,6 +28,7 @@
     <button class="advanced-filters-toggle" onclick="toggleAdvancedFilters('advanced-filters-{{ table_id }}', this)">
         <span class="arrow">▶</span>
         <span>More Filters</span>
+        <span class="filter-badge hidden" id="filterBadge-{{ table_id }}">0</span>
     </button>
     <div class="advanced-filters">
         <div id="advanced-filters-{{ table_id }}" class="advanced-filters-content">

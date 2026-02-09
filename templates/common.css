@@ -326,6 +326,26 @@ footer a:hover {
     transform: rotate(90deg);
 }
 
+/* Filter badge indicator */
+.filter-badge {
+    display: inline-block;
+    background: #e74c3c;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: bold;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.filter-badge.hidden {
+    display: none;
+}
+
 .advanced-filters-content {
     display: none;
     padding: 15px;

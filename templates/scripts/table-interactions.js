@@ -107,6 +107,9 @@ function filterTable(searchInput, tableId) {
         const text = row.textContent.toLowerCase();
         row.style.display = text.includes(filter) ? '' : 'none';
     });
+    
+    // Update filter badge count
+    updateFilterBadge(tableId);
 }
 
 function toggleAdvancedFilters(contentId, toggleButton) {
@@ -119,5 +122,31 @@ function toggleAdvancedFilters(contentId, toggleButton) {
     } else {
         content.classList.add('show');
         toggleButton.classList.add('expanded');
+    }
+}
+
+/**
+ * Update filter badge count for snapshot/history pages
+ * Shows badge with count when filters are active
+ */
+function updateFilterBadge(tableId) {
+    const badge = document.getElementById('filterBadge-' + tableId);
+    if (!badge) return; // Badge might not exist on all pages
+    
+    // Count active filters
+    let activeFilters = 0;
+    
+    // Check search filter
+    const searchBox = document.getElementById('search-' + tableId);
+    if (searchBox && searchBox.value.trim() !== '') {
+        activeFilters++;
+    }
+    
+    // Update badge display
+    if (activeFilters > 0) {
+        badge.textContent = activeFilters;
+        badge.classList.remove('hidden');
+    } else {
+        badge.classList.add('hidden');
     }
 }

@@ -390,3 +390,38 @@ def test_snapshot_page_advanced_filters_toggle(e2e_site_multi_species) -> None:
     final_classes = content_div.get_attribute("class").split()
     has_show_finally = "show" in final_classes
     assert has_show_finally == initially_expanded, "Expected toggle to return to initial state"
+
+
+@pytest.mark.e2e
+def test_snapshot_filter_badge_updates_with_search(e2e_site_multi_species) -> None:
+    """Snapshot page should show filter count badge when search is active."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
+    
+    # Badge should be hidden by default
+    badge = page.locator(".filter-badge")
+    assert badge.count() == 1, "Badge element should exist on snapshot page"
+    assert not badge.is_visible(), "Badge should be hidden when no filters active"
+    
+    # Expand filters
+    toggle_button = page.locator(".advanced-filters-toggle")
+    toggle_button.click()
+    page.wait_for_timeout(200)
+    
+    # Type in search box
+    search_input = page.locator("#search-snapshot-table")
+    search_input.type("hamorii")
+    page.wait_for_timeout(200)
+    
+    # Badge should appear with count "1"
+    assert badge.is_visible(), "Badge should be visible when search active"
+    assert badge.text_content() == "1", "Badge should show '1' for one active filter"
+    
+    # Clear search
+    search_input.fill("")
+    search_input.dispatch_event("keyup")
+    page.wait_for_timeout(200)
+    
+    # Badge should hide again
+    assert not badge.is_visible(), "Badge should hide when filters cleared"
