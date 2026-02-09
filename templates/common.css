@@ -296,6 +296,36 @@ footer a:hover {
     margin-bottom: 20px;
 }
 
+/* Advanced Filters Toggle Button */
+.advanced-filters-toggle {
+    background: #f8f9fa;
+    border: 2px solid #ddd;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.95rem;
+    color: #495057;
+    transition: all 0.2s;
+    margin-bottom: 10px;
+}
+
+.advanced-filters-toggle:hover {
+    background: #e9ecef;
+    border-color: #3498db;
+}
+
+.advanced-filters-toggle .arrow {
+    transition: transform 0.2s;
+    font-size: 0.8rem;
+}
+
+.advanced-filters-toggle.expanded .arrow {
+    transform: rotate(90deg);
+}
+
 .advanced-filters-content {
     display: none;
     padding: 15px;

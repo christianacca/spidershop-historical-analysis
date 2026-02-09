@@ -344,3 +344,49 @@ def test_advanced_filters_toggle_expand_collapse(e2e_site_multi_species) -> None
     has_show_finally = "show" in final_classes
     
     assert has_show_finally == initially_expanded, "Expected toggle to return to initial state"
+
+@pytest.mark.e2e
+def test_snapshot_page_advanced_filters_toggle(e2e_site_multi_species) -> None:
+    """Verify 'More Filters' toggle works on snapshot page."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
+    
+    # Verify toggle button exists
+    toggle_button = page.locator(".advanced-filters-toggle")
+    assert toggle_button.is_visible(), "Toggle button should be visible on snapshot page"
+    
+    # Verify filter content container exists
+    content_div = page.locator(".advanced-filters-content")
+    assert content_div.count() > 0, "Advanced filters content container should exist"
+    
+    # Initially should be collapsed (no 'show' class)
+    initial_classes = content_div.get_attribute("class").split()
+    initially_expanded = "show" in initial_classes
+    
+    # Click to expand
+    toggle_button.click()
+    page.wait_for_timeout(200)
+    
+    # Verify expanded
+    after_click_classes = content_div.get_attribute("class").split()
+    has_show_after_click = "show" in after_click_classes
+    assert has_show_after_click != initially_expanded, "Expected toggle to change expanded state"
+    
+    # Verify arrow rotation (button should have 'expanded' class)
+    toggle_classes = toggle_button.get_attribute("class").split()
+    button_expanded = "expanded" in toggle_classes
+    assert button_expanded == has_show_after_click, "Toggle button should have 'expanded' class when content is shown"
+    
+    # Verify search input is now accessible
+    search_input = page.locator("input[type='text']")
+    assert search_input.is_visible(), "Search input should be visible when filters expanded"
+    
+    # Click again to collapse
+    toggle_button.click()
+    page.wait_for_timeout(200)
+    
+    # Verify collapsed
+    final_classes = content_div.get_attribute("class").split()
+    has_show_finally = "show" in final_classes
+    assert has_show_finally == initially_expanded, "Expected toggle to return to initial state"

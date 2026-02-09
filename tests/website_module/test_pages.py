@@ -203,6 +203,34 @@ class TestGenerateSnapshotPage:
             assert 'oninput' in search_input.attrs or 'onkeyup' in search_input.attrs
             assert 'filterTable' in html
 
+    def test_includes_advanced_filters_toggle_when_search_enabled(self):
+        """Should include 'More Filters' toggle button when search_filter=True."""
+        from conftest import temp_csv_file
+        
+        csv_content = "Col\nVal\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.snapshot(filename).with_description("Desc").with_title("Test").with_search(True).build()
+            html = generate_snapshot_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Find toggle button
+            toggle_button = soup.find('button', class_='advanced-filters-toggle')
+            assert toggle_button is not None, "Toggle button should exist when search is enabled"
+            
+            # Verify button structure
+            assert 'onclick' in toggle_button.attrs, "Toggle button should have onclick handler"
+            assert 'toggleAdvancedFilters' in toggle_button.attrs['onclick'], "Should call toggleAdvancedFilters function"
+            
+            # Verify button contains arrow and text
+            assert toggle_button.find('span', class_='arrow') is not None, "Should have arrow span"
+            button_text = toggle_button.get_text()
+            assert 'More Filters' in button_text or 'Filters' in button_text, "Should have filter button text"
+            
+            # Verify advanced filters container exists
+            advanced_filters = soup.find('div', class_='advanced-filters-content')
+            assert advanced_filters is not None, "Advanced filters container should exist"
+            assert 'id' in advanced_filters.attrs, "Advanced filters should have ID for toggle reference"
+
     def test_omits_search_filter_when_disabled(self):
         """Should omit search filter when search_filter=False."""
         csv_content = "Col\nVal\n"
