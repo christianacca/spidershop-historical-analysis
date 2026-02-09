@@ -620,15 +620,19 @@ def main() -> None:
             dst.write(content)
         print(f"    Copied table-interactions.js")
     
-    # Copy CSS file for species detail pages
+    # Copy CSS files for species detail pages
     print("  Copying CSS files...")
-    css_source = Path(__file__).parent.parent.parent / "templates" / "species-detail.css"
-    if css_source.exists():
-        with open(css_source, "r", encoding="utf-8") as src:
-            content = src.read()
-        with open(OUTPUT_DIR / "species-detail.css", "w", encoding="utf-8") as dst:
-            dst.write(content)
-        print(f"    Copied species-detail.css")
+    css_files = ["common.css", "analysis.css", "species-detail.css"]
+    templates_dir = Path(__file__).parent.parent.parent / "templates"
+    
+    for css_file in css_files:
+        css_source = templates_dir / css_file
+        if css_source.exists():
+            with open(css_source, "r", encoding="utf-8") as src:
+                content = src.read()
+            with open(OUTPUT_DIR / css_file, "w", encoding="utf-8") as dst:
+                dst.write(content)
+            print(f"    Copied {css_file}")
     
     print(f"\n✅ Website generated successfully in '{OUTPUT_DIR}' directory")
     print(f"   Total HTML pages: {5 + species_count} (5 main pages + {species_count} species pages)")
