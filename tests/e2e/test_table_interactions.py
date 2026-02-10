@@ -425,3 +425,65 @@ def test_snapshot_filter_badge_updates_with_search(e2e_site_multi_species) -> No
     
     # Badge should hide again
     assert not badge.is_visible(), "Badge should hide when filters cleared"
+
+
+@pytest.mark.e2e
+def test_snapshot_stats_strip_updates_count_when_filtered(e2e_site_multi_species) -> None:
+    """Snapshot page stats strip should update visible count when filters are applied."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
+    
+    # Get initial count from stats strip
+    stats_strip = page.locator(".table-stats")
+    assert stats_strip.count() == 1, "Should have stats strip"
+    
+    visible_count_span = page.locator("#visible-count-snapshot-table")
+    assert visible_count_span.count() == 1, "Should have visible count span"
+    
+    initial_text = stats_strip.text_content()
+    assert "Showing:" in initial_text, "Should show 'Showing:' text"
+    
+    # Get total count (should match initial visible count)
+    # Pattern: "Showing: X of Y species"
+    import re
+    match = re.search(r'Showing:\s*(\d+)\s*of\s*(\d+)\s*species', initial_text)
+    assert match, f"Should match pattern, got: {initial_text}"
+    initial_visible = int(match.group(1))
+    total_count = int(match.group(2))
+    assert initial_visible == total_count, "Initially all rows should be visible"
+    assert total_count > 1, "Should have multiple species for meaningful test"
+    
+    # Expand advanced filters
+    toggle_button = page.locator(".btn-filters")
+    toggle_button.click()
+    page.wait_for_timeout(200)
+    
+    # Apply search filter that will reduce visible rows
+    search_input = page.locator("#search-snapshot-table")
+    search_input.type("hamorii")  # Should match only specific species
+    page.wait_for_timeout(300)  # Give time for filtering to complete
+    
+    # Check that visible count has decreased
+    filtered_text = stats_strip.text_content()
+    filtered_match = re.search(r'Showing:\s*(\d+)\s*of\s*(\d+)\s*species', filtered_text)
+    assert filtered_match, f"Should still match pattern after filtering, got: {filtered_text}"
+    filtered_visible = int(filtered_match.group(1))
+    filtered_total = int(filtered_match.group(2))
+    
+    assert filtered_visible < total_count, f"Visible count should decrease after filtering, got {filtered_visible} vs {total_count}"
+    assert filtered_total == total_count, "Total count should remain unchanged"
+    assert filtered_visible >= 1, "Should have at least one matching species"
+    
+    # Clear the filter
+    search_input.fill("")
+    search_input.dispatch_event("keyup")
+    page.wait_for_timeout(300)
+    
+    # Verify count returns to original
+    final_text = stats_strip.text_content()
+    final_match = re.search(r'Showing:\s*(\d+)\s*of\s*(\d+)\s*species', final_text)
+    assert final_match, f"Should match pattern after clearing, got: {final_text}"
+    final_visible = int(final_match.group(1))
+    
+    assert final_visible == total_count, f"Count should return to original after clearing filter, got {final_visible} vs {total_count}"

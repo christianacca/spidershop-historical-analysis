@@ -72,6 +72,9 @@ function filterBySignal(signalType, tableId, button) {
             row.style.display = 'none';
         }
     }
+    
+    // Update visible count
+    updateVisibleCount(tableId);
 }
 
 function filterByStockPattern(patternType, tableId, button) {
@@ -96,6 +99,9 @@ function filterByStockPattern(patternType, tableId, button) {
             row.style.display = 'none';
         }
     }
+    
+    // Update visible count
+    updateVisibleCount(tableId);
 }
 
 function filterTable(searchInput, tableId) {
@@ -110,6 +116,9 @@ function filterTable(searchInput, tableId) {
     
     // Update filter badge count
     updateFilterBadge(tableId);
+    
+    // Update visible count
+    updateVisibleCount(tableId);
 }
 
 function toggleAdvancedFilters(contentId, toggleButton) {
@@ -149,4 +158,25 @@ function updateFilterBadge(tableId) {
     } else {
         badge.classList.add('hidden');
     }
+}
+
+/**
+ * Update visible count display for a table
+ * Counts non-hidden rows and updates the stats strip
+ */
+function updateVisibleCount(tableId) {
+    const countElement = document.getElementById('visible-count-' + tableId);
+    if (!countElement) return; // Stats strip might not exist on all pages
+    
+    const table = document.getElementById(tableId);
+    const rows = table.querySelectorAll('tbody tr');
+    
+    let visibleCount = 0;
+    rows.forEach(row => {
+        if (row.style.display !== 'none') {
+            visibleCount++;
+        }
+    });
+    
+    countElement.textContent = visibleCount;
 }
