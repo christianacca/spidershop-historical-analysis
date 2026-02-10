@@ -119,10 +119,12 @@ def generate_snapshot_page(config: BasePageConfig) -> str:
     # Find column indices for special rendering
     page_url_idx = None
     scientific_name_idx = None
+    price_idx = None
     if headers:
         try:
             page_url_idx = headers.index('page_url')
             scientific_name_idx = headers.index('scientific_name')
+            price_idx = headers.index('price_gbp')
         except ValueError:
             pass
     
@@ -148,6 +150,7 @@ def generate_snapshot_page(config: BasePageConfig) -> str:
         top_10_headers=top_10_headers_enum,
         top_10_rows=top_10_rows_enum,
         page_url_idx=page_url_idx,
+        price_idx=price_idx,
         scientific_name_idx=scientific_name_idx,
         signal_col_idx=None,  # Snapshot has no signal column
         stock_pattern_col_idx=None,  # Snapshot has no stock pattern column

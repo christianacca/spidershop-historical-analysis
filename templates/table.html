@@ -33,7 +33,8 @@
     {% set signal_value = row[signal_col_idx][1]|string|trim if signal_col_idx is not none and signal_col_idx < row|length else '' %}
     {% set stock_pattern_value = row[stock_pattern_col_idx][1]|string|trim if stock_pattern_col_idx is not none and stock_pattern_col_idx < row|length else '' %}
     {% set drivers_value = row[drivers_col_idx][1]|string|trim if drivers_col_idx is defined and drivers_col_idx is not none and drivers_col_idx < row|length else '' %}
-    <tr{% if signal_value %} data-signal="{{ signal_value }}"{% endif %}{% if stock_pattern_value %} data-stock-pattern="{{ stock_pattern_value }}"{% endif %}>
+    {% set price_value = row[price_idx][1]|string|trim if price_idx is defined and price_idx is not none and price_idx < row|length else '' %}
+    <tr{% if signal_value %} data-signal="{{ signal_value }}"{% endif %}{% if stock_pattern_value %} data-stock-pattern="{{ stock_pattern_value }}"{% endif %}{% if price_value %} data-price="{{ price_value }}"{% endif %}>
       {% for cell_idx, cell in row %}
       {% set header_text = headers[cell_idx][1] if cell_idx < headers|length else '' %}
       {% if drivers_col_idx is defined and cell_idx == drivers_col_idx and drivers_col_idx is not none %}

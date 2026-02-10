@@ -109,15 +109,81 @@ function filterTable(searchInput, tableId) {
     const table = document.getElementById(tableId);
     const rows = table.querySelectorAll('tbody tr');
     
+    // Get price slider value (if exists)
+    const priceSlider = document.getElementById('priceMax');
+    const maxPrice = priceSlider ? parseFloat(priceSlider.value) : Infinity;
+    
     rows.forEach(row => {
+        // Check search filter
         const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(filter) ? '' : 'none';
+        const searchMatch = !filter || text.includes(filter);
+        
+        // Check price filter (if slider exists)
+        let priceMatch = true;
+        if (priceSlider) {
+            const priceAttr = row.getAttribute('data-price');
+            const price = priceAttr ? parseFloat(priceAttr.replace('£', '').trim()) : 0;
+            priceMatch = price <= maxPrice;
+        }
+        
+        // Show row only if both filters match (AND logic)
+        if (searchMatch && priceMatch) {
+            row.classList.remove('hidden');
+        } else {
+            row.classList.add('hidden');
+        }
     });
     
     // Update filter badge count
     updateFilterBadge(tableId);
     
     // Update visible count
+    updateVisibleCount(tableId);
+}
+
+/**
+ * Filter table rows by maximum price
+ * Hides rows where price exceeds the slider value
+ */
+function filterByPrice(tableId) {
+    const slider = document.getElementById('priceMax');
+    const display = document.getElementById('priceDisplay');
+    const table = document.getElementById(tableId);
+    
+    if (!slider || !display || !table) return;
+    
+    const maxPrice = parseFloat(slider.value);
+    
+    // Update display text
+    display.textContent = `Showing: £5 - £${maxPrice}`;
+    
+    // Get search filter value (if exists)
+    const searchBox = document.getElementById('search-' + tableId);
+    const searchFilter = searchBox ? searchBox.value.toLowerCase() : '';
+    
+    // Filter rows
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        const priceAttr = row.getAttribute('data-price');
+        const price = priceAttr ? parseFloat(priceAttr.replace('£', '').trim()) : 0;
+        
+        // Check price filter
+        const priceMatch = price <= maxPrice;
+        
+        // Check search filter (if active)
+        const text = row.textContent.toLowerCase();
+        const searchMatch = !searchFilter || text.includes(searchFilter);
+        
+        // Show row only if both filters match (AND logic)
+        if (priceMatch && searchMatch) {
+            row.classList.remove('hidden');
+        } else {
+            row.classList.add('hidden');
+        }
+    });
+    
+    // Update filter badge and visible count
+    updateFilterBadge(tableId);
     updateVisibleCount(tableId);
 }
 
@@ -151,6 +217,16 @@ function updateFilterBadge(tableId) {
         activeFilters++;
     }
     
+    // Check price slider (active if value < max)
+    const priceSlider = document.getElementById('priceMax');
+    if (priceSlider) {
+        const maxValue = parseFloat(priceSlider.getAttribute('max'));
+        const currentValue = parseFloat(priceSlider.value);
+        if (currentValue < maxValue) {
+            activeFilters++;
+        }
+    }
+    
     // Update badge display
     if (activeFilters > 0) {
         badge.textContent = activeFilters;
@@ -173,7 +249,8 @@ function updateVisibleCount(tableId) {
     
     let visibleCount = 0;
     rows.forEach(row => {
-        if (row.style.display !== 'none') {
+        // Check both hidden class and style.display for backwards compatibility
+        if (!row.classList.contains('hidden') && row.style.display !== 'none') {
             visibleCount++;
         }
     });
