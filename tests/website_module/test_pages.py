@@ -172,20 +172,19 @@ class TestGenerateSnapshotPage:
         """Should include download link for CSV file."""
         from conftest import temp_csv_file
         
-        csv_content = "Col\n"
-        with temp_csv_file(csv_content) as temp_path:
-            filename = os.path.basename(temp_path)
+        csv_content = "Name,Price\nSpecies A,25.00\n"  # Include proper CSV with header and data
+        with temp_csv_file(csv_content) as filename:
             config = page_config.snapshot(filename).with_title("Test").with_description("Desc").build()
             html = generate_snapshot_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
-            # Find download link
-            download_links = soup.find_all('a', href=filename)
-            assert len(download_links) >= 1
+            # Find download link (now uses btn-download class)
+            download_links = soup.find_all('a', class_='btn-download')
+            assert len(download_links) >= 1, "Should have at least one download link with btn-download class"
             
             # Check for "Download CSV" text
             link_texts = [link.text for link in download_links]
-            assert any('Download CSV' in text for text in link_texts)
+            assert any('Download CSV' in text for text in link_texts), "Download link should contain 'Download CSV' text"
 
     def test_includes_search_filter_when_enabled(self):
         """Should include search filter when search_filter=True."""
@@ -213,8 +212,8 @@ class TestGenerateSnapshotPage:
             html = generate_snapshot_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
-            # Find toggle button
-            toggle_button = soup.find('button', class_='advanced-filters-toggle')
+            # Find toggle button (now uses btn-filters class)
+            toggle_button = soup.find('button', class_='btn-filters')
             assert toggle_button is not None, "Toggle button should exist when search is enabled"
             
             # Verify button structure
@@ -269,10 +268,103 @@ class TestGenerateSnapshotPage:
             # Verify data content
             assert soup.find(string='Species A') is not None
             assert soup.find(string='25.00') is not None
+
+    def test_action_buttons_container_with_download_and_filter_buttons(self):
+        """Should have action-buttons container with download and filter buttons side by side."""
+        csv_content = "Name,Price\nSpecies A,25.00\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.snapshot(filename) \
+                .with_title("Test") \
+                .with_description("Desc") \
+                .with_search(True) \
+                .build()
+            html = generate_snapshot_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
             
-            # Check for row count
-            assert 'Total rows:' in html
-            assert '2' in html
+            # Find action-buttons container
+            action_buttons = soup.find('div', class_='action-buttons')
+            assert action_buttons is not None, "Should have action-buttons container"
+            
+            # Check download button
+            download_link = action_buttons.find('a', class_='btn-download')
+            assert download_link is not None, "Should have download button with btn-download class"
+            assert 'Download CSV' in download_link.text, "Download button should have text"
+            assert download_link.has_attr('download'), "Download button should have download attribute"
+            assert download_link.has_attr('href'), "Download button should have href"
+            
+            # Check filter button
+            filter_button = action_buttons.find('button', class_='btn-filters')
+            assert filter_button is not None, "Should have filter button with btn-filters class"
+            assert 'More Filters' in filter_button.text or 'Filters' in filter_button.text, "Filter button should have text"
+            assert filter_button.has_attr('onclick'), "Filter button should have onclick handler"
+            assert 'toggleAdvancedFilters' in filter_button['onclick'], "Filter button should call toggleAdvancedFilters"
+            
+            # Verify both buttons are direct children of action-buttons container
+            direct_children = [child for child in action_buttons.children if child.name in ['a', 'button']]
+            assert len(direct_children) == 2, "Should have exactly 2 button elements as direct children"
+
+    def test_action_buttons_omits_filter_button_when_search_disabled(self):
+        """Should only show download button when search is disabled."""
+        csv_content = "Name,Price\nSpecies A,25.00\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.snapshot(filename) \
+                .with_title("Test") \
+                .with_description("Desc") \
+                .with_search(False) \
+                .build()
+            html = generate_snapshot_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Download button should exist
+            download_link = soup.find('a', class_='btn-download')
+            assert download_link is not None, "Should have download button"
+            
+            # Filter button should NOT exist
+            filter_button = soup.find('button', class_='btn-filters')
+            assert filter_button is None, "Should NOT have filter button when search disabled"
+
+    def test_table_stats_strip_shows_species_count(self):
+        """Should show 'Showing: x of x species' strip above table."""
+        csv_content = "Name,Price\nSpecies A,25.00\nSpecies B,30.00\nSpecies C,15.00\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.snapshot(filename) \
+                .with_title("Test") \
+                .with_description("Desc") \
+                .build()
+            html = generate_snapshot_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Find table-stats strip
+            stats_strip = soup.find('div', class_='table-stats')
+            assert stats_strip is not None, "Should have table-stats strip"
+            
+            # Check for "Showing:" text
+            assert 'Showing:' in stats_strip.text, "Stats strip should contain 'Showing:' text"
+            
+            # Check for visible count span
+            visible_count_span = stats_strip.find('span', id='visible-count-snapshot-table')
+            assert visible_count_span is not None, "Should have visible-count span with table-id in ID"
+            assert visible_count_span.text == '3', "Visible count should equal total rows initially"
+            
+            # Check for total count
+            assert 'of 3 species' in stats_strip.text, "Should show total species count"
+
+    def test_table_stats_strip_exists_even_when_search_disabled(self):
+        """Should show stats strip regardless of search filter setting."""
+        csv_content = "Name,Price\nSpecies A,25.00\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.snapshot(filename) \
+                .with_title("Test") \
+                .with_description("Desc") \
+                .with_search(False) \
+                .build()
+            html = generate_snapshot_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Stats strip should exist even without search
+            stats_strip = soup.find('div', class_='table-stats')
+            assert stats_strip is not None, "Should have stats strip even when search disabled"
+            assert 'Showing:' in stats_strip.text, "Should show species count"
 
     def test_handles_nonexistent_csv_file(self):
         """Should show 'no data' message for nonexistent file."""

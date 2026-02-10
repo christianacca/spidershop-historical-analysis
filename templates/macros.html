@@ -75,7 +75,7 @@
         <button class="filter-btn" onclick="filterBySignal('⚠️', '{{ table_id }}', this)">⚠️ Watch{% if summary_stats %} ({{ summary_stats.watch }}){% endif %}</button>
         <button class="filter-btn" onclick="filterBySignal('❌', '{{ table_id }}', this)">❌ Avoid{% if summary_stats %} ({{ summary_stats.avoid }}){% endif %}</button>
         {% if has_advanced_filters %}
-        <button class="advanced-filters-toggle" onclick="toggleAdvancedFilters('advanced-filters-{{ table_id }}', this)">
+        <button class="btn btn-secondary advanced-filters-toggle" onclick="toggleAdvancedFilters('advanced-filters-{{ table_id }}', this)">
             <span class="arrow">▶</span>
             <span>More Filters</span>
         </button>

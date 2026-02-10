@@ -352,8 +352,8 @@ def test_snapshot_page_advanced_filters_toggle(e2e_site_multi_species) -> None:
 
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
-    # Verify toggle button exists
-    toggle_button = page.locator(".advanced-filters-toggle")
+    # Verify toggle button exists (snapshot page uses .btn-filters)
+    toggle_button = page.locator(".btn-filters")
     assert toggle_button.is_visible(), "Toggle button should be visible on snapshot page"
     
     # Verify filter content container exists
@@ -404,8 +404,8 @@ def test_snapshot_filter_badge_updates_with_search(e2e_site_multi_species) -> No
     assert badge.count() == 1, "Badge element should exist on snapshot page"
     assert not badge.is_visible(), "Badge should be hidden when no filters active"
     
-    # Expand filters
-    toggle_button = page.locator(".advanced-filters-toggle")
+    # Expand filters (snapshot page uses .btn-filters)
+    toggle_button = page.locator(".btn-filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
