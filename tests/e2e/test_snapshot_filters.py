@@ -280,7 +280,7 @@ def test_price_slider_reset_to_max_shows_all_rows(e2e_site_multi_species) -> Non
 
 @pytest.mark.e2e
 def test_wishlist_slider_exists_and_initializes_correctly(e2e_site_multi_species) -> None:
-    """Verify wishlist slider renders with correct initial state (0-20 range)."""
+    """Verify wishlist slider renders with correct initial state derived from data."""
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
@@ -294,22 +294,29 @@ def test_wishlist_slider_exists_and_initializes_correctly(e2e_site_multi_species
     wishlist_slider = page.locator("#wishlistMax")
     assert wishlist_slider.is_visible(), "Wishlist slider should be visible after expanding filters"
     
-    # Verify initial value is max (300)
-    initial_value = wishlist_slider.get_attribute("value")
-    assert initial_value == "300", f"Expected wishlist slider initial value to be '300', got '{initial_value}'"
-    
-    # Verify min/max attributes
+    # Get actual min/max values from slider (should be derived from CSV data)
     min_value = wishlist_slider.get_attribute("min")
     max_value = wishlist_slider.get_attribute("max")
-    assert min_value == "0", f"Expected min='0', got '{min_value}'"
-    assert max_value == "300", f"Expected max='300', got '{max_value}'"
+    initial_value = wishlist_slider.get_attribute("value")
+    
+    # Verify initial value equals max (slider starts at max)
+    assert initial_value == max_value, \
+        f"Expected wishlist slider initial value to be '{max_value}', got '{initial_value}'"
+    
+    # Verify min is a valid number
+    assert min_value is not None and min_value.isdigit(), \
+        f"Expected min to be a valid number, got '{min_value}'"
+    
+    # Verify max is a valid number
+    assert max_value is not None and max_value.isdigit(), \
+        f"Expected max to be a valid number, got '{max_value}'"
     
     # Verify wishlist display shows initial range
     wishlist_display = page.locator("#wishlistDisplay")
     assert wishlist_display.is_visible(), "Wishlist display should be visible"
     display_text = wishlist_display.text_content()
-    assert "0" in display_text and "300" in display_text, \
-        f"Expected wishlist display to show '0 - 300', got '{display_text}'"
+    assert min_value in display_text and max_value in display_text, \
+        f"Expected wishlist display to show '{min_value} - {max_value}', got '{display_text}'"
 
 
 @pytest.mark.e2e
@@ -362,23 +369,31 @@ def test_wishlist_slider_updates_display_text(e2e_site_multi_species) -> None:
     toggle_button.click()
     page.wait_for_timeout(200)
     
-    # Move slider to 15
+    # Get slider's actual min/max from attributes
     wishlist_slider = page.locator("#wishlistMax")
-    wishlist_slider.fill("15")
+    min_value = wishlist_slider.get_attribute("min")
+    max_value = int(wishlist_slider.get_attribute("max"))
+    
+    # Calculate a mid-range value to test
+    mid_value = max(int(min_value), (int(min_value) + max_value) // 2)
+    low_value = max(int(min_value), mid_value - 1)
+    
+    # Move slider to mid value
+    wishlist_slider.fill(str(mid_value))
     page.wait_for_timeout(200)
     
     # Verify display updates
     wishlist_display = page.locator("#wishlistDisplay")
     display_text = wishlist_display.text_content()
-    assert "15" in display_text, f"Expected display to show '15', got '{display_text}'"
-    assert "0" in display_text, f"Expected display to show min '0', got '{display_text}'"
+    assert str(mid_value) in display_text, f"Expected display to show '{mid_value}', got '{display_text}'"
+    assert min_value in display_text, f"Expected display to show min '{min_value}', got '{display_text}'"
     
-    # Move slider to 10
-    wishlist_slider.fill("10")
+    # Move slider to lower value
+    wishlist_slider.fill(str(low_value))
     page.wait_for_timeout(200)
     
     display_text = wishlist_display.text_content()
-    assert "10" in display_text, f"Expected display to show '10', got '{display_text}'"
+    assert str(low_value) in display_text, f"Expected display to show '{low_value}', got '{display_text}'"
 
 
 @pytest.mark.e2e
@@ -398,9 +413,14 @@ def test_wishlist_slider_updates_filter_badge(e2e_site_multi_species) -> None:
     initial_classes = badge.get_attribute("class") or ""
     assert "hidden" in initial_classes, "Badge should be hidden when no filters active"
     
-    # Move slider away from max
+    # Get slider's actual min/max from attributes
     wishlist_slider = page.locator("#wishlistMax")
-    wishlist_slider.fill("10")
+    min_value = int(wishlist_slider.get_attribute("min"))
+    max_value = int(wishlist_slider.get_attribute("max"))
+    
+    # Move slider away from max (use a value below max)
+    test_value = max(min_value, max_value - 2)
+    wishlist_slider.fill(str(test_value))
     page.wait_for_timeout(200)
     
     # Badge should now be visible with count = 1
@@ -411,7 +431,7 @@ def test_wishlist_slider_updates_filter_badge(e2e_site_multi_species) -> None:
     assert badge_text == "1", f"Expected badge to show '1' active filter, got '{badge_text}'"
     
     # Reset slider to max
-    wishlist_slider.fill("300")
+    wishlist_slider.fill(str(max_value))
     page.wait_for_timeout(200)
     
     # Badge should be hidden again

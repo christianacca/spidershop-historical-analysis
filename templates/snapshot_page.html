@@ -49,12 +49,12 @@
             <div class="filter-row">
                 <strong>💚 Wishlist Count:</strong>
                 <div class="slider-container">
-                    <input type="range" min="0" max="300" value="300" class="slider" id="wishlistMax" oninput="filterByWishlist('{{ table_id }}')">
+                    <input type="range" min="{{ wishlist_min }}" max="{{ wishlist_max }}" value="{{ wishlist_max }}" class="slider" id="wishlistMax" oninput="filterByWishlist('{{ table_id }}')">
                     <div class="slider-values">
-                        <span>0</span>
-                        <span>300</span>
+                        <span>{{ wishlist_min }}</span>
+                        <span>{{ wishlist_max }}</span>
                     </div>
-                    <div class="slider-current" id="wishlistDisplay">Showing: 0 - 300</div>
+                    <div class="slider-current" id="wishlistDisplay">Showing: {{ wishlist_min }} - {{ wishlist_max }}</div>
                 </div>
             </div>
             {{ macros.search_filter(table_id=table_id) }}

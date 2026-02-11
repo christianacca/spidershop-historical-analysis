@@ -644,3 +644,167 @@ class TestPageConfig:
         assert "Examples content" in html
 
 
+class TestWishlistRangeCalculation:
+    """Test suite for dynamic wishlist range calculation in snapshot page."""
+
+    def test_wishlist_range_calculated_from_csv_data(self, tmp_path):
+        """Should calculate wishlist min/max from actual CSV data."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Aphonopelma seemanni,Costa Rican Zebra,1.5,8.99,5,http://example.com\n"
+        csv_content += "2026-01-01,Brachypelma hamorii,Mexican Red Knee,2.0,12.50,15,http://example.com\n"
+        csv_content += "2026-01-01,Chromatopelma cyaneopubescens,GBB,1.0,10.00,8,http://example.com\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # Verify wishlist slider has correct min/max from data (5, 15)
+        assert 'min="5"' in html, "Expected min='5' based on CSV data"
+        assert 'max="15"' in html, "Expected max='15' based on CSV data"
+        assert 'value="15"' in html, "Expected slider to initialize at max value"
+        
+        # Verify display shows correct range
+        assert "Showing: 5 - 15" in html, "Expected display to show '5 - 15'"
+
+    def test_wishlist_range_uses_defaults_when_column_missing(self, tmp_path):
+        """Should use default range when wishlist_count column is missing."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        # Old CSV format without wishlist_count
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,page_url\n"
+        csv_content += "2026-01-01,Aphonopelma seemanni,Costa Rican Zebra,1.5,8.99,http://example.com\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # Verify falls back to defaults (0, 300)
+        assert 'min="0"' in html, "Expected min='0' as default"
+        assert 'max="300"' in html, "Expected max='300' as default"
+
+    def test_wishlist_range_handles_empty_csv(self, tmp_path):
+        """Should show 'no data' message when CSV has no data rows."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        # Header only, no data
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # When no data, page shows info message instead of table/filters
+        assert "No data available" in html
+        assert "snapshot-table" not in html
+
+    def test_wishlist_range_handles_invalid_values(self, tmp_path):
+        """Should skip invalid wishlist values and use valid ones."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Species A,Common A,1.5,8.99,3,http://example.com\n"
+        csv_content += "2026-01-01,Species B,Common B,2.0,12.50,invalid,http://example.com\n"  # Invalid
+        csv_content += "2026-01-01,Species C,Common C,1.0,10.00,20,http://example.com\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # Should use valid values only (3, 20)
+        assert 'min="3"' in html
+        assert 'max="20"' in html
+
+    def test_wishlist_range_with_single_value(self, tmp_path):
+        """Should handle CSV with only one row correctly."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Aphonopelma seemanni,Costa Rican Zebra,1.5,8.99,42,http://example.com\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # Min and max should both be 42
+        assert 'min="42"' in html
+        assert 'max="42"' in html
+        assert 'value="42"' in html
+
+    def test_wishlist_range_with_zero_values(self, tmp_path):
+        """Should correctly handle zero wishlist counts."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Species A,Common A,1.5,8.99,0,http://example.com\n"
+        csv_content += "2026-01-01,Species B,Common B,2.0,12.50,5,http://example.com\n"
+        csv_content += "2026-01-01,Species C,Common C,1.0,10.00,0,http://example.com\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # Should correctly identify 0 as minimum
+        assert 'min="0"' in html
+        assert 'max="5"' in html

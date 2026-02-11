@@ -220,10 +220,11 @@ function filterByWishlist(tableId) {
     
     if (!slider || !display || !table) return;
     
+    const minWishlist = parseInt(slider.getAttribute('min'));
     const maxWishlist = parseInt(slider.value);
     
     // Update display text
-    display.textContent = `Showing: 0 - ${maxWishlist}`;
+    display.textContent = `Showing: ${minWishlist} - ${maxWishlist}`;
     
     // Get search filter value (if exists)
     const searchBox = document.getElementById('search-' + tableId);

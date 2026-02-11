@@ -130,6 +130,21 @@ def generate_snapshot_page(config: BasePageConfig) -> str:
         except ValueError:
             pass
     
+    # Calculate wishlist range from data
+    wishlist_min = 0
+    wishlist_max = 300  # Default fallback
+    if rows and wishlist_idx is not None:
+        wishlist_values = []
+        for row in rows:
+            if wishlist_idx < len(row):
+                try:
+                    wishlist_values.append(int(row[wishlist_idx]))
+                except (ValueError, TypeError):
+                    pass
+        if wishlist_values:
+            wishlist_min = min(wishlist_values)
+            wishlist_max = max(wishlist_values)
+    
     # Enumerate headers and rows for template
     headers_enum = list(enumerate(headers)) if headers else []
     rows_enum = [list(enumerate(row)) for row in rows] if rows else []
@@ -154,6 +169,8 @@ def generate_snapshot_page(config: BasePageConfig) -> str:
         page_url_idx=page_url_idx,
         price_idx=price_idx,
         wishlist_idx=wishlist_idx,
+        wishlist_min=wishlist_min,
+        wishlist_max=wishlist_max,
         scientific_name_idx=scientific_name_idx,
         signal_col_idx=None,  # Snapshot has no signal column
         stock_pattern_col_idx=None,  # Snapshot has no stock pattern column
