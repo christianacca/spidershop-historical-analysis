@@ -24,7 +24,7 @@ from e2e.fixtures import e2e_site_multi_species
 
 @pytest.mark.e2e
 def test_price_slider_exists_and_initializes_correctly(e2e_site_multi_species) -> None:
-    """Verify price slider renders with correct initial state (max value, no filtering)."""
+    """Verify price slider renders with correct initial state derived from data."""
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
@@ -38,22 +38,29 @@ def test_price_slider_exists_and_initializes_correctly(e2e_site_multi_species) -
     price_slider = page.locator("#priceMax")
     assert price_slider.is_visible(), "Price slider should be visible after expanding filters"
     
-    # Verify initial value is max (400)
-    initial_value = price_slider.get_attribute("value")
-    assert initial_value == "400", f"Expected slider initial value to be '400', got '{initial_value}'"
-    
-    # Verify min/max attributes
+    # Get actual min/max values from slider (should be derived from CSV data)
     min_value = price_slider.get_attribute("min")
     max_value = price_slider.get_attribute("max")
-    assert min_value == "5", f"Expected min='5', got '{min_value}'"
-    assert max_value == "400", f"Expected max='400', got '{max_value}'"
+    initial_value = price_slider.get_attribute("value")
+    
+    # Verify initial value equals max (slider starts at max)
+    assert initial_value == max_value, \
+        f"Expected price slider initial value to be '{max_value}', got '{initial_value}'"
+    
+    # Verify min is a valid number
+    assert min_value is not None and min_value.replace('.', '', 1).isdigit(), \
+        f"Expected min to be a valid number, got '{min_value}'"
+    
+    # Verify max is a valid number
+    assert max_value is not None and max_value.replace('.', '', 1).isdigit(), \
+        f"Expected max to be a valid number, got '{max_value}'"
     
     # Verify price display shows initial range
     price_display = page.locator("#priceDisplay")
     assert price_display.is_visible(), "Price display should be visible"
     display_text = price_display.text_content()
-    assert "£5" in display_text and "£400" in display_text, \
-        f"Expected price display to show '£5 - £400', got '{display_text}'"
+    assert f"£{min_value}" in display_text and f"£{max_value}" in display_text, \
+        f"Expected price display to show '£{min_value} - £{max_value}', got '{display_text}'"
 
 
 @pytest.mark.e2e
@@ -107,23 +114,31 @@ def test_price_slider_updates_display_text(e2e_site_multi_species) -> None:
     toggle_button.click()
     page.wait_for_timeout(200)
     
-    # Move slider to £50
+    # Get slider's actual min/max from attributes
     price_slider = page.locator("#priceMax")
-    price_slider.fill("50")
+    min_value = float(price_slider.get_attribute("min"))
+    max_value = float(price_slider.get_attribute("max"))
+    
+    # Calculate a mid-range value to test
+    mid_value = int(max(min_value, (min_value + max_value) / 2))
+    low_value = int(max(min_value, mid_value * 0.7))
+    
+    # Move slider to mid value
+    price_slider.fill(str(mid_value))
     page.wait_for_timeout(200)
     
     # Verify display updates
     price_display = page.locator("#priceDisplay")
     display_text = price_display.text_content()
-    assert "£50" in display_text, f"Expected display to show '£50', got '{display_text}'"
-    assert "£5" in display_text, f"Expected display to show min '£5', got '{display_text}'"
+    assert f"£{mid_value}" in display_text, f"Expected display to show '£{mid_value}', got '{display_text}'"
+    assert f"£{int(min_value)}" in display_text, f"Expected display to show min '£{int(min_value)}', got '{display_text}'"
     
-    # Move slider to £100
-    price_slider.fill("100")
+    # Move slider to lower value
+    price_slider.fill(str(low_value))
     page.wait_for_timeout(200)
     
     display_text = price_display.text_content()
-    assert "£100" in display_text, f"Expected display to show '£100', got '{display_text}'"
+    assert f"£{low_value}" in display_text, f"Expected display to show '£{low_value}', got '{display_text}'"
 
 
 @pytest.mark.e2e
@@ -143,9 +158,14 @@ def test_price_slider_updates_filter_badge(e2e_site_multi_species) -> None:
     initial_classes = badge.get_attribute("class") or ""
     assert "hidden" in initial_classes, "Badge should be hidden when no filters active"
     
-    # Move slider away from max
+    # Get slider's actual min/max from attributes
     price_slider = page.locator("#priceMax")
-    price_slider.fill("50")
+    min_value = float(price_slider.get_attribute("min"))
+    max_value = float(price_slider.get_attribute("max"))
+    
+    # Move slider away from max (use a value below max)
+    test_value = int(max(min_value, max_value * 0.5))
+    price_slider.fill(str(test_value))
     page.wait_for_timeout(200)
     
     # Badge should now be visible with count = 1
@@ -156,7 +176,7 @@ def test_price_slider_updates_filter_badge(e2e_site_multi_species) -> None:
     assert badge_text == "1", f"Expected badge to show '1' active filter, got '{badge_text}'"
     
     # Reset slider to max
-    price_slider.fill("400")
+    price_slider.fill(str(int(max_value)))
     page.wait_for_timeout(200)
     
     # Badge should be hidden again
@@ -240,7 +260,7 @@ def test_price_slider_and_search_filter_combine_with_AND_logic(e2e_site_multi_sp
 
 @pytest.mark.e2e
 def test_price_slider_reset_to_max_shows_all_rows(e2e_site_multi_species) -> None:
-    """Verify resetting slider to max (£400) shows all rows again."""
+    """Verify resetting slider to max shows all rows again."""
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
@@ -253,8 +273,14 @@ def test_price_slider_reset_to_max_shows_all_rows(e2e_site_multi_species) -> Non
     toggle_button.click()
     page.wait_for_timeout(200)
     
+    # Get slider's actual min/max from attributes
     price_slider = page.locator("#priceMax")
-    price_slider.fill("25")
+    min_value = float(price_slider.get_attribute("min"))
+    max_value = float(price_slider.get_attribute("max"))
+    
+    # Set slider to low value (filter heavily)
+    low_value = int(max(min_value, min_value + 10))
+    price_slider.fill(str(low_value))
     page.wait_for_timeout(200)
     
     # Verify filtering occurred
@@ -262,7 +288,7 @@ def test_price_slider_reset_to_max_shows_all_rows(e2e_site_multi_species) -> Non
     assert visible_after_filter < total_rows, "Expected filtering to hide some rows"
     
     # Reset slider to max
-    price_slider.fill("400")
+    price_slider.fill(str(int(max_value)))
     page.wait_for_timeout(200)
     
     # Verify all rows visible again
@@ -451,9 +477,14 @@ def test_wishlist_and_price_sliders_combine_in_badge(e2e_site_multi_species) -> 
     toggle_button.click()
     page.wait_for_timeout(200)
     
-    # Apply price filter
+    # Get price slider's actual min/max and set to mid-range
     price_slider = page.locator("#priceMax")
-    price_slider.fill("50")
+    price_min = float(price_slider.get_attribute("min"))
+    price_max = float(price_slider.get_attribute("max"))
+    price_test_value = int((price_min + price_max) * 0.5)
+    
+    # Apply price filter
+    price_slider.fill(str(price_test_value))
     page.wait_for_timeout(200)
     
     # Badge should show 1
@@ -461,9 +492,14 @@ def test_wishlist_and_price_sliders_combine_in_badge(e2e_site_multi_species) -> 
     badge_text = badge.text_content()
     assert badge_text == "1", f"Expected badge '1' after price filter, got '{badge_text}'"
     
-    # Apply wishlist filter
+    # Get wishlist slider's actual min/max and set below max
     wishlist_slider = page.locator("#wishlistMax")
-    wishlist_slider.fill("10")
+    wishlist_min = int(wishlist_slider.get_attribute("min"))
+    wishlist_max = int(wishlist_slider.get_attribute("max"))
+    wishlist_test_value = max(wishlist_min, wishlist_max - 2)
+    
+    # Apply wishlist filter
+    wishlist_slider.fill(str(wishlist_test_value))
     page.wait_for_timeout(200)
     
     # Badge should show 2

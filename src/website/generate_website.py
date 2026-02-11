@@ -38,7 +38,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import os
 import shutil
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Callable, Tuple, List, Any
 
 # Handle both direct script execution and module import
 try:
@@ -89,6 +89,46 @@ except ModuleNotFoundError:
 OUTPUT_DIR = Path("website")
 
 
+def _calculate_column_range(
+    rows: List[List[Any]], 
+    col_idx: Optional[int], 
+    default_min: int, 
+    default_max: int,
+    parser: Callable[[Any], float]
+) -> Tuple[int, int, bool]:
+    """
+    Calculate min/max range for a column in CSV data.
+    
+    Args:
+        rows: CSV rows (list of lists)
+        col_idx: Column index to extract values from
+        default_min: Default minimum if no valid values found
+        default_max: Default maximum if no valid values found
+        parser: Function to parse cell value to float (handles type conversions)
+        
+    Returns:
+        Tuple of (min_value, max_value, found_values) where:
+        - min_value: Minimum value as integer (or default)
+        - max_value: Maximum value as integer (or default)
+        - found_values: Boolean indicating if any valid values were found
+    """
+    if not rows or col_idx is None:
+        return default_min, default_max, False
+    
+    values = []
+    for row in rows:
+        if col_idx < len(row):
+            try:
+                values.append(parser(row[col_idx]))
+            except (ValueError, TypeError):
+                pass
+    
+    if not values:
+        return default_min, default_max, False
+    
+    return int(min(values)), int(max(values)), True
+
+
 def generate_homepage(last_scrape_time: Optional[str] = None) -> str:
     """Generate the homepage with overview and links using Jinja2 template."""
     template = jinja_env.get_template('homepage.html')
@@ -131,19 +171,30 @@ def generate_snapshot_page(config: BasePageConfig) -> str:
             pass
     
     # Calculate wishlist range from data
-    wishlist_min = 0
-    wishlist_max = 300  # Default fallback
-    if rows and wishlist_idx is not None:
-        wishlist_values = []
-        for row in rows:
-            if wishlist_idx < len(row):
-                try:
-                    wishlist_values.append(int(row[wishlist_idx]))
-                except (ValueError, TypeError):
-                    pass
-        if wishlist_values:
-            wishlist_min = min(wishlist_values)
-            wishlist_max = max(wishlist_values)
+    wishlist_min, wishlist_max, _ = _calculate_column_range(
+        rows=rows,
+        col_idx=wishlist_idx,
+        default_min=0,
+        default_max=300,
+        parser=lambda x: int(x)
+    )
+    
+    # Calculate price range from data
+    def parse_price(value: Any) -> float:
+        """Parse price value, removing £ symbol if present."""
+        price_str = str(value).replace('£', '').strip()
+        return float(price_str)
+    
+    price_min, price_max, found_prices = _calculate_column_range(
+        rows=rows,
+        col_idx=price_idx,
+        default_min=5,
+        default_max=400,
+        parser=parse_price
+    )
+    # Round up max price for better UX (only when actual prices found)
+    if found_prices:
+        price_max = price_max + 1
     
     # Enumerate headers and rows for template
     headers_enum = list(enumerate(headers)) if headers else []
@@ -168,6 +219,8 @@ def generate_snapshot_page(config: BasePageConfig) -> str:
         top_10_rows=top_10_rows_enum,
         page_url_idx=page_url_idx,
         price_idx=price_idx,
+        price_min=price_min,
+        price_max=price_max,
         wishlist_idx=wishlist_idx,
         wishlist_min=wishlist_min,
         wishlist_max=wishlist_max,

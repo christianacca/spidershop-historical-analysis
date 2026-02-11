@@ -808,3 +808,195 @@ class TestWishlistRangeCalculation:
         # Should correctly identify 0 as minimum
         assert 'min="0"' in html
         assert 'max="5"' in html
+
+
+class TestPriceRangeCalculation:
+    """Test suite for dynamic price range calculation in snapshot page."""
+
+    def test_price_range_calculated_from_csv_data(self, tmp_path):
+        """Should calculate price min/max from actual CSV data."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Aphonopelma seemanni,Costa Rican Zebra,1.5,£8.99,5,http://example.com\n"
+        csv_content += "2026-01-01,Brachypelma hamorii,Mexican Red Knee,2.0,£25.50,15,http://example.com\n"
+        csv_content += "2026-01-01,Chromatopelma cyaneopubescens,GBB,1.0,£12.00,8,http://example.com\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # Verify price slider has correct min/max from data (8, 26 - rounded up)
+        assert 'min="8"' in html, "Expected min='8' based on CSV data"
+        assert 'max="26"' in html, "Expected max='26' based on CSV data (25.50 rounded up + 1)"
+        assert 'value="26"' in html, "Expected slider to initialize at max value"
+        
+        # Verify display shows correct range
+        assert "Showing: £8 - £26" in html, "Expected display to show '£8 - £26'"
+
+    def test_price_range_uses_defaults_when_column_missing(self, tmp_path):
+        """Should use default range when price_gbp column is missing."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        # CSV format without price_gbp
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Aphonopelma seemanni,Costa Rican Zebra,1.5,5,http://example.com\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # Verify falls back to defaults (5, 400)
+        assert 'min="5"' in html, "Expected min='5' as default"
+        assert 'max="400"' in html, "Expected max='400' as default"
+
+    def test_price_range_handles_empty_csv(self, tmp_path):
+        """Should show 'no data' message when CSV has no data rows."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        # Header only, no data
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # When no data, page shows info message instead of table/filters
+        assert "No data available" in html
+        assert "snapshot-table" not in html
+
+    def test_price_range_handles_invalid_values(self, tmp_path):
+        """Should skip invalid price values and use valid ones."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Species A,Common A,1.5,£10.50,3,http://example.com\n"
+        csv_content += "2026-01-01,Species B,Common B,2.0,invalid,5,http://example.com\n"  # Invalid
+        csv_content += "2026-01-01,Species C,Common C,1.0,£45.99,20,http://example.com\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # Should use valid values only (10, 46)
+        assert 'min="10"' in html
+        assert 'max="46"' in html
+
+    def test_price_range_with_single_value(self, tmp_path):
+        """Should handle CSV with only one row correctly."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Aphonopelma seemanni,Costa Rican Zebra,1.5,£15.99,42,http://example.com\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # Min should be 15, max should be 16 (15.99 -> 15, then +1)
+        assert 'min="15"' in html
+        assert 'max="16"' in html
+        assert 'value="16"' in html
+
+    def test_price_range_with_decimal_prices(self, tmp_path):
+        """Should correctly handle decimal prices and round appropriately."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Species A,Common A,1.5,£7.50,0,http://example.com\n"
+        csv_content += "2026-01-01,Species B,Common B,2.0,£12.99,5,http://example.com\n"
+        csv_content += "2026-01-01,Species C,Common C,1.0,£22.75,0,http://example.com\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # Min should be 7 (floor), max should be 23 (floor of 22.75 + 1)
+        assert 'min="7"' in html
+        assert 'max="23"' in html
+
+    def test_price_range_handles_prices_without_pound_symbol(self, tmp_path):
+        """Should handle prices that don't have £ symbol."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Species A,Common A,1.5,10.00,5,http://example.com\n"
+        csv_content += "2026-01-01,Species B,Common B,2.0,30.50,8,http://example.com\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # Should correctly parse prices without £ symbol
+        assert 'min="10"' in html
+        assert 'max="31"' in html

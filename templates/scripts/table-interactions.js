@@ -164,10 +164,11 @@ function filterByPrice(tableId) {
     
     if (!slider || !display || !table) return;
     
+    const minPrice = parseFloat(slider.getAttribute('min'));
     const maxPrice = parseFloat(slider.value);
     
     // Update display text
-    display.textContent = `Showing: £5 - £${maxPrice}`;
+    display.textContent = `Showing: £${minPrice} - £${maxPrice}`;
     
     // Get search filter value (if exists)
     const searchBox = document.getElementById('search-' + tableId);
