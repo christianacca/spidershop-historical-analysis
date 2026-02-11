@@ -46,6 +46,17 @@
                     <div class="slider-current" id="priceDisplay">Showing: £5 - £400</div>
                 </div>
             </div>
+            <div class="filter-row">
+                <strong>💚 Wishlist Count:</strong>
+                <div class="slider-container">
+                    <input type="range" min="0" max="300" value="300" class="slider" id="wishlistMax" oninput="filterByWishlist('{{ table_id }}')">
+                    <div class="slider-values">
+                        <span>0</span>
+                        <span>300</span>
+                    </div>
+                    <div class="slider-current" id="wishlistDisplay">Showing: 0 - 300</div>
+                </div>
+            </div>
             {{ macros.search_filter(table_id=table_id) }}
         </div>
     </div>
