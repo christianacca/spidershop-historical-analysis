@@ -193,14 +193,7 @@ Use the **edit** tool to modify files:
 After making simplifications, run the project's test suite to ensure no functionality was broken:
 
 ```bash
-# For Go projects
-make test-unit
-
-# For JavaScript/TypeScript projects
-npm test
-
-# For Python projects
-pytest
+make test && make test-e2e
 ```
 
 If tests fail:
