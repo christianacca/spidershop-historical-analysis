@@ -1,4 +1,4 @@
-function sortTable(columnIndex, tableId) {
+export function sortTable(columnIndex, tableId) {
     const table = document.getElementById(tableId);
     const tbody = table.querySelector('tbody');
     const rows = Array.from(tbody.querySelectorAll('tr'));
@@ -50,7 +50,7 @@ function sortTable(columnIndex, tableId) {
     rows.forEach(row => tbody.appendChild(row));
 }
 
-function filterBySignal(signalType, tableId, button) {
+export function filterBySignal(signalType, tableId, button) {
     const table = document.getElementById(tableId);
     const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
     
@@ -77,7 +77,7 @@ function filterBySignal(signalType, tableId, button) {
     updateVisibleCount(tableId);
 }
 
-function filterByStockPattern(patternType, tableId, button) {
+export function filterByStockPattern(patternType, tableId, button) {
     const table = document.getElementById(tableId);
     const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
     
@@ -104,7 +104,7 @@ function filterByStockPattern(patternType, tableId, button) {
     updateVisibleCount(tableId);
 }
 
-function filterTable(searchInput, tableId) {
+export function filterTable(searchInput, tableId) {
     applyAllFilters(tableId);
 }
 
@@ -164,7 +164,7 @@ function applyAllFilters(tableId) {
 /**
  * Filter table rows by price range
  */
-function filterByPrice(tableId) {
+export function filterByPrice(tableId) {
     const minSlider = document.getElementById('priceMin');
     const maxSlider = document.getElementById('priceMax');
     const display = document.getElementById('priceDisplay');
@@ -192,7 +192,7 @@ function filterByPrice(tableId) {
 /**
  * Filter table rows by wishlist count range
  */
-function filterByWishlist(tableId) {
+export function filterByWishlist(tableId) {
     const minSlider = document.getElementById('wishlistMin');
     const maxSlider = document.getElementById('wishlistMax');
     const display = document.getElementById('wishlistDisplay');
@@ -217,7 +217,7 @@ function filterByWishlist(tableId) {
     applyAllFilters(tableId);
 }
 
-function toggleAdvancedFilters(contentId, toggleButton) {
+export function toggleAdvancedFilters(contentId, toggleButton) {
     const content = document.getElementById(contentId);
     const isExpanded = content.classList.contains('show');
     

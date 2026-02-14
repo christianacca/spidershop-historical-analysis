@@ -218,9 +218,10 @@ class TestGenerateSnapshotPage:
             toggle_button = soup.find('button', class_='btn-filters')
             assert toggle_button is not None, "Toggle button should exist when search is enabled"
             
-            # Verify button structure
-            assert 'onclick' in toggle_button.attrs, "Toggle button should have onclick handler"
-            assert 'toggleAdvancedFilters' in toggle_button.attrs['onclick'], "Should call toggleAdvancedFilters function"
+            # Verify button uses data attributes (ES modules pattern)
+            assert toggle_button.has_attr('data-action'), "Toggle button should have data-action attribute"
+            assert toggle_button['data-action'] == 'toggle-filters', "Should have toggle-filters action"
+            assert toggle_button.has_attr('data-content-id'), "Should have data-content-id attribute"
             
             # Verify button contains arrow and text
             assert toggle_button.find('span', class_='arrow') is not None, "Should have arrow span"
@@ -298,8 +299,9 @@ class TestGenerateSnapshotPage:
             filter_button = action_buttons.find('button', class_='btn-filters')
             assert filter_button is not None, "Should have filter button with btn-filters class"
             assert 'More Filters' in filter_button.text or 'Filters' in filter_button.text, "Filter button should have text"
-            assert filter_button.has_attr('onclick'), "Filter button should have onclick handler"
-            assert 'toggleAdvancedFilters' in filter_button['onclick'], "Filter button should call toggleAdvancedFilters"
+            assert filter_button.has_attr('data-action'), "Filter button should have data-action attribute"
+            assert filter_button['data-action'] == 'toggle-filters', "Filter button should have toggle-filters action"
+            assert filter_button.has_attr('data-content-id'), "Filter button should have data-content-id attribute"
             
             # Verify both buttons are direct children of action-buttons container
             direct_children = [child for child in action_buttons.children if child.name in ['a', 'button']]

@@ -8,14 +8,21 @@
  * Depends on: table-interactions.js (must be loaded first)
  */
 
-(function() {
-  'use strict';
+import {
+  sortTable,
+  filterTable,
+  filterBySignal,
+  filterByStockPattern,
+  toggleAdvancedFilters,
+  filterByPrice,
+  filterByWishlist
+} from './table-interactions.js';
 
-  /**
-   * Initialize table header sorting
-   * Replaces: onclick="sortTable(i, table_id)"
-   */
-  function initTableSorting() {
+/**
+ * Initialize table header sorting
+ * Replaces: onclick="sortTable(i, table_id)"
+ */
+function initTableSorting() {
     document.querySelectorAll('th[data-sortable="true"]').forEach(header => {
       header.addEventListener('click', function() {
         const columnIndex = parseInt(this.dataset.columnIndex, 10);
@@ -25,11 +32,11 @@
     });
   }
 
-  /**
-   * Initialize search input filtering
-   * Replaces: onkeyup="filterTable(this, table_id)"
-   */
-  function initSearchFiltering() {
+/**
+ * Initialize search input filtering
+ * Replaces: onkeyup="filterTable(this, table_id)"
+ */
+function initSearchFiltering() {
     document.querySelectorAll('input[data-action="search"]').forEach(input => {
       input.addEventListener('keyup', function() {
         const tableId = this.dataset.tableId;
@@ -38,11 +45,11 @@
     });
   }
 
-  /**
-   * Initialize signal/risk filter buttons
-   * Replaces: onclick="filterBySignal(signal, table_id, this)"
-   */
-  function initSignalFilters() {
+/**
+ * Initialize signal/risk filter buttons
+ * Replaces: onclick="filterBySignal(signal, table_id, this)"
+ */
+function initSignalFilters() {
     document.querySelectorAll('button[data-action="filter-signal"]').forEach(button => {
       button.addEventListener('click', function() {
         const signal = this.dataset.signal;
@@ -52,11 +59,11 @@
     });
   }
 
-  /**
-   * Initialize stock pattern filter buttons (breeder-specific)
-   * Replaces: onclick="filterByStockPattern(pattern, table_id, this)"
-   */
-  function initStockPatternFilters() {
+/**
+ * Initialize stock pattern filter buttons (breeder-specific)
+ * Replaces: onclick="filterByStockPattern(pattern, table_id, this)"
+ */
+function initStockPatternFilters() {
     document.querySelectorAll('button[data-action="filter-stock-pattern"]').forEach(button => {
       button.addEventListener('click', function() {
         const pattern = this.dataset.stockPattern;
@@ -66,11 +73,11 @@
     });
   }
 
-  /**
-   * Initialize advanced filters toggle button
-   * Replaces: onclick="toggleAdvancedFilters(content_id, this)"
-   */
-  function initAdvancedFiltersToggle() {
+/**
+ * Initialize advanced filters toggle button
+ * Replaces: onclick="toggleAdvancedFilters(content_id, this)"
+ */
+function initAdvancedFiltersToggle() {
     document.querySelectorAll('button[data-action="toggle-filters"]').forEach(button => {
       button.addEventListener('click', function() {
         const contentId = this.dataset.contentId;
@@ -79,11 +86,11 @@
     });
   }
 
-  /**
-   * Initialize price range sliders
-   * Replaces: oninput="filterByPrice(table_id)"
-   */
-  function initPriceSliders() {
+/**
+ * Initialize price range sliders
+ * Replaces: oninput="filterByPrice(table_id)"
+ */
+function initPriceSliders() {
     document.querySelectorAll('input[data-filter="price"]').forEach(slider => {
       slider.addEventListener('input', function() {
         const tableId = this.dataset.tableId;
@@ -92,11 +99,11 @@
     });
   }
 
-  /**
-   * Initialize wishlist range sliders
-   * Replaces: oninput="filterByWishlist(table_id)"
-   */
-  function initWishlistSliders() {
+/**
+ * Initialize wishlist range sliders
+ * Replaces: oninput="filterByWishlist(table_id)"
+ */
+function initWishlistSliders() {
     document.querySelectorAll('input[data-filter="wishlist"]').forEach(slider => {
       slider.addEventListener('input', function() {
         const tableId = this.dataset.tableId;
@@ -105,24 +112,22 @@
     });
   }
 
-  /**
-   * Initialize all table interactions
-   */
-  function init() {
-    initTableSorting();
-    initSearchFiltering();
-    initSignalFilters();
-    initStockPatternFilters();
-   initAdvancedFiltersToggle();
-    initPriceSliders();
-    initWishlistSliders();
-  }
+/**
+ * Initialize all table interactions
+ */
+function init() {
+  initTableSorting();
+  initSearchFiltering();
+  initSignalFilters();
+  initStockPatternFilters();
+  initAdvancedFiltersToggle();
+  initPriceSliders();
+  initWishlistSliders();
+}
 
-  // Initialize when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-
-})();
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}

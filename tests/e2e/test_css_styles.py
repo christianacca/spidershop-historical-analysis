@@ -136,14 +136,14 @@ def test_snapshot_history_pages_have_no_signal_filter_buttons(e2e_site_minimal) 
     
     # If container exists, check it doesn't have signal filter buttons (might have other controls)
     if signal_buttons_count > 0:
-        # Check specifically for signal/risk filter buttons (have data-signal or similar)
-        signal_filters = page.locator('.filter-btn[onclick*="filterBySignal"]')
+        # Check specifically for signal/risk filter buttons (have data-action="filter-signal")
+        signal_filters = page.locator('.filter-btn[data-action="filter-signal"]')
         assert signal_filters.count() == 0, "Snapshot page should NOT have signal filter buttons"
     
     # Test history page
     page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
     
-    signal_filters = page.locator('.filter-btn[onclick*="filterBySignal"]')
+    signal_filters = page.locator('.filter-btn[data-action="filter-signal"]')
     assert signal_filters.count() == 0, "History page should NOT have signal filter buttons"
 
 
