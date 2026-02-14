@@ -8,10 +8,6 @@
     <h2>{{ page_title }}</h2>
     <p>{{ description }}</p>
     
-    <div class="download-links">
-        <a href="{{ csv_filename }}" download>⬇️ Download CSV</a>
-    </div>
-    
     {% if top_10_headers and top_10_rows %}
     <h3>Top 10</h3>
     <div style="overflow-x: auto;">
@@ -24,20 +20,57 @@
     
     {% if headers and rows %}
     <h3>Full Data Table</h3>
+    
+    <div class="action-buttons">
+        <a href="{{ csv_filename }}" download class="btn btn-download">⬇️ Download CSV</a>
+        {% if search_filter %}
+        <button class="btn btn-filters" onclick="toggleAdvancedFilters('advanced-filters-{{ table_id }}', this)">
+            <span class="arrow">▶</span>
+            <span>More Filters</span>
+            <span class="filter-badge hidden" id="filterBadge-{{ table_id }}">0</span>
+        </button>
+        {% endif %}
+    </div>
+    
     {% if search_filter %}
     <div class="advanced-filters">
         <div id="advanced-filters-{{ table_id }}" class="advanced-filters-content">
+            <div class="filter-row">
+                <strong>💷 Price Range:</strong>
+                <div class="slider-container">
+                    <input type="range" min="{{ price_min }}" max="{{ price_max }}" value="{{ price_max }}" class="slider" id="priceMax" oninput="filterByPrice('{{ table_id }}')">
+                    <div class="slider-values">
+                        <span>£{{ price_min }}</span>
+                        <span>£{{ price_max }}</span>
+                    </div>
+                    <div class="slider-current" id="priceDisplay">Showing: £{{ price_min }} - £{{ price_max }}</div>
+                </div>
+            </div>
+            <div class="filter-row">
+                <strong>💚 Wishlist Count:</strong>
+                <div class="slider-container">
+                    <input type="range" min="{{ wishlist_min }}" max="{{ wishlist_max }}" value="{{ wishlist_max }}" class="slider" id="wishlistMax" oninput="filterByWishlist('{{ table_id }}')">
+                    <div class="slider-values">
+                        <span>{{ wishlist_min }}</span>
+                        <span>{{ wishlist_max }}</span>
+                    </div>
+                    <div class="slider-current" id="wishlistDisplay">Showing: {{ wishlist_min }} - {{ wishlist_max }}</div>
+                </div>
+            </div>
             {{ macros.search_filter(table_id=table_id) }}
         </div>
     </div>
     {% endif %}
+    
+    <div class="table-stats">
+        <strong>Showing:</strong> <span id="visible-count-{{ table_id }}">{{ rows|length }}</span> of {{ rows|length }} species
+    </div>
     
     <div style="overflow-x: auto;">
         {% with headers=headers, rows=rows, signal_col_idx=signal_col_idx, stock_pattern_col_idx=stock_pattern_col_idx, page_url_idx=page_url_idx, scientific_name_idx=scientific_name_idx, sortable=sortable, table_id=table_id %}
         {% include 'table.html' %}
         {% endwith %}
     </div>
-    <p style="margin-top: 15px; color: #666;"><strong>Total rows:</strong> {{ rows|length }}</p>
     {% else %}
     <div class="info-box">
         <p>No data available yet. Please check back after the next scrape run.</p>

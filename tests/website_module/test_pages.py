@@ -172,20 +172,19 @@ class TestGenerateSnapshotPage:
         """Should include download link for CSV file."""
         from conftest import temp_csv_file
         
-        csv_content = "Col\n"
-        with temp_csv_file(csv_content) as temp_path:
-            filename = os.path.basename(temp_path)
+        csv_content = "Name,Price\nSpecies A,25.00\n"  # Include proper CSV with header and data
+        with temp_csv_file(csv_content) as filename:
             config = page_config.snapshot(filename).with_title("Test").with_description("Desc").build()
             html = generate_snapshot_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
-            # Find download link
-            download_links = soup.find_all('a', href=filename)
-            assert len(download_links) >= 1
+            # Find download link (now uses btn-download class)
+            download_links = soup.find_all('a', class_='btn-download')
+            assert len(download_links) >= 1, "Should have at least one download link with btn-download class"
             
             # Check for "Download CSV" text
             link_texts = [link.text for link in download_links]
-            assert any('Download CSV' in text for text in link_texts)
+            assert any('Download CSV' in text for text in link_texts), "Download link should contain 'Download CSV' text"
 
     def test_includes_search_filter_when_enabled(self):
         """Should include search filter when search_filter=True."""
@@ -202,6 +201,34 @@ class TestGenerateSnapshotPage:
             assert search_input is not None
             assert 'oninput' in search_input.attrs or 'onkeyup' in search_input.attrs
             assert 'filterTable' in html
+
+    def test_includes_advanced_filters_toggle_when_search_enabled(self):
+        """Should include 'More Filters' toggle button when search_filter=True."""
+        from conftest import temp_csv_file
+        
+        csv_content = "Col\nVal\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.snapshot(filename).with_description("Desc").with_title("Test").with_search(True).build()
+            html = generate_snapshot_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Find toggle button (now uses btn-filters class)
+            toggle_button = soup.find('button', class_='btn-filters')
+            assert toggle_button is not None, "Toggle button should exist when search is enabled"
+            
+            # Verify button structure
+            assert 'onclick' in toggle_button.attrs, "Toggle button should have onclick handler"
+            assert 'toggleAdvancedFilters' in toggle_button.attrs['onclick'], "Should call toggleAdvancedFilters function"
+            
+            # Verify button contains arrow and text
+            assert toggle_button.find('span', class_='arrow') is not None, "Should have arrow span"
+            button_text = toggle_button.get_text()
+            assert 'More Filters' in button_text or 'Filters' in button_text, "Should have filter button text"
+            
+            # Verify advanced filters container exists
+            advanced_filters = soup.find('div', class_='advanced-filters-content')
+            assert advanced_filters is not None, "Advanced filters container should exist"
+            assert 'id' in advanced_filters.attrs, "Advanced filters should have ID for toggle reference"
 
     def test_omits_search_filter_when_disabled(self):
         """Should omit search filter when search_filter=False."""
@@ -241,10 +268,103 @@ class TestGenerateSnapshotPage:
             # Verify data content
             assert soup.find(string='Species A') is not None
             assert soup.find(string='25.00') is not None
+
+    def test_action_buttons_container_with_download_and_filter_buttons(self):
+        """Should have action-buttons container with download and filter buttons side by side."""
+        csv_content = "Name,Price\nSpecies A,25.00\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.snapshot(filename) \
+                .with_title("Test") \
+                .with_description("Desc") \
+                .with_search(True) \
+                .build()
+            html = generate_snapshot_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
             
-            # Check for row count
-            assert 'Total rows:' in html
-            assert '2' in html
+            # Find action-buttons container
+            action_buttons = soup.find('div', class_='action-buttons')
+            assert action_buttons is not None, "Should have action-buttons container"
+            
+            # Check download button
+            download_link = action_buttons.find('a', class_='btn-download')
+            assert download_link is not None, "Should have download button with btn-download class"
+            assert 'Download CSV' in download_link.text, "Download button should have text"
+            assert download_link.has_attr('download'), "Download button should have download attribute"
+            assert download_link.has_attr('href'), "Download button should have href"
+            
+            # Check filter button
+            filter_button = action_buttons.find('button', class_='btn-filters')
+            assert filter_button is not None, "Should have filter button with btn-filters class"
+            assert 'More Filters' in filter_button.text or 'Filters' in filter_button.text, "Filter button should have text"
+            assert filter_button.has_attr('onclick'), "Filter button should have onclick handler"
+            assert 'toggleAdvancedFilters' in filter_button['onclick'], "Filter button should call toggleAdvancedFilters"
+            
+            # Verify both buttons are direct children of action-buttons container
+            direct_children = [child for child in action_buttons.children if child.name in ['a', 'button']]
+            assert len(direct_children) == 2, "Should have exactly 2 button elements as direct children"
+
+    def test_action_buttons_omits_filter_button_when_search_disabled(self):
+        """Should only show download button when search is disabled."""
+        csv_content = "Name,Price\nSpecies A,25.00\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.snapshot(filename) \
+                .with_title("Test") \
+                .with_description("Desc") \
+                .with_search(False) \
+                .build()
+            html = generate_snapshot_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Download button should exist
+            download_link = soup.find('a', class_='btn-download')
+            assert download_link is not None, "Should have download button"
+            
+            # Filter button should NOT exist
+            filter_button = soup.find('button', class_='btn-filters')
+            assert filter_button is None, "Should NOT have filter button when search disabled"
+
+    def test_table_stats_strip_shows_species_count(self):
+        """Should show 'Showing: x of x species' strip above table."""
+        csv_content = "Name,Price\nSpecies A,25.00\nSpecies B,30.00\nSpecies C,15.00\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.snapshot(filename) \
+                .with_title("Test") \
+                .with_description("Desc") \
+                .build()
+            html = generate_snapshot_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Find table-stats strip
+            stats_strip = soup.find('div', class_='table-stats')
+            assert stats_strip is not None, "Should have table-stats strip"
+            
+            # Check for "Showing:" text
+            assert 'Showing:' in stats_strip.text, "Stats strip should contain 'Showing:' text"
+            
+            # Check for visible count span
+            visible_count_span = stats_strip.find('span', id='visible-count-snapshot-table')
+            assert visible_count_span is not None, "Should have visible-count span with table-id in ID"
+            assert visible_count_span.text == '3', "Visible count should equal total rows initially"
+            
+            # Check for total count
+            assert 'of 3 species' in stats_strip.text, "Should show total species count"
+
+    def test_table_stats_strip_exists_even_when_search_disabled(self):
+        """Should show stats strip regardless of search filter setting."""
+        csv_content = "Name,Price\nSpecies A,25.00\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.snapshot(filename) \
+                .with_title("Test") \
+                .with_description("Desc") \
+                .with_search(False) \
+                .build()
+            html = generate_snapshot_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Stats strip should exist even without search
+            stats_strip = soup.find('div', class_='table-stats')
+            assert stats_strip is not None, "Should have stats strip even when search disabled"
+            assert 'Showing:' in stats_strip.text, "Should show species count"
 
     def test_handles_nonexistent_csv_file(self):
         """Should show 'no data' message for nonexistent file."""
@@ -524,3 +644,359 @@ class TestPageConfig:
         assert "Examples content" in html
 
 
+class TestWishlistRangeCalculation:
+    """Test suite for dynamic wishlist range calculation in snapshot page."""
+
+    def test_wishlist_range_calculated_from_csv_data(self, tmp_path):
+        """Should calculate wishlist min/max from actual CSV data."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Aphonopelma seemanni,Costa Rican Zebra,1.5,8.99,5,http://example.com\n"
+        csv_content += "2026-01-01,Brachypelma hamorii,Mexican Red Knee,2.0,12.50,15,http://example.com\n"
+        csv_content += "2026-01-01,Chromatopelma cyaneopubescens,GBB,1.0,10.00,8,http://example.com\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # Verify wishlist slider has correct min/max from data (5, 15)
+        assert 'min="5"' in html, "Expected min='5' based on CSV data"
+        assert 'max="15"' in html, "Expected max='15' based on CSV data"
+        assert 'value="15"' in html, "Expected slider to initialize at max value"
+        
+        # Verify display shows correct range
+        assert "Showing: 5 - 15" in html, "Expected display to show '5 - 15'"
+
+    def test_wishlist_range_uses_defaults_when_column_missing(self, tmp_path):
+        """Should use default range when wishlist_count column is missing."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        # Old CSV format without wishlist_count
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,page_url\n"
+        csv_content += "2026-01-01,Aphonopelma seemanni,Costa Rican Zebra,1.5,8.99,http://example.com\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # Verify falls back to defaults (0, 300)
+        assert 'min="0"' in html, "Expected min='0' as default"
+        assert 'max="300"' in html, "Expected max='300' as default"
+
+    def test_wishlist_range_handles_empty_csv(self, tmp_path):
+        """Should show 'no data' message when CSV has no data rows."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        # Header only, no data
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # When no data, page shows info message instead of table/filters
+        assert "No data available" in html
+        assert "snapshot-table" not in html
+
+    def test_wishlist_range_handles_invalid_values(self, tmp_path):
+        """Should skip invalid wishlist values and use valid ones."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Species A,Common A,1.5,8.99,3,http://example.com\n"
+        csv_content += "2026-01-01,Species B,Common B,2.0,12.50,invalid,http://example.com\n"  # Invalid
+        csv_content += "2026-01-01,Species C,Common C,1.0,10.00,20,http://example.com\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # Should use valid values only (3, 20)
+        assert 'min="3"' in html
+        assert 'max="20"' in html
+
+    def test_wishlist_range_with_single_value(self, tmp_path):
+        """Should handle CSV with only one row correctly."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Aphonopelma seemanni,Costa Rican Zebra,1.5,8.99,42,http://example.com\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # Min and max should both be 42
+        assert 'min="42"' in html
+        assert 'max="42"' in html
+        assert 'value="42"' in html
+
+    def test_wishlist_range_with_zero_values(self, tmp_path):
+        """Should correctly handle zero wishlist counts."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Species A,Common A,1.5,8.99,0,http://example.com\n"
+        csv_content += "2026-01-01,Species B,Common B,2.0,12.50,5,http://example.com\n"
+        csv_content += "2026-01-01,Species C,Common C,1.0,10.00,0,http://example.com\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # Should correctly identify 0 as minimum
+        assert 'min="0"' in html
+        assert 'max="5"' in html
+
+
+class TestPriceRangeCalculation:
+    """Test suite for dynamic price range calculation in snapshot page."""
+
+    def test_price_range_calculated_from_csv_data(self, tmp_path):
+        """Should calculate price min/max from actual CSV data."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Aphonopelma seemanni,Costa Rican Zebra,1.5,£8.99,5,http://example.com\n"
+        csv_content += "2026-01-01,Brachypelma hamorii,Mexican Red Knee,2.0,£25.50,15,http://example.com\n"
+        csv_content += "2026-01-01,Chromatopelma cyaneopubescens,GBB,1.0,£12.00,8,http://example.com\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # Verify price slider has correct min/max from data (8, 26 - rounded up)
+        assert 'min="8"' in html, "Expected min='8' based on CSV data"
+        assert 'max="26"' in html, "Expected max='26' based on CSV data (25.50 rounded up + 1)"
+        assert 'value="26"' in html, "Expected slider to initialize at max value"
+        
+        # Verify display shows correct range
+        assert "Showing: £8 - £26" in html, "Expected display to show '£8 - £26'"
+
+    def test_price_range_uses_defaults_when_column_missing(self, tmp_path):
+        """Should use default range when price_gbp column is missing."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        # CSV format without price_gbp
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Aphonopelma seemanni,Costa Rican Zebra,1.5,5,http://example.com\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # Verify falls back to defaults (5, 400)
+        assert 'min="5"' in html, "Expected min='5' as default"
+        assert 'max="400"' in html, "Expected max='400' as default"
+
+    def test_price_range_handles_empty_csv(self, tmp_path):
+        """Should show 'no data' message when CSV has no data rows."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        # Header only, no data
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # When no data, page shows info message instead of table/filters
+        assert "No data available" in html
+        assert "snapshot-table" not in html
+
+    def test_price_range_handles_invalid_values(self, tmp_path):
+        """Should skip invalid price values and use valid ones."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Species A,Common A,1.5,£10.50,3,http://example.com\n"
+        csv_content += "2026-01-01,Species B,Common B,2.0,invalid,5,http://example.com\n"  # Invalid
+        csv_content += "2026-01-01,Species C,Common C,1.0,£45.99,20,http://example.com\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # Should use valid values only (10, 46)
+        assert 'min="10"' in html
+        assert 'max="46"' in html
+
+    def test_price_range_with_single_value(self, tmp_path):
+        """Should handle CSV with only one row correctly."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Aphonopelma seemanni,Costa Rican Zebra,1.5,£15.99,42,http://example.com\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # Min should be 15, max should be 16 (15.99 -> 15, then +1)
+        assert 'min="15"' in html
+        assert 'max="16"' in html
+        assert 'value="16"' in html
+
+    def test_price_range_with_decimal_prices(self, tmp_path):
+        """Should correctly handle decimal prices and round appropriately."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Species A,Common A,1.5,£7.50,0,http://example.com\n"
+        csv_content += "2026-01-01,Species B,Common B,2.0,£12.99,5,http://example.com\n"
+        csv_content += "2026-01-01,Species C,Common C,1.0,£22.75,0,http://example.com\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # Min should be 7 (floor), max should be 23 (floor of 22.75 + 1)
+        assert 'min="7"' in html
+        assert 'max="23"' in html
+
+    def test_price_range_handles_prices_without_pound_symbol(self, tmp_path):
+        """Should handle prices that don't have £ symbol."""
+        from website.page_config import BasePageConfig
+        
+        csv_file = tmp_path / "snapshot.csv"
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Species A,Common A,1.5,10.00,5,http://example.com\n"
+        csv_content += "2026-01-01,Species B,Common B,2.0,30.50,8,http://example.com\n"
+        csv_file.write_text(csv_content)
+        
+        os.chdir(tmp_path)
+        
+        config = BasePageConfig(
+            title="Snapshot",
+            description="Current scrape",
+            csv_filename="snapshot.csv",
+            table_id="snapshot-table",
+            active_page="snapshot"
+        )
+        
+        html = generate_snapshot_page(config=config)
+        
+        # Should correctly parse prices without £ symbol
+        assert 'min="10"' in html
+        assert 'max="31"' in html

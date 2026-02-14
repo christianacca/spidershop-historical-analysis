@@ -344,3 +344,146 @@ def test_advanced_filters_toggle_expand_collapse(e2e_site_multi_species) -> None
     has_show_finally = "show" in final_classes
     
     assert has_show_finally == initially_expanded, "Expected toggle to return to initial state"
+
+@pytest.mark.e2e
+def test_snapshot_page_advanced_filters_toggle(e2e_site_multi_species) -> None:
+    """Verify 'More Filters' toggle works on snapshot page."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
+    
+    # Verify toggle button exists (snapshot page uses .btn-filters)
+    toggle_button = page.locator(".btn-filters")
+    assert toggle_button.is_visible(), "Toggle button should be visible on snapshot page"
+    
+    # Verify filter content container exists
+    content_div = page.locator(".advanced-filters-content")
+    assert content_div.count() > 0, "Advanced filters content container should exist"
+    
+    # Initially should be collapsed (no 'show' class)
+    initial_classes = content_div.get_attribute("class").split()
+    initially_expanded = "show" in initial_classes
+    
+    # Click to expand
+    toggle_button.click()
+    page.wait_for_timeout(200)
+    
+    # Verify expanded
+    after_click_classes = content_div.get_attribute("class").split()
+    has_show_after_click = "show" in after_click_classes
+    assert has_show_after_click != initially_expanded, "Expected toggle to change expanded state"
+    
+    # Verify arrow rotation (button should have 'expanded' class)
+    toggle_classes = toggle_button.get_attribute("class").split()
+    button_expanded = "expanded" in toggle_classes
+    assert button_expanded == has_show_after_click, "Toggle button should have 'expanded' class when content is shown"
+    
+    # Verify search input is now accessible
+    search_input = page.locator("input[type='text']")
+    assert search_input.is_visible(), "Search input should be visible when filters expanded"
+    
+    # Click again to collapse
+    toggle_button.click()
+    page.wait_for_timeout(200)
+    
+    # Verify collapsed
+    final_classes = content_div.get_attribute("class").split()
+    has_show_finally = "show" in final_classes
+    assert has_show_finally == initially_expanded, "Expected toggle to return to initial state"
+
+
+@pytest.mark.e2e
+def test_snapshot_filter_badge_updates_with_search(e2e_site_multi_species) -> None:
+    """Snapshot page should show filter count badge when search is active."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
+    
+    # Badge should be hidden by default
+    badge = page.locator(".filter-badge")
+    assert badge.count() == 1, "Badge element should exist on snapshot page"
+    assert not badge.is_visible(), "Badge should be hidden when no filters active"
+    
+    # Expand filters (snapshot page uses .btn-filters)
+    toggle_button = page.locator(".btn-filters")
+    toggle_button.click()
+    page.wait_for_timeout(200)
+    
+    # Type in search box
+    search_input = page.locator("#search-snapshot-table")
+    search_input.type("hamorii")
+    page.wait_for_timeout(200)
+    
+    # Badge should appear with count "1"
+    assert badge.is_visible(), "Badge should be visible when search active"
+    assert badge.text_content() == "1", "Badge should show '1' for one active filter"
+    
+    # Clear search
+    search_input.fill("")
+    search_input.dispatch_event("keyup")
+    page.wait_for_timeout(200)
+    
+    # Badge should hide again
+    assert not badge.is_visible(), "Badge should hide when filters cleared"
+
+
+@pytest.mark.e2e
+def test_snapshot_stats_strip_updates_count_when_filtered(e2e_site_multi_species) -> None:
+    """Snapshot page stats strip should update visible count when filters are applied."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
+    
+    # Get initial count from stats strip
+    stats_strip = page.locator(".table-stats")
+    assert stats_strip.count() == 1, "Should have stats strip"
+    
+    visible_count_span = page.locator("#visible-count-snapshot-table")
+    assert visible_count_span.count() == 1, "Should have visible count span"
+    
+    initial_text = stats_strip.text_content()
+    assert "Showing:" in initial_text, "Should show 'Showing:' text"
+    
+    # Get total count (should match initial visible count)
+    # Pattern: "Showing: X of Y species"
+    import re
+    match = re.search(r'Showing:\s*(\d+)\s*of\s*(\d+)\s*species', initial_text)
+    assert match, f"Should match pattern, got: {initial_text}"
+    initial_visible = int(match.group(1))
+    total_count = int(match.group(2))
+    assert initial_visible == total_count, "Initially all rows should be visible"
+    assert total_count > 1, "Should have multiple species for meaningful test"
+    
+    # Expand advanced filters
+    toggle_button = page.locator(".btn-filters")
+    toggle_button.click()
+    page.wait_for_timeout(200)
+    
+    # Apply search filter that will reduce visible rows
+    search_input = page.locator("#search-snapshot-table")
+    search_input.type("hamorii")  # Should match only specific species
+    page.wait_for_timeout(300)  # Give time for filtering to complete
+    
+    # Check that visible count has decreased
+    filtered_text = stats_strip.text_content()
+    filtered_match = re.search(r'Showing:\s*(\d+)\s*of\s*(\d+)\s*species', filtered_text)
+    assert filtered_match, f"Should still match pattern after filtering, got: {filtered_text}"
+    filtered_visible = int(filtered_match.group(1))
+    filtered_total = int(filtered_match.group(2))
+    
+    assert filtered_visible < total_count, f"Visible count should decrease after filtering, got {filtered_visible} vs {total_count}"
+    assert filtered_total == total_count, "Total count should remain unchanged"
+    assert filtered_visible >= 1, "Should have at least one matching species"
+    
+    # Clear the filter
+    search_input.fill("")
+    search_input.dispatch_event("keyup")
+    page.wait_for_timeout(300)
+    
+    # Verify count returns to original
+    final_text = stats_strip.text_content()
+    final_match = re.search(r'Showing:\s*(\d+)\s*of\s*(\d+)\s*species', final_text)
+    assert final_match, f"Should match pattern after clearing, got: {final_text}"
+    final_visible = int(final_match.group(1))
+    
+    assert final_visible == total_count, f"Count should return to original after clearing filter, got {final_visible} vs {total_count}"

@@ -20,6 +20,11 @@ body {
     padding: 20px;
 }
 
+/* Utility Classes */
+.hidden {
+    display: none !important;
+}
+
 /* Header */
 header {
     background: #2c3e50;
@@ -196,18 +201,7 @@ h3 {
 }
 
 .download-links a {
-    display: inline-block;
-    background: #3498db;
-    color: white;
-    padding: 10px 20px;
     margin: 5px 10px 5px 0;
-    border-radius: 5px;
-    text-decoration: none;
-    transition: background 0.3s;
-}
-
-.download-links a:hover {
-    background: #2980b9;
 }
 
 /* Homepage Card Grid */
@@ -296,6 +290,132 @@ footer a:hover {
     margin-bottom: 20px;
 }
 
+/* Action Buttons Container (Download + Filter buttons side by side) */
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0 15px 0;
+    flex-wrap: wrap;
+}
+
+/* Base button style */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+/* Primary button variant (blue) - for standard actions */
+.btn-primary {
+    background: #3498db;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2980b9;
+}
+
+/* Success button variant (green) - for download actions */
+.btn-success,
+.btn-download {
+    background: #27ae60;
+    color: white;
+}
+
+.btn-success:hover,
+.btn-download:hover {
+    background: #229954;
+}
+
+/* Secondary button variant (gray outline) - for less prominent actions */
+.btn-secondary {
+    background: #f8f9fa;
+    border: 2px solid #ddd;
+    color: #495057;
+    padding: 8px 16px; /* Slightly smaller padding for secondary actions */
+}
+
+.btn-secondary:hover {
+    background: #e9ecef;
+    border-color: #3498db;
+}
+
+/* Filters button - extends primary button style */
+.btn-filters {
+    background: #3498db;
+    color: white;
+}
+
+.btn-filters:hover {
+    background: #2980b9;
+}
+
+.btn-filters .arrow {
+    transition: transform 0.2s;
+    font-size: 0.8rem;
+}
+
+.btn-filters.expanded .arrow {
+    transform: rotate(90deg);
+}
+
+/* Table stats strip */
+.table-stats {
+    background: #e8f4f8;
+    padding: 12px 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    color: #2c3e50;
+    font-size: 0.95rem;
+}
+
+/* Advanced Filters Toggle Button - uses secondary button style with specific enhancements */
+.advanced-filters-toggle {
+    margin-bottom: 10px;
+}
+
+.advanced-filters-toggle:hover {
+    background: #e9ecef;
+    border-color: #3498db;
+}
+
+.advanced-filters-toggle .arrow {
+    transition: transform 0.2s;
+    font-size: 0.8rem;
+}
+
+.advanced-filters-toggle.expanded .arrow {
+    transform: rotate(90deg);
+}
+
+/* Filter badge indicator */
+.filter-badge {
+    display: inline-block;
+    background: #e74c3c;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: bold;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.filter-badge.hidden {
+    display: none;
+}
+
 .advanced-filters-content {
     display: none;
     padding: 15px;
@@ -322,6 +442,59 @@ footer a:hover {
     margin-right: 10px;
     display: block;
     margin-bottom: 8px;
+}
+
+/* Slider Styles */
+.slider-container {
+    padding: 10px 0;
+}
+
+.slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 8px;
+    border-radius: 5px;
+    background: #d3d3d3;
+    outline: none;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.slider:hover {
+    opacity: 1;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #3498db;
+    cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #3498db;
+    cursor: pointer;
+    border: none;
+}
+
+.slider-values {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+.slider-current {
+    margin-top: 8px;
+    color: #2c3e50;
+    font-weight: 600;
 }
 
 /* Markdown Tables */

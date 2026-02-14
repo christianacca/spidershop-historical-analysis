@@ -12,7 +12,7 @@
 #   All commands automatically activate the .venv virtual environment
 #   Ensure .venv exists and has dependencies installed first
 
-.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only clean-cache clean-artifacts clean-all test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install coverage .check-venv .check-gh
+.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only clean-cache clean-artifacts clean-all test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install coverage .check-venv .check-gh
 
 # Shell configuration
 SHELL := /bin/bash
@@ -56,6 +56,7 @@ help:
 	@echo "  make test-update-snapshots  Update all snapshots (review diffs first!)"
 	@echo "  make e2e-install            Install Playwright Chromium browser"
 	@echo "  make test-e2e               Run Playwright smoke tests (explicit)"
+	@echo "  make test-e2e-file TEST=... Run specific e2e test file or function"
 	@echo "  make test-e2e-debug         Run e2e with Playwright Inspector (PWDEBUG)"
 	@echo "  make test-e2e-headed        Run e2e with visible browser window"
 	@echo "  make test-e2e-show-trace    Open trace viewer for last e2e run"
@@ -64,6 +65,8 @@ help:
 	@echo "Examples:"
 	@echo "  make test-file FILE=tests/website_module/test_csv.py"
 	@echo "  make test-file FILE=tests/scrape_module/test_breeder_matrix.py"
+	@echo "  make test-e2e-file TEST=tests/e2e/test_snapshot_filters.py"
+	@echo "  make test-e2e-file TEST=tests/e2e/test_snapshot_filters.py::test_price_slider_exists_and_initializes_correctly"
 	@echo ""
 	@echo "Cleanup:"
 	@echo "  make clean-cache            Clear Python bytecode cache (.pyc, __pycache__)"
@@ -193,6 +196,18 @@ test-e2e: .check-venv e2e-install
 	source $(VENV)/bin/activate && cd $(TESTING_DIR) && \
 		export PYTHONPATH="$$PWD/../../src:$$PWD/../../tests:$$PYTHONPATH" && \
 		RUN_E2E=1 pytest ../../tests/e2e -m e2e -v
+
+test-e2e-file: .check-venv e2e-install
+	@if [ -z "$(TEST)" ]; then \
+		echo "❌ Please specify a test: make test-e2e-file TEST=tests/e2e/test_file.py"; \
+		echo "   Or a specific function: make test-e2e-file TEST=tests/e2e/test_file.py::test_function"; \
+		exit 1; \
+	fi
+	@echo "🧪 Running e2e test: $(TEST)"
+	@mkdir -p $(TESTING_DIR)
+	source $(VENV)/bin/activate && cd $(TESTING_DIR) && \
+		export PYTHONPATH="$$PWD/../../src:$$PWD/../../tests:$$PYTHONPATH" && \
+		RUN_E2E=1 pytest ../../$(TEST) -v
 
 test-e2e-debug: .check-venv e2e-install
 	@echo "🐛 Running e2e tests with Playwright Inspector (interactive debugger)..."

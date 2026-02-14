@@ -85,6 +85,11 @@ def create_browser_with_error_capture(
         - 'bad_responses': List of HTTP errors (4xx/5xx from local server)
     """
     browser = playwright.chromium.launch(headless=not headed, slow_mo=slow_mo)
+
+    # This is a static site served from localhost with no real async backend.
+    # Playwright's default timeout is 30s, which slows down failures when selectors
+    # are missing. Keep E2E feedback tight by using a shorter default.
+    default_timeout_ms = 5_000
     
     context_options = {}
     if video_dir:
@@ -92,12 +97,18 @@ def create_browser_with_error_capture(
         context_options["record_video_dir"] = str(video_dir)
     
     context = browser.new_context(**context_options)
+
+    context.set_default_timeout(default_timeout_ms)
+    context.set_default_navigation_timeout(default_timeout_ms)
     
     if trace_path:
         trace_path.parent.mkdir(parents=True, exist_ok=True)
         context.tracing.start(screenshots=True, snapshots=True, sources=True)
     
     page = context.new_page()
+
+    page.set_default_timeout(default_timeout_ms)
+    page.set_default_navigation_timeout(default_timeout_ms)
     
     # Error storage
     errors = {

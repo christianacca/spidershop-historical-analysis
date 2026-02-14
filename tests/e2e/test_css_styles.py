@@ -315,3 +315,105 @@ def test_header_footer_styled_consistently_all_pages(e2e_site_minimal) -> None:
         # Check footer exists
         footer = page.locator('footer')
         assert footer.count() == 1, f"{page_name} should have footer element"
+
+
+@pytest.mark.e2e
+def test_snapshot_page_has_action_buttons_container(e2e_site_minimal) -> None:
+    """Snapshot page should have action-buttons container with side-by-side layout."""
+    page, base_url, errors = e2e_site_minimal
+
+    page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
+    
+    # Find action-buttons container
+    action_buttons = page.locator('.action-buttons')
+    assert action_buttons.count() == 1, "Snapshot page should have .action-buttons container"
+    
+    # Check it uses flexbox
+    display = action_buttons.evaluate('el => window.getComputedStyle(el).display')
+    assert 'flex' in display, f"Action buttons should use flexbox layout, got {display}"
+    
+    # Check download button exists
+    download_btn = action_buttons.locator('.btn-download')
+    assert download_btn.count() == 1, "Should have download button inside action-buttons"
+    assert download_btn.is_visible(), "Download button should be visible"
+    
+    # Check filter button exists
+    filter_btn = action_buttons.locator('.btn-filters')
+    assert filter_btn.count() == 1, "Should have filter button inside action-buttons"
+    assert filter_btn.is_visible(), "Filter button should be visible"
+
+
+@pytest.mark.e2e
+def test_snapshot_page_buttons_have_correct_colors(e2e_site_minimal) -> None:
+    """Snapshot page buttons should have correct brand colors (green download, blue filter)."""
+    page, base_url, errors = e2e_site_minimal
+
+    page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
+    
+    # Check download button is green
+    download_btn = page.locator('.btn-download')
+    download_bg = download_btn.evaluate('el => window.getComputedStyle(el).backgroundColor')
+    # #27ae60 = rgb(39, 174, 96)
+    assert 'rgb(39, 174, 96)' in download_bg, f"Download button should be green, got {download_bg}"
+    
+    # Check filter button is blue
+    filter_btn = page.locator('.btn-filters')
+    filter_bg = filter_btn.evaluate('el => window.getComputedStyle(el).backgroundColor')
+    # #3498db = rgb(52, 152, 219)
+    assert 'rgb(52, 152, 219)' in filter_bg, f"Filter button should be blue, got {filter_bg}"
+
+
+@pytest.mark.e2e
+def test_snapshot_page_has_table_stats_strip(e2e_site_minimal) -> None:
+    """Snapshot page should have table-stats strip showing species count."""
+    page, base_url, errors = e2e_site_minimal
+
+    page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
+    
+    # Find table-stats strip
+    stats_strip = page.locator('.table-stats')
+    assert stats_strip.count() == 1, "Snapshot page should have .table-stats strip"
+    assert stats_strip.is_visible(), "Stats strip should be visible"
+    
+    # Check it has light blue background
+    bg_color = stats_strip.evaluate('el => window.getComputedStyle(el).backgroundColor')
+    # #e8f4f8 = rgb(232, 244, 248)
+    assert 'rgb(232, 244, 248)' in bg_color, f"Stats strip should have light blue background, got {bg_color}"
+    
+    # Check for "Showing:" text
+    stats_text = stats_strip.text_content()
+    assert 'Showing:' in stats_text, f"Stats strip should contain 'Showing:', got: {stats_text}"
+    assert 'species' in stats_text.lower(), f"Stats strip should mention 'species', got: {stats_text}"
+    
+    # Check for visible-count span
+    visible_count_span = stats_strip.locator('span[id^="visible-count"]')
+    assert visible_count_span.count() == 1, "Stats strip should have visible-count span"
+
+
+@pytest.mark.e2e
+def test_snapshot_page_stats_strip_positioned_above_table(e2e_site_minimal) -> None:
+    """Stats strip should appear directly above the data table."""
+    page, base_url, errors = e2e_site_minimal
+
+    page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
+    
+    # Get positions
+    stats_strip = page.locator('.table-stats')
+    data_table = page.locator('.data-table')
+    
+    assert stats_strip.count() == 1, "Should have stats strip"
+    assert data_table.count() >= 1, "Should have data table"
+    
+    # Get bounding boxes
+    stats_box = stats_strip.bounding_box()
+    table_box = data_table.first.bounding_box()
+    
+    assert stats_box is not None, "Stats strip should have dimensions"
+    assert table_box is not None, "Table should have dimensions"
+    
+    # Stats strip should be above the table (lower y value)
+    assert stats_box['y'] < table_box['y'], "Stats strip should appear above the table"
+    
+    # They should be relatively close (within 100px)
+    vertical_gap = table_box['y'] - (stats_box['y'] + stats_box['height'])
+    assert vertical_gap < 100, f"Stats strip and table should be close together, gap is {vertical_gap}px"
