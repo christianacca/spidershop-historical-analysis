@@ -154,29 +154,44 @@ function filterTable(searchInput, tableId) {
 }
 
 /**
- * Filter table rows by maximum price
- * Hides rows where price exceeds the slider value
+ * Filter table rows by price range
+ * Hides rows where price is outside the min-max range
  */
 function filterByPrice(tableId) {
-    const slider = document.getElementById('priceMax');
+    const minSlider = document.getElementById('priceMin');
+    const maxSlider = document.getElementById('priceMax');
     const display = document.getElementById('priceDisplay');
     const table = document.getElementById(tableId);
     
-    if (!slider || !display || !table) return;
+    if (!minSlider || !maxSlider || !display || !table) return;
     
-    const minPrice = parseFloat(slider.getAttribute('min'));
-    const maxPrice = parseFloat(slider.value);
+    // Get current values and ensure min <= max
+    let minPrice = parseFloat(minSlider.value);
+    let maxPrice = parseFloat(maxSlider.value);
+    
+    // Enforce min <= max constraint
+    if (minPrice > maxPrice) {
+        if (event && event.target === minSlider) {
+            minPrice = maxPrice;
+            minSlider.value = maxPrice;
+        } else {
+            maxPrice = minPrice;
+            maxSlider.value = minPrice;
+        }
+    }
     
     // Update display text
-    display.textContent = `Showing: £${minPrice} - £${maxPrice}`;
+    display.textContent = `Showing: £${Math.round(minPrice)} - £${Math.round(maxPrice)}`;
     
     // Get search filter value (if exists)
     const searchBox = document.getElementById('search-' + tableId);
     const searchFilter = searchBox ? searchBox.value.toLowerCase() : '';
     
-    // Get wishlist filter value (if exists)
-    const wishlistSlider = document.getElementById('wishlistMax');
-    const maxWishlist = wishlistSlider ? parseInt(wishlistSlider.value) : Infinity;
+    // Get wishlist filter values (if exists)
+    const wishlistMinSlider = document.getElementById('wishlistMin');
+    const wishlistMaxSlider = document.getElementById('wishlistMax');
+    const minWishlist = wishlistMinSlider ? parseInt(wishlistMinSlider.value) : 0;
+    const maxWishlist = wishlistMaxSlider ? parseInt(wishlistMaxSlider.value) : Infinity;
     
     // Filter rows
     const rows = table.querySelectorAll('tbody tr');
@@ -187,11 +202,11 @@ function filterByPrice(tableId) {
         const wishlistAttr = row.getAttribute('data-wishlist');
         const wishlist = wishlistAttr ? parseInt(wishlistAttr.trim()) : 0;
         
-        // Check price filter
-        const priceMatch = price <= maxPrice;
+        // Check price filter (must be within range)
+        const priceMatch = price >= minPrice && price <= maxPrice;
         
-        // Check wishlist filter
-        const wishlistMatch = wishlist <= maxWishlist;
+        // Check wishlist filter (must be within range)
+        const wishlistMatch = wishlist >= minWishlist && wishlist <= maxWishlist;
         
         // Check search filter (if active)
         const text = row.textContent.toLowerCase();
@@ -211,18 +226,31 @@ function filterByPrice(tableId) {
 }
 
 /**
- * Filter table rows by maximum wishlist count
- * Hides rows where wishlist count exceeds the slider value
+ * Filter table rows by wishlist count range
+ * Hides rows where wishlist count is outside the min-max range
  */
 function filterByWishlist(tableId) {
-    const slider = document.getElementById('wishlistMax');
+    const minSlider = document.getElementById('wishlistMin');
+    const maxSlider = document.getElementById('wishlistMax');
     const display = document.getElementById('wishlistDisplay');
     const table = document.getElementById(tableId);
     
-    if (!slider || !display || !table) return;
+    if (!minSlider || !maxSlider || !display || !table) return;
     
-    const minWishlist = parseInt(slider.getAttribute('min'));
-    const maxWishlist = parseInt(slider.value);
+    // Get current values and ensure min <= max
+    let minWishlist = parseInt(minSlider.value);
+    let maxWishlist = parseInt(maxSlider.value);
+    
+    // Enforce min <= max constraint
+    if (minWishlist > maxWishlist) {
+        if (event && event.target === minSlider) {
+            minWishlist = maxWishlist;
+            minSlider.value = maxWishlist;
+        } else {
+            maxWishlist = minWishlist;
+            maxSlider.value = minWishlist;
+        }
+    }
     
     // Update display text
     display.textContent = `Showing: ${minWishlist} - ${maxWishlist}`;
@@ -231,9 +259,11 @@ function filterByWishlist(tableId) {
     const searchBox = document.getElementById('search-' + tableId);
     const searchFilter = searchBox ? searchBox.value.toLowerCase() : '';
     
-    // Get price filter value (if exists)
-    const priceSlider = document.getElementById('priceMax');
-    const maxPrice = priceSlider ? parseFloat(priceSlider.value) : Infinity;
+    // Get price filter values (if exists)
+    const priceMinSlider = document.getElementById('priceMin');
+    const priceMaxSlider = document.getElementById('priceMax');
+    const minPrice = priceMinSlider ? parseFloat(priceMinSlider.value) : 0;
+    const maxPrice = priceMaxSlider ? parseFloat(priceMaxSlider.value) : Infinity;
     
     // Filter rows
     const rows = table.querySelectorAll('tbody tr');
@@ -244,11 +274,11 @@ function filterByWishlist(tableId) {
         const priceAttr = row.getAttribute('data-price');
         const price = priceAttr ? parseFloat(priceAttr.replace('£', '').trim()) : 0;
         
-        // Check wishlist filter
-        const wishlistMatch = wishlist <= maxWishlist;
+        // Check wishlist filter (must be within range)
+        const wishlistMatch = wishlist >= minWishlist && wishlist <= maxWishlist;
         
-        // Check price filter
-        const priceMatch = price <= maxPrice;
+        // Check price filter (must be within range)
+        const priceMatch = price >= minPrice && price <= maxPrice;
         
         // Check search filter (if active)
         const text = row.textContent.toLowerCase();
@@ -297,22 +327,28 @@ function updateFilterBadge(tableId) {
         activeFilters++;
     }
     
-    // Check price slider (active if value < max)
-    const priceSlider = document.getElementById('priceMax');
-    if (priceSlider) {
-        const maxValue = parseFloat(priceSlider.getAttribute('max'));
-        const currentValue = parseFloat(priceSlider.value);
-        if (currentValue < maxValue) {
+    // Check price range sliders (active if min > data_min OR max < data_max)
+    const priceMinSlider = document.getElementById('priceMin');
+    const priceMaxSlider = document.getElementById('priceMax');
+    if (priceMinSlider && priceMaxSlider) {
+        const dataMin = parseFloat(priceMinSlider.getAttribute('min'));
+        const dataMax = parseFloat(priceMaxSlider.getAttribute('max'));
+        const currentMin = parseFloat(priceMinSlider.value);
+        const currentMax = parseFloat(priceMaxSlider.value);
+        if (currentMin > dataMin || currentMax < dataMax) {
             activeFilters++;
         }
     }
     
-    // Check wishlist slider (active if value < max)
-    const wishlistSlider = document.getElementById('wishlistMax');
-    if (wishlistSlider) {
-        const maxValue = parseInt(wishlistSlider.getAttribute('max'));
-        const currentValue = parseInt(wishlistSlider.value);
-        if (currentValue < maxValue) {
+    // Check wishlist range sliders (active if min > data_min OR max < data_max)
+    const wishlistMinSlider = document.getElementById('wishlistMin');
+    const wishlistMaxSlider = document.getElementById('wishlistMax');
+    if (wishlistMinSlider && wishlistMaxSlider) {
+        const dataMin = parseInt(wishlistMinSlider.getAttribute('min'));
+        const dataMax = parseInt(wishlistMaxSlider.getAttribute('max'));
+        const currentMin = parseInt(wishlistMinSlider.value);
+        const currentMax = parseInt(wishlistMaxSlider.value);
+        if (currentMin > dataMin || currentMax < dataMax) {
             activeFilters++;
         }
     }

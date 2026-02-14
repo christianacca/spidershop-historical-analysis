@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""E2E tests for snapshot page price range slider filter.
+"""E2E tests for snapshot page dual-handle range slider filters.
 
 Scope:
-- Price range slider (max value) filtering
-- Price display updates as slider moves
-- Filter badge increments when slider is active
+- Price range sliders (min and max handles) filtering
+- Wishlist count range sliders (min and max handles) filtering
+- Display text updates as sliders move
+- Filter badge increments when sliders are active (both min and max)
+- Filter badge counts dual sliders as ONE filter (not two)
 - Visible count updates ("Showing X of Y species")
+- Min/max constraint enforcement (min cannot exceed max)
 - Integration with existing search filter (AND logic)
 
 What's NOT tested here:
-- Wishlist count slider (future feature)
-- Size checkboxes (future feature)
 - Basic page loads (see test_navigation_and_page_loads.py)
 - Table sorting (see test_table_interactions.py)
 """
@@ -24,7 +25,7 @@ from e2e.fixtures import e2e_site_multi_species
 
 @pytest.mark.e2e
 def test_price_slider_exists_and_initializes_correctly(e2e_site_multi_species) -> None:
-    """Verify price slider renders with correct initial state derived from data."""
+    """Verify price sliders (min and max) render with correct initial state derived from data."""
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
@@ -34,38 +35,43 @@ def test_price_slider_exists_and_initializes_correctly(e2e_site_multi_species) -
     toggle_button.click()
     page.wait_for_timeout(200)
     
-    # Verify slider exists
-    price_slider = page.locator("#priceMax")
-    assert price_slider.is_visible(), "Price slider should be visible after expanding filters"
+    # Verify both sliders exist
+    price_min_slider = page.locator("#priceMin")
+    price_max_slider = page.locator("#priceMax")
+    assert price_min_slider.is_visible(), "Price min slider should be visible after expanding filters"
+    assert price_max_slider.is_visible(), "Price max slider should be visible after expanding filters"
     
-    # Get actual min/max values from slider (should be derived from CSV data)
-    min_value = price_slider.get_attribute("min")
-    max_value = price_slider.get_attribute("max")
-    initial_value = price_slider.get_attribute("value")
+    # Get actual min/max values from sliders (should be derived from CSV data)
+    data_min = price_min_slider.get_attribute("min")
+    data_max = price_max_slider.get_attribute("max")
+    min_initial_value = price_min_slider.get_attribute("value")
+    max_initial_value = price_max_slider.get_attribute("value")
     
-    # Verify initial value equals max (slider starts at max)
-    assert initial_value == max_value, \
-        f"Expected price slider initial value to be '{max_value}', got '{initial_value}'"
+    # Verify initial values (min slider starts at min, max slider starts at max)
+    assert min_initial_value == data_min, \
+        f"Expected price min slider initial value to be '{data_min}', got '{min_initial_value}'"
+    assert max_initial_value == data_max, \
+        f"Expected price max slider initial value to be '{data_max}', got '{max_initial_value}'"
     
     # Verify min is a valid number
-    assert min_value is not None and min_value.replace('.', '', 1).isdigit(), \
-        f"Expected min to be a valid number, got '{min_value}'"
+    assert data_min is not None and data_min.replace('.', '', 1).isdigit(), \
+        f"Expected min to be a valid number, got '{data_min}'"
     
     # Verify max is a valid number
-    assert max_value is not None and max_value.replace('.', '', 1).isdigit(), \
-        f"Expected max to be a valid number, got '{max_value}'"
+    assert data_max is not None and data_max.replace('.', '', 1).isdigit(), \
+        f"Expected max to be a valid number, got '{data_max}'"
     
     # Verify price display shows initial range
     price_display = page.locator("#priceDisplay")
     assert price_display.is_visible(), "Price display should be visible"
     display_text = price_display.text_content()
-    assert f"£{min_value}" in display_text and f"£{max_value}" in display_text, \
-        f"Expected price display to show '£{min_value} - £{max_value}', got '{display_text}'"
+    assert f"£{data_min}" in display_text and f"£{data_max}" in display_text, \
+        f"Expected price display to show '£{data_min} - £{data_max}', got '{display_text}'"
 
 
 @pytest.mark.e2e
 def test_price_slider_filters_rows_correctly(e2e_site_multi_species) -> None:
-    """Verify moving price slider hides rows above the selected price."""
+    """Verify moving price max slider hides rows above the selected price."""
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
@@ -79,9 +85,9 @@ def test_price_slider_filters_rows_correctly(e2e_site_multi_species) -> None:
     toggle_button.click()
     page.wait_for_timeout(200)
     
-    # Set slider to £30
-    price_slider = page.locator("#priceMax")
-    price_slider.fill("30")  # Playwright's fill() triggers the oninput event
+    # Set max slider to £30
+    price_max_slider = page.locator("#priceMax")
+    price_max_slider.fill("30")  # Playwright's fill() triggers the oninput event
     page.wait_for_timeout(200)
     
     # Verify some rows are hidden
@@ -104,7 +110,7 @@ def test_price_slider_filters_rows_correctly(e2e_site_multi_species) -> None:
 
 @pytest.mark.e2e
 def test_price_slider_updates_display_text(e2e_site_multi_species) -> None:
-    """Verify price display updates as slider moves."""
+    """Verify price display updates as both sliders move."""
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
@@ -115,30 +121,31 @@ def test_price_slider_updates_display_text(e2e_site_multi_species) -> None:
     page.wait_for_timeout(200)
     
     # Get slider's actual min/max from attributes
-    price_slider = page.locator("#priceMax")
-    min_value = float(price_slider.get_attribute("min"))
-    max_value = float(price_slider.get_attribute("max"))
+    price_min_slider = page.locator("#priceMin")
+    price_max_slider = page.locator("#priceMax")
+    data_min = float(price_min_slider.get_attribute("min"))
+    data_max = float(price_max_slider.get_attribute("max"))
     
-    # Calculate a mid-range value to test
-    mid_value = int(max(min_value, (min_value + max_value) / 2))
-    low_value = int(max(min_value, mid_value * 0.7))
+    # Calculate test values
+    mid_value = int((data_min + data_max) / 2)
+    high_value = int(data_max * 0.8)
     
-    # Move slider to mid value
-    price_slider.fill(str(mid_value))
+    # Move max slider to mid value
+    price_max_slider.fill(str(mid_value))
     page.wait_for_timeout(200)
     
     # Verify display updates
     price_display = page.locator("#priceDisplay")
     display_text = price_display.text_content()
-    assert f"£{mid_value}" in display_text, f"Expected display to show '£{mid_value}', got '{display_text}'"
-    assert f"£{int(min_value)}" in display_text, f"Expected display to show min '£{int(min_value)}', got '{display_text}'"
+    assert f"£{mid_value}" in display_text, f"Expected display to show max '£{mid_value}', got '{display_text}'"
+    assert f"£{int(data_min)}" in display_text, f"Expected display to show min '£{int(data_min)}', got '{display_text}'"
     
-    # Move slider to lower value
-    price_slider.fill(str(low_value))
+    # Move min slider up
+    price_min_slider.fill(str(int(data_min + 5)))
     page.wait_for_timeout(200)
     
     display_text = price_display.text_content()
-    assert f"£{low_value}" in display_text, f"Expected display to show '£{low_value}', got '{display_text}'"
+    assert f"£{int(data_min + 5)}" in display_text, f"Expected display to show min '£{int(data_min + 5)}', got '{display_text}'"
 
 
 @pytest.mark.e2e
@@ -306,7 +313,7 @@ def test_price_slider_reset_to_max_shows_all_rows(e2e_site_multi_species) -> Non
 
 @pytest.mark.e2e
 def test_wishlist_slider_exists_and_initializes_correctly(e2e_site_multi_species) -> None:
-    """Verify wishlist slider renders with correct initial state derived from data."""
+    """Verify wishlist sliders (min and max) render with correct initial state derived from data."""
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
@@ -316,38 +323,43 @@ def test_wishlist_slider_exists_and_initializes_correctly(e2e_site_multi_species
     toggle_button.click()
     page.wait_for_timeout(200)
     
-    # Verify wishlist slider exists
-    wishlist_slider = page.locator("#wishlistMax")
-    assert wishlist_slider.is_visible(), "Wishlist slider should be visible after expanding filters"
+    # Verify both wishlist sliders exist
+    wishlist_min_slider = page.locator("#wishlistMin")
+    wishlist_max_slider = page.locator("#wishlistMax")
+    assert wishlist_min_slider.is_visible(), "Wishlist min slider should be visible after expanding filters"
+    assert wishlist_max_slider.is_visible(), "Wishlist max slider should be visible after expanding filters"
     
-    # Get actual min/max values from slider (should be derived from CSV data)
-    min_value = wishlist_slider.get_attribute("min")
-    max_value = wishlist_slider.get_attribute("max")
-    initial_value = wishlist_slider.get_attribute("value")
+    # Get actual min/max values from sliders (should be derived from CSV data)
+    data_min = wishlist_min_slider.get_attribute("min")
+    data_max = wishlist_max_slider.get_attribute("max")
+    min_initial_value = wishlist_min_slider.get_attribute("value")
+    max_initial_value = wishlist_max_slider.get_attribute("value")
     
-    # Verify initial value equals max (slider starts at max)
-    assert initial_value == max_value, \
-        f"Expected wishlist slider initial value to be '{max_value}', got '{initial_value}'"
+    # Verify initial values (min slider starts at min, max slider starts at max)
+    assert min_initial_value == data_min, \
+        f"Expected wishlist min slider initial value to be '{data_min}', got '{min_initial_value}'"
+    assert max_initial_value == data_max, \
+        f"Expected wishlist max slider initial value to be '{data_max}', got '{max_initial_value}'"
     
     # Verify min is a valid number
-    assert min_value is not None and min_value.isdigit(), \
-        f"Expected min to be a valid number, got '{min_value}'"
+    assert data_min is not None and data_min.isdigit(), \
+        f"Expected min to be a valid number, got '{data_min}'"
     
     # Verify max is a valid number
-    assert max_value is not None and max_value.isdigit(), \
-        f"Expected max to be a valid number, got '{max_value}'"
+    assert data_max is not None and data_max.isdigit(), \
+        f"Expected max to be a valid number, got '{data_max}'"
     
     # Verify wishlist display shows initial range
     wishlist_display = page.locator("#wishlistDisplay")
     assert wishlist_display.is_visible(), "Wishlist display should be visible"
     display_text = wishlist_display.text_content()
-    assert min_value in display_text and max_value in display_text, \
-        f"Expected wishlist display to show '{min_value} - {max_value}', got '{display_text}'"
+    assert data_min in display_text and data_max in display_text, \
+        f"Expected wishlist display to show '{data_min} - {data_max}', got '{display_text}'"
 
 
 @pytest.mark.e2e
 def test_wishlist_slider_filters_rows_correctly(e2e_site_multi_species) -> None:
-    """Verify moving wishlist slider hides rows above the selected value."""
+    """Verify moving wishlist max slider hides rows above the selected value."""
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
@@ -362,8 +374,8 @@ def test_wishlist_slider_filters_rows_correctly(e2e_site_multi_species) -> None:
     page.wait_for_timeout(200)
     
     # Set wishlist max to 10 (filter out high wishlist counts)
-    wishlist_slider = page.locator("#wishlistMax")
-    wishlist_slider.fill("10")
+    wishlist_max_slider = page.locator("#wishlistMax")
+    wishlist_max_slider.fill("10")
     page.wait_for_timeout(200)
     
     # Verify some rows are hidden
@@ -385,7 +397,7 @@ def test_wishlist_slider_filters_rows_correctly(e2e_site_multi_species) -> None:
 
 @pytest.mark.e2e
 def test_wishlist_slider_updates_display_text(e2e_site_multi_species) -> None:
-    """Verify wishlist display updates as slider moves."""
+    """Verify wishlist display updates as both sliders move."""
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
@@ -396,30 +408,31 @@ def test_wishlist_slider_updates_display_text(e2e_site_multi_species) -> None:
     page.wait_for_timeout(200)
     
     # Get slider's actual min/max from attributes
-    wishlist_slider = page.locator("#wishlistMax")
-    min_value = wishlist_slider.get_attribute("min")
-    max_value = int(wishlist_slider.get_attribute("max"))
+    wishlist_min_slider = page.locator("#wishlistMin")
+    wishlist_max_slider = page.locator("#wishlistMax")
+    data_min = wishlist_min_slider.get_attribute("min")
+    data_max = int(wishlist_max_slider.get_attribute("max"))
     
-    # Calculate a mid-range value to test
-    mid_value = max(int(min_value), (int(min_value) + max_value) // 2)
-    low_value = max(int(min_value), mid_value - 1)
+    # Calculate test values
+    mid_value = max(int(data_min), (int(data_min) + data_max) // 2)
+    low_value = max(int(data_min), mid_value - 1)
     
-    # Move slider to mid value
-    wishlist_slider.fill(str(mid_value))
+    # Move max slider to mid value
+    wishlist_max_slider.fill(str(mid_value))
     page.wait_for_timeout(200)
     
     # Verify display updates
     wishlist_display = page.locator("#wishlistDisplay")
     display_text = wishlist_display.text_content()
     assert str(mid_value) in display_text, f"Expected display to show '{mid_value}', got '{display_text}'"
-    assert min_value in display_text, f"Expected display to show min '{min_value}', got '{display_text}'"
+    assert data_min in display_text, f"Expected display to show min '{data_min}', got '{display_text}'"
     
-    # Move slider to lower value
-    wishlist_slider.fill(str(low_value))
+    # Move min slider up
+    wishlist_min_slider.fill(str(int(data_min) + 1))
     page.wait_for_timeout(200)
     
     display_text = wishlist_display.text_content()
-    assert str(low_value) in display_text, f"Expected display to show '{low_value}', got '{display_text}'"
+    assert str(int(data_min) + 1) in display_text, f"Expected display to show '{int(data_min) + 1}', got '{display_text}'"
 
 
 @pytest.mark.e2e
@@ -544,3 +557,300 @@ def test_wishlist_slider_and_search_combine_with_AND_logic(e2e_site_multi_specie
     badge = page.locator("#filterBadge-snapshot-table")
     badge_text = badge.text_content()
     assert badge_text == "2", f"Expected badge to show '2' active filters, got '{badge_text}'"
+# New E2E tests to add for dual-handle slider functionality
+
+@pytest.mark.e2e
+def test_price_min_slider_filters_rows_correctly(e2e_site_multi_species) -> None:
+    """Verify moving price min slider hides rows below the selected price."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
+    
+    # Count total rows
+    total_rows = page.locator('#snapshot-table tbody tr').count()
+    assert total_rows > 0, "Expected at least one row in snapshot table"
+    
+    # Expand advanced filters
+    toggle_button = page.locator(".btn-filters")
+    toggle_button.click()
+    page.wait_for_timeout(200)
+    
+    # Get actual range and calculate a valid test min value
+    price_min_slider = page.locator("#priceMin")
+    price_max_slider = page.locator("#priceMax")
+    data_min = float(price_min_slider.get_attribute("min"))
+    data_max = float(price_max_slider.get_attribute("max"))
+    
+    # Set min slider to mid-range value (ensures rows will be filtered)
+    test_min = int((data_min + data_max) * 0.4)
+    
+    price_min_slider.fill(str(test_min))
+    page.wait_for_timeout(200)
+    
+    # Verify some rows are hidden (unless all prices are above test_min)
+    visible_rows = page.locator('#snapshot-table tbody tr:visible').count()
+    hidden_rows = page.locator('#snapshot-table tbody tr.hidden').count()
+    
+    assert visible_rows > 0, "Expected at least some rows to remain visible"
+    assert visible_rows + hidden_rows == total_rows, \
+        f"Expected visible ({visible_rows}) + hidden ({hidden_rows}) = total ({total_rows})"
+    
+    # Verify all visible rows have price >= test_min
+    visible_rows = page.locator('#snapshot-table tbody tr:visible').all()
+    for row in visible_rows:
+        price_attr = row.get_attribute('data-price')
+        price_value = float(price_attr.replace('£', '').strip())
+        assert price_value >= test_min, \
+            f"Expected visible row price ({price_value}) to be >= {test_min}"
+
+
+@pytest.mark.e2e
+def test_price_min_max_sliders_work_together(e2e_site_multi_species) -> None:
+    """Verify both min and max sliders filter correctly when used together."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
+    
+    # Expand advanced filters
+    toggle_button = page.locator(".btn-filters")
+    toggle_button.click()
+    page.wait_for_timeout(200)
+    
+    # Get actual data range
+    price_min_slider = page.locator("#priceMin")
+    price_max_slider = page.locator("#priceMax")
+    data_min = float(price_min_slider.get_attribute("min"))
+    data_max = float(price_max_slider.get_attribute("max"))
+    
+    # Calculate valid test range within the data range
+    test_min = int(data_min + (data_max - data_min) * 0.3)
+    test_max = int(data_min + (data_max - data_min) * 0.7)
+    
+    # Set range
+    price_min_slider.fill(str(test_min))
+    page.wait_for_timeout(100)
+    price_max_slider.fill(str(test_max))
+    page.wait_for_timeout(200)
+    
+    # Verify display shows correct range
+    price_display = page.locator("#priceDisplay")
+    display_text = price_display.text_content()
+    assert f"£{test_min}" in display_text and f"£{test_max}" in display_text, \
+        f"Expected display to show '£{test_min} - £{test_max}', got '{display_text}'"
+    
+    # Verify all visible rows are in range
+    visible_rows = page.locator('#snapshot-table tbody tr:visible').all()
+    for row in visible_rows:
+        price_attr = row.get_attribute('data-price')
+        price_value = float(price_attr.replace('£', '').strip())
+        assert test_min <= price_value <= test_max, \
+            f"Expected visible row price ({price_value}) to be between £{test_min} and £{test_max}"
+
+
+@pytest.mark.e2e
+def test_wishlist_min_slider_filters_rows_correctly(e2e_site_multi_species) -> None:
+    """Verify moving wishlist min slider hides rows below the selected count."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
+    
+    # Count total rows
+    total_rows = page.locator('#snapshot-table tbody tr').count()
+    
+    # Expand advanced filters
+    toggle_button = page.locator(".btn-filters")
+    toggle_button.click()
+    page.wait_for_timeout(200)
+    
+    # Get min value and set min slider up
+    wishlist_min_slider = page.locator("#wishlistMin")
+    data_min = int(wishlist_min_slider.get_attribute("min"))
+    test_min = data_min + 2
+    
+    wishlist_min_slider.fill(str(test_min))
+    page.wait_for_timeout(200)
+    
+    # Verify filtering occurred
+    visible_rows = page.locator('#snapshot-table tbody tr:visible').count()
+    assert visible_rows < total_rows, "Expected some rows to be hidden"
+
+
+@pytest.mark.e2e
+def test_wishlist_min_max_sliders_work_together(e2e_site_multi_species) -> None:
+    """Verify both wishlist min and max sliders filter correctly when used together."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
+    
+    # Expand advanced filters
+    toggle_button = page.locator(".btn-filters")
+    toggle_button.click()
+    page.wait_for_timeout(200)
+    
+    # Set range 5 - 15
+    wishlist_min_slider = page.locator("#wishlistMin")
+    wishlist_max_slider = page.locator("#wishlistMax")
+    data_max = int(wishlist_max_slider.get_attribute("max"))
+    
+    # Only test if we have enough range
+    if data_max >= 15:
+        wishlist_min_slider.fill("5")
+        page.wait_for_timeout(100)
+        wishlist_max_slider.fill("15")
+        page.wait_for_timeout(200)
+        
+        # Verify display shows 5 - 15
+        wishlist_display = page.locator("#wishlistDisplay")
+        display_text = wishlist_display.text_content()
+        assert "5" in display_text and "15" in display_text, \
+            f"Expected display to show '5 - 15', got '{display_text}'"
+@pytest.mark.e2e
+def test_price_min_slider_updates_filter_badge(e2e_site_multi_species) -> None:
+    """Verify filter badge increments when price MIN slider is moved UP from minimum."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
+    
+    # Expand advanced filters
+    toggle_button = page.locator(".btn-filters")
+    toggle_button.click()
+    page.wait_for_timeout(200)
+    
+    # Initially badge should be hidden (no active filters)
+    badge = page.locator("#filterBadge-snapshot-table")
+    initial_classes = badge.get_attribute("class") or ""
+    assert "hidden" in initial_classes, "Badge should be hidden when no filters active"
+    
+    # Get min slider's actual range
+    price_min_slider = page.locator("#priceMin")
+    data_min = float(price_min_slider.get_attribute("min"))
+    data_max = float(price_min_slider.get_attribute("max"))
+    
+    # Move MIN slider UP from minimum (restricts lower bound)
+    test_value = int(data_min + (data_max - data_min) * 0.3)
+    price_min_slider.fill(str(test_value))
+    page.wait_for_timeout(200)
+    
+    # Badge should now be visible with count = 1
+    badge_classes = badge.get_attribute("class") or ""
+    assert "hidden" not in badge_classes, "Badge should be visible when price min filter is active"
+    
+    badge_text = badge.text_content()
+    assert badge_text == "1", f"Expected badge to show '1' active filter, got '{badge_text}'"
+    
+    # Reset min slider back to minimum
+    price_min_slider.fill(str(int(data_min)))
+    page.wait_for_timeout(200)
+    
+    # Badge should be hidden again
+    badge_classes = badge.get_attribute("class") or ""
+    assert "hidden" in badge_classes, "Badge should be hidden after resetting min slider"
+
+
+@pytest.mark.e2e
+def test_wishlist_min_slider_updates_filter_badge(e2e_site_multi_species) -> None:
+    """Verify filter badge increments when wishlist MIN slider is moved UP from minimum."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
+    
+    # Expand advanced filters
+    toggle_button = page.locator(".btn-filters")
+    toggle_button.click()
+    page.wait_for_timeout(200)
+    
+    # Initially badge should be hidden (no active filters)
+    badge = page.locator("#filterBadge-snapshot-table")
+    initial_classes = badge.get_attribute("class") or ""
+    assert "hidden" in initial_classes, "Badge should be hidden when no filters active"
+    
+    # Get min slider's actual range
+    wishlist_min_slider = page.locator("#wishlistMin")
+    data_min = int(wishlist_min_slider.get_attribute("min"))
+    data_max = int(wishlist_min_slider.get_attribute("max"))
+    
+    # Move MIN slider UP from minimum (restricts lower bound)
+    test_value = data_min + max(1, (data_max - data_min) // 3)
+    wishlist_min_slider.fill(str(test_value))
+    page.wait_for_timeout(200)
+    
+    # Badge should now be visible with count = 1
+    badge_classes = badge.get_attribute("class") or ""
+    assert "hidden" not in badge_classes, "Badge should be visible when wishlist min filter is active"
+    
+    badge_text = badge.text_content()
+    assert badge_text == "1", f"Expected badge to show '1' active filter, got '{badge_text}'"
+    
+    # Reset min slider back to minimum
+    wishlist_min_slider.fill(str(data_min))
+    page.wait_for_timeout(200)
+    
+    # Badge should be hidden again
+    badge_classes = badge.get_attribute("class") or ""
+    assert "hidden" in badge_classes, "Badge should be hidden after resetting min slider"
+
+
+@pytest.mark.e2e
+def test_both_price_sliders_count_as_one_filter(e2e_site_multi_species) -> None:
+    """Verify moving both min and max price sliders still counts as just ONE filter."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
+    
+    # Expand advanced filters
+    toggle_button = page.locator(".btn-filters")
+    toggle_button.click()
+    page.wait_for_timeout(200)
+    
+    # Get sliders
+    price_min_slider = page.locator("#priceMin")
+    price_max_slider = page.locator("#priceMax")
+    data_min = float(price_min_slider.get_attribute("min"))
+    data_max = float(price_max_slider.get_attribute("max"))
+    
+    # Move BOTH sliders (narrow the range)
+    test_min = int(data_min + (data_max - data_min) * 0.3)
+    test_max = int(data_min + (data_max - data_min) * 0.7)
+    
+    price_min_slider.fill(str(test_min))
+    page.wait_for_timeout(100)
+    price_max_slider.fill(str(test_max))
+    page.wait_for_timeout(200)
+    
+    # Badge should show count = 1 (not 2)
+    badge = page.locator("#filterBadge-snapshot-table")
+    badge_text = badge.text_content()
+    assert badge_text == "1", f"Expected badge to show '1' active filter (not 2), got '{badge_text}'"
+
+
+@pytest.mark.e2e
+def test_both_wishlist_sliders_count_as_one_filter(e2e_site_multi_species) -> None:
+    """Verify moving both min and max wishlist sliders still counts as just ONE filter."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
+    
+    # Expand advanced filters
+    toggle_button = page.locator(".btn-filters")
+    toggle_button.click()
+    page.wait_for_timeout(200)
+    
+    # Get sliders
+    wishlist_min_slider = page.locator("#wishlistMin")
+    wishlist_max_slider = page.locator("#wishlistMax")
+    data_min = int(wishlist_min_slider.get_attribute("min"))
+    data_max = int(wishlist_max_slider.get_attribute("max"))
+    
+    # Move BOTH sliders (narrow the range)
+    test_min = data_min + max(1, (data_max - data_min) // 3)
+    test_max = data_min + max(2, (data_max - data_min) * 2 // 3)
+    
+    wishlist_min_slider.fill(str(test_min))
+    page.wait_for_timeout(100)
+    wishlist_max_slider.fill(str(test_max))
+    page.wait_for_timeout(200)
+    
+    # Badge should show count = 1 (not 2)
+    badge = page.locator("#filterBadge-snapshot-table")
+    badge_text = badge.text_content()
+    assert badge_text == "1", f"Expected badge to show '1' active filter (not 2), got '{badge_text}'"
