@@ -116,7 +116,7 @@ def test_signal_filtering_on_breeder_table(e2e_site_multi_species) -> None:
     assert "active" in hot_button.get_attribute("class"), "Expected active class on clicked button"
     
     # Click "Show All" to reset (use specific selector for signal filter)
-    show_all = page.locator('button[onclick*="filterBySignal"][onclick*="all"]')
+    show_all = page.locator('button[data-action="filter-signal"][data-signal="all"]')
     show_all.click()
     page.wait_for_timeout(100)
     
@@ -141,7 +141,7 @@ def test_stock_pattern_filtering_on_breeder_table(e2e_site_multi_species) -> Non
             page.wait_for_timeout(200)
     
     # Click "Emerging" pattern filter
-    emerging_button = page.locator('button[onclick*="filterByStockPattern(\'Emerging\'"]')
+    emerging_button = page.locator('button[data-action="filter-stock-pattern"][data-stock-pattern="Emerging"]')
     emerging_button.click()
     page.wait_for_timeout(100)
     
@@ -259,7 +259,7 @@ def test_combined_signal_and_stock_pattern_filters(e2e_site_multi_species) -> No
     
     # Now apply stock pattern filter: Emerging
     # NOTE: Current implementation replaces the signal filter (doesn't combine via AND)
-    emerging_button = page.locator("button[onclick*=\"filterByStockPattern('Emerging'\"]")
+    emerging_button = page.locator("button[data-action='filter-stock-pattern'][data-stock-pattern='Emerging']")
     emerging_button.click()
     page.wait_for_timeout(100)
     
@@ -269,7 +269,7 @@ def test_combined_signal_and_stock_pattern_filters(e2e_site_multi_species) -> No
     assert visible_after_both == 2, "Expected 2 rows with Emerging pattern (signal filter replaced)"
     
     # Click signal filter's "Show All" to clear filters
-    show_all = page.locator('button[onclick*="filterBySignal"][onclick*="all"]')
+    show_all = page.locator('button[data-action="filter-signal"][data-signal="all"]')
     show_all.click()
     page.wait_for_timeout(100)
     

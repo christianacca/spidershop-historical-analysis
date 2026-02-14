@@ -187,7 +187,7 @@ class TestGenerateSnapshotPage:
             assert any('Download CSV' in text for text in link_texts), "Download link should contain 'Download CSV' text"
 
     def test_includes_search_filter_when_enabled(self):
-        """Should include search filter when search_filter=True."""
+        """Should include search filter when search_filter=True (behavior tested by E2E)."""
         from conftest import temp_csv_file
         
         csv_content = "Col\nVal\n"
@@ -196,11 +196,13 @@ class TestGenerateSnapshotPage:
             html = generate_snapshot_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
-            # Find search input
+            # Find search input - should have data attributes for event listeners
             search_input = soup.find('input', type='text')
             assert search_input is not None
-            assert 'oninput' in search_input.attrs or 'onkeyup' in search_input.attrs
-            assert 'filterTable' in html
+            assert search_input.get('data-action') == 'search', "Search input should have data-action attribute"
+            assert search_input.get('data-table-id') is not None, "Search input should have data-table-id attribute"
+            # Filter function should still be in external JavaScript (referenced externally)
+            assert 'filterTable' not in html, "filterTable should be in external JS, not inline"
 
     def test_includes_advanced_filters_toggle_when_search_enabled(self):
         """Should include 'More Filters' toggle button when search_filter=True."""

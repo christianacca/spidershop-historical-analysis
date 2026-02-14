@@ -167,42 +167,60 @@ def write_minimal_test_data(cwd: Path) -> None:
     """Write minimal test data (1 species) for basic navigation/smoke tests.
     
     This is the smallest data set that allows all pages to generate successfully.
+    Includes 6 weeks of historical data for chart rendering validation.
     """
     from helpers.test_helpers import (
         HistoryEntry, BreederEntry, DealerEntry,
         create_history_csv_content, create_breeder_csv_content, create_dealer_csv_content
     )
     
+    # Generate 6 weeks of history for realistic chart rendering
+    # Include price variations, wishlist changes, and stock gaps (OUT runs)
+    history_entries = [
+        # Week 1: In stock
+        HistoryEntry(
+            scrape_datetime="2025-12-18",
+            scientific_name="Aphonopelma seemanni",
+            common_name="Costa Rican Zebra",
+            price_gbp="23.00",
+            wishlist_count="3"
+        ),
+        # Week 2: In stock, price increase
+        HistoryEntry(
+            scrape_datetime="2025-12-25",
+            scientific_name="Aphonopelma seemanni",
+            common_name="Costa Rican Zebra",
+            price_gbp="24.00",
+            wishlist_count="4"
+        ),
+        # Week 3: OUT (gap in data - no entry)
+        # Week 4: OUT (gap in data - no entry)
+        # Week 5: Back in stock, higher price and wishlist
+        HistoryEntry(
+            scrape_datetime="2026-01-08",
+            scientific_name="Aphonopelma seemanni",
+            common_name="Costa Rican Zebra",
+            price_gbp="26.00",
+            wishlist_count="7"
+        ),
+        # Week 6: Current run - in stock
+        HistoryEntry(
+            scrape_datetime="2026-01-15",
+            scientific_name="Aphonopelma seemanni",
+            common_name="Costa Rican Zebra",
+            price_gbp="25.00",
+            wishlist_count="5"
+        ),
+    ]
+    
+    # Current snapshot is the latest entry
     (cwd / "spidershop_spiderlings_scrape.csv").write_text(
-        create_history_csv_content([
-            HistoryEntry(
-                scrape_datetime="2026-01-01",
-                scientific_name="Aphonopelma seemanni",
-                common_name="Costa Rican Zebra",
-                price_gbp="25.00",
-                wishlist_count="5"
-            )
-        ]),
+        create_history_csv_content([history_entries[-1]]),
         encoding="utf-8",
     )
 
     (cwd / "spidershop_spiderlings_history.csv").write_text(
-        create_history_csv_content([
-            HistoryEntry(
-                scrape_datetime="2025-12-25",
-                scientific_name="Aphonopelma seemanni",
-                common_name="Costa Rican Zebra",
-                price_gbp="24.00",
-                wishlist_count="4"
-            ),
-            HistoryEntry(
-                scrape_datetime="2026-01-01",
-                scientific_name="Aphonopelma seemanni",
-                common_name="Costa Rican Zebra",
-                price_gbp="25.00",
-                wishlist_count="5"
-            )
-        ]),
+        create_history_csv_content(history_entries),
         encoding="utf-8",
     )
 

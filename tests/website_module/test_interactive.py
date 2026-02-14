@@ -70,7 +70,7 @@ class TestInteractiveFilterButtons:
         assert len(buttons) == 4, "Should have 4 filter buttons"
 
     def test_filter_buttons_have_onclick_handlers(self, tmp_path):
-        """Filter buttons should have onclick handlers for JavaScript filtering."""
+        """Filter buttons should have data attributes for JavaScript filtering (behavior tested by E2E)."""
         csv_file = tmp_path / "test.csv"
         csv_file.write_text("Species,Signal\nTest,🔥\n")
         
@@ -81,10 +81,11 @@ class TestInteractiveFilterButtons:
         soup = BeautifulSoup(html, 'html.parser')
         buttons = soup.find_all('button', class_='filter-btn')
         
-        # Each button should have an onclick attribute
+        # Each button should have data attributes for event listeners (behavior validated by E2E tests)
         for btn in buttons:
-            assert btn.get('onclick') is not None, "Filter buttons should have onclick handlers"
-            assert 'filterBySignal' in btn.get('onclick'), "Should call filterBySignal function"
+            assert btn.get('data-action') is not None, "Filter buttons should have data-action attribute"
+            assert btn.get('data-signal') is not None, "Filter buttons should have data-signal attribute"
+            assert btn.get('data-table-id') is not None, "Filter buttons should have data-table-id attribute"
 
     def test_snapshot_page_has_no_filter_buttons(self, tmp_path):
         """Snapshot and history pages should NOT have filter buttons (no Signal column)."""

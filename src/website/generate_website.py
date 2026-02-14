@@ -686,15 +686,19 @@ def main() -> None:
                 dst.write(content)
             print(f"    Copied {csv_file}")
     
-    # Copy JavaScript file to output directory
+    # Copy JavaScript files to output directory
     print("  Copying JavaScript files...")
-    js_source = Path(__file__).parent.parent.parent / "templates" / "scripts" / "table-interactions.js"
-    if js_source.exists():
-        with open(js_source, "r", encoding="utf-8") as src:
-            content = src.read()
-        with open(OUTPUT_DIR / "table-interactions.js", "w", encoding="utf-8") as dst:
-            dst.write(content)
-        print(f"    Copied table-interactions.js")
+    scripts_dir = Path(__file__).parent.parent.parent / "templates" / "scripts"
+    js_files = ["table-interactions.js", "species-detail.js", "table-setup.js"]
+    
+    for js_file in js_files:
+        js_source = scripts_dir / js_file
+        if js_source.exists():
+            with open(js_source, "r", encoding="utf-8") as src:
+                content = src.read()
+            with open(OUTPUT_DIR / js_file, "w", encoding="utf-8") as dst:
+                dst.write(content)
+            print(f"    Copied {js_file}")
     
     # Copy CSS files for species detail pages
     print("  Copying CSS files...")

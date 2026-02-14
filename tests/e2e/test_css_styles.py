@@ -84,8 +84,8 @@ def test_filter_buttons_exist_on_analysis_pages(e2e_site_minimal) -> None:
     filter_containers = page.locator('.filter-buttons-container')
     assert filter_containers.count() >= 1, "Breeder page should have filter button containers"
     
-    # Check for signal filter buttons specifically (have onclick with filterBySignal)
-    signal_buttons = page.locator('.filter-btn[onclick*="filterBySignal"]')
+    # Check for signal filter buttons specifically (have data-action="filter-signal")
+    signal_buttons = page.locator('.filter-btn[data-action="filter-signal"]')
     assert signal_buttons.count() >= 3, "Should have at least 3 signal filter buttons (hot, watch, avoid)"
     
     # Test dealer page
@@ -95,7 +95,7 @@ def test_filter_buttons_exist_on_analysis_pages(e2e_site_minimal) -> None:
     filter_containers = page.locator('.filter-buttons-container')
     assert filter_containers.count() >= 1, "Dealer page should have filter button container"
     
-    signal_buttons = page.locator('.filter-btn[onclick*="filterBySignal"]')
+    signal_buttons = page.locator('.filter-btn[data-action="filter-signal"]')
     assert signal_buttons.count() >= 3, "Dealer should have at least 3 signal filter buttons"
 
 
