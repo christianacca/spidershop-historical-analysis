@@ -401,7 +401,11 @@ class TestGenerateSpeciesPage:
     """Test species page HTML generation."""
 
     def test_generates_html_with_breeder_and_dealer_sections(self):
-        """Should generate HTML with both perspective sections."""
+        """Should generate HTML with both perspective sections and required CSS.
+        
+        Regression: Previously only included species-detail.css, missing analysis.css
+        which contains critical stat card styles (.summary-stats, .stat-card, etc.).
+        """
         from website.species_detail import generate_species_page
 
         species_data = {
@@ -429,6 +433,20 @@ class TestGenerateSpeciesPage:
         
         # Check dealer section includes risk
         assert "⚠️" in html
+        
+        # CSS regression checks: both stylesheets must be included
+        assert 'href="../analysis.css"' in html, "Missing analysis.css (contains stat card styles)"
+        assert 'href="../species-detail.css"' in html, "Missing species-detail.css"
+        
+        # Verify CSS cascade order
+        analysis_idx = html.find('href="../analysis.css"')
+        species_idx = html.find('href="../species-detail.css"')
+        assert analysis_idx < species_idx, "analysis.css must come before species-detail.css"
+        
+        # Verify critical classes from analysis.css are present
+        assert 'class="summary-stats"' in html, ".summary-stats missing (from analysis.css)"
+        assert 'class="stat-card' in html, ".stat-card missing (from analysis.css)"
+        assert 'class="stat-value"' in html, ".stat-value missing (from analysis.css)"
 
     def test_includes_breadcrumb_navigation(self):
         """Should include breadcrumb with perspective origin."""

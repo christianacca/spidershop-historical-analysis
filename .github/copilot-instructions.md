@@ -30,39 +30,49 @@
 1. `make test` (all tests with coverage)
 2. `.venv/bin/python scripts/check_coverage.py --module=<edited_file>.py`
 
-### Playwright E2E Smoke Tests (When Required)
+### Playwright E2E Tests (Essential for Website Validation)
 
-This repo includes **opt-in** Playwright E2E smoke tests (browser-based). They are designed to catch regressions that unit tests can miss, especially around:
-- broken relative links from nested pages (e.g. `website/species/*.html`)
-- missing/incorrect asset references (CSS/JS)
-- basic navigation and UI state driven by URL params
+**CRITICAL:** E2E tests are the ONLY way to validate client-side JavaScript behavior. Unit tests cannot test browser interactions, DOM mutations, or JavaScript execution.
 
-**Run E2E tests in addition to `make test` when you change:**
-- Anything in `src/website/`
-- Anything in `templates/` (including `templates/scripts/`)
+These browser-based tests are **essential** for catching regressions that unit tests cannot detect:
+- User interactions (clicking, typing, selecting)
+- DOM mutations (showing/hiding elements, class changes)
+- JavaScript execution (sorting, filtering, tab switching)
+- URL state management (query parameters, history API)
+- Asset loading (CSS/JS files, relative links from nested pages)
+- Multi-filter interactions and combined behaviors
+
+**E2E tests are REQUIRED when you change:**
+- Anything in `src/website/` (HTML generation affects JavaScript targets)
+- Anything in `templates/` (especially `templates/scripts/`)
 - Any generated URL/path logic (e.g. `path_prefix`, link building)
-- Any bugfix or feature that is specifically “works in a browser” / interaction-based
+- Any feature involving user interaction or browser behavior
 
-**You may skip E2E tests when you change only:**
-- `src/scrape/` or `src/shared/` logic unrelated to website output
-- Documentation-only changes
-- Pure unit-test refactors
+**You may skip E2E tests only when changing:**
+- `src/scrape/` or `src/shared/` logic with NO website output impact
+- Documentation-only changes (README, CONTRIBUTING, etc.)
+- Pure unit-test refactors that don't touch functionality
 
 **Commands (always use make):**
 ```bash
 # Install Playwright browser binary (one-time; cached by Playwright)
 make e2e-install
 
-# Run the smoke suite
+# Run the full E2E suite
 make test-e2e
 ```
 
-Note: E2E tests are intentionally not part of the default `make test` run.
+**Note:** E2E tests are separate from `make test` (for speed: ~1s unit tests vs ~10-20s E2E), but they are **not optional** for website work or PR validation.
 
 **Individual test files:**
 ```bash
+# Unit tests
 make test-file FILE=tests/website_module/test_csv.py
 make test-file FILE=tests/scrape_module/test_breeder_matrix.py
+
+# E2E tests
+make test-file FILE=tests/e2e/test_table_interactions.py
+make test-file FILE=tests/e2e/test_species_page_interactions.py
 ```
 
 **Why make commands?** Direct pytest execution causes:
@@ -238,7 +248,7 @@ make test-file FILE=tests/scrape_module/test_breeder_matrix.py
 
 # Run E2E tests (requires Playwright, ~10-20 seconds)
 make e2e-install  # one-time setup to install Playwright browsers
-make test-e2e     # run all E2E tests (opt-in)
+make test-e2e     # essential for website work, required for PRs
 
 # Debug E2E tests (show browser window with slow motion)
 PWHEADED=1 PWSLOW=500 make test-e2e

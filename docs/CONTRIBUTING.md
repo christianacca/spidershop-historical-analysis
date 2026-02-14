@@ -289,28 +289,34 @@ This runs pytest with full coverage reporting, showing:
 ### Run individual test file
 
 ```sh
+# Unit tests
 make test-file FILE=tests/website_module/test_csv.py
 make test-file FILE=tests/scrape_module/test_breeder_matrix.py
+
+# E2E tests
+make test-file FILE=tests/e2e/test_table_interactions.py
+make test-file FILE=tests/e2e/test_species_page_interactions.py
 ```
 
-Use this when working on specific functionality to get faster feedback.
+Use this when working on specific functionality to get faster feedback. This works for both unit tests and E2E tests.
 
-### Playwright E2E tests (opt-in)
+### Playwright E2E tests (Essential for Website Work)
 
-These are comprehensive browser-based tests that verify client-side JavaScript behavior that unit tests cannot check (e.g., table sorting, filtering interactions, tab switching, URL state management).
+**CRITICAL:** These browser-based tests are the **only way** to validate client-side JavaScript behavior. Unit tests cannot test user interactions, DOM mutations, or JavaScript execution.
 
 **Test organization:**
 - `tests/e2e/test_navigation_and_page_loads.py` - Basic page loads and navigation
 - `tests/e2e/test_table_interactions.py` - Sorting, filtering, and search functionality
 - `tests/e2e/test_species_page_interactions.py` - Tab switching and URL parameter handling
 
-They are **opt-in** to keep the default test suite fast (~1 second for unit tests vs ~10-20 seconds for E2E).
+They are kept separate from `make test` for speed (~1 second for unit tests vs ~10-20 seconds for E2E), but they are **required** for any website-related changes.
 
-**When to run E2E tests:**
-- After changes to `src/website/` or `templates/` directories
-- After changes to `templates/scripts/table-interactions.js`
-- Before submitting PRs that modify client-side behavior
-- When debugging regressions related to user interactions
+**When E2E tests are REQUIRED:**
+- After ANY changes to `src/website/` or `templates/` directories
+- After ANY changes to `templates/scripts/table-interactions.js`
+- Before submitting PRs that modify website generation or client-side behavior
+- When debugging regressions related to user interactions or JavaScript
+- When adding features that involve browser behavior (sorting, filtering, tabs, etc.)
 
 ```sh
 make test-e2e
