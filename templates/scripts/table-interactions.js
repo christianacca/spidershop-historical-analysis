@@ -43,7 +43,7 @@ export function sortTable(columnIndex, tableId) {
   
   // Get current sort direction and toggle
   const header = headers[columnIndex];
-  const currentDirection = header.getAttribute('data-sort-direction') || 'asc';
+  const currentDirection = header.getAttribute('data-sort-direction') ?? 'asc';
   const newDirection = currentDirection === 'asc' ? 'desc' : 'asc';
   
   // Clear all sort indicators
@@ -125,13 +125,13 @@ export function filterRows(tableId) {
   
   // Get search filter value
   const searchBox = getElement(`search-${tableId}`);
-  const searchTerm = searchBox?.value.toLowerCase() || '';
+  const searchTerm = searchBox?.value.toLowerCase() ?? '';
   
   // Get price filter range
-  const priceRange = priceSlider?.getValues() || [0, Infinity];
+  const priceRange = priceSlider?.getValues() ?? [0, Infinity];
   
   // Get wishlist filter range
-  const wishlistRange = wishlistSlider?.getValues() || [0, Infinity];
+  const wishlistRange = wishlistSlider?.getValues() ?? [0, Infinity];
   
   // Filter rows
   rows.forEach(row => {
@@ -139,13 +139,11 @@ export function filterRows(tableId) {
     const matchesSearch = !searchTerm || row.textContent.toLowerCase().includes(searchTerm);
     
     // Check price filter
-    const priceAttr = row.getAttribute('data-price');
-    const price = priceAttr ? parseFloat(priceAttr.replace('£', '').trim()) : 0;
+    const price = parseFloat(row.getAttribute('data-price')?.replace('£', '').trim()) || 0;
     const matchesPrice = price >= priceRange[0] && price <= priceRange[1];
     
     // Check wishlist filter
-    const wishlistAttr = row.getAttribute('data-wishlist');
-    const wishlist = wishlistAttr ? parseInt(wishlistAttr.trim()) : 0;
+    const wishlist = parseInt(row.getAttribute('data-wishlist')?.trim()) || 0;
     const matchesWishlist = wishlist >= wishlistRange[0] && wishlist <= wishlistRange[1];
     
     // Show row only if all filters match
@@ -185,7 +183,7 @@ function updateFilterBadge(tableId) {
   
   // Check search filter
   const searchBox = getElement(`search-${tableId}`);
-  if (searchBox && searchBox.value.trim() !== '') {
+  if (searchBox?.value.trim()) {
     activeFilters++;
   }
   
