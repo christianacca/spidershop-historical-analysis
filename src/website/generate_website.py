@@ -66,6 +66,7 @@ try:
         get_page_url,
         generate_species_page,
     )
+    from shared.parsing import format_datetime_smart
 except ModuleNotFoundError:
     from page_config import BasePageConfig
     from sparkline_conversion import (
@@ -145,16 +146,20 @@ def generate_snapshot_page(config: BasePageConfig) -> str:
     # Read CSV file
     headers, rows = read_csv_file(config.csv_filename)
     
+    # Format scrape_datetime column (date-only unless collision)
+    if headers and rows and 'scrape_datetime' in headers:
+        datetime_idx = headers.index('scrape_datetime')
+        datetimes = [row[datetime_idx] for row in rows]
+        formatted_dates = format_datetime_smart(datetimes)
+        for i, row in enumerate(rows):
+            row[datetime_idx] = formatted_dates[i]
+    
     #Load sparkline data from history CSV for conversion
     sparkline_data = load_historical_sparkline_data()
     
     # Convert Unicode sparklines to SVG in rows
     if headers and rows:
         rows = convert_sparklines_in_rows(headers, rows, sparkline_data, config.csv_filename)
-    
-    # Create top 10 table (first 10 rows)
-    top_10_rows = rows[:10] if rows and len(rows) > 10 else None
-    top_10_headers = headers if top_10_rows else None
     
     # Find column indices for special rendering
     page_url_idx = None
@@ -232,16 +237,20 @@ def generate_history_page(config: BasePageConfig) -> str:
     # Read CSV file
     headers, rows = read_csv_file(config.csv_filename)
     
+    # Format scrape_datetime column (date-only unless collision)
+    if headers and rows and 'scrape_datetime' in headers:
+        datetime_idx = headers.index('scrape_datetime')
+        datetimes = [row[datetime_idx] for row in rows]
+        formatted_dates = format_datetime_smart(datetimes)
+        for i, row in enumerate(rows):
+            row[datetime_idx] = formatted_dates[i]
+    
     # Load sparkline data from history CSV for conversion
     sparkline_data = load_historical_sparkline_data()
     
     # Convert Unicode sparklines to SVG in rows
     if headers and rows:
         rows = convert_sparklines_in_rows(headers, rows, sparkline_data, config.csv_filename)
-    
-    # Create top 10 table (first 10 rows)
-    top_10_rows = rows[:10] if rows and len(rows) > 10 else None
-    top_10_headers = headers if top_10_rows else None
     
     # Find column indices for special rendering
     page_url_idx = None
@@ -257,10 +266,6 @@ def generate_history_page(config: BasePageConfig) -> str:
     headers_enum = list(enumerate(headers)) if headers else []
     rows_enum = [list(enumerate(row)) for row in rows] if rows else []
     
-    # Enumerate top 10 headers and rows for separate rendering
-    top_10_headers_enum = list(enumerate(top_10_headers)) if top_10_headers else []
-    top_10_rows_enum = [list(enumerate(row)) for row in top_10_rows] if top_10_rows else []
-    
     template = jinja_env.get_template('history_page.html')
     return template.render(
         page_title=config.title,
@@ -272,8 +277,6 @@ def generate_history_page(config: BasePageConfig) -> str:
         search_filter=getattr(config, 'search_filter', True),
         headers=headers_enum,
         rows=rows_enum,
-        top_10_headers=top_10_headers_enum,
-        top_10_rows=top_10_rows_enum,
         page_url_idx=page_url_idx,
         scientific_name_idx=scientific_name_idx,
         signal_col_idx=None,  # History has no signal column

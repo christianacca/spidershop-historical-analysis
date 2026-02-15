@@ -447,11 +447,11 @@ class TestMainOrchestration:
             summary_content = summary_file.read_text(encoding="utf-8")
             
             # Normalize timestamps to avoid snapshot mismatches
-            # Replace actual timestamp with placeholder
+            # Replace actual timestamp with placeholder (date-only or date-time format)
             import re
             summary_content = re.sub(
-                r'\*\*Scrape time \(UTC\):\*\* `\d{4}-\d{2}-\d{2}T\d{2}:\d{2}\+\d{2}:\d{2}`',
-                '**Scrape time (UTC):** `YYYY-MM-DDTHH:MM+00:00`',
+                r'\*\*Scrape time \(UTC\):\*\* `\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}\+\d{2}:\d{2}| \d{2}:\d{2})?`',
+                '**Scrape time (UTC):** `YYYY-MM-DD`',
                 summary_content
             )
             

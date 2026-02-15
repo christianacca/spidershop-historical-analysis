@@ -13,6 +13,7 @@ from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 
 from website.csv_utils import read_csv_file
+from shared.parsing import format_datetime_smart
 
 
 # Initialize Jinja2 environment
@@ -224,13 +225,17 @@ def build_chart_data(
     if not observations:
         return {"runs": []}
     
+    # Format dates smartly (date-only unless collision)
+    formatted_dates = format_datetime_smart(recent_run_dates)
+    date_to_formatted = dict(zip(recent_run_dates, formatted_dates))
+    
     # Build chart data: iterate through ALL recent runs, mark gaps where species wasn't observed
     chart_data = {"runs": []}
     for run_date in recent_run_dates:
         if run_date in observations:
             # Species was observed in this run
             chart_data["runs"].append({
-                "date": run_date,
+                "date": date_to_formatted[run_date],
                 "observed": True,
                 "price": observations[run_date]["price"],
                 "wishlist": observations[run_date]["wishlist"]
@@ -238,7 +243,7 @@ def build_chart_data(
         else:
             # Gap: species was NOT observed in this run (out of stock)
             chart_data["runs"].append({
-                "date": run_date,
+                "date": date_to_formatted[run_date],
                 "observed": False,
                 "price": None,
                 "wishlist": None
