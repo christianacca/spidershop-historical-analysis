@@ -11,6 +11,7 @@ the computation logic automatically.
 """
 from scrape.breeder_matrix import build_breeder_opportunity_table
 from scrape.dealer_matrix import build_dealer_supply_risk_table
+from shared.parsing import format_datetime_smart
 
 
 def make_row(scrape_datetime, scientific_name, size_cm, price_gbp, wishlist_count="0"):
@@ -50,6 +51,10 @@ def format_scenario_table(history_rows, target_species=None):
     # Sort dates
     dates = sorted(by_date.keys())
     
+    # Format all dates smartly (date-only unless collision)
+    formatted_dates = format_datetime_smart(dates)
+    date_to_formatted = dict(zip(dates, formatted_dates))
+    
     # Find target species rows
     target_rows = {}
     for date in dates:
@@ -64,12 +69,11 @@ def format_scenario_table(history_rows, target_species=None):
     
     # Format as table
     lines = []
-    lines.append("| Week | Listed? | Price | Wishlist Count |")
+    lines.append("| Date | Listed? | Price | Wishlist Count |")
     lines.append("|------|---------|-------|----------------|")
     
-    for i, date in enumerate(dates, 1):
-        # Convert date to readable format (Jan 1, Jan 8, etc)
-        week_label = f"Jan {1 + (i-1)*7}"
+    for date in dates:
+        formatted_date = date_to_formatted[date]
         
         if date in target_rows:
             row = target_rows[date]
@@ -84,7 +88,7 @@ def format_scenario_table(history_rows, target_species=None):
         else:
             continue
             
-        lines.append(f"| {week_label} | {listed} | {price} | {wishlist} |")
+        lines.append(f"| {formatted_date} | {listed} | {price} | {wishlist} |")
     
     return "\n".join(lines)
 

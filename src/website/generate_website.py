@@ -66,6 +66,7 @@ try:
         get_page_url,
         generate_species_page,
     )
+    from shared.parsing import format_datetime_smart
 except ModuleNotFoundError:
     from page_config import BasePageConfig
     from sparkline_conversion import (
@@ -144,6 +145,14 @@ def generate_snapshot_page(config: BasePageConfig) -> str:
     """Generate a snapshot page for current scrape data (raw data display)."""
     # Read CSV file
     headers, rows = read_csv_file(config.csv_filename)
+    
+    # Format scrape_datetime column (date-only unless collision)
+    if headers and rows and 'scrape_datetime' in headers:
+        datetime_idx = headers.index('scrape_datetime')
+        datetimes = [row[datetime_idx] for row in rows]
+        formatted_dates = format_datetime_smart(datetimes)
+        for i, row in enumerate(rows):
+            row[datetime_idx] = formatted_dates[i]
     
     #Load sparkline data from history CSV for conversion
     sparkline_data = load_historical_sparkline_data()
@@ -231,6 +240,14 @@ def generate_history_page(config: BasePageConfig) -> str:
     """Generate a history page for historical scrape data (raw data display)."""
     # Read CSV file
     headers, rows = read_csv_file(config.csv_filename)
+    
+    # Format scrape_datetime column (date-only unless collision)
+    if headers and rows and 'scrape_datetime' in headers:
+        datetime_idx = headers.index('scrape_datetime')
+        datetimes = [row[datetime_idx] for row in rows]
+        formatted_dates = format_datetime_smart(datetimes)
+        for i, row in enumerate(rows):
+            row[datetime_idx] = formatted_dates[i]
     
     # Load sparkline data from history CSV for conversion
     sparkline_data = load_historical_sparkline_data()

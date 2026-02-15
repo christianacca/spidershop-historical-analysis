@@ -18,6 +18,7 @@ from shared.parsing import (
     remove_size_parenthetical_only,
     parse_price,
     parse_wishlist_count,
+    format_datetime_smart,
 )
 
 
@@ -310,3 +311,182 @@ class TestParseWishlistCount:
     def test_embedded_in_larger_text(self):
         """Pattern embedded in larger text should be found."""
         assert parse_wishlist_count("Product details: 5 users have this item in their wishlists. Price: £25") == "5"
+
+
+class TestFormatDatetimeSmart:
+    """Test suite for format_datetime_smart function."""
+
+    def test_empty_list(self):
+        """Empty list should return empty list."""
+        assert format_datetime_smart([]) == []
+
+    def test_single_date_no_time(self):
+        """Single unique date should return date-only format."""
+        result = format_datetime_smart(["2026-02-15T10:00+00:00"])
+        assert result == ["2026-02-15"]
+
+    def test_multiple_unique_dates(self):
+        """Multiple unique dates should all return date-only format."""
+        result = format_datetime_smart([
+            "2026-02-15T10:00+00:00",
+            "2026-02-16T10:00+00:00",
+            "2026-02-17T10:00+00:00"
+        ])
+        assert result == ["2026-02-15", "2026-02-16", "2026-02-17"]
+
+    def test_same_day_collision_two_runs(self):
+        """Two runs on same day should show time for both."""
+        result = format_datetime_smart([
+            "2026-02-15T10:00+00:00",
+            "2026-02-15T14:00+00:00"
+        ])
+        assert result == ["2026-02-15 10:00", "2026-02-15 14:00"]
+
+    def test_same_day_collision_three_runs(self):
+        """Three runs on same day should show time for all three."""
+        result = format_datetime_smart([
+            "2026-02-15T08:00+00:00",
+            "2026-02-15T12:00+00:00",
+            "2026-02-15T16:00+00:00"
+        ])
+        assert result == ["2026-02-15 08:00", "2026-02-15 12:00", "2026-02-15 16:00"]
+
+    def test_mixed_unique_and_collision(self):
+        """Mix of unique dates and same-day collisions should be handled correctly."""
+        result = format_datetime_smart([
+            "2026-02-15T10:00+00:00",  # Unique
+            "2026-02-16T10:00+00:00",  # Collision with next
+            "2026-02-16T14:00+00:00",  # Collision with prev
+            "2026-02-17T10:00+00:00"   # Unique
+        ])
+        assert result == [
+            "2026-02-15",
+            "2026-02-16 10:00",
+            "2026-02-16 14:00",
+            "2026-02-17"
+        ]
+
+    def test_iso_format_with_z_suffix(self):
+        """ISO format with Z suffix (UTC) should be parsed correctly."""
+        result = format_datetime_smart(["2026-02-15T10:00Z"])
+        assert result == ["2026-02-15"]
+
+    def test_iso_format_with_minutes(self):
+        """ISO format with minutes precision should work."""
+        result = format_datetime_smart(["2026-02-15T10:30+00:00"])
+        assert result == ["2026-02-15"]
+
+    def test_simple_date_string(self):
+        """Simple YYYY-MM-DD format should be accepted."""
+        result = format_datetime_smart(["2026-02-15"])
+        assert result == ["2026-02-15"]
+
+    def test_mixed_date_formats(self):
+        """Mixed date and datetime formats should work."""
+        result = format_datetime_smart([
+            "2026-02-15",
+            "2026-02-16T10:00+00:00"
+        ])
+        assert result == ["2026-02-15", "2026-02-16"]
+
+    def test_collision_with_different_timezones(self):
+        """Same UTC date with different timezone offsets should detect collision."""
+        result = format_datetime_smart([
+            "2026-02-15T10:00+00:00",
+            "2026-02-15T14:00+00:00"
+        ])
+        assert result == ["2026-02-15 10:00", "2026-02-15 14:00"]
+
+    def test_invalid_datetime_fallback(self):
+        """Invalid datetime string should return original value."""
+        result = format_datetime_smart(["invalid-date"])
+        assert result == ["invalid-date"]
+
+    def test_mixed_valid_and_invalid(self):
+        """Mix of valid and invalid datetimes should handle each appropriately."""
+        result = format_datetime_smart([
+            "2026-02-15T10:00+00:00",
+            "invalid-date",
+            "2026-02-16T10:00+00:00"
+        ])
+        assert result == ["2026-02-15", "invalid-date", "2026-02-16"]
+
+    def test_preserves_order(self):
+        """Output list should preserve input order."""
+        result = format_datetime_smart([
+            "2026-02-17T10:00+00:00",
+            "2026-02-15T10:00+00:00",
+            "2026-02-16T10:00+00:00"
+        ])
+        assert result == ["2026-02-17", "2026-02-15", "2026-02-16"]
+
+    def test_collision_preserves_chronological_time(self):
+        """Collision formatting should show actual times in correct order."""
+        result = format_datetime_smart([
+            "2026-02-15T14:00+00:00",
+            "2026-02-15T10:00+00:00",
+            "2026-02-15T18:00+00:00"
+        ])
+        assert result == ["2026-02-15 14:00", "2026-02-15 10:00", "2026-02-15 18:00"]
+
+    def test_midnight_time(self):
+        """Midnight time should be formatted as 00:00."""
+        result = format_datetime_smart([
+            "2026-02-15T00:00+00:00",
+            "2026-02-15T12:00+00:00"
+        ])
+        assert result == ["2026-02-15 00:00", "2026-02-15 12:00"]
+
+    def test_real_workflow_scenario(self):
+        """Realistic weekly scrape scenario should show all dates-only."""
+        result = format_datetime_smart([
+            "2026-02-05T06:10+00:00",
+            "2026-02-12T06:10+00:00",
+            "2026-02-19T06:10+00:00",
+            "2026-02-26T06:10+00:00"
+        ])
+        assert result == ["2026-02-05", "2026-02-12", "2026-02-19", "2026-02-26"]
+
+    def test_manual_rerun_scenario(self):
+        """Manual rerun on same day should show times."""
+        result = format_datetime_smart([
+            "2026-02-05T06:10+00:00",
+            "2026-02-12T06:10+00:00",
+            "2026-02-12T14:30+00:00",  # Manual rerun same day
+            "2026-02-19T06:10+00:00"
+        ])
+        assert result == [
+            "2026-02-05",
+            "2026-02-12 06:10",
+            "2026-02-12 14:30",
+            "2026-02-19"
+        ]
+
+    def test_multiple_rows_same_timestamp_no_collision(self):
+        """Multiple rows with identical timestamp should show date-only (snapshot scenario)."""
+        result = format_datetime_smart([
+            "2026-02-11T07:16+00:00",
+            "2026-02-11T07:16+00:00",
+            "2026-02-11T07:16+00:00",
+            "2026-02-11T07:16+00:00"
+        ])
+        # All have identical timestamp - no collision, show date-only
+        assert result == ["2026-02-11", "2026-02-11", "2026-02-11", "2026-02-11"]
+
+    def test_distinguishes_repeated_timestamp_from_different_times(self):
+        """Should distinguish between repeated timestamps vs different times on same date."""
+        result = format_datetime_smart([
+            "2026-02-11T07:16+00:00",  # First scrape run (3 rows)
+            "2026-02-11T07:16+00:00",
+            "2026-02-11T07:16+00:00",
+            "2026-02-11T14:30+00:00",  # Second scrape run same day (2 rows)
+            "2026-02-11T14:30+00:00"
+        ])
+        # Two different times on same date = collision, show time for all
+        assert result == [
+            "2026-02-11 07:16",
+            "2026-02-11 07:16",
+            "2026-02-11 07:16",
+            "2026-02-11 14:30",
+            "2026-02-11 14:30"
+        ]

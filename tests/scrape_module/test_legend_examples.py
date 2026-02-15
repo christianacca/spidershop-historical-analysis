@@ -205,8 +205,8 @@ class TestExampleStructure:
         """Examples should include markdown tables with data."""
         breeder_examples = generate_breeder_examples()
         
-        # Check for table headers
-        assert "| Week | Listed? | Price | Wishlist Count |" in breeder_examples
+        # Check for table headers (now using Date column instead of Week)
+        assert "| Date | Listed? | Price | Wishlist Count |" in breeder_examples
         assert "|------|---------|-------|----------------|" in breeder_examples
     
     def test_generated_content_is_string(self):

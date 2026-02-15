@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from shared.history_utils import group_by_run, k3
 from shared.assertions import get_summary_path
+from shared.parsing import format_datetime_smart
 
 # =====================
 # JOB SUMMARY — PRICING
@@ -87,9 +88,12 @@ def write_pricing_summary(history_rows, scrape_datetime: str):
     if not stats:
         return
 
+    # Format scrape datetime (date-only unless collision)
+    formatted_datetime = format_datetime_smart([scrape_datetime])[0]
+    
     with open(summary_path, "a", encoding="utf-8") as f:
         f.write("## 🕷️ Spiderlings Pricing Summary\n\n")
-        f.write(f"**Scrape time (UTC):** `{scrape_datetime}`\n\n")
+        f.write(f"**Scrape time (UTC):** `{formatted_datetime}`\n\n")
         f.write("### 🔄 Changes Since Last Run\n")
         f.write(f"- 🔼 Increases: **{stats['increases']}**\n")
         f.write(f"- 🔽 Decreases: **{stats['decreases']}**\n")

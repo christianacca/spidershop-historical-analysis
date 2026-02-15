@@ -340,7 +340,7 @@ class TestWritePricingSummary:
             
             # Check that key elements are present
             assert "## 🕷️ Spiderlings Pricing Summary" in content
-            assert "2025-01-08T12:00:00" in content
+            assert "2025-01-08" in content  # Date-only format (no collision)
             assert "🔼 Increases:" in content
             assert "🔽 Decreases:" in content
             assert "➖ Unchanged:" in content
