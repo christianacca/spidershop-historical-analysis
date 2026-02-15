@@ -200,10 +200,6 @@ def generate_snapshot_page(config: BasePageConfig) -> str:
     headers_enum = list(enumerate(headers)) if headers else []
     rows_enum = [list(enumerate(row)) for row in rows] if rows else []
     
-    # Enumerate top 10 headers and rows for separate rendering
-    top_10_headers_enum = list(enumerate(top_10_headers)) if top_10_headers else []
-    top_10_rows_enum = [list(enumerate(row)) for row in top_10_rows] if top_10_rows else []
-    
     template = jinja_env.get_template('snapshot_page.html')
     return template.render(
         page_title=config.title,
@@ -215,8 +211,6 @@ def generate_snapshot_page(config: BasePageConfig) -> str:
         search_filter=getattr(config, 'search_filter', True),
         headers=headers_enum,
         rows=rows_enum,
-        top_10_headers=top_10_headers_enum,
-        top_10_rows=top_10_rows_enum,
         page_url_idx=page_url_idx,
         price_idx=price_idx,
         price_min=price_min,

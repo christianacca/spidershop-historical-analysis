@@ -260,9 +260,9 @@ class TestGenerateSnapshotPage:
             html = generate_snapshot_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
-            # Find "Full Data Table" heading
+            # Find "Data Table" heading
             headings = soup.find_all('h3')
-            assert any('Full Data Table' in h.text for h in headings)
+            assert any('Data Table' in h.text for h in headings)
             
             # Find the table (snapshot builder uses snapshot-table as ID)
             table = soup.find('table', id='snapshot-table')
