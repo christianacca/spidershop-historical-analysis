@@ -182,7 +182,7 @@ function renderLineChart({ containerId, series, stroke, yMin, yMax, yLabelTop, y
   
   try {
     const layout = calculateLayout();
-    const fmt = formatValue || ((v) => String(v));
+    const fmt = formatValue ?? ((v) => String(v));
     
     // Transform data to coordinates
     const points = mapPointsToCoordinates(series, yMin, yMax, layout);
@@ -246,8 +246,7 @@ function renderStockStrip(chartData) {
 
   let x = startX;
   const rects = [];
-  for (let i = 0; i < n; i++) {
-    const obs = observed[i];
+  for (const [i, obs] of observed.entries()) {
     const fill = obs ? '#dcfce7' : '#f1f5f9';
     const stroke = obs ? '#16a34a' : '#94a3b8';
     const label = obs ? 'observed' : 'not observed (gap)';
@@ -277,8 +276,12 @@ function renderCharts() {
   const chartData = window.speciesChartData;
 
   // Extract price and wishlist arrays from chart_data
-  const prices = chartData.runs.map(r => r.observed ? parseFloat(r.price) : null);
-  const wishlists = chartData.runs.map(r => r.observed ? parseInt(r.wishlist) : null);
+  const prices = chartData.runs.map(({ observed, price }) => 
+    observed ? parseFloat(price) : null
+  );
+  const wishlists = chartData.runs.map(({ observed, wishlist }) => 
+    observed ? parseInt(wishlist) : null
+  );
 
   // Calculate min/max for price chart
   const validPrices = prices.filter(p => p !== null);
