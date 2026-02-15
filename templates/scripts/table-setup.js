@@ -10,13 +10,12 @@
 
 import {
   sortTable,
-  filterTable,
-  filterBySignal,
-  filterByStockPattern,
+  filterRows,
   toggleAdvancedFilters,
   filterByPrice,
   filterByWishlist
 } from './table-interactions.js';
+import { filterByAttribute } from './utils.js';
 
 /**
  * Initialize table header sorting
@@ -40,7 +39,7 @@ function initSearchFiltering() {
     document.querySelectorAll('input[data-action="search"]').forEach(input => {
       input.addEventListener('keyup', function() {
         const tableId = this.dataset.tableId;
-        filterTable(this, tableId);
+        filterRows(tableId);
       });
     });
   }
@@ -54,7 +53,7 @@ function initSignalFilters() {
       button.addEventListener('click', function() {
         const signal = this.dataset.signal;
         const tableId = this.dataset.tableId;
-        filterBySignal(signal, tableId, this);
+        filterByAttribute('data-signal', signal, tableId, this);
       });
     });
   }
@@ -68,7 +67,7 @@ function initStockPatternFilters() {
       button.addEventListener('click', function() {
         const pattern = this.dataset.stockPattern;
         const tableId = this.dataset.tableId;
-        filterByStockPattern(pattern, tableId, this);
+        filterByAttribute('data-stock-pattern', pattern, tableId, this);
       });
     });
   }

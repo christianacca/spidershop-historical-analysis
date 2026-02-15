@@ -290,11 +290,11 @@ class TestStockPatternFiltering:
         assert 'src="table-interactions.js"' in html, "Should reference external JavaScript file"
         assert 'data-stock-pattern=' in html, "Table rows should have data-stock-pattern attributes"
         
-        # Verify the external JavaScript file contains filterByStockPattern function
-        js_file = Path(__file__).parent.parent.parent / "templates" / "scripts" / "table-interactions.js"
-        assert js_file.exists(), "JavaScript file should exist"
-        js_content = js_file.read_text()
-        assert 'function filterByStockPattern' in js_content
+        # Verify the generic filtering function exists in utils.js (refactored from filterByStockPattern)
+        utils_file = Path(__file__).parent.parent.parent / "templates" / "scripts" / "utils.js"
+        assert utils_file.exists(), "utils.js file should exist"
+        utils_content = utils_file.read_text()
+        assert 'function filterByAttribute' in utils_content or 'filterByAttribute(' in utils_content
 
     def test_stock_pattern_buttons_have_counts(self, tmp_path):
         """Stock pattern filter buttons should display counts for each pattern."""

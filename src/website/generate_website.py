@@ -689,7 +689,7 @@ def main() -> None:
     # Copy JavaScript files to output directory
     print("  Copying JavaScript files...")
     scripts_dir = Path(__file__).parent.parent.parent / "templates" / "scripts"
-    js_files = ["table-interactions.js", "species-detail.js", "table-setup.js"]
+    js_files = ["constants.js", "utils.js", "table-interactions.js", "species-detail.js", "table-setup.js"]
     
     for js_file in js_files:
         js_source = scripts_dir / js_file
