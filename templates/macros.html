@@ -55,7 +55,7 @@
 {% macro search_filter(table_id) -%}
 <div class="filter-row">
     <strong>🔍 Search:</strong>
-    <input type="text" id="search-{{ table_id }}" placeholder="Type to filter species, names, etc..." onkeyup="filterTable(this, '{{ table_id }}')" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem;">
+    <input type="text" id="search-{{ table_id }}" placeholder="Type to filter species, names, etc..." data-action="search" data-table-id="{{ table_id }}" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem;">
 </div>
 {%- endmacro %}
 
@@ -70,12 +70,12 @@
 <div style="margin-bottom: 15px;">
     <strong style="color: #34495e; margin-right: 10px;">🎯 {{ signal_label }}:</strong>
     <div class="filter-buttons-container" style="display: inline-block;">
-        <button class="filter-btn active" onclick="filterBySignal('all', '{{ table_id }}', this)">Show All{% if summary_stats %} ({{ summary_stats.total }}){% endif %}</button>
-        <button class="filter-btn" onclick="filterBySignal('🔥', '{{ table_id }}', this)">🔥 Hot{% if summary_stats %} ({{ summary_stats.hot }}){% endif %}</button>
-        <button class="filter-btn" onclick="filterBySignal('⚠️', '{{ table_id }}', this)">⚠️ Watch{% if summary_stats %} ({{ summary_stats.watch }}){% endif %}</button>
-        <button class="filter-btn" onclick="filterBySignal('❌', '{{ table_id }}', this)">❌ Avoid{% if summary_stats %} ({{ summary_stats.avoid }}){% endif %}</button>
+        <button class="filter-btn active" data-action="filter-signal" data-signal="all" data-table-id="{{ table_id }}">Show All{% if summary_stats %} ({{ summary_stats.total }}){% endif %}</button>
+        <button class="filter-btn" data-action="filter-signal" data-signal="🔥" data-table-id="{{ table_id }}">🔥 Hot{% if summary_stats %} ({{ summary_stats.hot }}){% endif %}</button>
+        <button class="filter-btn" data-action="filter-signal" data-signal="⚠️" data-table-id="{{ table_id }}">⚠️ Watch{% if summary_stats %} ({{ summary_stats.watch }}){% endif %}</button>
+        <button class="filter-btn" data-action="filter-signal" data-signal="❌" data-table-id="{{ table_id }}">❌ Avoid{% if summary_stats %} ({{ summary_stats.avoid }}){% endif %}</button>
         {% if has_advanced_filters %}
-        <button class="btn btn-secondary advanced-filters-toggle" onclick="toggleAdvancedFilters('advanced-filters-{{ table_id }}', this)">
+        <button class="btn btn-secondary advanced-filters-toggle" data-action="toggle-filters" data-content-id="advanced-filters-{{ table_id }}">
             <span class="arrow">▶</span>
             <span>More Filters</span>
         </button>
@@ -93,11 +93,11 @@
 <div class="filter-row">
     <strong>📊 Stock Pattern:</strong>
     <div class="stock-pattern-filters filter-buttons-container">
-        <button class="filter-btn active" onclick="filterByStockPattern('all', '{{ table_id }}', this)">Show All{% if stock_pattern_counts %} ({{ stock_pattern_counts.total }}){% endif %}</button>
-        <button class="filter-btn" onclick="filterByStockPattern('Sustained', '{{ table_id }}', this)">Sustained{% if stock_pattern_counts %} ({{ stock_pattern_counts.sustained }}){% endif %}</button>
-        <button class="filter-btn" onclick="filterByStockPattern('Emerging', '{{ table_id }}', this)">Emerging{% if stock_pattern_counts %} ({{ stock_pattern_counts.emerging }}){% endif %}</button>
-        <button class="filter-btn" onclick="filterByStockPattern('Cyclical', '{{ table_id }}', this)">Cyclical{% if stock_pattern_counts %} ({{ stock_pattern_counts.cyclical }}){% endif %}</button>
-        <button class="filter-btn" onclick="filterByStockPattern('Always', '{{ table_id }}', this)">Always{% if stock_pattern_counts %} ({{ stock_pattern_counts.always }}){% endif %}</button>
+        <button class="filter-btn active" data-action="filter-stock-pattern" data-stock-pattern="all" data-table-id="{{ table_id }}">Show All{% if stock_pattern_counts %} ({{ stock_pattern_counts.total }}){% endif %}</button>
+        <button class="filter-btn" data-action="filter-stock-pattern" data-stock-pattern="Sustained" data-table-id="{{ table_id }}">Sustained{% if stock_pattern_counts %} ({{ stock_pattern_counts.sustained }}){% endif %}</button>
+        <button class="filter-btn" data-action="filter-stock-pattern" data-stock-pattern="Emerging" data-table-id="{{ table_id }}">Emerging{% if stock_pattern_counts %} ({{ stock_pattern_counts.emerging }}){% endif %}</button>
+        <button class="filter-btn" data-action="filter-stock-pattern" data-stock-pattern="Cyclical" data-table-id="{{ table_id }}">Cyclical{% if stock_pattern_counts %} ({{ stock_pattern_counts.cyclical }}){% endif %}</button>
+        <button class="filter-btn" data-action="filter-stock-pattern" data-stock-pattern="Always" data-table-id="{{ table_id }}">Always{% if stock_pattern_counts %} ({{ stock_pattern_counts.always }}){% endif %}</button>
     </div>
 </div>
 {%- endmacro %}

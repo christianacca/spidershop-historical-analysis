@@ -187,7 +187,7 @@ class TestGenerateSnapshotPage:
             assert any('Download CSV' in text for text in link_texts), "Download link should contain 'Download CSV' text"
 
     def test_includes_search_filter_when_enabled(self):
-        """Should include search filter when search_filter=True."""
+        """Should include search filter when search_filter=True (behavior tested by E2E)."""
         from conftest import temp_csv_file
         
         csv_content = "Col\nVal\n"
@@ -196,11 +196,13 @@ class TestGenerateSnapshotPage:
             html = generate_snapshot_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
-            # Find search input
+            # Find search input - should have data attributes for event listeners
             search_input = soup.find('input', type='text')
             assert search_input is not None
-            assert 'oninput' in search_input.attrs or 'onkeyup' in search_input.attrs
-            assert 'filterTable' in html
+            assert search_input.get('data-action') == 'search', "Search input should have data-action attribute"
+            assert search_input.get('data-table-id') is not None, "Search input should have data-table-id attribute"
+            # Filter function should still be in external JavaScript (referenced externally)
+            assert 'filterTable' not in html, "filterTable should be in external JS, not inline"
 
     def test_includes_advanced_filters_toggle_when_search_enabled(self):
         """Should include 'More Filters' toggle button when search_filter=True."""
@@ -216,9 +218,10 @@ class TestGenerateSnapshotPage:
             toggle_button = soup.find('button', class_='btn-filters')
             assert toggle_button is not None, "Toggle button should exist when search is enabled"
             
-            # Verify button structure
-            assert 'onclick' in toggle_button.attrs, "Toggle button should have onclick handler"
-            assert 'toggleAdvancedFilters' in toggle_button.attrs['onclick'], "Should call toggleAdvancedFilters function"
+            # Verify button uses data attributes (ES modules pattern)
+            assert toggle_button.has_attr('data-action'), "Toggle button should have data-action attribute"
+            assert toggle_button['data-action'] == 'toggle-filters', "Should have toggle-filters action"
+            assert toggle_button.has_attr('data-content-id'), "Should have data-content-id attribute"
             
             # Verify button contains arrow and text
             assert toggle_button.find('span', class_='arrow') is not None, "Should have arrow span"
@@ -296,8 +299,9 @@ class TestGenerateSnapshotPage:
             filter_button = action_buttons.find('button', class_='btn-filters')
             assert filter_button is not None, "Should have filter button with btn-filters class"
             assert 'More Filters' in filter_button.text or 'Filters' in filter_button.text, "Filter button should have text"
-            assert filter_button.has_attr('onclick'), "Filter button should have onclick handler"
-            assert 'toggleAdvancedFilters' in filter_button['onclick'], "Filter button should call toggleAdvancedFilters"
+            assert filter_button.has_attr('data-action'), "Filter button should have data-action attribute"
+            assert filter_button['data-action'] == 'toggle-filters', "Filter button should have toggle-filters action"
+            assert filter_button.has_attr('data-content-id'), "Filter button should have data-content-id attribute"
             
             # Verify both buttons are direct children of action-buttons container
             direct_children = [child for child in action_buttons.children if child.name in ['a', 'button']]

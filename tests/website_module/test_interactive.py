@@ -70,7 +70,7 @@ class TestInteractiveFilterButtons:
         assert len(buttons) == 4, "Should have 4 filter buttons"
 
     def test_filter_buttons_have_onclick_handlers(self, tmp_path):
-        """Filter buttons should have onclick handlers for JavaScript filtering."""
+        """Filter buttons should have data attributes for JavaScript filtering (behavior tested by E2E)."""
         csv_file = tmp_path / "test.csv"
         csv_file.write_text("Species,Signal\nTest,🔥\n")
         
@@ -81,10 +81,11 @@ class TestInteractiveFilterButtons:
         soup = BeautifulSoup(html, 'html.parser')
         buttons = soup.find_all('button', class_='filter-btn')
         
-        # Each button should have an onclick attribute
+        # Each button should have data attributes for event listeners (behavior validated by E2E tests)
         for btn in buttons:
-            assert btn.get('onclick') is not None, "Filter buttons should have onclick handlers"
-            assert 'filterBySignal' in btn.get('onclick'), "Should call filterBySignal function"
+            assert btn.get('data-action') is not None, "Filter buttons should have data-action attribute"
+            assert btn.get('data-signal') is not None, "Filter buttons should have data-signal attribute"
+            assert btn.get('data-table-id') is not None, "Filter buttons should have data-table-id attribute"
 
     def test_snapshot_page_has_no_filter_buttons(self, tmp_path):
         """Snapshot and history pages should NOT have filter buttons (no Signal column)."""
@@ -289,11 +290,11 @@ class TestStockPatternFiltering:
         assert 'src="table-interactions.js"' in html, "Should reference external JavaScript file"
         assert 'data-stock-pattern=' in html, "Table rows should have data-stock-pattern attributes"
         
-        # Verify the external JavaScript file contains filterByStockPattern function
-        js_file = Path(__file__).parent.parent.parent / "templates" / "scripts" / "table-interactions.js"
-        assert js_file.exists(), "JavaScript file should exist"
-        js_content = js_file.read_text()
-        assert 'function filterByStockPattern' in js_content
+        # Verify the generic filtering function exists in utils.js (refactored from filterByStockPattern)
+        utils_file = Path(__file__).parent.parent.parent / "templates" / "scripts" / "utils.js"
+        assert utils_file.exists(), "utils.js file should exist"
+        utils_content = utils_file.read_text()
+        assert 'function filterByAttribute' in utils_content or 'filterByAttribute(' in utils_content
 
     def test_stock_pattern_buttons_have_counts(self, tmp_path):
         """Stock pattern filter buttons should display counts for each pattern."""

@@ -24,7 +24,7 @@
     <div class="action-buttons">
         <a href="{{ csv_filename }}" download class="btn btn-download">⬇️ Download CSV</a>
         {% if search_filter %}
-        <button class="btn btn-filters" onclick="toggleAdvancedFilters('advanced-filters-{{ table_id }}', this)">
+        <button class="btn btn-filters" data-action="toggle-filters" data-content-id="advanced-filters-{{ table_id }}">
             <span class="arrow">▶</span>
             <span>More Filters</span>
             <span class="filter-badge hidden" id="filterBadge-{{ table_id }}">0</span>
@@ -39,8 +39,8 @@
                 <strong>💷 Price Range:</strong>
                 <div class="slider-container">
                     <div class="dual-range-slider">
-                        <input type="range" min="{{ price_min }}" max="{{ price_max }}" value="{{ price_min }}" class="slider slider-min" id="priceMin" oninput="filterByPrice('{{ table_id }}')">
-                        <input type="range" min="{{ price_min }}" max="{{ price_max }}" value="{{ price_max }}" class="slider slider-max" id="priceMax" oninput="filterByPrice('{{ table_id }}')">
+                        <input type="range" min="{{ price_min }}" max="{{ price_max }}" value="{{ price_min }}" class="slider slider-min" id="priceMin" data-filter="price" data-table-id="{{ table_id }}">
+                        <input type="range" min="{{ price_min }}" max="{{ price_max }}" value="{{ price_max }}" class="slider slider-max" id="priceMax" data-filter="price" data-table-id="{{ table_id }}">
                     </div>
                     <div class="slider-values">
                         <span>£{{ price_min }}</span>
@@ -53,8 +53,8 @@
                 <strong>💚 Wishlist Count:</strong>
                 <div class="slider-container">
                     <div class="dual-range-slider">
-                        <input type="range" min="{{ wishlist_min }}" max="{{ wishlist_max }}" value="{{ wishlist_min }}" class="slider slider-min" id="wishlistMin" oninput="filterByWishlist('{{ table_id }}')">
-                        <input type="range" min="{{ wishlist_min }}" max="{{ wishlist_max }}" value="{{ wishlist_max }}" class="slider slider-max" id="wishlistMax" oninput="filterByWishlist('{{ table_id }}')">
+                        <input type="range" min="{{ wishlist_min }}" max="{{ wishlist_max }}" value="{{ wishlist_min }}" class="slider slider-min" id="wishlistMin" data-filter="wishlist" data-table-id="{{ table_id }}">
+                        <input type="range" min="{{ wishlist_min }}" max="{{ wishlist_max }}" value="{{ wishlist_max }}" class="slider slider-max" id="wishlistMax" data-filter="wishlist" data-table-id="{{ table_id }}">
                     </div>
                     <div class="slider-values">
                         <span>{{ wishlist_min }}</span>

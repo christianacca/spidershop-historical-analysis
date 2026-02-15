@@ -37,19 +37,19 @@
   <table class="data-table" id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">
   <thead>
   <tr>
-  <th onclick="sortTable(0, '[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]')">b <span class="sort-indicator">⇅</span></th>
-  <th onclick="sortTable(1, '[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]')">r <span class="sort-indicator">⇅</span></th>
-  <th onclick="sortTable(2, '[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]')">e <span class="sort-indicator">⇅</span></th>
-  <th onclick="sortTable(3, '[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]')">e <span class="sort-indicator">⇅</span></th>
-  <th onclick="sortTable(4, '[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]')">d <span class="sort-indicator">⇅</span></th>
-  <th onclick="sortTable(5, '[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]')">e <span class="sort-indicator">⇅</span></th>
-  <th onclick="sortTable(6, '[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]')">r <span class="sort-indicator">⇅</span></th>
-  <th onclick="sortTable(7, '[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]')">- <span class="sort-indicator">⇅</span></th>
-  <th onclick="sortTable(8, '[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]')">t <span class="sort-indicator">⇅</span></th>
-  <th onclick="sortTable(9, '[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]')">a <span class="sort-indicator">⇅</span></th>
-  <th onclick="sortTable(10, '[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]')">b <span class="sort-indicator">⇅</span></th>
-  <th onclick="sortTable(11, '[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]')">l <span class="sort-indicator">⇅</span></th>
-  <th onclick="sortTable(12, '[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]')">e <span class="sort-indicator">⇅</span></th>
+  <th data-column-index="0" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">b <span class="sort-indicator">⇅</span></th>
+  <th data-column-index="1" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">r <span class="sort-indicator">⇅</span></th>
+  <th data-column-index="2" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">e <span class="sort-indicator">⇅</span></th>
+  <th data-column-index="3" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">e <span class="sort-indicator">⇅</span></th>
+  <th data-column-index="4" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">d <span class="sort-indicator">⇅</span></th>
+  <th data-column-index="5" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">e <span class="sort-indicator">⇅</span></th>
+  <th data-column-index="6" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">r <span class="sort-indicator">⇅</span></th>
+  <th data-column-index="7" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">- <span class="sort-indicator">⇅</span></th>
+  <th data-column-index="8" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">t <span class="sort-indicator">⇅</span></th>
+  <th data-column-index="9" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">a <span class="sort-indicator">⇅</span></th>
+  <th data-column-index="10" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">b <span class="sort-indicator">⇅</span></th>
+  <th data-column-index="11" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">l <span class="sort-indicator">⇅</span></th>
+  <th data-column-index="12" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">e <span class="sort-indicator">⇅</span></th>
   </tr>
   </thead>
   <tbody>

@@ -21,7 +21,7 @@
       {% if drivers_col_idx is defined and i == drivers_col_idx and drivers_col_idx is not none %}
         {# Hide Drivers column header #}
       {% elif sortable %}
-      <th onclick="sortTable({{ i }}, '{{ table_id }}')">{{ header }} <span class="sort-indicator">⇅</span></th>
+      <th data-sortable="true" data-column-index="{{ i }}" data-table-id="{{ table_id }}">{{ header }} <span class="sort-indicator">⇅</span></th>
       {% else %}
       <th>{{ header }}</th>
       {% endif %}
