@@ -93,6 +93,19 @@ def format_scenario_table(history_rows, target_species=None):
     return "\n".join(lines)
 
 
+def _get_table_entry(table: list, species: str) -> dict:
+    """Get table entry for a specific species.
+    
+    Args:
+        table: Table with 'Species' column
+        species: Species name to find
+        
+    Returns:
+        Dictionary of the matching row
+    """
+    return [r for r in table if r["Species"] == species][0]
+
+
 def generate_breeder_example_1():
     """Example 1: Sustained Scarcity (Strong Opportunity)."""
     history = [
@@ -105,7 +118,7 @@ def generate_breeder_example_1():
     ]
     
     table = build_breeder_opportunity_table(history)
-    entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+    entry = _get_table_entry(table, "Aphonopelma seemanni")
     
     data_table = format_scenario_table(history, "Aphonopelma seemanni")
     
@@ -137,7 +150,7 @@ def generate_breeder_example_2():
     ]
     
     table = build_breeder_opportunity_table(history)
-    entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+    entry = _get_table_entry(table, "Aphonopelma seemanni")
     
     data_table = format_scenario_table(history, "Aphonopelma seemanni")
     
@@ -169,7 +182,7 @@ def generate_breeder_example_3():
     ]
     
     table = build_breeder_opportunity_table(history)
-    entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+    entry = _get_table_entry(table, "Aphonopelma seemanni")
     
     data_table = format_scenario_table(history, "Aphonopelma seemanni")
     
@@ -197,7 +210,7 @@ def generate_breeder_example_4():
     ]
     
     table = build_breeder_opportunity_table(history)
-    entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+    entry = _get_table_entry(table, "Aphonopelma seemanni")
     
     data_table = format_scenario_table(history, "Aphonopelma seemanni")
     
@@ -234,7 +247,7 @@ def generate_breeder_example_5():
     ]
     
     table = build_breeder_opportunity_table(history)
-    entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+    entry = _get_table_entry(table, "Aphonopelma seemanni")
     
     data_table = format_scenario_table(history, "Aphonopelma seemanni")
     
@@ -268,7 +281,7 @@ def generate_breeder_example_6():
     ]
     
     table = build_breeder_opportunity_table(history)
-    entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+    entry = _get_table_entry(table, "Aphonopelma seemanni")
     
     data_table = format_scenario_table(history, "Aphonopelma seemanni")
     
@@ -306,8 +319,8 @@ def generate_breeder_example_7():
     breeder_table = build_breeder_opportunity_table(history)
     dealer_table = build_dealer_supply_risk_table(history)
     
-    breeder_entry = [r for r in breeder_table if r["Species"] == "Cyriocosmus elegans"][0]
-    dealer_entry = [r for r in dealer_table if r["Species"] == "Cyriocosmus elegans"][0]
+    breeder_entry = _get_table_entry(breeder_table, "Cyriocosmus elegans")
+    dealer_entry = _get_table_entry(dealer_table, "Cyriocosmus elegans")
     
     data_table = format_scenario_table(history, "Cyriocosmus elegans")
     
@@ -410,7 +423,7 @@ def generate_dealer_example_1():
     ]
     
     table = build_dealer_supply_risk_table(history)
-    entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+    entry = _get_table_entry(table, "Aphonopelma seemanni")
     
     return f"""#### Example 1: High Reliability (No Urgency)
 **Scenario:** A species available in 9 out of 10 weeks with stable demand
@@ -444,7 +457,7 @@ def generate_dealer_example_2():
     ]
     
     table = build_dealer_supply_risk_table(history)
-    entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+    entry = _get_table_entry(table, "Aphonopelma seemanni")
     
     return f"""#### Example 2: Medium Reliability (Watch and Wait)
 **Scenario:** A species present in 5 out of 10 weeks (50% availability)
@@ -471,7 +484,7 @@ def generate_dealer_example_3():
     ]
     
     table = build_dealer_supply_risk_table(history)
-    entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+    entry = _get_table_entry(table, "Aphonopelma seemanni")
     
     return f"""#### Example 3: Low Reliability + Slow Restock (High Risk)
 **Scenario:** A species rarely available (3 out of 10 weeks), taking 4+ weeks to restock
@@ -499,7 +512,7 @@ def generate_dealer_example_4():
     ]
     
     table = build_dealer_supply_risk_table(history)
-    entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+    entry = _get_table_entry(table, "Aphonopelma seemanni")
     
     return f"""#### Example 4: Low Reliability + High Demand (Critical Risk)
 **Scenario:** A rarely available species with strong buyer interest
@@ -529,7 +542,7 @@ def generate_dealer_example_5():
     ]
     
     table = build_dealer_supply_risk_table(history)
-    entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+    entry = _get_table_entry(table, "Aphonopelma seemanni")
     
     return f"""#### Example 5: Medium Reliability + Surging Demand (Escalated Risk)
 **Scenario:** A moderately available species with rapidly increasing wishlist interest
@@ -557,7 +570,7 @@ def generate_dealer_example_6():
     ]
     
     table = build_dealer_supply_risk_table(history)
-    entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+    entry = _get_table_entry(table, "Aphonopelma seemanni")
     
     return f"""#### Example 6: High Reliability + Falling Demand (No Action Needed)
 **Scenario:** A consistently available species with declining buyer interest
@@ -586,7 +599,7 @@ def generate_dealer_example_7():
     ]
     
     table = build_dealer_supply_risk_table(history)
-    entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+    entry = _get_table_entry(table, "Aphonopelma seemanni")
     
     return f"""#### Example 7: Low Reliability + Surging Interest (Early Warning)
 **Scenario:** An unreliable species showing early-stage demand growth

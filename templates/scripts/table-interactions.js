@@ -54,18 +54,18 @@ export function sortTable(columnIndex, tableId) {
   
   // Sort rows
   rows.sort((a, b) => {
-    let aVal = a.cells[columnIndex].textContent.trim();
-    let bVal = b.cells[columnIndex].textContent.trim();
+    const aText = a.cells[columnIndex].textContent.trim();
+    const bText = b.cells[columnIndex].textContent.trim();
     
     if (isNumeric) {
-      aVal = parseFloat(aVal.replace(/[^0-9.-]/g, '')) || 0;
-      bVal = parseFloat(bVal.replace(/[^0-9.-]/g, '')) || 0;
-      return newDirection === 'asc' ? aVal - bVal : bVal - aVal;
-    } else {
-      aVal = aVal.toLowerCase();
-      bVal = bVal.toLowerCase();
-      return newDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      const aValue = parseFloat(aText.replace(/[^0-9.-]/g, '')) || 0;
+      const bValue = parseFloat(bText.replace(/[^0-9.-]/g, '')) || 0;
+      return newDirection === 'asc' ? aValue - bValue : bValue - aValue;
     }
+    
+    const aLower = aText.toLowerCase();
+    const bLower = bText.toLowerCase();
+    return newDirection === 'asc' ? aLower.localeCompare(bLower) : bLower.localeCompare(aLower);
   });
   
   // Reappend sorted rows
@@ -122,33 +122,18 @@ export function filterRows(tableId) {
   if (!table) return;
   
   const rows = table.querySelectorAll('tbody tr');
+  const searchTerm = getElement(`search-${tableId}`)?.value.toLowerCase() ?? '';
+  const [priceMin, priceMax] = priceSlider?.getValues() ?? [0, Infinity];
+  const [wishlistMin, wishlistMax] = wishlistSlider?.getValues() ?? [0, Infinity];
   
-  // Get search filter value
-  const searchBox = getElement(`search-${tableId}`);
-  const searchTerm = searchBox?.value.toLowerCase() ?? '';
-  
-  // Get price filter range
-  const priceRange = priceSlider?.getValues() ?? [0, Infinity];
-  
-  // Get wishlist filter range
-  const wishlistRange = wishlistSlider?.getValues() ?? [0, Infinity];
-  
-  // Filter rows
   rows.forEach(row => {
-    // Check search filter
     const matchesSearch = !searchTerm || row.textContent.toLowerCase().includes(searchTerm);
-    
-    // Check price filter
     const price = parseFloat(row.getAttribute('data-price')?.replace('£', '').trim()) || 0;
-    const matchesPrice = price >= priceRange[0] && price <= priceRange[1];
-    
-    // Check wishlist filter
+    const matchesPrice = price >= priceMin && price <= priceMax;
     const wishlist = parseInt(row.getAttribute('data-wishlist')?.trim()) || 0;
-    const matchesWishlist = wishlist >= wishlistRange[0] && wishlist <= wishlistRange[1];
+    const matchesWishlist = wishlist >= wishlistMin && wishlist <= wishlistMax;
     
-    // Show row only if all filters match
-    const shouldShow = matchesSearch && matchesPrice && matchesWishlist;
-    toggleRowVisibility(row, shouldShow);
+    toggleRowVisibility(row, matchesSearch && matchesPrice && matchesWishlist);
   });
   
   updateFilterBadge(tableId);
