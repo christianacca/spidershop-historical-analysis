@@ -90,45 +90,46 @@ def format_datetime_smart(datetimes: List[str]) -> List[str]:
     if not datetimes:
         return []
     
-    # Parse all datetimes and track unique times per date
     parsed = []
-    date_to_times = {}  # Map date to set of unique times
+    date_to_times = {}
     
     for dt_str in datetimes:
-        try:
-            # Handle both ISO format with timezone and simple date strings
-            if 'T' in dt_str:
-                # Full ISO format with time
-                dt = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
-            else:
-                # Simple date string (YYYY-MM-DD)
-                dt = datetime.strptime(dt_str, "%Y-%m-%d")
-            
-            date_only = dt.strftime("%Y-%m-%d")
-            time_only = dt.strftime("%H:%M")
-            
-            parsed.append((dt, date_only))
-            
-            # Track unique times for this date
-            if date_only not in date_to_times:
-                date_to_times[date_only] = set()
-            date_to_times[date_only].add(time_only)
-        except (ValueError, AttributeError):
-            # Fallthrough: return original string if parsing fails
-            parsed.append((None, dt_str))
+        dt, date_str = _parse_datetime(dt_str)
+        if dt:
+            time_str = dt.strftime("%H:%M")
+            if date_str not in date_to_times:
+                date_to_times[date_str] = set()
+            date_to_times[date_str].add(time_str)
+        parsed.append((dt, date_str))
     
-    # Format each datetime based on whether its date has multiple unique times
-    result = []
-    for dt, date_str in parsed:
-        if dt is None:
-            # Parsing failed, return original
-            result.append(date_str)
-        elif len(date_to_times.get(date_str, set())) > 1:
-            # Collision: multiple unique times on this date
-            result.append(dt.strftime("%Y-%m-%d %H:%M"))
+    return [_format_parsed_datetime(dt, date_str, date_to_times) for dt, date_str in parsed]
+
+
+def _parse_datetime(dt_str: str):
+    """Parse datetime string into datetime object and date string.
+    
+    Returns:
+        Tuple of (datetime_object, date_string). If parsing fails, returns (None, original_string).
+    """
+    try:
+        if 'T' in dt_str:
+            dt = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
         else:
-            # Only one unique time for this date (may appear in multiple rows)
-            result.append(date_str)
+            dt = datetime.strptime(dt_str, "%Y-%m-%d")
+        return dt, dt.strftime("%Y-%m-%d")
+    except (ValueError, AttributeError):
+        return None, dt_str
+
+
+def _format_parsed_datetime(dt, date_str: str, date_to_times: dict) -> str:
+    """Format parsed datetime based on collision detection.
     
-    return result
+    Returns:
+        Formatted datetime string (date-only or with time if collision detected).
+    """
+    if dt is None:
+        return date_str
+    
+    has_collision = len(date_to_times.get(date_str, set())) > 1
+    return dt.strftime("%Y-%m-%d %H:%M") if has_collision else date_str
 
