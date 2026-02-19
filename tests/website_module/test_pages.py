@@ -1004,3 +1004,123 @@ class TestPriceRangeCalculation:
         # Should correctly parse prices without £ symbol
         assert 'min="10"' in html
         assert 'max="31"' in html
+
+
+class TestGenerateHistoryPage:
+    """Test suite for history page generation."""
+
+    def test_generates_complete_html_page(self):
+        """Should generate complete HTML page."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Historical Data").with_description("All history").build()
+            html = generate_history_page(config)
+
+            assert "<!DOCTYPE html>" in html
+            assert "</html>" in html
+            assert BeautifulSoup(html, 'html.parser').find('html') is not None
+
+    def test_includes_action_buttons_with_download_and_filter_toggle(self):
+        """Should have action-buttons container with download link and More Filters toggle."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            action_buttons = soup.find('div', class_='action-buttons')
+            assert action_buttons is not None, "Should have action-buttons container"
+
+            download_link = action_buttons.find('a', class_='btn-download')
+            assert download_link is not None, "Should have download link with btn-download class"
+            assert download_link.has_attr('download'), "Download link should have download attribute"
+            assert 'Download CSV' in download_link.text
+
+            filter_button = action_buttons.find('button', class_='btn-filters')
+            assert filter_button is not None, "Should have More Filters toggle button"
+            assert filter_button['data-action'] == 'toggle-filters'
+            assert filter_button.has_attr('data-content-id')
+            assert filter_button.find('span', class_='arrow') is not None
+
+    def test_includes_filter_badge_on_toggle_button(self):
+        """Should include hidden filter badge span on the toggle button."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            filter_button = soup.find('button', class_='btn-filters')
+            badge = filter_button.find('span', class_='filter-badge')
+            assert badge is not None, "Toggle button should contain filter-badge span"
+            assert 'hidden' in badge.get('class', []), "Badge should be hidden initially"
+            assert badge['id'].startswith('filterBadge-'), "Badge ID should start with 'filterBadge-'"
+
+    def test_search_filter_inside_advanced_filters_panel(self):
+        """Should place search input inside the advanced-filters-content panel."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            panel = soup.find('div', class_='advanced-filters-content')
+            assert panel is not None, "Should have advanced-filters-content panel"
+            search_input = panel.find('input', attrs={'data-action': 'search'})
+            assert search_input is not None, "Search input should be inside the filter panel"
+            assert search_input.get('data-table-id') is not None
+
+    def test_omits_filter_toggle_when_search_disabled(self):
+        """Should omit More Filters button when search_filter=False."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(False).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            assert soup.find('button', class_='btn-filters') is None, "Should not have filter toggle when search disabled"
+            assert soup.find('input', type='text') is None, "Should not have search input when search disabled"
+
+    def test_table_stats_strip_shows_row_count(self):
+        """Should show 'Showing: x of x rows' strip above the table."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        csv_content += "2026-01-08 10:00:00,Species B,Common B,2.0,30.00,8,http://example.com\n"
+        csv_content += "2026-01-15 10:00:00,Species A,Common A,1.5,26.00,6,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            stats_strip = soup.find('div', class_='table-stats')
+            assert stats_strip is not None, "Should have table-stats strip"
+            assert 'Showing:' in stats_strip.text
+
+            table_id = config.table_id
+            visible_count_span = stats_strip.find('span', id=f'visible-count-{table_id}')
+            assert visible_count_span is not None, "Should have visible-count span"
+            assert visible_count_span.text == '3', "Visible count should equal total rows initially"
+            assert 'of 3 rows' in stats_strip.text, "Should show total row count"
+
+    def test_omits_total_rows_paragraph(self):
+        """Should NOT have the old 'Total rows: N' paragraph."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").build()
+            html = generate_history_page(config)
+
+            assert 'Total rows:' not in html, "Old 'Total rows:' paragraph should be removed"
+
+    def test_no_data_shows_info_box(self):
+        """Should show 'no data' info box when CSV is missing."""
+        config = page_config.history("/nonexistent/file.csv").with_title("Test").with_description("Desc").build()
+        html = generate_history_page(config)
+
+        assert 'No data available' in html
+        assert BeautifulSoup(html, 'html.parser').find('table') is None
