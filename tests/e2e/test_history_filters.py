@@ -249,3 +249,126 @@ def test_price_filter_reset_shows_all_rows(e2e_site_multi_species) -> None:
 
     visible = page.locator("#history-table tbody tr:visible").count()
     assert visible == total_rows, f"All {total_rows} rows should be visible after reset, got {visible}"
+
+
+# ---------------------------------------------------------------------------
+# Step 3: Wishlist range slider
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.e2e
+def test_wishlist_sliders_exist_and_initialise_correctly(e2e_site_multi_species) -> None:
+    """Wishlist sliders should render with min/max from CSV data after opening filters."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
+    page.locator(".btn-filters").click()
+    page.wait_for_timeout(200)
+
+    wishlist_min_slider = page.locator("#wishlistMin")
+    wishlist_max_slider = page.locator("#wishlistMax")
+    assert wishlist_min_slider.is_visible(), "wishlistMin slider should be visible after opening filters"
+    assert wishlist_max_slider.is_visible(), "wishlistMax slider should be visible after opening filters"
+
+    data_min = wishlist_min_slider.get_attribute("min")
+    data_max = wishlist_max_slider.get_attribute("max")
+    assert data_min is not None and data_min.lstrip("-").isdigit()
+    assert data_max is not None and data_max.lstrip("-").isdigit()
+
+    # Sliders start at their respective extremes
+    assert wishlist_min_slider.get_attribute("value") == data_min
+    assert wishlist_max_slider.get_attribute("value") == data_max
+
+    # Display text reflects initial range (no currency symbol)
+    display = page.locator("#wishlistDisplay")
+    assert display.is_visible()
+    display_text = display.text_content()
+    assert data_min in display_text and data_max in display_text
+
+
+@pytest.mark.e2e
+def test_wishlist_min_slider_hides_rows_below_threshold(e2e_site_multi_species) -> None:
+    """Moving wishlist min slider up should hide rows with data-wishlist below the threshold."""
+    page, base_url, errors = e2e_site_multi_species
+
+    # Test data wishlists: 3, 5, 8, 10, 12; setting min to 9 hides 3, 5, 8
+    page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
+    total_rows = page.locator("#history-table tbody tr").count()
+    assert total_rows > 1
+
+    page.locator(".btn-filters").click()
+    page.wait_for_timeout(200)
+
+    page.locator("#wishlistMin").fill("9")
+    page.wait_for_timeout(200)
+
+    visible = page.locator("#history-table tbody tr:visible").count()
+    hidden = page.locator("#history-table tbody tr.hidden").count()
+    assert visible > 0, "Some rows should remain visible"
+    assert hidden > 0, "Some rows should be hidden below the threshold"
+    assert visible + hidden == total_rows
+
+    # Every visible row must have data-wishlist >= 9
+    for row in page.locator("#history-table tbody tr:visible").all():
+        count = int(row.get_attribute("data-wishlist"))
+        assert count >= 9, f"Visible row has wishlist count {count} < 9"
+
+
+@pytest.mark.e2e
+def test_wishlist_filter_badge_shows_one(e2e_site_multi_species) -> None:
+    """Filter badge should show '1' when only the wishlist range is narrowed."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
+    page.locator(".btn-filters").click()
+    page.wait_for_timeout(200)
+
+    page.locator("#wishlistMin").fill("9")
+    page.wait_for_timeout(200)
+
+    badge = page.locator("#filterBadge-history-table")
+    assert badge.is_visible(), "Badge should be visible when wishlist filter is active"
+    assert badge.text_content() == "1", f"Badge should show '1', got '{badge.text_content()}'"
+
+
+@pytest.mark.e2e
+def test_price_and_wishlist_filters_badge_shows_two(e2e_site_multi_species) -> None:
+    """Filter badge should show '2' when both price and wishlist ranges are narrowed."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
+    page.locator(".btn-filters").click()
+    page.wait_for_timeout(200)
+
+    page.locator("#priceMax").fill("28")
+    page.wait_for_timeout(200)
+    page.locator("#wishlistMin").fill("9")
+    page.wait_for_timeout(200)
+
+    badge = page.locator("#filterBadge-history-table")
+    assert badge.is_visible(), "Badge should be visible when both filters are active"
+    assert badge.text_content() == "2", f"Badge should show '2', got '{badge.text_content()}'"
+
+
+@pytest.mark.e2e
+def test_wishlist_filter_reset_shows_all_rows(e2e_site_multi_species) -> None:
+    """Resetting wishlist min slider to data min should make all rows visible again."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
+    total_rows = page.locator("#history-table tbody tr").count()
+
+    page.locator(".btn-filters").click()
+    page.wait_for_timeout(200)
+
+    wishlist_min_slider = page.locator("#wishlistMin")
+    data_min = wishlist_min_slider.get_attribute("min")
+
+    # Narrow then reset
+    wishlist_min_slider.fill("9")
+    page.wait_for_timeout(200)
+    wishlist_min_slider.fill(data_min)
+    page.wait_for_timeout(200)
+
+    visible = page.locator("#history-table tbody tr:visible").count()
+    assert visible == total_rows, f"All {total_rows} rows should be visible after reset, got {visible}"

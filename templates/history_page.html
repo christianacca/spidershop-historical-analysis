@@ -41,6 +41,22 @@
                 </div>
             </div>
             {% endif %}
+            {% if wishlist_idx is not none %}
+            <div class="filter-row">
+                <strong>💚 Wishlist Count:</strong>
+                <div class="slider-container">
+                    <div class="dual-range-slider">
+                        <input type="range" min="{{ wishlist_min }}" max="{{ wishlist_max }}" value="{{ wishlist_min }}" class="slider slider-min" id="wishlistMin" data-filter="wishlist" data-table-id="{{ table_id }}">
+                        <input type="range" min="{{ wishlist_min }}" max="{{ wishlist_max }}" value="{{ wishlist_max }}" class="slider slider-max" id="wishlistMax" data-filter="wishlist" data-table-id="{{ table_id }}">
+                    </div>
+                    <div class="slider-values">
+                        <span>{{ wishlist_min }}</span>
+                        <span>{{ wishlist_max }}</span>
+                    </div>
+                    <div class="slider-current" id="wishlistDisplay">Showing: {{ wishlist_min }} - {{ wishlist_max }}</div>
+                </div>
+            </div>
+            {% endif %}
             {{ macros.search_filter(table_id=table_id) }}
         </div>
     </div>
@@ -51,7 +67,7 @@
     </div>
 
     <div style="overflow-x: auto;">
-        {% with headers=headers, rows=rows, signal_col_idx=signal_col_idx, stock_pattern_col_idx=stock_pattern_col_idx, page_url_idx=page_url_idx, scientific_name_idx=scientific_name_idx, sortable=sortable, table_id=table_id, price_idx=price_idx %}
+        {% with headers=headers, rows=rows, signal_col_idx=signal_col_idx, stock_pattern_col_idx=stock_pattern_col_idx, page_url_idx=page_url_idx, scientific_name_idx=scientific_name_idx, sortable=sortable, table_id=table_id, price_idx=price_idx, wishlist_idx=wishlist_idx %}
         {% include 'table.html' %}
         {% endwith %}
     </div>

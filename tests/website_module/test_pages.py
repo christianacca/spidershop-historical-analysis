@@ -1208,3 +1208,87 @@ class TestGenerateHistoryPage:
 
             assert soup.find('input', id='priceMin') is None, "priceMin should not exist when search disabled"
             assert soup.find('input', id='priceMax') is None, "priceMax should not exist when search disabled"
+
+    def test_wishlist_sliders_rendered_with_data_range(self):
+        """Should render wishlist sliders with min/max derived from CSV data (no +1 rounding)."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,15.00,3,http://example.com\n"
+        csv_content += "2026-01-01 10:00:00,Species B,Common B,2.0,35.00,12,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            wishlist_min_slider = soup.find('input', id='wishlistMin')
+            wishlist_max_slider = soup.find('input', id='wishlistMax')
+            assert wishlist_min_slider is not None, "Should have wishlistMin slider"
+            assert wishlist_max_slider is not None, "Should have wishlistMax slider"
+
+            # min and max derived from data — no +1 rounding for wishlist
+            assert wishlist_min_slider['min'] == '3', f"Expected min='3', got '{wishlist_min_slider['min']}'"
+            assert wishlist_max_slider['max'] == '12', f"Expected max='12', got '{wishlist_max_slider['max']}'"
+
+            # Initial values: min slider at min, max slider at max
+            assert wishlist_min_slider['value'] == '3'
+            assert wishlist_max_slider['value'] == '12'
+
+    def test_wishlist_sliders_have_correct_data_attributes(self):
+        """Should have data-filter='wishlist' and data-table-id on wishlist slider inputs."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,20.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            for slider_id in ('wishlistMin', 'wishlistMax'):
+                slider = soup.find('input', id=slider_id)
+                assert slider is not None, f"Should have {slider_id} slider"
+                assert slider.get('data-filter') == 'wishlist', f"{slider_id} should have data-filter='wishlist'"
+                assert slider.get('data-table-id') == config.table_id, f"{slider_id} should have data-table-id"
+
+    def test_table_rows_have_data_wishlist_attribute(self):
+        """Should set data-wishlist on each table row so JS can filter by wishlist count."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        csv_content += "2026-01-08 10:00:00,Species B,Common B,2.0,30.00,10,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            table = soup.find('table', id=config.table_id)
+            rows = table.select('tbody tr')
+            assert len(rows) == 2
+            for row in rows:
+                assert row.has_attr('data-wishlist'), "Each row should have data-wishlist attribute"
+            wishlist_values = {row['data-wishlist'] for row in rows}
+            assert '5' in wishlist_values
+            assert '10' in wishlist_values
+
+    def test_wishlist_display_text_matches_initial_range(self):
+        """Should render wishlistDisplay with the initial min-max text (no currency symbol)."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,10.00,3,http://example.com\n"
+        csv_content += "2026-01-01 10:00:00,Species B,Common B,2.0,40.00,12,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            display = soup.find(id='wishlistDisplay')
+            assert display is not None, "Should have wishlistDisplay element"
+            assert '3' in display.text
+            assert '12' in display.text
+
+    def test_wishlist_sliders_absent_when_search_disabled(self):
+        """Should not render wishlist sliders when search_filter=False."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(False).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            assert soup.find('input', id='wishlistMin') is None, "wishlistMin should not exist when search disabled"
+            assert soup.find('input', id='wishlistMax') is None, "wishlistMax should not exist when search disabled"

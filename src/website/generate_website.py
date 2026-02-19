@@ -257,6 +257,7 @@ def generate_history_page(config: BasePageConfig) -> str:
     page_url_idx = None
     scientific_name_idx = None
     price_idx = None
+    wishlist_idx = None
     if headers:
         try:
             page_url_idx = headers.index('page_url')
@@ -265,6 +266,10 @@ def generate_history_page(config: BasePageConfig) -> str:
             pass
         try:
             price_idx = headers.index('price_gbp')
+        except ValueError:
+            pass
+        try:
+            wishlist_idx = headers.index('wishlist_count')
         except ValueError:
             pass
 
@@ -279,6 +284,15 @@ def generate_history_page(config: BasePageConfig) -> str:
     # Round up max price for better UX (only when actual prices found)
     if found_prices:
         price_max = price_max + 1
+
+    # Calculate wishlist range from data
+    wishlist_min, wishlist_max, _ = _calculate_column_range(
+        rows=rows,
+        col_idx=wishlist_idx,
+        default_min=0,
+        default_max=300,
+        parser=lambda x: int(x)
+    )
 
     # Enumerate headers and rows for template
     headers_enum = list(enumerate(headers)) if headers else []
@@ -299,6 +313,9 @@ def generate_history_page(config: BasePageConfig) -> str:
         price_idx=price_idx,
         price_min=price_min,
         price_max=price_max,
+        wishlist_idx=wishlist_idx,
+        wishlist_min=wishlist_min,
+        wishlist_max=wishlist_max,
         scientific_name_idx=scientific_name_idx,
         signal_col_idx=None,  # History has no signal column
         stock_pattern_col_idx=None,  # History has no stock pattern column
