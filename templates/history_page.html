@@ -25,6 +25,22 @@
     {% if search_filter %}
     <div class="advanced-filters">
         <div id="advanced-filters-{{ table_id }}" class="advanced-filters-content">
+            {% if price_idx is not none %}
+            <div class="filter-row">
+                <strong>💷 Price Range:</strong>
+                <div class="slider-container">
+                    <div class="dual-range-slider">
+                        <input type="range" min="{{ price_min }}" max="{{ price_max }}" value="{{ price_min }}" class="slider slider-min" id="priceMin" data-filter="price" data-table-id="{{ table_id }}">
+                        <input type="range" min="{{ price_min }}" max="{{ price_max }}" value="{{ price_max }}" class="slider slider-max" id="priceMax" data-filter="price" data-table-id="{{ table_id }}">
+                    </div>
+                    <div class="slider-values">
+                        <span>£{{ price_min }}</span>
+                        <span>£{{ price_max }}</span>
+                    </div>
+                    <div class="slider-current" id="priceDisplay">Showing: £{{ price_min }} - £{{ price_max }}</div>
+                </div>
+            </div>
+            {% endif %}
             {{ macros.search_filter(table_id=table_id) }}
         </div>
     </div>
@@ -35,7 +51,7 @@
     </div>
 
     <div style="overflow-x: auto;">
-        {% with headers=headers, rows=rows, signal_col_idx=signal_col_idx, stock_pattern_col_idx=stock_pattern_col_idx, page_url_idx=page_url_idx, scientific_name_idx=scientific_name_idx, sortable=sortable, table_id=table_id %}
+        {% with headers=headers, rows=rows, signal_col_idx=signal_col_idx, stock_pattern_col_idx=stock_pattern_col_idx, page_url_idx=page_url_idx, scientific_name_idx=scientific_name_idx, sortable=sortable, table_id=table_id, price_idx=price_idx %}
         {% include 'table.html' %}
         {% endwith %}
     </div>

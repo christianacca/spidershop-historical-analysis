@@ -145,3 +145,107 @@ def test_visible_count_updates_with_search(e2e_site_multi_species) -> None:
     visible_count_after = int(page.locator("#visible-count-history-table").text_content())
     assert visible_count_after < total_rows, "Visible count should decrease after search filters rows"
     assert visible_count_after >= 1, "Visible count should be at least 1 when a matching row exists"
+
+
+# ---------------------------------------------------------------------------
+# Step 2: Price range slider
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.e2e
+def test_price_sliders_exist_and_initialise_correctly(e2e_site_multi_species) -> None:
+    """Price sliders should render with min/max derived from CSV data after opening filters."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
+    page.locator(".btn-filters").click()
+    page.wait_for_timeout(200)
+
+    price_min_slider = page.locator("#priceMin")
+    price_max_slider = page.locator("#priceMax")
+    assert price_min_slider.is_visible(), "priceMin slider should be visible after opening filters"
+    assert price_max_slider.is_visible(), "priceMax slider should be visible after opening filters"
+
+    data_min = price_min_slider.get_attribute("min")
+    data_max = price_max_slider.get_attribute("max")
+    assert data_min is not None and data_min.replace(".", "", 1).lstrip("-").isdigit()
+    assert data_max is not None and data_max.replace(".", "", 1).lstrip("-").isdigit()
+
+    # Sliders start at their respective extremes
+    assert price_min_slider.get_attribute("value") == data_min
+    assert price_max_slider.get_attribute("value") == data_max
+
+    # Display text reflects initial range
+    display = page.locator("#priceDisplay")
+    assert display.is_visible()
+    display_text = display.text_content()
+    assert f"£{data_min}" in display_text and f"£{data_max}" in display_text
+
+
+@pytest.mark.e2e
+def test_price_max_slider_hides_rows_above_threshold(e2e_site_multi_species) -> None:
+    """Moving price max slider down should hide rows with data-price above the threshold."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
+    total_rows = page.locator("#history-table tbody tr").count()
+    assert total_rows > 1
+
+    page.locator(".btn-filters").click()
+    page.wait_for_timeout(200)
+
+    # Set max to a value below the most expensive row (£35 in test data; set to £28)
+    page.locator("#priceMax").fill("28")
+    page.wait_for_timeout(200)
+
+    visible = page.locator("#history-table tbody tr:visible").count()
+    hidden = page.locator("#history-table tbody tr.hidden").count()
+    assert visible > 0, "Some rows should remain visible"
+    assert hidden > 0, "Some rows should be hidden above the threshold"
+    assert visible + hidden == total_rows
+
+    # Every visible row should have data-price <= 28
+    for row in page.locator("#history-table tbody tr:visible").all():
+        price = float(row.get_attribute("data-price"))
+        assert price <= 28, f"Visible row has price {price} > 28"
+
+
+@pytest.mark.e2e
+def test_price_filter_badge_shows_one(e2e_site_multi_species) -> None:
+    """Filter badge should show '1' when price range is narrowed."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
+    page.locator(".btn-filters").click()
+    page.wait_for_timeout(200)
+
+    page.locator("#priceMax").fill("28")
+    page.wait_for_timeout(200)
+
+    badge = page.locator("#filterBadge-history-table")
+    assert badge.is_visible(), "Badge should be visible when price filter is active"
+    assert badge.text_content() == "1", f"Badge should show '1', got '{badge.text_content()}'"
+
+
+@pytest.mark.e2e
+def test_price_filter_reset_shows_all_rows(e2e_site_multi_species) -> None:
+    """Resetting price max slider to data max should make all rows visible again."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
+    total_rows = page.locator("#history-table tbody tr").count()
+
+    page.locator(".btn-filters").click()
+    page.wait_for_timeout(200)
+
+    price_max_slider = page.locator("#priceMax")
+    data_max = price_max_slider.get_attribute("max")
+
+    # Narrow then reset
+    price_max_slider.fill("20")
+    page.wait_for_timeout(200)
+    price_max_slider.fill(data_max)
+    page.wait_for_timeout(200)
+
+    visible = page.locator("#history-table tbody tr:visible").count()
+    assert visible == total_rows, f"All {total_rows} rows should be visible after reset, got {visible}"

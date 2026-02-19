@@ -130,6 +130,12 @@ def _calculate_column_range(
     return int(min(values)), int(max(values)), True
 
 
+def _parse_price_value(value: Any) -> float:
+    """Parse a price value, removing the £ symbol if present."""
+    price_str = str(value).replace('£', '').strip()
+    return float(price_str)
+
+
 def generate_homepage(last_scrape_time: Optional[str] = None) -> str:
     """Generate the homepage with overview and links using Jinja2 template."""
     template = jinja_env.get_template('homepage.html')
@@ -185,17 +191,12 @@ def generate_snapshot_page(config: BasePageConfig) -> str:
     )
     
     # Calculate price range from data
-    def parse_price(value: Any) -> float:
-        """Parse price value, removing £ symbol if present."""
-        price_str = str(value).replace('£', '').strip()
-        return float(price_str)
-    
     price_min, price_max, found_prices = _calculate_column_range(
         rows=rows,
         col_idx=price_idx,
         default_min=5,
         default_max=400,
-        parser=parse_price
+        parser=_parse_price_value
     )
     # Round up max price for better UX (only when actual prices found)
     if found_prices:
@@ -255,17 +256,34 @@ def generate_history_page(config: BasePageConfig) -> str:
     # Find column indices for special rendering
     page_url_idx = None
     scientific_name_idx = None
+    price_idx = None
     if headers:
         try:
             page_url_idx = headers.index('page_url')
             scientific_name_idx = headers.index('scientific_name')
         except ValueError:
             pass
-    
+        try:
+            price_idx = headers.index('price_gbp')
+        except ValueError:
+            pass
+
+    # Calculate price range from data
+    price_min, price_max, found_prices = _calculate_column_range(
+        rows=rows,
+        col_idx=price_idx,
+        default_min=5,
+        default_max=400,
+        parser=_parse_price_value
+    )
+    # Round up max price for better UX (only when actual prices found)
+    if found_prices:
+        price_max = price_max + 1
+
     # Enumerate headers and rows for template
     headers_enum = list(enumerate(headers)) if headers else []
     rows_enum = [list(enumerate(row)) for row in rows] if rows else []
-    
+
     template = jinja_env.get_template('history_page.html')
     return template.render(
         page_title=config.title,
@@ -278,6 +296,9 @@ def generate_history_page(config: BasePageConfig) -> str:
         headers=headers_enum,
         rows=rows_enum,
         page_url_idx=page_url_idx,
+        price_idx=price_idx,
+        price_min=price_min,
+        price_max=price_max,
         scientific_name_idx=scientific_name_idx,
         signal_col_idx=None,  # History has no signal column
         stock_pattern_col_idx=None,  # History has no stock pattern column
