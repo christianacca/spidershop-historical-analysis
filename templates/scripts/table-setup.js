@@ -33,11 +33,11 @@ function initTableSorting() {
 
 /**
  * Initialize search input filtering
- * Replaces: onkeyup="filterTable(this, table_id)"
+ * Replaces: oninput="filterTable(this, table_id)"
  */
 function initSearchFiltering() {
     document.querySelectorAll('input[data-action="search"]').forEach(input => {
-      input.addEventListener('keyup', function() {
+      input.addEventListener('input', function() {
         const tableId = this.dataset.tableId;
         filterRows(tableId);
       });
