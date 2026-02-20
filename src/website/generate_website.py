@@ -37,6 +37,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import os
 import shutil
+from collections import Counter
 from datetime import datetime, timezone
 from typing import Optional, Callable, Tuple, List, Any
 
@@ -238,14 +239,30 @@ def generate_history_page(config: BasePageConfig) -> str:
     # Read CSV file
     headers, rows = read_csv_file(config.csv_filename)
     
+    # Find date column index early so we can use it after formatting
+    date_col_idx = None
+    if headers and 'scrape_datetime' in headers:
+        date_col_idx = headers.index('scrape_datetime')
+
     # Format scrape_datetime column (date-only unless collision)
-    if headers and rows and 'scrape_datetime' in headers:
-        datetime_idx = headers.index('scrape_datetime')
-        datetimes = [row[datetime_idx] for row in rows]
+    scrape_datetimes: list = []
+    row_date_counts: dict = {}
+    total_rows: int = len(rows) if rows else 0
+    num_runs: int = 0
+    min_date: str = ""
+    max_date: str = ""
+    if date_col_idx is not None and rows:
+        datetimes = [row[date_col_idx] for row in rows]
         formatted_dates = format_datetime_smart(datetimes)
         for i, row in enumerate(rows):
-            row[datetime_idx] = formatted_dates[i]
-    
+            row[date_col_idx] = formatted_dates[i]
+        # Unique dates most-recent-first, with per-date row counts
+        scrape_datetimes = list(dict.fromkeys(reversed(formatted_dates)))
+        row_date_counts = dict(Counter(formatted_dates))
+        num_runs = len(scrape_datetimes)
+        min_date = scrape_datetimes[-1] if scrape_datetimes else ""
+        max_date = scrape_datetimes[0] if scrape_datetimes else ""
+
     # Load sparkline data from history CSV for conversion
     sparkline_data = load_historical_sparkline_data()
     
@@ -321,7 +338,14 @@ def generate_history_page(config: BasePageConfig) -> str:
         stock_pattern_col_idx=None,  # History has no stock pattern column
         drivers_col_idx=None,  # History has no drivers column
         sortable=True,
-        timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
+        date_col_idx=date_col_idx,
+        scrape_datetimes=scrape_datetimes,
+        row_date_counts=row_date_counts,
+        total_rows=total_rows,
+        num_runs=num_runs,
+        min_date=min_date,
+        max_date=max_date,
     )
 
 

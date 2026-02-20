@@ -125,15 +125,25 @@ export function filterRows(tableId) {
   const searchTerm = getElement(`search-${tableId}`)?.value.toLowerCase() ?? '';
   const [priceMin, priceMax] = priceSlider?.getValues() ?? [0, Infinity];
   const [wishlistMin, wishlistMax] = wishlistSlider?.getValues() ?? [0, Infinity];
+
+  // Determine active date selection
+  const allDatesEl = document.getElementById(`allDates-${tableId}`);
+  const allDatesChecked = allDatesEl?.checked ?? true;
+  const selectedDates = allDatesChecked
+    ? []
+    : Array.from(document.querySelectorAll(`[data-date-value]:checked`))
+        .map(cb => cb.dataset.dateValue);
   
   rows.forEach(row => {
     const matchesSearch = !searchTerm || row.textContent.toLowerCase().includes(searchTerm);
-    const price = parseFloat(row.getAttribute('data-price')?.replace('£', '').trim()) || 0;
+    const price = parseFloat(row.getAttribute('data-price')?.replace('\u00a3', '').trim()) || 0;
     const matchesPrice = price >= priceMin && price <= priceMax;
     const wishlist = parseInt(row.getAttribute('data-wishlist')?.trim()) || 0;
     const matchesWishlist = wishlist >= wishlistMin && wishlist <= wishlistMax;
+    const date = row.getAttribute('data-date') ?? '';
+    const matchesDate = allDatesChecked || selectedDates.length === 0 || selectedDates.includes(date);
     
-    toggleRowVisibility(row, matchesSearch && matchesPrice && matchesWishlist);
+    toggleRowVisibility(row, matchesSearch && matchesPrice && matchesWishlist && matchesDate);
   });
   
   updateFilterBadge(tableId);
@@ -225,4 +235,55 @@ function updateVisibleCount(tableId) {
   ).length;
   
   countElement.textContent = visibleCount;
+}
+
+/**
+ * Update the date filter summary info box
+ * @param {string} tableId - ID of the table element
+ */
+export function updateDateSummary(tableId) {
+  const summaryEl = document.getElementById(`summary-info-${tableId}`);
+  if (!summaryEl) return;
+
+  const allDateCheckboxes = Array.from(
+    document.querySelectorAll(`[data-date-value][data-table-id="${tableId}"]`)
+  );
+  const totalRuns = allDateCheckboxes.length;
+  const allDatesEl = document.getElementById(`allDates-${tableId}`);
+
+  if (allDatesEl?.checked) {
+    // All dates selected: read totals from data attributes on the element
+    const totalRows = parseInt(summaryEl.dataset.totalRows ?? '0', 10);
+    const minDate = summaryEl.dataset.minDate ?? '';
+    const maxDate = summaryEl.dataset.maxDate ?? '';
+    summaryEl.textContent =
+      `Viewing ${totalRows} rows across ${totalRuns} scrape runs (${minDate} - ${maxDate})`;
+    return;
+  }
+
+  const selectedCheckboxes = allDateCheckboxes.filter(cb => cb.checked);
+  const numSelected = selectedCheckboxes.length;
+
+  if (numSelected === 0) {
+    summaryEl.textContent = 'Viewing 0 rows across 0 scrape runs';
+    return;
+  }
+
+  // Sum row counts from each checkbox's sibling .date-count span
+  let totalRows = 0;
+  selectedCheckboxes.forEach(cb => {
+    const countSpan = cb.closest('.date-row')?.querySelector('.date-count');
+    if (countSpan) {
+      const match = countSpan.textContent.match(/\d+/);
+      if (match) totalRows += parseInt(match[0], 10);
+    }
+  });
+
+  // Date array is ordered newest-first in the DOM; last = oldest = min, first = newest = max
+  const selectedDates = selectedCheckboxes.map(cb => cb.dataset.dateValue);
+  const maxDate = selectedDates[0];
+  const minDate = selectedDates[selectedDates.length - 1];
+
+  summaryEl.textContent =
+    `Viewing ${totalRows} rows across ${numSelected} scrape runs (${minDate} - ${maxDate})`;
 }

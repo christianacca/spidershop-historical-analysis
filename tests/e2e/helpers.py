@@ -411,3 +411,114 @@ def write_multi_species_test_data(cwd: Path) -> None:
         "**Summary:** 5 species analyzed | 🔥 High Risk: 2 | ⚠️ Moderate Risk: 2 | ❌ Low Risk: 1\n",
         encoding="utf-8",
     )
+
+
+def write_history_multi_date_test_data(cwd: "Path") -> None:
+    """Write test data with 3 species across 3 weekly dates for date filter tests.
+
+    Creates 9 history rows (3 species x 3 dates):
+    - Dates: 2026-01-01, 2026-01-08, 2026-01-15 (oldest first in CSV order,
+      most-recent-first after generate_history_page processes them)
+    - Species: Aphonopelma seemanni, Brachypelma hamorii, Grammostola pulchra
+    """
+    from helpers.test_helpers import (
+        HistoryEntry,
+        BreederEntry,
+        DealerEntry,
+        create_history_csv_content,
+        create_breeder_csv_content,
+        create_dealer_csv_content,
+    )
+
+    species_data = [
+        ("Aphonopelma seemanni", "Costa Rican Zebra", "1.5", "25.00", "5"),
+        ("Brachypelma hamorii", "Mexican Red Knee", "2.0", "30.00", "10"),
+        ("Grammostola pulchra", "Brazilian Black", "3.5", "50.00", "3"),
+    ]
+    dates = ["2026-01-01", "2026-01-08", "2026-01-15"]
+
+    history_entries = [
+        HistoryEntry(
+            scrape_datetime=date,
+            scientific_name=sci,
+            common_name=common,
+            size_cm=size,
+            price_gbp=price,
+            wishlist_count=wishlist,
+        )
+        for date in dates
+        for sci, common, size, price, wishlist in species_data
+    ]
+
+    (cwd / "spidershop_spiderlings_scrape.csv").write_text(
+        create_history_csv_content(history_entries), encoding="utf-8"
+    )
+    (cwd / "spidershop_spiderlings_history.csv").write_text(
+        create_history_csv_content(history_entries), encoding="utf-8"
+    )
+
+    (cwd / "breeder_opportunity_table.csv").write_text(
+        create_breeder_csv_content(
+            [
+                BreederEntry(
+                    species="Aphonopelma seemanni",
+                    size_cm="1.5",
+                    signal="🔥",
+                    oos_runs="4",
+                    stock_pattern="Sustained",
+                ),
+                BreederEntry(
+                    species="Brachypelma hamorii",
+                    size_cm="2.0",
+                    signal="⚠️",
+                    oos_runs="2",
+                    stock_pattern="Emerging",
+                ),
+                BreederEntry(
+                    species="Grammostola pulchra",
+                    size_cm="3.5",
+                    signal="❌",
+                    oos_runs="0",
+                    stock_pattern="Always",
+                ),
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    (cwd / "dealer_supply_risk_table.csv").write_text(
+        create_dealer_csv_content(
+            [
+                DealerEntry(
+                    species="Aphonopelma seemanni",
+                    size_cm="1.5",
+                    risk="🔥",
+                    stock_reliability="Low",
+                    restock_speed="Slow",
+                ),
+                DealerEntry(
+                    species="Brachypelma hamorii",
+                    size_cm="2.0",
+                    risk="⚠️",
+                    stock_reliability="Medium",
+                    restock_speed="Medium",
+                ),
+                DealerEntry(
+                    species="Grammostola pulchra",
+                    size_cm="3.5",
+                    risk="❌",
+                    stock_reliability="High",
+                    restock_speed="Fast",
+                ),
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    (cwd / "analysis_summary.md").write_text(
+        "## 🧬 Breeder Opportunity Matrix (Top 10)\n\n"
+        "**Summary:** 3 species analyzed | 🔥 Hot: 1 | ⚠️ Watch: 1 | ❌ Avoid: 1\n\n"
+        "## 🏪 Dealer Supply Risk Matrix (Top 10)\n\n"
+        "**Summary:** 3 species analyzed | 🔥 High Risk: 1 | ⚠️ Moderate Risk: 1 | ❌ Low Risk: 1\n",
+        encoding="utf-8",
+    )

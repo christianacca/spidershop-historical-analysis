@@ -1022,7 +1022,7 @@ class TestGenerateHistoryPage:
             assert BeautifulSoup(html, 'html.parser').find('html') is not None
 
     def test_includes_action_buttons_with_download_and_filter_toggle(self):
-        """Should have action-buttons container with download link and More Filters toggle."""
+        """Should have download link in stats bar and standalone More Filters button when scrape_datetimes present."""
         csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
         csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
         with temp_csv_file(csv_content) as filename:
@@ -1030,15 +1030,16 @@ class TestGenerateHistoryPage:
             html = generate_history_page(config)
             soup = BeautifulSoup(html, 'html.parser')
 
-            action_buttons = soup.find('div', class_='action-buttons')
-            assert action_buttons is not None, "Should have action-buttons container"
-
-            download_link = action_buttons.find('a', class_='btn-download')
-            assert download_link is not None, "Should have download link with btn-download class"
+            # Download link should be in the stats bar
+            stats_strip = soup.find('div', class_='table-stats')
+            assert stats_strip is not None, "Should have table-stats strip"
+            download_link = stats_strip.find('a', class_='btn-download')
+            assert download_link is not None, "Download link should be inside the stats bar"
             assert download_link.has_attr('download'), "Download link should have download attribute"
-            assert 'Download CSV' in download_link.text
+            assert 'Download' in download_link.text
 
-            filter_button = action_buttons.find('button', class_='btn-filters')
+            # More Filters button should exist as a standalone button (not inside action-buttons)
+            filter_button = soup.find('button', class_='btn-filters')
             assert filter_button is not None, "Should have More Filters toggle button"
             assert filter_button['data-action'] == 'toggle-filters'
             assert filter_button.has_attr('data-content-id')
@@ -1087,7 +1088,7 @@ class TestGenerateHistoryPage:
             assert soup.find('input', type='text') is None, "Should not have search input when search disabled"
 
     def test_table_stats_strip_shows_row_count(self):
-        """Should show 'Showing: x of x rows' strip above the table."""
+        """Should show 'Filtered Results: Showing x of x rows' strip (with scrape_datetimes present)."""
         csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
         csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
         csv_content += "2026-01-08 10:00:00,Species B,Common B,2.0,30.00,8,http://example.com\n"
@@ -1099,7 +1100,7 @@ class TestGenerateHistoryPage:
 
             stats_strip = soup.find('div', class_='table-stats')
             assert stats_strip is not None, "Should have table-stats strip"
-            assert 'Showing:' in stats_strip.text
+            assert 'Filtered Results:' in stats_strip.text
 
             table_id = config.table_id
             visible_count_span = stats_strip.find('span', id=f'visible-count-{table_id}')
@@ -1292,3 +1293,105 @@ class TestGenerateHistoryPage:
 
             assert soup.find('input', id='wishlistMin') is None, "wishlistMin should not exist when search disabled"
             assert soup.find('input', id='wishlistMax') is None, "wishlistMax should not exist when search disabled"
+
+    def test_date_checkboxes_rendered_one_per_unique_scrape_datetime(self):
+        """Should render one checkbox per unique scrape_datetime value."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        csv_content += "2026-01-08,Species A,Common A,1.5,26.00,5,http://example.com\n"
+        csv_content += "2026-01-08,Species B,Common B,2.0,30.00,8,http://example.com\n"
+        csv_content += "2026-01-15,Species A,Common A,1.5,27.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            checkboxes = soup.find_all('input', attrs={'data-date-value': True})
+            assert len(checkboxes) == 3, f"Expected 3 date checkboxes (one per unique date), got {len(checkboxes)}"
+            date_values = {cb['data-date-value'] for cb in checkboxes}
+            assert '2026-01-01' in date_values
+            assert '2026-01-08' in date_values
+            assert '2026-01-15' in date_values
+
+    def test_date_checkbox_row_counts_are_correct(self):
+        """Each date checkbox label should show the correct (N rows) count."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        csv_content += "2026-01-08,Species A,Common A,1.5,26.00,5,http://example.com\n"
+        csv_content += "2026-01-08,Species B,Common B,2.0,30.00,8,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            # Find count labels by locating each date-row label
+            date_rows = soup.find_all('label', class_='date-row')
+            counts_by_date = {}
+            for label in date_rows:
+                cb = label.find('input', attrs={'data-date-value': True})
+                count_span = label.find('span', class_='date-count')
+                if cb and count_span:
+                    counts_by_date[cb['data-date-value']] = count_span.text.strip()
+
+            assert counts_by_date.get('2026-01-01') == '(1 rows)', f"Expected '(1 rows)' for 2026-01-01, got '{counts_by_date.get('2026-01-01')}'"
+            assert counts_by_date.get('2026-01-08') == '(2 rows)', f"Expected '(2 rows)' for 2026-01-08, got '{counts_by_date.get('2026-01-08')}'"
+
+    def test_rows_have_data_date_attribute(self):
+        """Each table row should have a data-date attribute matching its formatted scrape_datetime."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        csv_content += "2026-01-08,Species B,Common B,2.0,30.00,8,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            table = soup.find('table', id=config.table_id)
+            rows = table.select('tbody tr')
+            assert len(rows) == 2
+            for row in rows:
+                assert row.has_attr('data-date'), "Each row should have data-date attribute"
+            date_values = {row['data-date'] for row in rows}
+            assert '2026-01-01' in date_values
+            assert '2026-01-08' in date_values
+
+    def test_date_checkboxes_ordered_most_recent_first(self):
+        """Date checkboxes should be rendered most-recent-first."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        csv_content += "2026-01-08,Species B,Common B,2.0,30.00,8,http://example.com\n"
+        csv_content += "2026-01-15,Species A,Common A,1.5,27.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            checkboxes = soup.find_all('input', attrs={'data-date-value': True})
+            date_order = [cb['data-date-value'] for cb in checkboxes]
+            assert date_order[0] == '2026-01-15', f"First (most recent) date should be 2026-01-15, got '{date_order[0]}'"
+            assert date_order[-1] == '2026-01-01', f"Last (oldest) date should be 2026-01-01, got '{date_order[-1]}'"
+
+    def test_all_dates_master_checkbox_rendered(self):
+        """Should render 'All Dates' master checkbox, checked by default."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            all_dates_cb = soup.find('input', id=f'allDates-{config.table_id}')
+            assert all_dates_cb is not None, "Should have allDates master checkbox"
+            assert all_dates_cb.has_attr('checked'), "allDates checkbox should be checked by default"
+
+    def test_date_filter_absent_when_search_disabled(self):
+        """Should not render date filter section when search_filter=False."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(False).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            assert soup.find('div', class_='date-filter-section') is None, "Date filter section should not exist when search disabled"
+            assert soup.find('input', attrs={'data-date-value': True}) is None, "Date checkboxes should not exist when search disabled"

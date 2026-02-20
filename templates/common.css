@@ -369,6 +369,9 @@ footer a:hover {
 
 /* Table stats strip */
 .table-stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     background: #e8f4f8;
     padding: 12px 15px;
     margin-bottom: 15px;
@@ -394,6 +397,18 @@ footer a:hover {
 
 .advanced-filters-toggle.expanded .arrow {
     transform: rotate(90deg);
+}
+
+.advanced-filters-toggle .when-expanded {
+    display: none;
+}
+
+.advanced-filters-toggle.expanded .when-collapsed {
+    display: none;
+}
+
+.advanced-filters-toggle.expanded .when-expanded {
+    display: inline;
 }
 
 /* Filter badge indicator */
@@ -628,6 +643,149 @@ details hr {
     margin: 30px 0;
     border: none;
     border-top: 2px solid #dee2e6;
+}
+
+/* Summary info box above date filter section */
+.summary-info {
+    background: #f1f3f5;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    font-size: 0.95em;
+    color: #2c3e50;
+}
+
+/* Date Filter Section */
+.date-filter-section {
+    background: #fff8e1;
+    border: 2px solid #ffc107;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 15px;
+}
+
+.date-filter-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.date-filter-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.date-all-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.date-picker-content {
+    display: none;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #ffc107;
+}
+
+.date-picker-content.show {
+    display: block;
+}
+
+/* Label for 'Filter by Scrape Date:' heading */
+.date-filter-label {
+    font-size: 1rem;
+    margin-bottom: 8px;
+}
+
+/* Row containing the 'All Dates' master checkbox */
+.date-all-row {
+    margin-bottom: 8px;
+}
+
+/* Amber expand/collapse button */
+.date-expand-btn {
+    background: #ffc107;
+    color: #856404;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-bottom: 4px;
+}
+
+.date-expand-btn:hover {
+    background: #e0a800;
+}
+
+.date-expand-btn .arrow {
+    transition: transform 0.2s;
+    font-size: 0.8rem;
+}
+
+.date-expand-btn.expanded .arrow {
+    transform: rotate(90deg);
+}
+
+.date-expand-btn .when-expanded {
+    display: none;
+}
+
+.date-expand-btn.expanded .when-collapsed {
+    display: none;
+}
+
+.date-expand-btn.expanded .when-expanded {
+    display: inline;
+}
+
+.date-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 0;
+}
+
+.date-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: border-color 0.2s;
+}
+
+.date-row:hover {
+    border-color: #3498db;
+}
+
+.date-count {
+    color: #888;
+    font-size: 0.85rem;
+}
+
+.quick-select-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    border-top: 1px solid #e8c400;
+    padding-top: 12px;
+    margin-top: 12px;
 }
 
 /* Mobile Responsive Card Layout */
