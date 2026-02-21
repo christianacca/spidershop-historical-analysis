@@ -372,3 +372,24 @@ def test_wishlist_filter_reset_shows_all_rows(e2e_site_multi_species) -> None:
 
     visible = page.locator("#history-table tbody tr:visible").count()
     assert visible == total_rows, f"All {total_rows} rows should be visible after reset, got {visible}"
+
+
+# ---------------------------------------------------------------------------
+# History page structural styles
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.e2e
+def test_history_summary_info_styling(e2e_site_multi_species) -> None:
+    """.summary-info strip on the history page should have correct light background."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
+
+    summary_info = page.locator('.summary-info')
+    assert summary_info.count() >= 1, "History page should have .summary-info element"
+
+    # #f1f3f5 = rgb(241, 243, 245)
+    bg = summary_info.first.evaluate('el => window.getComputedStyle(el).backgroundColor')
+    assert 'rgb(241, 243, 245)' in bg, \
+        f"summary-info should have light grey background, got {bg}"

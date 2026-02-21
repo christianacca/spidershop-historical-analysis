@@ -99,7 +99,7 @@
     </div>
     {% endif %}
 
-    <div style="overflow-x: auto;">
+    <div class="table-scroll">
         {% with headers=headers, rows=rows, signal_col_idx=signal_col_idx, stock_pattern_col_idx=stock_pattern_col_idx, page_url_idx=page_url_idx, scientific_name_idx=scientific_name_idx, sortable=sortable, table_id=table_id, price_idx=price_idx, wishlist_idx=wishlist_idx, date_col_idx=date_col_idx %}
         {% include 'table.html' %}
         {% endwith %}

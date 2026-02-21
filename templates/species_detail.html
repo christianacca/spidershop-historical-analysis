@@ -37,7 +37,7 @@
     <div class="meta-note">Pages generated for <strong>current tables only</strong> (Breeder/Dealer CSV outputs), not all historical species.</div>
   </div>
 
-  <div class="badge-row" style="align-items:center;">
+  <div class="badge-row">
     <div class="segment" role="tablist" aria-label="Perspective selector">
       <button id="tab-breeder" role="tab" aria-controls="panel-breeder" 
               aria-selected="{% if default_view == 'breeder' %}true{% else %}false{% endif %}" 
@@ -150,8 +150,8 @@
       <div class="chart-frame">
         <div id="price-chart"></div>
         <div class="chart-legend">
-          <span><span class="legend-dot" style="background:#3498db"></span>Price (GBP)</span>
-          <span><span class="legend-dot" style="background:#94a3b8"></span>Gaps indicate not observed</span>
+          <span><span class="legend-dot legend-dot--price"></span>Price (GBP)</span>
+          <span><span class="legend-dot legend-dot--gap"></span>Gaps indicate not observed</span>
         </div>
       </div>
     </div>
@@ -162,23 +162,23 @@
       <div class="chart-frame">
         <div id="wishlist-chart"></div>
         <div class="chart-legend">
-          <span><span class="legend-dot" style="background:#16a34a"></span>Wishlist count</span>
-          <span><span class="legend-dot" style="background:#94a3b8"></span>Only recorded when observed</span>
+          <span><span class="legend-dot legend-dot--wishlist"></span>Wishlist count</span>
+          <span><span class="legend-dot legend-dot--gap"></span>Only recorded when observed</span>
         </div>
       </div>
     </div>
 
-    <div class="stock-strip" style="grid-column: 1 / -1;" aria-label="Observed timeline">
+    <div class="stock-strip" aria-label="Observed timeline">
       <div class="stock-strip-title">Observed timeline (26 runs)</div>
       <div id="stock-strip"></div>
       <div class="stock-legend">
-        <span><span class="legend-swatch" style="background:#dcfce7; border-color:#16a34a"></span>Observed (listed in scrape)</span>
-        <span><span class="legend-swatch" style="background:#f1f5f9; border-color:#94a3b8"></span>Not observed (gap)</span>
+        <span><span class="legend-swatch legend-swatch--observed"></span>Observed (listed in scrape)</span>
+        <span><span class="legend-swatch legend-swatch--gap"></span>Not observed (gap)</span>
       </div>
     </div>
   </div>
 
-  <div class="panel" style="margin-top: 20px;">
+  <div class="panel panel--history">
     <h3>Observed history (last 26 runs)</h3>
     <div class="panel-sub">Only observations are stored (rows exist only when present in the history CSV). This view shows observations within the last 26 runs.</div>
     
@@ -205,7 +205,7 @@
         {% endfor %}
       </tbody>
     </table>
-    <div style="margin-top: 10px; color:#607080; font-size:0.92rem;">
+    <div class="table-footnote">
       "Not observed" runs show up as gaps in the charts/strip rather than rows in this table.
     </div>
     {% else %}

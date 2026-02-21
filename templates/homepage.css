@@ -39,3 +39,8 @@
 .card a:hover {
     text-decoration: underline;
 }
+
+/* About-section list */
+.about-list {
+    margin: 15px 0 15px 30px;
+}

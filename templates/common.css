@@ -341,10 +341,6 @@ footer a:hover {
 }
 
 /* Advanced Filters Toggle Button - uses secondary button style with specific enhancements */
-.advanced-filters-toggle {
-    margin-bottom: 10px;
-}
-
 .advanced-filters-toggle:hover {
     background: #e9ecef;
     border-color: #3498db;
@@ -732,4 +728,18 @@ details hr {
     .data-table td {
         padding: 10px;
     }
+}
+
+/* Table Scroll Wrapper */
+.table-scroll {
+    overflow-x: auto;
+}
+
+/* Search Input */
+.search-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.95rem;
 }

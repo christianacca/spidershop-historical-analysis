@@ -55,7 +55,7 @@
 {% macro search_filter(table_id) -%}
 <div class="filter-row">
     <strong>🔍 Search:</strong>
-    <input type="text" id="search-{{ table_id }}" placeholder="Type to filter species, names, etc..." data-action="search" data-table-id="{{ table_id }}" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem;">
+    <input type="text" id="search-{{ table_id }}" placeholder="Type to filter species, names, etc..." data-action="search" data-table-id="{{ table_id }}" class="search-input">
 </div>
 {%- endmacro %}
 
@@ -67,9 +67,9 @@
    - has_advanced_filters: Whether to show "More Filters" toggle button
 #}
 {% macro signal_filter_buttons(table_id, signal_label, summary_stats, has_advanced_filters=False) -%}
-<div style="margin-bottom: 15px;">
-    <strong style="color: #34495e; margin-right: 10px;">🎯 {{ signal_label }}:</strong>
-    <div class="filter-buttons-container" style="display: inline-block;">
+<div class="signal-filter-row">
+    <strong class="filter-label">🎯 {{ signal_label }}:</strong>
+    <div class="filter-buttons-container">
         <button class="filter-btn active" data-action="filter-signal" data-signal="all" data-table-id="{{ table_id }}">Show All{% if summary_stats %} ({{ summary_stats.total }}){% endif %}</button>
         <button class="filter-btn" data-action="filter-signal" data-signal="🔥" data-table-id="{{ table_id }}">🔥 Hot{% if summary_stats %} ({{ summary_stats.hot }}){% endif %}</button>
         <button class="filter-btn" data-action="filter-signal" data-signal="⚠️" data-table-id="{{ table_id }}">⚠️ Watch{% if summary_stats %} ({{ summary_stats.watch }}){% endif %}</button>

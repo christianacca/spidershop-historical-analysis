@@ -141,7 +141,6 @@
 
 /* Signal/Stock Pattern Filter Buttons */
 .filter-buttons-container {
-    margin: 20px 0;
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
@@ -266,6 +265,33 @@
 
 .instruction-content strong {
     color: #2c3e50;
+}
+
+/* Filter row wrappers (signal_filter_buttons + stock_pattern_filter_buttons macros) */
+.signal-filter-row,
+.filter-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+/* Signal filter label (<strong> before filter buttons) */
+.filter-label {
+    color: #34495e;
+    margin-right: 10px;
+}
+
+/* Row count paragraph below tables */
+.table-row-count {
+    margin-top: 15px;
+    color: #666;
+}
+
+/* Examples content inside <details> block */
+.examples-content {
+    padding: 15px;
 }
 
 /* Mobile Responsive for Analysis Elements */
