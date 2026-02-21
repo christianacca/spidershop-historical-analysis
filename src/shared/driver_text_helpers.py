@@ -54,3 +54,31 @@ def format_price_trend(price_trend):
         Human-readable string (Rising/Stable/Falling) or original value if not recognized
     """
     return PRICE_TEXT.get(price_trend, price_trend)
+
+
+def build_demand_section(wishlist_pressure: str, wishlist_delta: str) -> str:
+    """Build standardized demand section for driver text.
+
+    Args:
+        wishlist_pressure: Demand level (🔥/⚠️/❌)
+        wishlist_delta: Momentum (↑/→/↓)
+
+    Returns:
+        Formatted demand section (e.g., "Demand: Wishlist High + rising")
+    """
+    pressure_text = format_wishlist_pressure(wishlist_pressure)
+    delta_text = format_delta(wishlist_delta)
+    return f"Demand: Wishlist {pressure_text} + {delta_text}"
+
+
+def build_price_section(price_trend: str) -> str:
+    """Build standardized price section for driver text.
+
+    Args:
+        price_trend: Price direction (↑/→/↓)
+
+    Returns:
+        Formatted price section (e.g., "Price: Rising")
+    """
+    price_text = format_price_trend(price_trend)
+    return f"Price: {price_text}"
