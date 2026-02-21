@@ -3,7 +3,9 @@ import pytest
 from shared.driver_text_helpers import (
     format_wishlist_pressure,
     format_delta,
-    format_price_trend
+    format_price_trend,
+    build_demand_section,
+    build_price_section,
 )
 
 
@@ -53,3 +55,33 @@ class TestFormatPriceTrend:
     def test_returns_original_for_unknown_values(self):
         assert format_price_trend("Unknown") == "Unknown"
         assert format_price_trend("") == ""
+
+
+class TestBuildDemandSection:
+    """Test demand section builder."""
+
+    @pytest.mark.parametrize("pressure,delta,expected", [
+        ("🔥", "↑", "Demand: Wishlist High + rising"),
+        ("⚠️", "→", "Demand: Wishlist Moderate + stable"),
+        ("❌", "↓", "Demand: Wishlist Low + falling"),
+    ])
+    def test_formats_known_values(self, pressure, delta, expected):
+        assert build_demand_section(pressure, delta) == expected
+
+    def test_falls_back_to_raw_values_for_unknown_inputs(self):
+        assert build_demand_section("X", "Y") == "Demand: Wishlist X + Y"
+
+
+class TestBuildPriceSection:
+    """Test price section builder."""
+
+    @pytest.mark.parametrize("price_trend,expected", [
+        ("↑", "Price: Rising"),
+        ("→", "Price: Stable"),
+        ("↓", "Price: Falling"),
+    ])
+    def test_formats_known_values(self, price_trend, expected):
+        assert build_price_section(price_trend) == expected
+
+    def test_falls_back_to_raw_value_for_unknown_input(self):
+        assert build_price_section("X") == "Price: X"
