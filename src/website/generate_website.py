@@ -37,6 +37,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import os
 import shutil
+from collections import Counter
 from datetime import datetime, timezone
 from typing import Optional, Callable, Tuple, List, Any
 
@@ -130,6 +131,57 @@ def _calculate_column_range(
     return int(min(values)), int(max(values)), True
 
 
+def _parse_price_value(value: Any) -> float:
+    """Parse a price value, removing the £ symbol if present."""
+    price_str = str(value).replace('£', '').strip()
+    return float(price_str)
+
+
+def _find_column_indices(
+    headers: Optional[List[str]], *column_names: str
+) -> dict:
+    """Return a mapping of column_name → index (or None if absent) for each requested name."""
+    if not headers:
+        return {name: None for name in column_names}
+    result: dict = {}
+    for name in column_names:
+        try:
+            result[name] = headers.index(name)
+        except ValueError:
+            result[name] = None
+    return result
+
+
+def _build_slider_ranges(
+    rows: List[List[Any]],
+    price_idx: Optional[int],
+    wishlist_idx: Optional[int],
+) -> Tuple[int, int, int, int]:
+    """Calculate price and wishlist slider min/max values from CSV data.
+
+    Returns:
+        Tuple of (price_min, price_max, wishlist_min, wishlist_max)
+    """
+    price_min, price_max, found_prices = _calculate_column_range(
+        rows=rows,
+        col_idx=price_idx,
+        default_min=5,
+        default_max=400,
+        parser=_parse_price_value,
+    )
+    if found_prices:
+        price_max = price_max + 1
+
+    wishlist_min, wishlist_max, _ = _calculate_column_range(
+        rows=rows,
+        col_idx=wishlist_idx,
+        default_min=0,
+        default_max=300,
+        parser=lambda x: int(x),
+    )
+    return price_min, price_max, wishlist_min, wishlist_max
+
+
 def generate_homepage(last_scrape_time: Optional[str] = None) -> str:
     """Generate the homepage with overview and links using Jinja2 template."""
     template = jinja_env.get_template('homepage.html')
@@ -162,49 +214,22 @@ def generate_snapshot_page(config: BasePageConfig) -> str:
         rows = convert_sparklines_in_rows(headers, rows, sparkline_data, config.csv_filename)
     
     # Find column indices for special rendering
-    page_url_idx = None
-    scientific_name_idx = None
-    price_idx = None
-    wishlist_idx = None
-    if headers:
-        try:
-            page_url_idx = headers.index('page_url')
-            scientific_name_idx = headers.index('scientific_name')
-            price_idx = headers.index('price_gbp')
-            wishlist_idx = headers.index('wishlist_count')
-        except ValueError:
-            pass
-    
-    # Calculate wishlist range from data
-    wishlist_min, wishlist_max, _ = _calculate_column_range(
-        rows=rows,
-        col_idx=wishlist_idx,
-        default_min=0,
-        default_max=300,
-        parser=lambda x: int(x)
+    col = _find_column_indices(
+        headers, 'page_url', 'scientific_name', 'price_gbp', 'wishlist_count'
     )
-    
-    # Calculate price range from data
-    def parse_price(value: Any) -> float:
-        """Parse price value, removing £ symbol if present."""
-        price_str = str(value).replace('£', '').strip()
-        return float(price_str)
-    
-    price_min, price_max, found_prices = _calculate_column_range(
-        rows=rows,
-        col_idx=price_idx,
-        default_min=5,
-        default_max=400,
-        parser=parse_price
+    page_url_idx = col['page_url']
+    scientific_name_idx = col['scientific_name']
+    price_idx = col['price_gbp']
+    wishlist_idx = col['wishlist_count']
+
+    price_min, price_max, wishlist_min, wishlist_max = _build_slider_ranges(
+        rows, price_idx, wishlist_idx
     )
-    # Round up max price for better UX (only when actual prices found)
-    if found_prices:
-        price_max = price_max + 1
-    
+
     # Enumerate headers and rows for template
     headers_enum = list(enumerate(headers)) if headers else []
     rows_enum = [list(enumerate(row)) for row in rows] if rows else []
-    
+
     template = jinja_env.get_template('snapshot_page.html')
     return template.render(
         page_title=config.title,
@@ -237,14 +262,32 @@ def generate_history_page(config: BasePageConfig) -> str:
     # Read CSV file
     headers, rows = read_csv_file(config.csv_filename)
     
+    # Find date column index early so we can use it after formatting
+    date_col_idx = None
+    if headers and 'scrape_datetime' in headers:
+        date_col_idx = headers.index('scrape_datetime')
+
     # Format scrape_datetime column (date-only unless collision)
-    if headers and rows and 'scrape_datetime' in headers:
-        datetime_idx = headers.index('scrape_datetime')
-        datetimes = [row[datetime_idx] for row in rows]
+    scrape_datetimes: list = []
+    raw_datetimes: list[str] = []  # original ISO strings preserved for CSV export
+    row_date_counts: dict = {}
+    total_rows: int = len(rows) if rows else 0
+    num_runs: int = 0
+    min_date: str = ""
+    max_date: str = ""
+    if date_col_idx is not None and rows:
+        datetimes = [row[date_col_idx] for row in rows]
+        raw_datetimes = datetimes  # preserve before formatting
         formatted_dates = format_datetime_smart(datetimes)
         for i, row in enumerate(rows):
-            row[datetime_idx] = formatted_dates[i]
-    
+            row[date_col_idx] = formatted_dates[i]
+        # Unique dates most-recent-first, with per-date row counts
+        scrape_datetimes = list(dict.fromkeys(reversed(formatted_dates)))
+        row_date_counts = dict(Counter(formatted_dates))
+        num_runs = len(scrape_datetimes)
+        min_date = scrape_datetimes[-1] if scrape_datetimes else ""
+        max_date = scrape_datetimes[0] if scrape_datetimes else ""
+
     # Load sparkline data from history CSV for conversion
     sparkline_data = load_historical_sparkline_data()
     
@@ -253,19 +296,22 @@ def generate_history_page(config: BasePageConfig) -> str:
         rows = convert_sparklines_in_rows(headers, rows, sparkline_data, config.csv_filename)
     
     # Find column indices for special rendering
-    page_url_idx = None
-    scientific_name_idx = None
-    if headers:
-        try:
-            page_url_idx = headers.index('page_url')
-            scientific_name_idx = headers.index('scientific_name')
-        except ValueError:
-            pass
-    
+    col = _find_column_indices(
+        headers, 'page_url', 'scientific_name', 'price_gbp', 'wishlist_count'
+    )
+    page_url_idx = col['page_url']
+    scientific_name_idx = col['scientific_name']
+    price_idx = col['price_gbp']
+    wishlist_idx = col['wishlist_count']
+
+    price_min, price_max, wishlist_min, wishlist_max = _build_slider_ranges(
+        rows, price_idx, wishlist_idx
+    )
+
     # Enumerate headers and rows for template
     headers_enum = list(enumerate(headers)) if headers else []
     rows_enum = [list(enumerate(row)) for row in rows] if rows else []
-    
+
     template = jinja_env.get_template('history_page.html')
     return template.render(
         page_title=config.title,
@@ -278,12 +324,26 @@ def generate_history_page(config: BasePageConfig) -> str:
         headers=headers_enum,
         rows=rows_enum,
         page_url_idx=page_url_idx,
+        price_idx=price_idx,
+        price_min=price_min,
+        price_max=price_max,
+        wishlist_idx=wishlist_idx,
+        wishlist_min=wishlist_min,
+        wishlist_max=wishlist_max,
         scientific_name_idx=scientific_name_idx,
         signal_col_idx=None,  # History has no signal column
         stock_pattern_col_idx=None,  # History has no stock pattern column
         drivers_col_idx=None,  # History has no drivers column
         sortable=True,
-        timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
+        date_col_idx=date_col_idx,
+        raw_datetimes=raw_datetimes,
+        scrape_datetimes=scrape_datetimes,
+        row_date_counts=row_date_counts,
+        total_rows=total_rows,
+        num_runs=num_runs,
+        min_date=min_date,
+        max_date=max_date,
     )
 
 

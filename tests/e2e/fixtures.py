@@ -156,3 +156,65 @@ def e2e_site_multi_species(request):
                 
                 # Assert no errors at the end
                 assert_no_browser_errors(errors, None)
+
+
+@pytest.fixture(scope="module")
+def e2e_site_history_multi_date(request):
+    """E2E test fixture: 3-species x 3-date history data for date filter tests.
+
+    Module-scoped: website generated once per test module.
+
+    Yields:
+        tuple: (page, base_url, errors)
+    """
+    if os.environ.get("RUN_E2E") != "1":
+        pytest.skip("Playwright E2E tests are opt-in; run via `make test-e2e`.")
+
+    playwright_sync = pytest.importorskip("playwright.sync_api")
+    sync_playwright = playwright_sync.sync_playwright
+
+    from website.generate_website import OUTPUT_DIR, main
+    from e2e.helpers import (
+        write_history_multi_date_test_data,
+        test_server,
+        create_browser_with_error_capture,
+        assert_no_browser_errors,
+    )
+
+    cwd = Path.cwd()
+    write_history_multi_date_test_data(cwd)
+    main()
+
+    output_dir = (cwd / OUTPUT_DIR).resolve(strict=False)
+    assert output_dir.exists(), "Expected website output directory to exist"
+
+    headed = os.environ.get("PWHEADED") == "1" or request.config.getoption("--headed", default=False)
+    slow_mo = int(os.environ.get("PWSLOW", "0"))
+    video_dir = cwd / "tmp" / "e2e-videos" if os.environ.get("PWVIDEO") == "1" else None
+
+    module_name = request.module.__name__.split(".")[-1]
+    trace_path = (
+        cwd / "tmp" / f"e2e-trace-{module_name}-multi-date.zip"
+        if os.environ.get("PWTRACE") == "1"
+        else None
+    )
+
+    with test_server(output_dir) as base_url:
+        with sync_playwright() as p:
+            browser, context, page, errors = create_browser_with_error_capture(
+                p, headed=headed, slow_mo=slow_mo, video_dir=video_dir, trace_path=trace_path
+            )
+
+            try:
+                yield page, base_url, errors
+            finally:
+                errors["bad_responses"] = [
+                    resp for resp in errors["bad_responses"] if base_url in resp
+                ]
+
+                if trace_path:
+                    context.tracing.stop(path=str(trace_path))
+                context.close()
+                browser.close()
+
+                assert_no_browser_errors(errors, None)

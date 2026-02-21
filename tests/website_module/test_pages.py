@@ -682,9 +682,10 @@ class TestWishlistRangeCalculation:
         # Verify display shows correct range
         assert "Showing: 5 - 15" in html, "Expected display to show '5 - 15'"
 
-    def test_wishlist_range_uses_defaults_when_column_missing(self, tmp_path):
-        """Should use default range when wishlist_count column is missing."""
+    def test_wishlist_slider_absent_when_column_missing(self, tmp_path):
+        """Should omit wishlist slider entirely when wishlist_count column is missing."""
         from website.page_config import BasePageConfig
+        from bs4 import BeautifulSoup
         
         csv_file = tmp_path / "snapshot.csv"
         # Old CSV format without wishlist_count
@@ -703,10 +704,11 @@ class TestWishlistRangeCalculation:
         )
         
         html = generate_snapshot_page(config=config)
+        soup = BeautifulSoup(html, "html.parser")
         
-        # Verify falls back to defaults (0, 300)
-        assert 'min="0"' in html, "Expected min='0' as default"
-        assert 'max="300"' in html, "Expected max='300' as default"
+        # Slider should be absent when column does not exist
+        assert soup.find("input", id="wishlistMin") is None, "Expected no wishlist slider when column absent"
+        assert soup.find("input", id="wishlistMax") is None, "Expected no wishlist slider when column absent"
 
     def test_wishlist_range_handles_empty_csv(self, tmp_path):
         """Should show 'no data' message when CSV has no data rows."""
@@ -848,9 +850,10 @@ class TestPriceRangeCalculation:
         # Verify display shows correct range
         assert "Showing: £8 - £26" in html, "Expected display to show '£8 - £26'"
 
-    def test_price_range_uses_defaults_when_column_missing(self, tmp_path):
-        """Should use default range when price_gbp column is missing."""
+    def test_price_slider_absent_when_column_missing(self, tmp_path):
+        """Should omit price slider entirely when price_gbp column is missing."""
         from website.page_config import BasePageConfig
+        from bs4 import BeautifulSoup
         
         csv_file = tmp_path / "snapshot.csv"
         # CSV format without price_gbp
@@ -869,10 +872,11 @@ class TestPriceRangeCalculation:
         )
         
         html = generate_snapshot_page(config=config)
+        soup = BeautifulSoup(html, "html.parser")
         
-        # Verify falls back to defaults (5, 400)
-        assert 'min="5"' in html, "Expected min='5' as default"
-        assert 'max="400"' in html, "Expected max='400' as default"
+        # Slider should be absent when column does not exist
+        assert soup.find("input", id="priceMin") is None, "Expected no price slider when column absent"
+        assert soup.find("input", id="priceMax") is None, "Expected no price slider when column absent"
 
     def test_price_range_handles_empty_csv(self, tmp_path):
         """Should show 'no data' message when CSV has no data rows."""
@@ -1004,3 +1008,318 @@ class TestPriceRangeCalculation:
         # Should correctly parse prices without £ symbol
         assert 'min="10"' in html
         assert 'max="31"' in html
+
+
+class TestGenerateHistoryPage:
+    """Test suite for history page generation."""
+
+    def test_generates_complete_html_page(self):
+        """Should generate complete HTML page."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Historical Data").with_description("All history").build()
+            html = generate_history_page(config)
+
+            assert "<!DOCTYPE html>" in html
+            assert "</html>" in html
+            assert BeautifulSoup(html, 'html.parser').find('html') is not None
+
+    def test_includes_action_buttons_with_download_and_filter_toggle(self):
+        """Should have download link in stats bar and standalone More Filters button when scrape_datetimes present."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            # Download link should be in the stats bar
+            stats_strip = soup.find('div', class_='table-stats')
+            assert stats_strip is not None, "Should have table-stats strip"
+            download_link = stats_strip.find('a', class_='btn-download')
+            assert download_link is not None, "Download link should be inside the stats bar"
+            assert download_link.has_attr('download'), "Download link should have download attribute"
+            assert 'Download' in download_link.text
+
+            # More Filters button should exist as a standalone button (not inside action-buttons)
+            filter_button = soup.find('button', class_='btn-filters')
+            assert filter_button is not None, "Should have More Filters toggle button"
+            assert filter_button['data-action'] == 'toggle-filters'
+            assert filter_button.has_attr('data-content-id')
+            assert filter_button.find('span', class_='arrow') is not None
+
+    def test_includes_filter_badge_on_toggle_button(self):
+        """Should include hidden filter badge span on the toggle button."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            filter_button = soup.find('button', class_='btn-filters')
+            badge = filter_button.find('span', class_='filter-badge')
+            assert badge is not None, "Toggle button should contain filter-badge span"
+            assert 'hidden' in badge.get('class', []), "Badge should be hidden initially"
+            assert badge['id'].startswith('filterBadge-'), "Badge ID should start with 'filterBadge-'"
+
+    def test_search_filter_inside_advanced_filters_panel(self):
+        """Should place search input inside the advanced-filters-content panel."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            panel = soup.find('div', class_='advanced-filters-content')
+            assert panel is not None, "Should have advanced-filters-content panel"
+            search_input = panel.find('input', attrs={'data-action': 'search'})
+            assert search_input is not None, "Search input should be inside the filter panel"
+            assert search_input.get('data-table-id') is not None
+
+    def test_omits_filter_toggle_when_search_disabled(self):
+        """Should omit More Filters button when search_filter=False."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(False).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            assert soup.find('button', class_='btn-filters') is None, "Should not have filter toggle when search disabled"
+            assert soup.find('input', type='text') is None, "Should not have search input when search disabled"
+
+    def test_table_stats_strip_shows_row_count(self):
+        """Should show 'Filtered Results: Showing x of x rows' strip (with scrape_datetimes present)."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        csv_content += "2026-01-08 10:00:00,Species B,Common B,2.0,30.00,8,http://example.com\n"
+        csv_content += "2026-01-15 10:00:00,Species A,Common A,1.5,26.00,6,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            stats_strip = soup.find('div', class_='table-stats')
+            assert stats_strip is not None, "Should have table-stats strip"
+            assert 'Filtered Results:' in stats_strip.text
+
+            table_id = config.table_id
+            visible_count_span = stats_strip.find('span', id=f'visible-count-{table_id}')
+            assert visible_count_span is not None, "Should have visible-count span"
+            assert visible_count_span.text == '3', "Visible count should equal total rows initially"
+            assert 'of 3 rows' in stats_strip.text, "Should show total row count"
+
+    def test_omits_total_rows_paragraph(self):
+        """Should NOT have the old 'Total rows: N' paragraph."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").build()
+            html = generate_history_page(config)
+
+            assert 'Total rows:' not in html, "Old 'Total rows:' paragraph should be removed"
+
+    def test_no_data_shows_info_box(self):
+        """Should show 'no data' info box when CSV is missing."""
+        config = page_config.history("/nonexistent/file.csv").with_title("Test").with_description("Desc").build()
+        html = generate_history_page(config)
+
+        assert 'No data available' in html
+        assert BeautifulSoup(html, 'html.parser').find('table') is None
+
+    def test_price_sliders_have_correct_data_attributes(self):
+        """Should have data-filter='price' and data-table-id on slider inputs."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,20.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            for slider_id in ('priceMin', 'priceMax'):
+                slider = soup.find('input', id=slider_id)
+                assert slider is not None
+                assert slider.get('data-filter') == 'price', f"{slider_id} should have data-filter='price'"
+                assert slider.get('data-table-id') == config.table_id, f"{slider_id} should have data-table-id"
+
+    def test_table_rows_have_data_price_attribute(self):
+        """Should set data-price on each table row so JS can filter by price."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        csv_content += "2026-01-08 10:00:00,Species B,Common B,2.0,30.00,8,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            table = soup.find('table', id=config.table_id)
+            rows = table.select('tbody tr')
+            assert len(rows) == 2
+            for row in rows:
+                assert row.has_attr('data-price'), "Each row should have data-price attribute"
+            prices = {row['data-price'] for row in rows}
+            assert '25.00' in prices
+            assert '30.00' in prices
+
+    def test_price_sliders_absent_when_search_disabled(self):
+        """Should not render price sliders when search_filter=False."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(False).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            assert soup.find('input', id='priceMin') is None, "priceMin should not exist when search disabled"
+            assert soup.find('input', id='priceMax') is None, "priceMax should not exist when search disabled"
+
+    def test_wishlist_sliders_have_correct_data_attributes(self):
+        """Should have data-filter='wishlist' and data-table-id on wishlist slider inputs."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,20.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            for slider_id in ('wishlistMin', 'wishlistMax'):
+                slider = soup.find('input', id=slider_id)
+                assert slider is not None, f"Should have {slider_id} slider"
+                assert slider.get('data-filter') == 'wishlist', f"{slider_id} should have data-filter='wishlist'"
+                assert slider.get('data-table-id') == config.table_id, f"{slider_id} should have data-table-id"
+
+    def test_table_rows_have_data_wishlist_attribute(self):
+        """Should set data-wishlist on each table row so JS can filter by wishlist count."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        csv_content += "2026-01-08 10:00:00,Species B,Common B,2.0,30.00,10,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            table = soup.find('table', id=config.table_id)
+            rows = table.select('tbody tr')
+            assert len(rows) == 2
+            for row in rows:
+                assert row.has_attr('data-wishlist'), "Each row should have data-wishlist attribute"
+            wishlist_values = {row['data-wishlist'] for row in rows}
+            assert '5' in wishlist_values
+            assert '10' in wishlist_values
+
+    def test_wishlist_sliders_absent_when_search_disabled(self):
+        """Should not render wishlist sliders when search_filter=False."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(False).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            assert soup.find('input', id='wishlistMin') is None, "wishlistMin should not exist when search disabled"
+            assert soup.find('input', id='wishlistMax') is None, "wishlistMax should not exist when search disabled"
+
+    def test_date_checkboxes_rendered_one_per_unique_scrape_datetime(self):
+        """Should render one checkbox per unique scrape_datetime value."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        csv_content += "2026-01-08,Species A,Common A,1.5,26.00,5,http://example.com\n"
+        csv_content += "2026-01-08,Species B,Common B,2.0,30.00,8,http://example.com\n"
+        csv_content += "2026-01-15,Species A,Common A,1.5,27.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            checkboxes = soup.find_all('input', attrs={'data-date-value': True})
+            assert len(checkboxes) == 3, f"Expected 3 date checkboxes (one per unique date), got {len(checkboxes)}"
+            date_values = {cb['data-date-value'] for cb in checkboxes}
+            assert '2026-01-01' in date_values
+            assert '2026-01-08' in date_values
+            assert '2026-01-15' in date_values
+
+    def test_date_checkbox_row_counts_are_correct(self):
+        """Each date checkbox label should show the correct (N rows) count."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        csv_content += "2026-01-08,Species A,Common A,1.5,26.00,5,http://example.com\n"
+        csv_content += "2026-01-08,Species B,Common B,2.0,30.00,8,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            # Find count labels by locating each date-row label
+            date_rows = soup.find_all('label', class_='date-row')
+            counts_by_date = {}
+            for label in date_rows:
+                cb = label.find('input', attrs={'data-date-value': True})
+                count_span = label.find('span', class_='date-count')
+                if cb and count_span:
+                    counts_by_date[cb['data-date-value']] = count_span.text.strip()
+
+            assert counts_by_date.get('2026-01-01') == '(1 rows)', f"Expected '(1 rows)' for 2026-01-01, got '{counts_by_date.get('2026-01-01')}'"
+            assert counts_by_date.get('2026-01-08') == '(2 rows)', f"Expected '(2 rows)' for 2026-01-08, got '{counts_by_date.get('2026-01-08')}'"
+
+    def test_rows_have_data_date_attribute(self):
+        """Each table row should have a data-date attribute matching its formatted scrape_datetime."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        csv_content += "2026-01-08,Species B,Common B,2.0,30.00,8,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            table = soup.find('table', id=config.table_id)
+            rows = table.select('tbody tr')
+            assert len(rows) == 2
+            for row in rows:
+                assert row.has_attr('data-date'), "Each row should have data-date attribute"
+            date_values = {row['data-date'] for row in rows}
+            assert '2026-01-01' in date_values
+            assert '2026-01-08' in date_values
+
+    def test_date_checkboxes_ordered_most_recent_first(self):
+        """Date checkboxes should be rendered most-recent-first."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        csv_content += "2026-01-08,Species B,Common B,2.0,30.00,8,http://example.com\n"
+        csv_content += "2026-01-15,Species A,Common A,1.5,27.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            checkboxes = soup.find_all('input', attrs={'data-date-value': True})
+            date_order = [cb['data-date-value'] for cb in checkboxes]
+            assert date_order[0] == '2026-01-15', f"First (most recent) date should be 2026-01-15, got '{date_order[0]}'"
+            assert date_order[-1] == '2026-01-01', f"Last (oldest) date should be 2026-01-01, got '{date_order[-1]}'"
+
+    def test_all_dates_master_checkbox_rendered(self):
+        """Should render 'All Dates' master checkbox, checked by default."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            all_dates_cb = soup.find('input', id=f'allDates-{config.table_id}')
+            assert all_dates_cb is not None, "Should have allDates master checkbox"
+            assert all_dates_cb.has_attr('checked'), "allDates checkbox should be checked by default"
+
+    def test_date_filter_absent_when_search_disabled(self):
+        """Should not render date filter section when search_filter=False."""
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(False).build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            assert soup.find('div', class_='date-filter-section') is None, "Date filter section should not exist when search disabled"
+            assert soup.find('input', attrs={'data-date-value': True}) is None, "Date checkboxes should not exist when search disabled"

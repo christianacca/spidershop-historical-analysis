@@ -7,27 +7,101 @@
 <div class="content">
     <h2>{{ page_title }}</h2>
     <p>{{ description }}</p>
-    
-    <div class="download-links">
-        <a href="{{ csv_filename }}" download class="btn btn-primary">⬇️ Download CSV</a>
-    </div>
-    
+
     {% if headers and rows %}
     <h3>Data Table</h3>
+
+    {% if search_filter and scrape_datetimes %}
+    <div class="summary-info" id="summary-info-{{ table_id }}"
+         data-total-rows="{{ total_rows }}"
+         data-min-date="{{ min_date }}"
+         data-max-date="{{ max_date }}">
+        Viewing {{ total_rows }} rows across {{ num_runs }} scrape runs ({{ min_date }} - {{ max_date }})
+    </div>
+    <div class="date-filter-section">
+        <div class="date-filter-label"><strong>📅 Filter by Scrape Date:</strong></div>
+        <div class="date-all-row">
+            <label class="date-all-label">
+                <input type="checkbox" id="allDates-{{ table_id }}" checked>
+                <strong>All Dates ({{ total_rows }} rows)</strong>
+            </label>
+        </div>
+        <button class="date-expand-btn advanced-filters-toggle"
+                data-action="toggle-date-picker"
+                data-content-id="date-picker-{{ table_id }}"
+                data-table-id="{{ table_id }}">
+            <span class="arrow">▶</span>
+            <span class="when-collapsed">Show individual dates</span>
+            <span class="when-expanded">Hide individual dates</span>
+        </button>
+        <div id="date-picker-{{ table_id }}" class="date-picker-content">
+            <div class="date-grid">
+                {% for date in scrape_datetimes %}
+                <label class="date-row">
+                    <input type="checkbox" class="date-checkbox" data-date-value="{{ date }}" data-table-id="{{ table_id }}" checked>
+                    <span class="date-label">{{ date }}</span>
+                    <span class="date-count">({{ row_date_counts[date] }} rows)</span>
+                </label>
+                {% endfor %}
+            </div>
+            <div class="quick-select-bar">
+                <button class="btn btn-secondary" data-action="select-last-n" data-n="1" data-table-id="{{ table_id }}">Last Run</button>
+                <button class="btn btn-secondary" data-action="select-last-n" data-n="2" data-table-id="{{ table_id }}">Last 2 Runs</button>
+                <button class="btn btn-secondary" data-action="select-last-n" data-n="4" data-table-id="{{ table_id }}">Last 4 Runs</button>
+                <button class="btn btn-secondary" data-action="select-last-n" data-n="8" data-table-id="{{ table_id }}">Last 8 Runs</button>
+                <button class="btn btn-secondary" data-action="show-all-dates" data-table-id="{{ table_id }}">Show All</button>
+            </div>
+        </div>
+    </div>
+
+    <button class="btn btn-filters" data-action="toggle-filters"
+            data-content-id="advanced-filters-{{ table_id }}">
+        <span class="arrow">▶</span>
+        <span>More Filters</span>
+        <span class="filter-badge hidden" id="filterBadge-{{ table_id }}">0</span>
+    </button>
+
+    {% else %}
+    <div class="action-buttons">
+        <a href="{{ csv_filename }}" download class="btn btn-download">⬇️ Download CSV</a>
+        {% if search_filter %}
+        <button class="btn btn-filters" data-action="toggle-filters" data-content-id="advanced-filters-{{ table_id }}">
+            <span class="arrow">▶</span>
+            <span>More Filters</span>
+            <span class="filter-badge hidden" id="filterBadge-{{ table_id }}">0</span>
+        </button>
+        {% endif %}
+    </div>
+    {% endif %}
+
     {% if search_filter %}
     <div class="advanced-filters">
         <div id="advanced-filters-{{ table_id }}" class="advanced-filters-content">
+            {{ macros.price_slider(table_id=table_id, price_idx=price_idx, price_min=price_min, price_max=price_max) }}
+            {{ macros.wishlist_slider(table_id=table_id, wishlist_idx=wishlist_idx, wishlist_min=wishlist_min, wishlist_max=wishlist_max) }}
             {{ macros.search_filter(table_id=table_id) }}
         </div>
     </div>
     {% endif %}
-    
+
+    {% if search_filter and scrape_datetimes %}
+    <div class="table-stats">
+        <span><strong>Filtered Results:</strong> Showing <span id="visible-count-{{ table_id }}">{{ rows|length }}</span> of {{ rows|length }} rows</span>
+        <a href="{{ csv_filename }}" download class="btn btn-download"
+           data-action="download-filtered-csv"
+           data-table-id="{{ table_id }}">⬇️ Download Filtered CSV</a>
+    </div>
+    {% else %}
+    <div class="table-stats">
+        <strong>Showing:</strong> <span id="visible-count-{{ table_id }}">{{ rows|length }}</span> of {{ rows|length }} rows
+    </div>
+    {% endif %}
+
     <div style="overflow-x: auto;">
-        {% with headers=headers, rows=rows, signal_col_idx=signal_col_idx, stock_pattern_col_idx=stock_pattern_col_idx, page_url_idx=page_url_idx, scientific_name_idx=scientific_name_idx, sortable=sortable, table_id=table_id %}
+        {% with headers=headers, rows=rows, signal_col_idx=signal_col_idx, stock_pattern_col_idx=stock_pattern_col_idx, page_url_idx=page_url_idx, scientific_name_idx=scientific_name_idx, sortable=sortable, table_id=table_id, price_idx=price_idx, wishlist_idx=wishlist_idx, date_col_idx=date_col_idx %}
         {% include 'table.html' %}
         {% endwith %}
     </div>
-    <p style="margin-top: 15px; color: #666;"><strong>Total rows:</strong> {{ rows|length }}</p>
     {% else %}
     <div class="info-box">
         <p>No data available yet. Please check back after the next scrape run.</p>

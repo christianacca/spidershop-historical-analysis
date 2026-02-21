@@ -125,15 +125,25 @@ export function filterRows(tableId) {
   const searchTerm = getElement(`search-${tableId}`)?.value.toLowerCase() ?? '';
   const [priceMin, priceMax] = priceSlider?.getValues() ?? [0, Infinity];
   const [wishlistMin, wishlistMax] = wishlistSlider?.getValues() ?? [0, Infinity];
+
+  // Determine active date selection
+  const allDatesEl = document.getElementById(`allDates-${tableId}`);
+  const allDatesChecked = allDatesEl?.checked ?? true;
+  const selectedDates = allDatesChecked
+    ? []
+    : Array.from(document.querySelectorAll(`[data-date-value]:checked`))
+        .map(cb => cb.dataset.dateValue);
   
   rows.forEach(row => {
     const matchesSearch = !searchTerm || row.textContent.toLowerCase().includes(searchTerm);
-    const price = parseFloat(row.getAttribute('data-price')?.replace('£', '').trim()) || 0;
+    const price = parseFloat(row.getAttribute('data-price')?.replace('\u00a3', '').trim()) || 0;
     const matchesPrice = price >= priceMin && price <= priceMax;
     const wishlist = parseInt(row.getAttribute('data-wishlist')?.trim()) || 0;
     const matchesWishlist = wishlist >= wishlistMin && wishlist <= wishlistMax;
+    const date = row.getAttribute('data-date') ?? '';
+    const matchesDate = allDatesChecked || selectedDates.length === 0 || selectedDates.includes(date);
     
-    toggleRowVisibility(row, matchesSearch && matchesPrice && matchesWishlist);
+    toggleRowVisibility(row, matchesSearch && matchesPrice && matchesWishlist && matchesDate);
   });
   
   updateFilterBadge(tableId);
@@ -225,4 +235,123 @@ function updateVisibleCount(tableId) {
   ).length;
   
   countElement.textContent = visibleCount;
+}
+
+/**
+ * Download the currently visible (filtered) rows of a table as a CSV file.
+ *
+ * Cell values are extracted to match the raw server CSV as closely as possible:
+ *  - scrape_datetime cells: original ISO string from the data-raw attribute
+ *  - page_url cells: the href of the rendered <a> tag, not its text content
+ *  - all other cells: plain textContent
+ *
+ * @param {string} tableId - ID of the table element
+ */
+export function downloadFilteredCsv(tableId) {
+  const table = getElement(tableId);
+  if (!table) return;
+
+  // Strip the sort indicator (⇅) from header text
+  const headers = Array.from(table.querySelectorAll('thead th'))
+    .map(th => th.textContent.replace('\u21c5', '').trim());
+
+  const visibleRows = Array.from(table.querySelectorAll('tbody tr:not(.' + CSS.HIDDEN + ')'));
+
+  const csvLines = [_escapeCsvRow(headers)];
+  visibleRows.forEach(row => {
+    const values = Array.from(row.querySelectorAll('td')).map(td => {
+      // Raw ISO datetime stored before display-formatting
+      if (td.hasAttribute('data-raw')) {
+        return td.getAttribute('data-raw');
+      }
+      // page_url: extract href rather than link label text
+      const anchor = td.querySelector('a[href]');
+      if (anchor) {
+        return anchor.getAttribute('href');
+      }
+      return td.textContent.trim();
+    });
+    csvLines.push(_escapeCsvRow(values));
+  });
+
+  const csvContent = csvLines.join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const tempLink = document.createElement('a');
+  tempLink.href = url;
+  tempLink.download = 'spidershop_spiderlings_history_filtered.csv';
+  tempLink.style.display = 'none';
+  document.body.appendChild(tempLink);
+  tempLink.click();
+  document.body.removeChild(tempLink);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Escape an array of values as a single CSV row.
+ * Cells containing commas, double-quotes, or newlines are wrapped in double-quotes;
+ * internal double-quotes are doubled.
+ *
+ * @param {string[]} values
+ * @returns {string}
+ */
+function _escapeCsvRow(values) {
+  return values.map(value => {
+    const str = String(value ?? '');
+    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+      return '"' + str.replace(/"/g, '""') + '"';
+    }
+    return str;
+  }).join(',');
+}
+
+/**
+ * Update the date filter summary info box
+ * @param {string} tableId - ID of the table element
+ */
+export function updateDateSummary(tableId) {
+  const summaryEl = document.getElementById(`summary-info-${tableId}`);
+  if (!summaryEl) return;
+
+  const allDateCheckboxes = Array.from(
+    document.querySelectorAll(`[data-date-value][data-table-id="${tableId}"]`)
+  );
+  const totalRuns = allDateCheckboxes.length;
+  const allDatesEl = document.getElementById(`allDates-${tableId}`);
+
+  if (allDatesEl?.checked) {
+    // All dates selected: read totals from data attributes on the element
+    const totalRows = parseInt(summaryEl.dataset.totalRows ?? '0', 10);
+    const minDate = summaryEl.dataset.minDate ?? '';
+    const maxDate = summaryEl.dataset.maxDate ?? '';
+    summaryEl.textContent =
+      `Viewing ${totalRows} rows across ${totalRuns} scrape runs (${minDate} - ${maxDate})`;
+    return;
+  }
+
+  const selectedCheckboxes = allDateCheckboxes.filter(cb => cb.checked);
+  const numSelected = selectedCheckboxes.length;
+
+  if (numSelected === 0) {
+    summaryEl.textContent = 'Viewing 0 rows across 0 scrape runs';
+    return;
+  }
+
+  // Sum row counts from each checkbox's sibling .date-count span
+  let totalRows = 0;
+  selectedCheckboxes.forEach(cb => {
+    const countSpan = cb.closest('.date-row')?.querySelector('.date-count');
+    if (countSpan) {
+      const match = countSpan.textContent.match(/\d+/);
+      if (match) totalRows += parseInt(match[0], 10);
+    }
+  });
+
+  // Date array is ordered newest-first in the DOM; last = oldest = min, first = newest = max
+  const selectedDates = selectedCheckboxes.map(cb => cb.dataset.dateValue);
+  const maxDate = selectedDates[0];
+  const minDate = selectedDates[selectedDates.length - 1];
+
+  summaryEl.textContent =
+    `Viewing ${totalRows} rows across ${numSelected} scrape runs (${minDate} - ${maxDate})`;
 }
