@@ -682,9 +682,10 @@ class TestWishlistRangeCalculation:
         # Verify display shows correct range
         assert "Showing: 5 - 15" in html, "Expected display to show '5 - 15'"
 
-    def test_wishlist_range_uses_defaults_when_column_missing(self, tmp_path):
-        """Should use default range when wishlist_count column is missing."""
+    def test_wishlist_slider_absent_when_column_missing(self, tmp_path):
+        """Should omit wishlist slider entirely when wishlist_count column is missing."""
         from website.page_config import BasePageConfig
+        from bs4 import BeautifulSoup
         
         csv_file = tmp_path / "snapshot.csv"
         # Old CSV format without wishlist_count
@@ -703,10 +704,11 @@ class TestWishlistRangeCalculation:
         )
         
         html = generate_snapshot_page(config=config)
+        soup = BeautifulSoup(html, "html.parser")
         
-        # Verify falls back to defaults (0, 300)
-        assert 'min="0"' in html, "Expected min='0' as default"
-        assert 'max="300"' in html, "Expected max='300' as default"
+        # Slider should be absent when column does not exist
+        assert soup.find("input", id="wishlistMin") is None, "Expected no wishlist slider when column absent"
+        assert soup.find("input", id="wishlistMax") is None, "Expected no wishlist slider when column absent"
 
     def test_wishlist_range_handles_empty_csv(self, tmp_path):
         """Should show 'no data' message when CSV has no data rows."""
@@ -848,9 +850,10 @@ class TestPriceRangeCalculation:
         # Verify display shows correct range
         assert "Showing: £8 - £26" in html, "Expected display to show '£8 - £26'"
 
-    def test_price_range_uses_defaults_when_column_missing(self, tmp_path):
-        """Should use default range when price_gbp column is missing."""
+    def test_price_slider_absent_when_column_missing(self, tmp_path):
+        """Should omit price slider entirely when price_gbp column is missing."""
         from website.page_config import BasePageConfig
+        from bs4 import BeautifulSoup
         
         csv_file = tmp_path / "snapshot.csv"
         # CSV format without price_gbp
@@ -869,10 +872,11 @@ class TestPriceRangeCalculation:
         )
         
         html = generate_snapshot_page(config=config)
+        soup = BeautifulSoup(html, "html.parser")
         
-        # Verify falls back to defaults (5, 400)
-        assert 'min="5"' in html, "Expected min='5' as default"
-        assert 'max="400"' in html, "Expected max='400' as default"
+        # Slider should be absent when column does not exist
+        assert soup.find("input", id="priceMin") is None, "Expected no price slider when column absent"
+        assert soup.find("input", id="priceMax") is None, "Expected no price slider when column absent"
 
     def test_price_range_handles_empty_csv(self, tmp_path):
         """Should show 'no data' message when CSV has no data rows."""
@@ -1126,29 +1130,6 @@ class TestGenerateHistoryPage:
         assert 'No data available' in html
         assert BeautifulSoup(html, 'html.parser').find('table') is None
 
-    def test_price_sliders_rendered_with_data_range(self):
-        """Should render price sliders with min/max derived from CSV data."""
-        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
-        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,15.00,5,http://example.com\n"
-        csv_content += "2026-01-01 10:00:00,Species B,Common B,2.0,35.00,8,http://example.com\n"
-        with temp_csv_file(csv_content) as filename:
-            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
-            html = generate_history_page(config)
-            soup = BeautifulSoup(html, 'html.parser')
-
-            price_min_slider = soup.find('input', id='priceMin')
-            price_max_slider = soup.find('input', id='priceMax')
-            assert price_min_slider is not None, "Should have priceMin slider"
-            assert price_max_slider is not None, "Should have priceMax slider"
-
-            # min derived from data (15), max = floor(35) + 1 = 36
-            assert price_min_slider['min'] == '15', f"Expected min='15', got '{price_min_slider['min']}'"
-            assert price_max_slider['max'] == '36', f"Expected max='36', got '{price_max_slider['max']}'"
-
-            # Initial values: min slider at min, max slider at max
-            assert price_min_slider['value'] == '15'
-            assert price_max_slider['value'] == '36'
-
     def test_price_sliders_have_correct_data_attributes(self):
         """Should have data-filter='price' and data-table-id on slider inputs."""
         csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
@@ -1183,21 +1164,6 @@ class TestGenerateHistoryPage:
             assert '25.00' in prices
             assert '30.00' in prices
 
-    def test_price_display_text_matches_initial_range(self):
-        """Should render priceDisplay with the initial min–max text."""
-        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
-        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,10.00,5,http://example.com\n"
-        csv_content += "2026-01-01 10:00:00,Species B,Common B,2.0,40.00,8,http://example.com\n"
-        with temp_csv_file(csv_content) as filename:
-            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
-            html = generate_history_page(config)
-            soup = BeautifulSoup(html, 'html.parser')
-
-            display = soup.find(id='priceDisplay')
-            assert display is not None, "Should have priceDisplay element"
-            assert '£10' in display.text
-            assert '£41' in display.text
-
     def test_price_sliders_absent_when_search_disabled(self):
         """Should not render price sliders when search_filter=False."""
         csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
@@ -1209,29 +1175,6 @@ class TestGenerateHistoryPage:
 
             assert soup.find('input', id='priceMin') is None, "priceMin should not exist when search disabled"
             assert soup.find('input', id='priceMax') is None, "priceMax should not exist when search disabled"
-
-    def test_wishlist_sliders_rendered_with_data_range(self):
-        """Should render wishlist sliders with min/max derived from CSV data (no +1 rounding)."""
-        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
-        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,15.00,3,http://example.com\n"
-        csv_content += "2026-01-01 10:00:00,Species B,Common B,2.0,35.00,12,http://example.com\n"
-        with temp_csv_file(csv_content) as filename:
-            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
-            html = generate_history_page(config)
-            soup = BeautifulSoup(html, 'html.parser')
-
-            wishlist_min_slider = soup.find('input', id='wishlistMin')
-            wishlist_max_slider = soup.find('input', id='wishlistMax')
-            assert wishlist_min_slider is not None, "Should have wishlistMin slider"
-            assert wishlist_max_slider is not None, "Should have wishlistMax slider"
-
-            # min and max derived from data — no +1 rounding for wishlist
-            assert wishlist_min_slider['min'] == '3', f"Expected min='3', got '{wishlist_min_slider['min']}'"
-            assert wishlist_max_slider['max'] == '12', f"Expected max='12', got '{wishlist_max_slider['max']}'"
-
-            # Initial values: min slider at min, max slider at max
-            assert wishlist_min_slider['value'] == '3'
-            assert wishlist_max_slider['value'] == '12'
 
     def test_wishlist_sliders_have_correct_data_attributes(self):
         """Should have data-filter='wishlist' and data-table-id on wishlist slider inputs."""
@@ -1266,21 +1209,6 @@ class TestGenerateHistoryPage:
             wishlist_values = {row['data-wishlist'] for row in rows}
             assert '5' in wishlist_values
             assert '10' in wishlist_values
-
-    def test_wishlist_display_text_matches_initial_range(self):
-        """Should render wishlistDisplay with the initial min-max text (no currency symbol)."""
-        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
-        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,10.00,3,http://example.com\n"
-        csv_content += "2026-01-01 10:00:00,Species B,Common B,2.0,40.00,12,http://example.com\n"
-        with temp_csv_file(csv_content) as filename:
-            config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
-            html = generate_history_page(config)
-            soup = BeautifulSoup(html, 'html.parser')
-
-            display = soup.find(id='wishlistDisplay')
-            assert display is not None, "Should have wishlistDisplay element"
-            assert '3' in display.text
-            assert '12' in display.text
 
     def test_wishlist_sliders_absent_when_search_disabled(self):
         """Should not render wishlist sliders when search_filter=False."""

@@ -101,3 +101,57 @@
     </div>
 </div>
 {%- endmacro %}
+
+{# Render price range dual-handle slider
+   Only renders when price_idx is not None (i.e., the price_gbp column exists).
+   Parameters:
+   - table_id: The table ID for the slider to target
+   - price_idx: Column index of price_gbp (None → slider is omitted)
+   - price_min: Minimum slider value derived from data
+   - price_max: Maximum slider value derived from data
+#}
+{% macro price_slider(table_id, price_idx, price_min, price_max) -%}
+{% if price_idx is not none %}
+<div class="filter-row">
+    <strong>💷 Price Range:</strong>
+    <div class="slider-container">
+        <div class="dual-range-slider">
+            <input type="range" min="{{ price_min }}" max="{{ price_max }}" value="{{ price_min }}" class="slider slider-min" id="priceMin" data-filter="price" data-table-id="{{ table_id }}">
+            <input type="range" min="{{ price_min }}" max="{{ price_max }}" value="{{ price_max }}" class="slider slider-max" id="priceMax" data-filter="price" data-table-id="{{ table_id }}">
+        </div>
+        <div class="slider-values">
+            <span>£{{ price_min }}</span>
+            <span>£{{ price_max }}</span>
+        </div>
+        <div class="slider-current" id="priceDisplay">Showing: £{{ price_min }} - £{{ price_max }}</div>
+    </div>
+</div>
+{% endif %}
+{%- endmacro %}
+
+{# Render wishlist count dual-handle slider
+   Only renders when wishlist_idx is not None (i.e., the wishlist_count column exists).
+   Parameters:
+   - table_id: The table ID for the slider to target
+   - wishlist_idx: Column index of wishlist_count (None → slider is omitted)
+   - wishlist_min: Minimum slider value derived from data
+   - wishlist_max: Maximum slider value derived from data
+#}
+{% macro wishlist_slider(table_id, wishlist_idx, wishlist_min, wishlist_max) -%}
+{% if wishlist_idx is not none %}
+<div class="filter-row">
+    <strong>💚 Wishlist Count:</strong>
+    <div class="slider-container">
+        <div class="dual-range-slider">
+            <input type="range" min="{{ wishlist_min }}" max="{{ wishlist_max }}" value="{{ wishlist_min }}" class="slider slider-min" id="wishlistMin" data-filter="wishlist" data-table-id="{{ table_id }}">
+            <input type="range" min="{{ wishlist_min }}" max="{{ wishlist_max }}" value="{{ wishlist_max }}" class="slider slider-max" id="wishlistMax" data-filter="wishlist" data-table-id="{{ table_id }}">
+        </div>
+        <div class="slider-values">
+            <span>{{ wishlist_min }}</span>
+            <span>{{ wishlist_max }}</span>
+        </div>
+        <div class="slider-current" id="wishlistDisplay">Showing: {{ wishlist_min }} - {{ wishlist_max }}</div>
+    </div>
+</div>
+{% endif %}
+{%- endmacro %}

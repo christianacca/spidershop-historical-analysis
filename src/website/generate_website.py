@@ -137,6 +137,51 @@ def _parse_price_value(value: Any) -> float:
     return float(price_str)
 
 
+def _find_column_indices(
+    headers: Optional[List[str]], *column_names: str
+) -> dict:
+    """Return a mapping of column_name → index (or None if absent) for each requested name."""
+    if not headers:
+        return {name: None for name in column_names}
+    result: dict = {}
+    for name in column_names:
+        try:
+            result[name] = headers.index(name)
+        except ValueError:
+            result[name] = None
+    return result
+
+
+def _build_slider_ranges(
+    rows: List[List[Any]],
+    price_idx: Optional[int],
+    wishlist_idx: Optional[int],
+) -> Tuple[int, int, int, int]:
+    """Calculate price and wishlist slider min/max values from CSV data.
+
+    Returns:
+        Tuple of (price_min, price_max, wishlist_min, wishlist_max)
+    """
+    price_min, price_max, found_prices = _calculate_column_range(
+        rows=rows,
+        col_idx=price_idx,
+        default_min=5,
+        default_max=400,
+        parser=_parse_price_value,
+    )
+    if found_prices:
+        price_max = price_max + 1
+
+    wishlist_min, wishlist_max, _ = _calculate_column_range(
+        rows=rows,
+        col_idx=wishlist_idx,
+        default_min=0,
+        default_max=300,
+        parser=lambda x: int(x),
+    )
+    return price_min, price_max, wishlist_min, wishlist_max
+
+
 def generate_homepage(last_scrape_time: Optional[str] = None) -> str:
     """Generate the homepage with overview and links using Jinja2 template."""
     template = jinja_env.get_template('homepage.html')
@@ -169,44 +214,22 @@ def generate_snapshot_page(config: BasePageConfig) -> str:
         rows = convert_sparklines_in_rows(headers, rows, sparkline_data, config.csv_filename)
     
     # Find column indices for special rendering
-    page_url_idx = None
-    scientific_name_idx = None
-    price_idx = None
-    wishlist_idx = None
-    if headers:
-        try:
-            page_url_idx = headers.index('page_url')
-            scientific_name_idx = headers.index('scientific_name')
-            price_idx = headers.index('price_gbp')
-            wishlist_idx = headers.index('wishlist_count')
-        except ValueError:
-            pass
-    
-    # Calculate wishlist range from data
-    wishlist_min, wishlist_max, _ = _calculate_column_range(
-        rows=rows,
-        col_idx=wishlist_idx,
-        default_min=0,
-        default_max=300,
-        parser=lambda x: int(x)
+    col = _find_column_indices(
+        headers, 'page_url', 'scientific_name', 'price_gbp', 'wishlist_count'
     )
-    
-    # Calculate price range from data
-    price_min, price_max, found_prices = _calculate_column_range(
-        rows=rows,
-        col_idx=price_idx,
-        default_min=5,
-        default_max=400,
-        parser=_parse_price_value
+    page_url_idx = col['page_url']
+    scientific_name_idx = col['scientific_name']
+    price_idx = col['price_gbp']
+    wishlist_idx = col['wishlist_count']
+
+    price_min, price_max, wishlist_min, wishlist_max = _build_slider_ranges(
+        rows, price_idx, wishlist_idx
     )
-    # Round up max price for better UX (only when actual prices found)
-    if found_prices:
-        price_max = price_max + 1
-    
+
     # Enumerate headers and rows for template
     headers_enum = list(enumerate(headers)) if headers else []
     rows_enum = [list(enumerate(row)) for row in rows] if rows else []
-    
+
     template = jinja_env.get_template('snapshot_page.html')
     return template.render(
         page_title=config.title,
@@ -271,44 +294,16 @@ def generate_history_page(config: BasePageConfig) -> str:
         rows = convert_sparklines_in_rows(headers, rows, sparkline_data, config.csv_filename)
     
     # Find column indices for special rendering
-    page_url_idx = None
-    scientific_name_idx = None
-    price_idx = None
-    wishlist_idx = None
-    if headers:
-        try:
-            page_url_idx = headers.index('page_url')
-            scientific_name_idx = headers.index('scientific_name')
-        except ValueError:
-            pass
-        try:
-            price_idx = headers.index('price_gbp')
-        except ValueError:
-            pass
-        try:
-            wishlist_idx = headers.index('wishlist_count')
-        except ValueError:
-            pass
-
-    # Calculate price range from data
-    price_min, price_max, found_prices = _calculate_column_range(
-        rows=rows,
-        col_idx=price_idx,
-        default_min=5,
-        default_max=400,
-        parser=_parse_price_value
+    col = _find_column_indices(
+        headers, 'page_url', 'scientific_name', 'price_gbp', 'wishlist_count'
     )
-    # Round up max price for better UX (only when actual prices found)
-    if found_prices:
-        price_max = price_max + 1
+    page_url_idx = col['page_url']
+    scientific_name_idx = col['scientific_name']
+    price_idx = col['price_gbp']
+    wishlist_idx = col['wishlist_count']
 
-    # Calculate wishlist range from data
-    wishlist_min, wishlist_max, _ = _calculate_column_range(
-        rows=rows,
-        col_idx=wishlist_idx,
-        default_min=0,
-        default_max=300,
-        parser=lambda x: int(x)
+    price_min, price_max, wishlist_min, wishlist_max = _build_slider_ranges(
+        rows, price_idx, wishlist_idx
     )
 
     # Enumerate headers and rows for template

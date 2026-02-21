@@ -738,18 +738,6 @@ details hr {
     transform: rotate(90deg);
 }
 
-.date-expand-btn .when-expanded {
-    display: none;
-}
-
-.date-expand-btn.expanded .when-collapsed {
-    display: none;
-}
-
-.date-expand-btn.expanded .when-expanded {
-    display: inline;
-}
-
 .date-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
