@@ -417,3 +417,137 @@ def test_snapshot_page_stats_strip_positioned_above_table(e2e_site_minimal) -> N
     # They should be relatively close (within 100px)
     vertical_gap = table_box['y'] - (stats_box['y'] + stats_box['height'])
     assert vertical_gap < 100, f"Stats strip and table should be close together, gap is {vertical_gap}px"
+
+
+# ---------------------------------------------------------------------------
+# Homepage-specific styles
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.e2e
+def test_homepage_card_grid_layout(e2e_site_minimal) -> None:
+    """Homepage card grid should use CSS grid with individual cards present."""
+    page, base_url, errors = e2e_site_minimal
+
+    page.goto(f"{base_url}/index.html", wait_until="domcontentloaded")
+
+    card_grid = page.locator('.card-grid')
+    assert card_grid.count() == 1, "Homepage should have .card-grid container"
+
+    display = card_grid.evaluate('el => window.getComputedStyle(el).display')
+    assert display == 'grid', f"Card grid should use CSS grid, got display={display}"
+
+    cards = page.locator('.card')
+    assert cards.count() >= 4, f"Homepage should have at least 4 .card items, found {cards.count()}"
+
+    # Cards should have a visible border radius
+    border_radius = cards.first.evaluate('el => window.getComputedStyle(el).borderRadius')
+    assert border_radius != '0px', f"Cards should have border-radius, got {border_radius}"
+
+
+@pytest.mark.e2e
+def test_homepage_card_link_and_border_styling(e2e_site_minimal) -> None:
+    """Card links should be styled blue; card borders should match design token."""
+    page, base_url, errors = e2e_site_minimal
+
+    page.goto(f"{base_url}/index.html", wait_until="domcontentloaded")
+
+    # Card link colour — #3498db = rgb(52, 152, 219)
+    card_link = page.locator('.card a').first
+    link_color = card_link.evaluate('el => window.getComputedStyle(el).color')
+    assert 'rgb(52, 152, 219)' in link_color, f"Card links should be blue rgb(52,152,219), got {link_color}"
+
+    # Card border colour — #e1e8ed = rgb(225, 232, 237)
+    first_card = page.locator('.card').first
+    border_color = first_card.evaluate('el => window.getComputedStyle(el).borderColor')
+    assert 'rgb(225, 232, 237)' in border_color, f"Card border should be rgb(225,232,237), got {border_color}"
+
+
+@pytest.mark.e2e
+def test_homepage_info_box_styling(e2e_site_minimal) -> None:
+    """.info-box on the homepage should have the blue left-border accent."""
+    page, base_url, errors = e2e_site_minimal
+
+    page.goto(f"{base_url}/index.html", wait_until="domcontentloaded")
+
+    info_box = page.locator('.info-box')
+    assert info_box.count() >= 1, "Homepage should have at least one .info-box"
+
+    # Background — #e8f4f8 = rgb(232, 244, 248)
+    bg = info_box.first.evaluate('el => window.getComputedStyle(el).backgroundColor')
+    assert 'rgb(232, 244, 248)' in bg, f"Info-box background should be light blue, got {bg}"
+
+    # Left border accent — #3498db = rgb(52, 152, 219)
+    border_left = info_box.first.evaluate('el => window.getComputedStyle(el).borderLeftColor')
+    assert 'rgb(52, 152, 219)' in border_left, f"Info-box left-border should be blue, got {border_left}"
+
+
+# ---------------------------------------------------------------------------
+# History-page-specific styles
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.e2e
+def test_history_summary_info_styling(e2e_site_minimal) -> None:
+    """.summary-info strip on the history page should have correct light background."""
+    page, base_url, errors = e2e_site_minimal
+
+    page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
+
+    summary_info = page.locator('.summary-info')
+    assert summary_info.count() >= 1, "History page should have .summary-info element"
+
+    # Background — #f1f3f5 = rgb(241, 243, 245)
+    bg = summary_info.first.evaluate('el => window.getComputedStyle(el).backgroundColor')
+    assert 'rgb(241, 243, 245)' in bg, f"summary-info should have light grey background, got {bg}"
+
+
+@pytest.mark.e2e
+def test_history_date_filter_section_styling(e2e_site_minimal) -> None:
+    """Date filter section should have amber border; expand button should have amber background."""
+    page, base_url, errors = e2e_site_minimal
+
+    page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
+
+    date_section = page.locator('.date-filter-section')
+    assert date_section.count() >= 1, "History page should have .date-filter-section"
+
+    # Section border — #ffc107 = rgb(255, 193, 7)
+    border_color = date_section.first.evaluate('el => window.getComputedStyle(el).borderColor')
+    assert 'rgb(255, 193, 7)' in border_color, f"Date filter section border should be amber, got {border_color}"
+
+    # Section background — #fff8e1
+    bg = date_section.first.evaluate('el => window.getComputedStyle(el).backgroundColor')
+    assert bg != 'rgba(0, 0, 0, 0)', f"Date filter section should have a background color, got {bg}"
+
+    # Expand button amber background — #ffc107 = rgb(255, 193, 7)
+    expand_btn = page.locator('.date-expand-btn')
+    assert expand_btn.count() >= 1, "History page should have .date-expand-btn"
+    btn_bg = expand_btn.first.evaluate('el => window.getComputedStyle(el).backgroundColor')
+    assert 'rgb(255, 193, 7)' in btn_bg, f"Expand button should have amber background, got {btn_bg}"
+
+
+@pytest.mark.e2e
+def test_history_date_grid_styling(e2e_site_minimal) -> None:
+    """Date grid should use CSS grid; date rows should have white backgrounds with borders."""
+    page, base_url, errors = e2e_site_minimal
+
+    page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
+
+    # Expand the date picker to make the grid visible
+    expand_btn = page.locator('.date-expand-btn')
+    assert expand_btn.count() >= 1, "History page should have .date-expand-btn"
+    expand_btn.first.click()
+
+    date_grid = page.locator('.date-grid')
+    assert date_grid.count() >= 1, "History page should have .date-grid"
+
+    # Grid should use CSS grid layout
+    display = date_grid.first.evaluate('el => window.getComputedStyle(el).display')
+    assert display == 'grid', f"Date grid should use CSS grid, got display={display}"
+
+    # Date rows should be present and have white background
+    date_rows = page.locator('.date-row')
+    assert date_rows.count() >= 1, "History page should have .date-row items"
+    row_bg = date_rows.first.evaluate('el => window.getComputedStyle(el).backgroundColor')
+    assert 'rgb(255, 255, 255)' in row_bg, f"Date rows should have white background, got {row_bg}"

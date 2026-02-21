@@ -759,7 +759,7 @@ def main() -> None:
     
     # Copy CSS files for species detail pages
     print("  Copying CSS files...")
-    css_files = ["common.css", "analysis.css", "species-detail.css"]
+    css_files = ["common.css", "analysis.css", "species-detail.css", "homepage.css", "history.css"]
     templates_dir = Path(__file__).parent.parent.parent / "templates"
     
     for css_file in css_files:
