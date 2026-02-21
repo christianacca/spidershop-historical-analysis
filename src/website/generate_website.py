@@ -269,6 +269,7 @@ def generate_history_page(config: BasePageConfig) -> str:
 
     # Format scrape_datetime column (date-only unless collision)
     scrape_datetimes: list = []
+    raw_datetimes: list[str] = []  # original ISO strings preserved for CSV export
     row_date_counts: dict = {}
     total_rows: int = len(rows) if rows else 0
     num_runs: int = 0
@@ -276,6 +277,7 @@ def generate_history_page(config: BasePageConfig) -> str:
     max_date: str = ""
     if date_col_idx is not None and rows:
         datetimes = [row[date_col_idx] for row in rows]
+        raw_datetimes = datetimes  # preserve before formatting
         formatted_dates = format_datetime_smart(datetimes)
         for i, row in enumerate(rows):
             row[date_col_idx] = formatted_dates[i]
@@ -335,6 +337,7 @@ def generate_history_page(config: BasePageConfig) -> str:
         sortable=True,
         timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
         date_col_idx=date_col_idx,
+        raw_datetimes=raw_datetimes,
         scrape_datetimes=scrape_datetimes,
         row_date_counts=row_date_counts,
         total_rows=total_rows,

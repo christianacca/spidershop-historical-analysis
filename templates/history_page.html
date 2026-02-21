@@ -87,7 +87,9 @@
     {% if search_filter and scrape_datetimes %}
     <div class="table-stats">
         <span><strong>Filtered Results:</strong> Showing <span id="visible-count-{{ table_id }}">{{ rows|length }}</span> of {{ rows|length }} rows</span>
-        <a href="{{ csv_filename }}" download class="btn btn-download">⬇️ Download Filtered CSV</a>
+        <a href="{{ csv_filename }}" download class="btn btn-download"
+           data-action="download-filtered-csv"
+           data-table-id="{{ table_id }}">⬇️ Download Filtered CSV</a>
     </div>
     {% else %}
     <div class="table-stats">

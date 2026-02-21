@@ -30,6 +30,7 @@
   </thead>
   <tbody>
     {% for row in rows %}
+    {% set row_idx = loop.index0 %}
     {% set signal_value = row[signal_col_idx][1]|string|trim if signal_col_idx is not none and signal_col_idx < row|length else '' %}
     {% set stock_pattern_value = row[stock_pattern_col_idx][1]|string|trim if stock_pattern_col_idx is not none and stock_pattern_col_idx < row|length else '' %}
     {% set drivers_value = row[drivers_col_idx][1]|string|trim if drivers_col_idx is defined and drivers_col_idx is not none and drivers_col_idx < row|length else '' %}
@@ -68,6 +69,8 @@
         {% else %}
       <td data-label="{{ header_text }}">{{ cell_value }}{{ driver_tooltip(drivers_value) }}</td>
         {% endif %}
+      {% elif cell_idx == date_col_idx and date_col_idx is defined and date_col_idx is not none and raw_datetimes is defined %}
+      <td data-label="{{ header_text }}" data-raw="{{ raw_datetimes[row_idx] }}">{{ cell }}</td>
       {% elif cell|string|trim|truncate(5, True, '') == '<svg ' %}
       {# Cell contains SVG sparkline - don't escape #}
       <td data-label="{{ header_text }}">{{ cell|safe }}</td>

@@ -7,7 +7,12 @@ These tests verify that:
 - "Show All" restores all rows
 - The summary strip updates to reflect the selection
 - Date filter combines correctly with other filters (AND logic)
+- Download Filtered CSV exports only visible rows with correct schema
 """
+import csv
+import io
+from pathlib import Path
+
 import pytest
 
 from e2e.fixtures import e2e_site_history_multi_date  # noqa: F401
@@ -269,3 +274,122 @@ class TestDateFilterCombined:
         assert _visible_row_count(page) == 1, (
             f"Expected 1 row (date + search combined), got {_visible_row_count(page)}"
         )
+
+
+class TestDownloadFilteredCsv:
+    EXPECTED_HEADERS = [
+        "scrape_datetime", "scientific_name", "common_name",
+        "size_cm", "price_gbp", "wishlist_count", "page_url",
+    ]
+    # ISO datetime written into test fixture for most recent run
+    MOST_RECENT_ISO_DATETIME = "2026-01-15T06:10:00"
+
+    @pytest.mark.e2e
+    def test_download_exports_only_visible_rows(self, e2e_site_history_multi_date):
+        """After 'Last Run' filter (3 rows visible), download should contain only 3 data rows.
+
+        With 9 total rows across 3 runs, the full static CSV has 9 rows. Filtering
+        to the last run should produce a download with exactly 3 rows.
+        """
+        page, base_url, _errors = e2e_site_history_multi_date
+        _navigate_to_history(page, base_url)
+        _open_date_picker(page)
+
+        _select_last_n_button(page, 1).click()
+        page.wait_for_timeout(300)
+        assert _visible_row_count(page) == 3, (
+            f"Precondition failed: expected 3 visible rows, got {_visible_row_count(page)}"
+        )
+
+        download_btn = page.locator(
+            f"a[data-action='download-filtered-csv'][data-table-id='{TABLE_ID}']"
+        )
+        with page.expect_download() as download_info:
+            download_btn.click()
+        content = Path(download_info.value.path()).read_text(encoding="utf-8")
+
+        rows = list(csv.reader(io.StringIO(content)))
+        data_rows = rows[1:]
+
+        assert len(data_rows) == 3, (
+            f"Expected 3 data rows (last run only), got {len(data_rows)}"
+        )
+
+    @pytest.mark.e2e
+    def test_download_headers_match_raw_csv_schema(self, e2e_site_history_multi_date):
+        """Downloaded CSV headers must exactly match the raw CSV column names."""
+        page, base_url, _errors = e2e_site_history_multi_date
+        _navigate_to_history(page, base_url)
+
+        download_btn = page.locator(
+            f"a[data-action='download-filtered-csv'][data-table-id='{TABLE_ID}']"
+        )
+        with page.expect_download() as download_info:
+            download_btn.click()
+        content = Path(download_info.value.path()).read_text(encoding="utf-8")
+
+        rows = list(csv.reader(io.StringIO(content)))
+        assert rows, "Downloaded CSV must not be empty"
+        assert rows[0] == self.EXPECTED_HEADERS, (
+            f"Header mismatch.\n  Expected: {self.EXPECTED_HEADERS}\n  Got:      {rows[0]}"
+        )
+
+    @pytest.mark.e2e
+    def test_download_preserves_raw_iso_datetime(self, e2e_site_history_multi_date):
+        """scrape_datetime in the download must be the raw ISO value from the source CSV.
+
+        The table displays a formatted date (e.g. '2026-01-15') but the downloaded
+        CSV should restore the original ISO timestamp (e.g. '2026-01-15T06:10:00').
+        """
+        page, base_url, _errors = e2e_site_history_multi_date
+        _navigate_to_history(page, base_url)
+        _open_date_picker(page)
+
+        _select_last_n_button(page, 1).click()
+        page.wait_for_timeout(300)
+
+        download_btn = page.locator(
+            f"a[data-action='download-filtered-csv'][data-table-id='{TABLE_ID}']"
+        )
+        with page.expect_download() as download_info:
+            download_btn.click()
+        content = Path(download_info.value.path()).read_text(encoding="utf-8")
+
+        rows = list(csv.reader(io.StringIO(content)))
+        headers = rows[0]
+        data_rows = rows[1:]
+
+        datetime_idx = headers.index("scrape_datetime")
+        for row in data_rows:
+            assert row[datetime_idx] == self.MOST_RECENT_ISO_DATETIME, (
+                f"Expected raw ISO datetime '{self.MOST_RECENT_ISO_DATETIME}', "
+                f"got '{row[datetime_idx]}'"
+            )
+
+    @pytest.mark.e2e
+    def test_download_page_url_contains_real_url_not_species_name(self, e2e_site_history_multi_date):
+        """page_url column must contain the actual URL, not the link label (species name).
+
+        The table renders page_url as '<a href="URL">species name</a>', so a naive
+        td.textContent extraction would yield the species name instead of the URL.
+        """
+        page, base_url, _errors = e2e_site_history_multi_date
+        _navigate_to_history(page, base_url)
+
+        download_btn = page.locator(
+            f"a[data-action='download-filtered-csv'][data-table-id='{TABLE_ID}']"
+        )
+        with page.expect_download() as download_info:
+            download_btn.click()
+        content = Path(download_info.value.path()).read_text(encoding="utf-8")
+
+        rows = list(csv.reader(io.StringIO(content)))
+        headers = rows[0]
+        data_rows = rows[1:]
+
+        url_idx = headers.index("page_url")
+        for row in data_rows:
+            url_value = row[url_idx]
+            assert url_value.startswith("https://"), (
+                f"Expected page_url to be a URL starting with 'https://', got '{url_value}'"
+            )

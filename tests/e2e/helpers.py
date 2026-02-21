@@ -435,7 +435,7 @@ def write_history_multi_date_test_data(cwd: "Path") -> None:
         ("Brachypelma hamorii", "Mexican Red Knee", "2.0", "30.00", "10"),
         ("Grammostola pulchra", "Brazilian Black", "3.5", "50.00", "3"),
     ]
-    dates = ["2026-01-01", "2026-01-08", "2026-01-15"]
+    dates = ["2026-01-01T06:10:00", "2026-01-08T06:10:00", "2026-01-15T06:10:00"]
 
     history_entries = [
         HistoryEntry(

@@ -14,7 +14,8 @@ import {
   toggleAdvancedFilters,
   filterByPrice,
   filterByWishlist,
-  updateDateSummary
+  updateDateSummary,
+  downloadFilteredCsv
 } from './table-interactions.js';
 import { filterByAttribute } from './utils.js';
 
@@ -181,6 +182,20 @@ function initDateFilter() {
   }
 
 /**
+ * Initialize filtered CSV download button (history page only).
+ * Intercepts the static download anchor and triggers a client-side
+ * export of only the currently visible (filtered) rows.
+ */
+function initDownloadButton() {
+  document.querySelectorAll('a[data-action="download-filtered-csv"]').forEach(btn => {
+    btn.addEventListener('click', function (event) {
+      event.preventDefault();
+      downloadFilteredCsv(this.dataset.tableId);
+    });
+  });
+}
+
+/**
  * Initialize all table interactions
  */
 function init() {
@@ -192,6 +207,7 @@ function init() {
   initPriceSliders();
   initWishlistSliders();
   initDateFilter();
+  initDownloadButton();
 }
 
 // Initialize when DOM is ready

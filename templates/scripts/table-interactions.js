@@ -238,6 +238,74 @@ function updateVisibleCount(tableId) {
 }
 
 /**
+ * Download the currently visible (filtered) rows of a table as a CSV file.
+ *
+ * Cell values are extracted to match the raw server CSV as closely as possible:
+ *  - scrape_datetime cells: original ISO string from the data-raw attribute
+ *  - page_url cells: the href of the rendered <a> tag, not its text content
+ *  - all other cells: plain textContent
+ *
+ * @param {string} tableId - ID of the table element
+ */
+export function downloadFilteredCsv(tableId) {
+  const table = getElement(tableId);
+  if (!table) return;
+
+  // Strip the sort indicator (⇅) from header text
+  const headers = Array.from(table.querySelectorAll('thead th'))
+    .map(th => th.textContent.replace('\u21c5', '').trim());
+
+  const visibleRows = Array.from(table.querySelectorAll('tbody tr:not(.' + CSS.HIDDEN + ')'));
+
+  const csvLines = [_escapeCsvRow(headers)];
+  visibleRows.forEach(row => {
+    const values = Array.from(row.querySelectorAll('td')).map(td => {
+      // Raw ISO datetime stored before display-formatting
+      if (td.hasAttribute('data-raw')) {
+        return td.getAttribute('data-raw');
+      }
+      // page_url: extract href rather than link label text
+      const anchor = td.querySelector('a[href]');
+      if (anchor) {
+        return anchor.getAttribute('href');
+      }
+      return td.textContent.trim();
+    });
+    csvLines.push(_escapeCsvRow(values));
+  });
+
+  const csvContent = csvLines.join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const tempLink = document.createElement('a');
+  tempLink.href = url;
+  tempLink.download = 'spidershop_spiderlings_history_filtered.csv';
+  tempLink.style.display = 'none';
+  document.body.appendChild(tempLink);
+  tempLink.click();
+  document.body.removeChild(tempLink);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Escape an array of values as a single CSV row.
+ * Cells containing commas, double-quotes, or newlines are wrapped in double-quotes;
+ * internal double-quotes are doubled.
+ *
+ * @param {string[]} values
+ * @returns {string}
+ */
+function _escapeCsvRow(values) {
+  return values.map(value => {
+    const str = String(value ?? '');
+    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+      return '"' + str.replace(/"/g, '""') + '"';
+    }
+    return str;
+  }).join(',');
+}
+
+/**
  * Update the date filter summary info box
  * @param {string} tableId - ID of the table element
  */
