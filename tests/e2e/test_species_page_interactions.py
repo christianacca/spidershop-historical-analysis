@@ -393,3 +393,149 @@ def test_chart_tooltips_show_on_hover(e2e_site_minimal) -> None:
                 assert first_circle.get_attribute("r") is not None, \
                     "Interactive data points should have radius attribute"
 
+
+# ---------------------------------------------------------------------------
+# Species detail page structural styles
+# ---------------------------------------------------------------------------
+
+
+def _navigate_to_species_page(page, base_url: str) -> None:
+    """Navigate from the breeder table to the first available species detail page."""
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+    species_link = page.locator('table a[href^="species/"]').first
+    assert species_link.count() == 1, "Breeder page should have at least one species link"
+    species_href = species_link.get_attribute('href')
+    page.goto(f"{base_url}/{species_href}", wait_until="domcontentloaded")
+    page.wait_for_timeout(200)
+
+
+@pytest.mark.e2e
+def test_species_detail_badge_row_has_center_alignment(e2e_site_minimal) -> None:
+    """.badge-row on species detail page should have align-items: center."""
+    page, base_url, errors = e2e_site_minimal
+
+    _navigate_to_species_page(page, base_url)
+
+    badge_row = page.locator('.badge-row')
+    assert badge_row.count() >= 1, "Species detail page should have .badge-row"
+
+    align = badge_row.first.evaluate('el => window.getComputedStyle(el).alignItems')
+    assert align == 'center', f".badge-row should have align-items: center, got {align}"
+
+
+@pytest.mark.e2e
+def test_species_detail_chart_legend_dot_colors(e2e_site_minimal) -> None:
+    """Chart legend dots should use semantic CSS classes instead of inline background colors."""
+    page, base_url, errors = e2e_site_minimal
+
+    _navigate_to_species_page(page, base_url)
+
+    # Price dot — #3498db = rgb(52, 152, 219)
+    price_dot = page.locator('.legend-dot--price')
+    assert price_dot.count() >= 1, "Should have .legend-dot--price element"
+    price_bg = price_dot.first.evaluate('el => window.getComputedStyle(el).backgroundColor')
+    assert 'rgb(52, 152, 219)' in price_bg, \
+        f".legend-dot--price should have rgb(52, 152, 219), got {price_bg}"
+
+    # Gap dot — #94a3b8 = rgb(148, 163, 184)
+    gap_dot = page.locator('.legend-dot--gap')
+    assert gap_dot.count() >= 1, "Should have .legend-dot--gap elements"
+    gap_bg = gap_dot.first.evaluate('el => window.getComputedStyle(el).backgroundColor')
+    assert 'rgb(148, 163, 184)' in gap_bg, \
+        f".legend-dot--gap should have rgb(148, 163, 184), got {gap_bg}"
+
+    # Wishlist dot — #16a34a = rgb(22, 163, 74)
+    wishlist_dot = page.locator('.legend-dot--wishlist')
+    assert wishlist_dot.count() >= 1, "Should have .legend-dot--wishlist element"
+    wishlist_bg = wishlist_dot.first.evaluate(
+        'el => window.getComputedStyle(el).backgroundColor'
+    )
+    assert 'rgb(22, 163, 74)' in wishlist_bg, \
+        f".legend-dot--wishlist should have rgb(22, 163, 74), got {wishlist_bg}"
+
+
+@pytest.mark.e2e
+def test_species_detail_stock_strip_spans_full_grid_width(e2e_site_minimal) -> None:
+    """.stock-strip should span the full width of the two-column grid."""
+    page, base_url, errors = e2e_site_minimal
+
+    _navigate_to_species_page(page, base_url)
+
+    stock_strip = page.locator('.stock-strip')
+    assert stock_strip.count() >= 1, "Species detail should have .stock-strip"
+
+    grid_column = stock_strip.first.evaluate(
+        'el => window.getComputedStyle(el).gridColumn'
+    )
+    assert '1' in grid_column and '-1' in grid_column, \
+        f".stock-strip should span full grid width (1 / -1), got gridColumn='{grid_column}'"
+
+
+@pytest.mark.e2e
+def test_species_detail_legend_swatch_colors(e2e_site_minimal) -> None:
+    """Stock timeline legend swatches should use semantic modifier classes."""
+    page, base_url, errors = e2e_site_minimal
+
+    _navigate_to_species_page(page, base_url)
+
+    # Observed swatch — #dcfce7 = rgb(220, 252, 231)
+    observed_swatch = page.locator('.legend-swatch--observed')
+    assert observed_swatch.count() >= 1, "Should have .legend-swatch--observed"
+    obs_bg = observed_swatch.first.evaluate(
+        'el => window.getComputedStyle(el).backgroundColor'
+    )
+    assert 'rgb(220, 252, 231)' in obs_bg, \
+        f".legend-swatch--observed should have rgb(220, 252, 231), got {obs_bg}"
+
+    # Gap swatch — #f1f5f9 = rgb(241, 245, 249)
+    gap_swatch = page.locator('.legend-swatch--gap')
+    assert gap_swatch.count() >= 1, "Should have .legend-swatch--gap"
+    gap_bg = gap_swatch.first.evaluate(
+        'el => window.getComputedStyle(el).backgroundColor'
+    )
+    assert 'rgb(241, 245, 249)' in gap_bg, \
+        f".legend-swatch--gap should have rgb(241, 245, 249), got {gap_bg}"
+
+
+@pytest.mark.e2e
+def test_species_detail_history_panel_has_top_margin(e2e_site_minimal) -> None:
+    """The history observations panel should use .panel--history class with top margin."""
+    page, base_url, errors = e2e_site_minimal
+
+    _navigate_to_species_page(page, base_url)
+
+    history_panel = page.locator('.panel--history')
+    assert history_panel.count() >= 1, "Species detail should have .panel--history"
+
+    margin_top = history_panel.first.evaluate(
+        'el => window.getComputedStyle(el).marginTop'
+    )
+    assert margin_top == '20px', \
+        f".panel--history should have margin-top: 20px, got {margin_top}"
+
+
+@pytest.mark.e2e
+def test_species_detail_table_footnote_styling(e2e_site_minimal) -> None:
+    """The history table footnote should use .table-footnote class with muted styling."""
+    page, base_url, errors = e2e_site_minimal
+
+    _navigate_to_species_page(page, base_url)
+
+    footnote = page.locator('.table-footnote')
+    assert footnote.count() >= 1, "Species detail should have .table-footnote"
+
+    # #607080 = rgb(96, 112, 128)
+    color = footnote.first.evaluate('el => window.getComputedStyle(el).color')
+    assert 'rgb(96, 112, 128)' in color, \
+        f".table-footnote should have rgb(96, 112, 128), got {color}"
+
+    # 0.92rem ≈ 14.72px at default 16px root
+    font_size = footnote.first.evaluate(
+        'el => parseFloat(window.getComputedStyle(el).fontSize)'
+    )
+    assert 13 <= font_size <= 16, \
+        f".table-footnote should have font-size ~0.92rem (~14.7px), got {font_size}px"
+
+    margin_top = footnote.first.evaluate('el => window.getComputedStyle(el).marginTop')
+    assert margin_top == '10px', \
+        f".table-footnote should have margin-top: 10px, got {margin_top}"

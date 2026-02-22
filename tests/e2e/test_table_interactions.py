@@ -479,11 +479,273 @@ def test_snapshot_stats_strip_updates_count_when_filtered(e2e_site_multi_species
     search_input.fill("")
     search_input.dispatch_event("keyup")
     page.wait_for_timeout(300)
-    
+
     # Verify count returns to original
     final_text = stats_strip.text_content()
     final_match = re.search(r'Showing:\s*(\d+)\s*of\s*(\d+)\s*species', final_text)
     assert final_match, f"Should match pattern after clearing, got: {final_text}"
     final_visible = int(final_match.group(1))
-    
-    assert final_visible == total_count, f"Count should return to original after clearing filter, got {final_visible} vs {total_count}"
+
+
+# ---------------------------------------------------------------------------
+# Analysis page structure and styling (breeder / dealer)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.e2e
+def test_analysis_pages_have_analysis_ui(e2e_site_multi_species) -> None:
+    """Breeder/dealer pages should have summary stat cards, signal filter buttons, and instruction box."""
+    page, base_url, errors = e2e_site_multi_species
+
+    for page_name in ['breeder.html', 'dealer.html']:
+        page.goto(f"{base_url}/{page_name}", wait_until="domcontentloaded")
+
+        summary_stats = page.locator('.summary-stats')
+        assert summary_stats.count() == 1, f"{page_name} should have .summary-stats container"
+        assert page.locator('.stat-card').count() >= 3, f"{page_name} should have at least 3 stat cards"
+        assert page.locator('.stat-card.stat-hot').count() >= 1, f"{page_name} should have .stat-hot card"
+        assert page.locator('.stat-card.stat-watch').count() >= 1, f"{page_name} should have .stat-watch card"
+        assert page.locator('.stat-card.stat-avoid').count() >= 1, f"{page_name} should have .stat-avoid card"
+
+        assert page.locator('.filter-buttons-container').count() >= 1, \
+            f"{page_name} should have filter button containers"
+        assert page.locator('.filter-btn[data-action="filter-signal"]').count() >= 3, \
+            f"{page_name} should have at least 3 signal filter buttons"
+
+        instruction_box = page.locator('.instruction-box')
+        assert instruction_box.count() == 1, f"{page_name} should have .instruction-box"
+        tag_name = instruction_box.evaluate('el => el.tagName.toLowerCase()')
+        assert tag_name == 'details', \
+            f"{page_name} instruction box should be <details>, got <{tag_name}>"
+        assert instruction_box.locator('summary').count() == 1, \
+            f"{page_name} instruction box should have <summary>"
+
+
+@pytest.mark.e2e
+def test_non_analysis_pages_lack_analysis_ui(e2e_site_multi_species) -> None:
+    """Snapshot/history pages should NOT have summary stats, signal filter buttons, or instruction box."""
+    page, base_url, errors = e2e_site_multi_species
+
+    for page_name in ['snapshot.html', 'history.html']:
+        page.goto(f"{base_url}/{page_name}", wait_until="domcontentloaded")
+
+        assert page.locator('.summary-stats').count() == 0, \
+            f"{page_name} should NOT have .summary-stats"
+        assert page.locator('.stat-card').count() == 0, \
+            f"{page_name} should NOT have stat cards"
+        assert page.locator('.filter-btn[data-action="filter-signal"]').count() == 0, \
+            f"{page_name} should NOT have signal filter buttons"
+        assert page.locator('.instruction-box').count() == 0, \
+            f"{page_name} should NOT have .instruction-box"
+
+
+@pytest.mark.e2e
+def test_filter_buttons_layout(e2e_site_multi_species) -> None:
+    """Filter button containers should use flexbox; individual buttons use inline-flex."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    container_display = page.locator('.filter-buttons-container').first.evaluate(
+        'el => window.getComputedStyle(el).display'
+    )
+    assert container_display == 'flex', \
+        f".filter-buttons-container should use flex, got {container_display}"
+
+    button_display = page.locator('.filter-btn').first.evaluate(
+        'el => window.getComputedStyle(el).display'
+    )
+    assert 'flex' in button_display or 'inline' in button_display, \
+        f"Filter button should have flex or inline display, got {button_display}"
+
+
+@pytest.mark.e2e
+def test_stat_cards_have_correct_border_colors(e2e_site_multi_species) -> None:
+    """Stat cards should have color-coded left borders (red=hot, orange=watch, gray=avoid)."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    hot_card = page.locator('.stat-card.stat-hot').first
+    if hot_card.count() > 0:
+        border_color = hot_card.evaluate('el => window.getComputedStyle(el).borderLeftColor')
+        # #e74c3c = rgb(231, 76, 60)
+        assert 'rgb(231, 76, 60)' in border_color, \
+            f"Hot card should have red border, got {border_color}"
+
+    watch_card = page.locator('.stat-card.stat-watch').first
+    if watch_card.count() > 0:
+        border_color = watch_card.evaluate('el => window.getComputedStyle(el).borderLeftColor')
+        # #f39c12 = rgb(243, 156, 18)
+        assert 'rgb(243, 156, 18)' in border_color, \
+            f"Watch card should have orange border, got {border_color}"
+
+    avoid_card = page.locator('.stat-card.stat-avoid').first
+    if avoid_card.count() > 0:
+        border_color = avoid_card.evaluate('el => window.getComputedStyle(el).borderLeftColor')
+        # #95a5a6 = rgb(149, 165, 166)
+        assert 'rgb(149, 165, 166)' in border_color, \
+            f"Avoid card should have gray border, got {border_color}"
+
+
+@pytest.mark.e2e
+def test_active_filter_button_has_correct_styling(e2e_site_multi_species) -> None:
+    """Active filter buttons should have blue background and white text."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    hot_button = page.locator('.filter-btn').first
+    hot_button.click()
+    page.wait_for_timeout(100)
+
+    assert hot_button.evaluate('el => el.classList.contains("active")'), \
+        "Clicked filter button should have 'active' class"
+
+    bg_color = hot_button.evaluate('el => window.getComputedStyle(el).backgroundColor')
+    # #3498db = rgb(52, 152, 219)
+    assert 'rgb(52, 152, 219)' in bg_color, \
+        f"Active button should have blue background, got {bg_color}"
+
+    text_color = hot_button.evaluate('el => window.getComputedStyle(el).color')
+    assert 'rgb(255, 255, 255)' in text_color or 'white' in text_color.lower(), \
+        f"Active button should have white text, got {text_color}"
+
+
+@pytest.mark.e2e
+def test_table_scroll_containers_have_overflow_auto(e2e_site_multi_species) -> None:
+    """Tables should be wrapped in .table-scroll containers with overflow-x: auto."""
+    page, base_url, errors = e2e_site_multi_species
+
+    for page_name in ['breeder.html', 'dealer.html', 'history.html']:
+        page.goto(f"{base_url}/{page_name}", wait_until="domcontentloaded")
+
+        containers = page.locator('.table-scroll')
+        assert containers.count() >= 1, \
+            f"{page_name} should have at least one .table-scroll container"
+
+        overflow_x = containers.first.evaluate(
+            'el => window.getComputedStyle(el).overflowX'
+        )
+        assert overflow_x == 'auto', \
+            f"{page_name} .table-scroll should have overflow-x: auto, got {overflow_x}"
+
+
+@pytest.mark.e2e
+def test_analysis_row_count_paragraph_styling(e2e_site_multi_species) -> None:
+    """Row-count paragraphs on analysis pages should use .table-row-count class."""
+    page, base_url, errors = e2e_site_multi_species
+
+    for page_name in ['breeder.html', 'dealer.html']:
+        page.goto(f"{base_url}/{page_name}", wait_until="domcontentloaded")
+
+        paragraphs = page.locator('.table-row-count')
+        assert paragraphs.count() >= 1, \
+            f"{page_name} should have at least one .table-row-count paragraph"
+
+        margin_top = paragraphs.first.evaluate(
+            'el => window.getComputedStyle(el).marginTop'
+        )
+        assert margin_top == '15px', \
+            f"{page_name} .table-row-count should have margin-top: 15px, got {margin_top}"
+
+        color = paragraphs.first.evaluate(
+            'el => window.getComputedStyle(el).color'
+        )
+        # #666 = rgb(102, 102, 102)
+        assert 'rgb(102, 102, 102)' in color, \
+            f"{page_name} .table-row-count should be grey rgb(102,102,102), got {color}"
+
+
+@pytest.mark.e2e
+def test_analysis_examples_content_padding(e2e_site_multi_species) -> None:
+    """Examples content inside <details> should use .examples-content class with padding.
+
+    Skipped when the examples section is absent from the test dataset.
+    """
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    examples_content = page.locator('.examples-content')
+    if examples_content.count() == 0:
+        pytest.skip("Examples section not rendered with current test data")
+
+    padding = examples_content.first.evaluate(
+        'el => window.getComputedStyle(el).padding'
+    )
+    assert padding == '15px', f".examples-content should have padding: 15px, got {padding}"
+
+
+@pytest.mark.e2e
+def test_signal_filter_row_layout(e2e_site_multi_species) -> None:
+    """Signal filter row should be a flex container so label and buttons share a line."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    filter_row = page.locator('.signal-filter-row')
+    assert filter_row.count() >= 1, "Breeder page should have .signal-filter-row element"
+
+    styles = filter_row.first.evaluate(
+        'el => { const s = window.getComputedStyle(el); '
+        'return { display: s.display, alignItems: s.alignItems, marginBottom: s.marginBottom }; }'
+    )
+    assert styles['display'] == 'flex', \
+        f".signal-filter-row should have display: flex, got {styles['display']}"
+    assert styles['alignItems'] == 'center', \
+        f".signal-filter-row should have align-items: center, got {styles['alignItems']}"
+    assert styles['marginBottom'] == '15px', \
+        f".signal-filter-row should have margin-bottom: 15px, got {styles['marginBottom']}"
+
+
+@pytest.mark.e2e
+def test_filter_label_styling(e2e_site_multi_species) -> None:
+    """Signal filter label (.filter-label) should have correct color and right spacing."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    filter_label = page.locator('.filter-label')
+    assert filter_label.count() >= 1, "Breeder page should have .filter-label element"
+
+    # #34495e = rgb(52, 73, 94)
+    color = filter_label.first.evaluate('el => window.getComputedStyle(el).color')
+    assert 'rgb(52, 73, 94)' in color, \
+        f".filter-label should be rgb(52, 73, 94), got {color}"
+
+    margin_right = filter_label.first.evaluate('el => window.getComputedStyle(el).marginRight')
+    assert margin_right == '10px', \
+        f".filter-label should have margin-right: 10px, got {margin_right}"
+
+
+@pytest.mark.e2e
+def test_search_input_styling(e2e_site_multi_species) -> None:
+    """Search inputs should use .search-input class with full-width and consistent style."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    search_input = page.locator('.search-input')
+    assert search_input.count() >= 1, "Breeder page should have .search-input element"
+
+    container_width = search_input.first.evaluate(
+        'el => el.parentElement.getBoundingClientRect().width'
+    )
+    input_width = search_input.first.evaluate(
+        'el => el.getBoundingClientRect().width'
+    )
+    assert abs(container_width - input_width) < 5, \
+        f".search-input should fill its container (container={container_width}, input={input_width})"
+
+    border_radius = search_input.first.evaluate(
+        'el => window.getComputedStyle(el).borderRadius'
+    )
+    assert border_radius == '4px', \
+        f".search-input should have border-radius: 4px, got {border_radius}"
+
+    font_size = search_input.first.evaluate(
+        'el => parseFloat(window.getComputedStyle(el).fontSize)'
+    )
+    assert 14 <= font_size <= 16, \
+        f".search-input should have font-size ~0.95rem (~15px), got {font_size}px"

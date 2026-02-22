@@ -39,6 +39,7 @@
     flex-wrap: wrap;
     gap: 10px;
     margin: 12px 0 18px;
+    align-items: center;
 }
 
 .badge {
@@ -189,6 +190,7 @@
     border-radius: 10px;
     padding: 10px 12px;
     background: #fafafa;
+    grid-column: 1 / -1;
 }
 
 .stock-strip-title {
@@ -266,4 +268,40 @@
 
 .origin-btn {
     border: 2px solid rgba(52,152,219,0.25);
+}
+
+/* Legend dot colour modifiers */
+.legend-dot--price {
+    background: #3498db;
+}
+
+.legend-dot--gap {
+    background: #94a3b8;
+}
+
+.legend-dot--wishlist {
+    background: #16a34a;
+}
+
+/* Legend swatch colour modifiers */
+.legend-swatch--observed {
+    background: #dcfce7;
+    border-color: #16a34a;
+}
+
+.legend-swatch--gap {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+}
+
+/* History observations panel (last .panel on the page) */
+.panel--history {
+    margin-top: 20px;
+}
+
+/* Footnote beneath the history observations table */
+.table-footnote {
+    margin-top: 10px;
+    color: #607080;
+    font-size: 0.92rem;
 }

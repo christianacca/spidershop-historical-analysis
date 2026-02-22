@@ -393,3 +393,58 @@ class TestDownloadFilteredCsv:
             assert url_value.startswith("https://"), (
                 f"Expected page_url to be a URL starting with 'https://', got '{url_value}'"
             )
+
+
+# ---------------------------------------------------------------------------
+# Date filter section structural styles
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.e2e
+def test_history_date_filter_section_styling(e2e_site_history_multi_date) -> None:
+    """Date filter section should have amber border; expand button should have amber background."""
+    page, base_url, errors = e2e_site_history_multi_date
+
+    page.goto(f"{base_url}{HISTORY_PATH}", wait_until="domcontentloaded")
+
+    date_section = page.locator('.date-filter-section')
+    assert date_section.count() >= 1, "History page should have .date-filter-section"
+
+    # #ffc107 = rgb(255, 193, 7)
+    border_color = date_section.first.evaluate('el => window.getComputedStyle(el).borderColor')
+    assert 'rgb(255, 193, 7)' in border_color, \
+        f"Date filter section border should be amber, got {border_color}"
+
+    bg = date_section.first.evaluate('el => window.getComputedStyle(el).backgroundColor')
+    assert bg != 'rgba(0, 0, 0, 0)', \
+        f"Date filter section should have a background color, got {bg}"
+
+    expand_btn = page.locator('.date-expand-btn')
+    assert expand_btn.count() >= 1, "History page should have .date-expand-btn"
+    btn_bg = expand_btn.first.evaluate('el => window.getComputedStyle(el).backgroundColor')
+    assert 'rgb(255, 193, 7)' in btn_bg, \
+        f"Expand button should have amber background, got {btn_bg}"
+
+
+@pytest.mark.e2e
+def test_history_date_grid_styling(e2e_site_history_multi_date) -> None:
+    """Date grid should use CSS grid; date rows should have white backgrounds."""
+    page, base_url, errors = e2e_site_history_multi_date
+
+    page.goto(f"{base_url}{HISTORY_PATH}", wait_until="domcontentloaded")
+
+    expand_btn = page.locator('.date-expand-btn')
+    assert expand_btn.count() >= 1, "History page should have .date-expand-btn"
+    expand_btn.first.click()
+
+    date_grid = page.locator('.date-grid')
+    assert date_grid.count() >= 1, "History page should have .date-grid"
+
+    display = date_grid.first.evaluate('el => window.getComputedStyle(el).display')
+    assert display == 'grid', f"Date grid should use CSS grid, got display={display}"
+
+    date_rows = page.locator('.date-row')
+    assert date_rows.count() >= 1, "History page should have .date-row items"
+    row_bg = date_rows.first.evaluate('el => window.getComputedStyle(el).backgroundColor')
+    assert 'rgb(255, 255, 255)' in row_bg, \
+        f"Date rows should have white background, got {row_bg}"
