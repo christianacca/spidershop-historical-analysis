@@ -133,6 +133,15 @@ class TestGenerateHomepage:
 class TestGenerateSnapshotPage:
     """Test suite for snapshot page generation."""
 
+    _ALL_CSV_COLUMNS = [
+        "scrape_datetime", "scientific_name", "common_name",
+        "size_cm", "price_gbp", "wishlist_count", "page_url",
+    ]
+    _ALL_DISPLAY_HEADERS = [
+        "Scrape Date", "Scientific Name", "Common Name",
+        "Size (cm)", "Price (GBP)", "Wishlist Count", "Page URL",
+    ]
+
     def test_generates_complete_html_page(self):
         """Should generate complete HTML page."""
         from conftest import temp_csv_file
@@ -544,6 +553,30 @@ class TestGenerateSnapshotPage:
             # Should not have instruction box
             instruction_box = soup.find('details', class_='instruction-box')
             assert instruction_box is None, "Snapshot pages should not have instruction box"
+
+    def test_table_headers_use_proper_english_display_names(self):
+        """All raw CSV column names must be replaced with proper English in <th> elements."""
+        row = ",".join(["2026-01-15T06:10+00:00", "Species A", "Common A",
+                        "1.5", "25.00", "5", "http://example.com"])
+        csv_content = ",".join(self._ALL_CSV_COLUMNS) + "\n" + row + "\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.snapshot(filename).with_title("T").with_description("D").build()
+            html = generate_snapshot_page(config)
+            soup = BeautifulSoup(html, "html.parser")
+
+            th_texts = [
+                th.get_text(separator=" ", strip=True).replace("\u21c5", "").strip()
+                for th in soup.select("table th")
+            ]
+
+            for raw in self._ALL_CSV_COLUMNS:
+                assert raw not in th_texts, (
+                    f"Raw CSV column name '{raw}' should not appear as a table header"
+                )
+            for display in self._ALL_DISPLAY_HEADERS:
+                assert display in th_texts, (
+                    f"Expected display header '{display}' not found in table headers: {th_texts}"
+                )
 
 
 class TestPageConfig:
@@ -1048,6 +1081,39 @@ class TestGenerateHistoryPage:
             assert filter_button['data-action'] == 'toggle-filters'
             assert filter_button.has_attr('data-content-id')
             assert filter_button.find('span', class_='arrow') is not None
+
+    _ALL_CSV_COLUMNS = [
+        "scrape_datetime", "scientific_name", "common_name",
+        "size_cm", "price_gbp", "wishlist_count", "page_url",
+    ]
+    _ALL_DISPLAY_HEADERS = [
+        "Scrape Date", "Scientific Name", "Common Name",
+        "Size (cm)", "Price (GBP)", "Wishlist Count", "Page URL",
+    ]
+
+    def test_table_headers_use_proper_english_display_names(self):
+        """All raw CSV column names must be replaced with proper English in <th> elements."""
+        row = ",".join(["2026-01-15T06:10+00:00", "Species A", "Common A",
+                        "1.5", "25.00", "5", "http://example.com"])
+        csv_content = ",".join(self._ALL_CSV_COLUMNS) + "\n" + row + "\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.history(filename).with_title("T").with_description("D").build()
+            html = generate_history_page(config)
+            soup = BeautifulSoup(html, "html.parser")
+
+            th_texts = [
+                th.get_text(separator=" ", strip=True).replace("\u21c5", "").strip()
+                for th in soup.select("table th")
+            ]
+
+            for raw in self._ALL_CSV_COLUMNS:
+                assert raw not in th_texts, (
+                    f"Raw CSV column name '{raw}' should not appear as a table header"
+                )
+            for display in self._ALL_DISPLAY_HEADERS:
+                assert display in th_texts, (
+                    f"Expected display header '{display}' not found in table headers: {th_texts}"
+                )
 
     def test_includes_filter_badge_on_toggle_button(self):
         """Should include hidden filter badge span on the toggle button."""

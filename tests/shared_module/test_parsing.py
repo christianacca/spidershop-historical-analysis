@@ -19,6 +19,7 @@ from shared.parsing import (
     parse_price,
     parse_wishlist_count,
     format_datetime_smart,
+    snake_to_display_header,
 )
 
 
@@ -490,3 +491,24 @@ class TestFormatDatetimeSmart:
             "2026-02-11 14:30",
             "2026-02-11 14:30"
         ]
+
+
+class TestSnakeToDisplayHeader:
+    """Tests for snake_to_display_header — covers all raw CSV column names."""
+
+    @pytest.mark.parametrize("raw, expected", [
+        ("scrape_datetime", "Scrape Date"),
+        ("scientific_name", "Scientific Name"),
+        ("common_name", "Common Name"),
+        ("size_cm", "Size (cm)"),
+        ("price_gbp", "Price (GBP)"),
+        ("wishlist_count", "Wishlist Count"),
+        ("page_url", "Page URL"),
+    ])
+    def test_csv_header_columns(self, raw, expected):
+        """Every raw CSV column name should map to a proper English display name."""
+        assert snake_to_display_header(raw) == expected
+
+    def test_generic_derivation(self):
+        """Columns without an explicit override should be title-cased."""
+        assert snake_to_display_header("some_column") == "Some Column"

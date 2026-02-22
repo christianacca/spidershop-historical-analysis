@@ -67,7 +67,7 @@ try:
         get_page_url,
         generate_species_page,
     )
-    from shared.parsing import format_datetime_smart
+    from shared.parsing import format_datetime_smart, snake_to_display_header
 except ModuleNotFoundError:
     from page_config import BasePageConfig
     from sparkline_conversion import (
@@ -84,6 +84,7 @@ except ModuleNotFoundError:
         jinja_env,
     )
     from csv_utils import read_csv_file
+    from shared.parsing import format_datetime_smart, snake_to_display_header
 
 # Output directory for the generated website
 # NOTE: This is RELATIVE to the current working directory when the script runs!
@@ -150,6 +151,26 @@ def _find_column_indices(
         except ValueError:
             result[name] = None
     return result
+
+
+# Mapping from raw CSV column names to human-readable display names used in the
+# snapshot and history table headers.  Breeder/dealer tables already use proper
+# English names directly in the data, so this only applies to the raw-data pages.
+
+
+def _rename_raw_headers(headers: Optional[List[str]]) -> Optional[List[str]]:
+    """Return a copy of *headers* with raw CSV names replaced by display names.
+
+    Uses :func:`shared.parsing.snake_to_display_header` to derive names from
+    snake_case, with overrides only for non-derivable cases (units in parentheses
+    or truncated words).  ``page_url`` is left unchanged as it is used only as
+    a link target and is not shown as a column.
+
+    The original list is not mutated.
+    """
+    if not headers:
+        return headers
+    return [snake_to_display_header(h) for h in headers]
 
 
 def _build_slider_ranges(
@@ -226,8 +247,11 @@ def generate_snapshot_page(config: BasePageConfig) -> str:
         rows, price_idx, wishlist_idx
     )
 
+    # Rename raw CSV header names to proper English for display
+    display_headers = _rename_raw_headers(headers)
+
     # Enumerate headers and rows for template
-    headers_enum = list(enumerate(headers)) if headers else []
+    headers_enum = list(enumerate(display_headers)) if display_headers else []
     rows_enum = [list(enumerate(row)) for row in rows] if rows else []
 
     template = jinja_env.get_template('snapshot_page.html')
@@ -240,6 +264,7 @@ def generate_snapshot_page(config: BasePageConfig) -> str:
         path_prefix="",
         search_filter=getattr(config, 'search_filter', True),
         headers=headers_enum,
+        raw_headers=headers,
         rows=rows_enum,
         page_url_idx=page_url_idx,
         price_idx=price_idx,
@@ -308,8 +333,11 @@ def generate_history_page(config: BasePageConfig) -> str:
         rows, price_idx, wishlist_idx
     )
 
+    # Rename raw CSV header names to proper English for display
+    display_headers = _rename_raw_headers(headers)
+
     # Enumerate headers and rows for template
-    headers_enum = list(enumerate(headers)) if headers else []
+    headers_enum = list(enumerate(display_headers)) if display_headers else []
     rows_enum = [list(enumerate(row)) for row in rows] if rows else []
 
     template = jinja_env.get_template('history_page.html')
@@ -322,6 +350,7 @@ def generate_history_page(config: BasePageConfig) -> str:
         path_prefix="",
         search_filter=getattr(config, 'search_filter', True),
         headers=headers_enum,
+        raw_headers=headers,
         rows=rows_enum,
         page_url_idx=page_url_idx,
         price_idx=price_idx,

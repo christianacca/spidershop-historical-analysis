@@ -21,9 +21,10 @@
       {% if drivers_col_idx is defined and i == drivers_col_idx and drivers_col_idx is not none %}
         {# Hide Drivers column header #}
       {% elif sortable %}
-      <th data-sortable="true" data-column-index="{{ i }}" data-table-id="{{ table_id }}">{{ header }} <span class="sort-indicator">⇅</span></th>
+      <th data-sortable="true" data-column-index="{{ i }}" data-table-id="{{ table_id }}"
+          {% if raw_headers is defined and raw_headers %}data-csv-name="{{ raw_headers[i] }}"{% endif %}>{{ header }} <span class="sort-indicator">⇅</span></th>
       {% else %}
-      <th>{{ header }}</th>
+      <th{% if raw_headers is defined and raw_headers %} data-csv-name="{{ raw_headers[i] }}"{% endif %}>{{ header }}</th>
       {% endif %}
       {% endfor %}
     </tr>
