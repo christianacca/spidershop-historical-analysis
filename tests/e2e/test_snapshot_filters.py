@@ -849,8 +849,66 @@ def test_both_wishlist_sliders_count_as_one_filter(e2e_site_multi_species) -> No
     page.wait_for_timeout(100)
     wishlist_max_slider.fill(str(test_max))
     page.wait_for_timeout(200)
-    
+
     # Badge should show count = 1 (not 2)
     badge = page.locator("#filterBadge-snapshot-table")
     badge_text = badge.text_content()
     assert badge_text == "1", f"Expected badge to show '1' active filter (not 2), got '{badge_text}'"
+
+
+# ---------------------------------------------------------------------------
+# Snapshot page structural styles
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.e2e
+def test_snapshot_page_structure_and_styling(e2e_site_multi_species) -> None:
+    """Snapshot page should have action buttons, correct brand colors, stats strip, and correct layout."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
+
+    action_buttons = page.locator('.action-buttons')
+    assert action_buttons.count() == 1, "Snapshot page should have .action-buttons container"
+    display = action_buttons.evaluate('el => window.getComputedStyle(el).display')
+    assert 'flex' in display, f"Action buttons should use flexbox layout, got {display}"
+    download_btn = action_buttons.locator('.btn-download')
+    assert download_btn.count() == 1 and download_btn.is_visible(), \
+        "Download button should be present and visible"
+    filter_btn = action_buttons.locator('.btn-filters')
+    assert filter_btn.count() == 1 and filter_btn.is_visible(), \
+        "Filter button should be present and visible"
+
+    # #27ae60 = rgb(39, 174, 96)
+    download_bg = download_btn.evaluate('el => window.getComputedStyle(el).backgroundColor')
+    assert 'rgb(39, 174, 96)' in download_bg, \
+        f"Download button should be green, got {download_bg}"
+    # #3498db = rgb(52, 152, 219) — cross-browser sub-pixel rendering may vary
+    filter_bg = filter_btn.evaluate('el => window.getComputedStyle(el).backgroundColor')
+    parts = filter_bg.lstrip('rgb(').rstrip(')').split(',')
+    r, g, b = int(parts[0]), int(parts[1]), int(parts[2])
+    assert 40 <= r <= 62 and 140 <= g <= 162 and 205 <= b <= 230, \
+        f"Filter button should be ~#3498db (blue), got {filter_bg}"
+
+    stats_strip = page.locator('.table-stats')
+    assert stats_strip.count() == 1 and stats_strip.is_visible(), \
+        "Snapshot page should have visible .table-stats strip"
+    # #e8f4f8 = rgb(232, 244, 248)
+    bg_color = stats_strip.evaluate('el => window.getComputedStyle(el).backgroundColor')
+    assert 'rgb(232, 244, 248)' in bg_color, \
+        f"Stats strip should have light blue background, got {bg_color}"
+    stats_text = stats_strip.text_content()
+    assert 'Showing:' in stats_text and 'species' in stats_text.lower(), \
+        f"Stats strip should mention 'Showing:' and 'species', got: {stats_text}"
+    assert stats_strip.locator('span[id^="visible-count"]').count() == 1, \
+        "Stats strip should have visible-count span"
+
+    data_table = page.locator('.data-table')
+    assert data_table.count() >= 1, "Should have data table"
+    stats_box = stats_strip.bounding_box()
+    table_box = data_table.first.bounding_box()
+    assert stats_box is not None and table_box is not None
+    assert stats_box['y'] < table_box['y'], "Stats strip should appear above the table"
+    vertical_gap = table_box['y'] - (stats_box['y'] + stats_box['height'])
+    assert vertical_gap < 100, \
+        f"Stats strip and table should be close together, gap is {vertical_gap}px"

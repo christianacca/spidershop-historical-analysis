@@ -54,12 +54,12 @@
     
     {% if top_10_headers and top_10_rows %}
     <h3>Top 10</h3>
-    <div style="overflow-x: auto;">
+    <div class="table-scroll">
         {% with headers=top_10_headers, rows=top_10_rows, table_id=table_id + '-top10', sortable=False, signal_col_idx=signal_col_idx, stock_pattern_col_idx=stock_pattern_col_idx, page_url_idx=page_url_idx, scientific_name_idx=scientific_name_idx, drivers_col_idx=drivers_col_idx %}
         {% include 'table.html' %}
         {% endwith %}
     </div>
-    <p style="margin-top: 15px; color: #666;"><strong>Showing:</strong> Top 10 of {{ rows|length }} total species</p>
+    <p class="table-row-count"><strong>Showing:</strong> Top 10 of {{ rows|length }} total species</p>
     {% endif %}
     
     {% if analysis_html %}
@@ -91,12 +91,12 @@
     </div>
     {% endif %}
     
-    <div style="overflow-x: auto;">
+    <div class="table-scroll">
         {% with headers=headers, rows=rows, signal_col_idx=signal_col_idx, stock_pattern_col_idx=stock_pattern_col_idx, page_url_idx=page_url_idx, scientific_name_idx=scientific_name_idx, sortable=sortable, table_id=table_id %}
         {% include 'table.html' %}
         {% endwith %}
     </div>
-    <p style="margin-top: 15px; color: #666;"><strong>Total rows:</strong> {{ rows|length }}</p>
+    <p class="table-row-count"><strong>Total rows:</strong> {{ rows|length }}</p>
     {% else %}
     <div class="info-box">
         <p>No data available yet. Please check back after the next scrape run.</p>
@@ -110,7 +110,7 @@
     {% if examples_html %}
     <details open>
         <summary><strong>📖 Practical Examples</strong></summary>
-        <div style="padding: 15px;">
+        <div class="examples-content">
             {{ examples_html|safe }}
         </div>
     </details>
