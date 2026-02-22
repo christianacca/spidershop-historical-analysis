@@ -66,9 +66,7 @@ def build_demand_section(wishlist_pressure: str, wishlist_delta: str) -> str:
     Returns:
         Formatted demand section (e.g., "Demand: Wishlist High + rising")
     """
-    pressure_text = format_wishlist_pressure(wishlist_pressure)
-    delta_text = format_delta(wishlist_delta)
-    return f"Demand: Wishlist {pressure_text} + {delta_text}"
+    return f"Demand: Wishlist {format_wishlist_pressure(wishlist_pressure)} + {format_delta(wishlist_delta)}"
 
 
 def build_price_section(price_trend: str) -> str:
@@ -80,5 +78,4 @@ def build_price_section(price_trend: str) -> str:
     Returns:
         Formatted price section (e.g., "Price: Rising")
     """
-    price_text = format_price_trend(price_trend)
-    return f"Price: {price_text}"
+    return f"Price: {format_price_trend(price_trend)}"
