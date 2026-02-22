@@ -669,7 +669,7 @@ def main() -> None:
     with open(OUTPUT_DIR / "snapshot.html", "w", encoding="utf-8") as f:
         from website.page_config import SnapshotPageConfig
         f.write(generate_snapshot_page(config=SnapshotPageConfig(
-            title="Latest Snapshot",
+            title="📸 Latest Snapshot",
             description="Current scrape results showing all available tarantula spiderlings.",
             csv_filename="spidershop_spiderlings_scrape.csv",
             table_id="snapshot-table",
@@ -681,7 +681,7 @@ def main() -> None:
     with open(OUTPUT_DIR / "history.html", "w", encoding="utf-8") as f:
         from website.page_config import HistoryPageConfig
         f.write(generate_history_page(config=HistoryPageConfig(
-            title="Historical Data",
+            title="📊 Historical Data",
             description="Accumulated historical pricing data across all scrape runs.",
             csv_filename="spidershop_spiderlings_history.csv",
             table_id="history-table",
@@ -693,7 +693,7 @@ def main() -> None:
     with open(OUTPUT_DIR / "breeder.html", "w", encoding="utf-8") as f:
         from website.page_config import BreederPageConfig
         f.write(generate_analysis_page(config=BreederPageConfig(
-            title="Breeder Opportunities",
+            title="🌱 Breeder Opportunities",
             description="Analysis showing breeding opportunities based on market trends and pricing patterns.",
             csv_filename="breeder_opportunity_table.csv",
             table_id="breeder-table",
@@ -710,7 +710,7 @@ def main() -> None:
     with open(OUTPUT_DIR / "dealer.html", "w", encoding="utf-8") as f:
         from website.page_config import DealerPageConfig
         f.write(generate_analysis_page(config=DealerPageConfig(
-            title="Dealer Supply Risk",
+            title="📦 Dealer Supply Risk",
             description="Analysis highlighting inventory availability patterns and supply risk indicators.",
             csv_filename="dealer_supply_risk_table.csv",
             table_id="dealer-table",
