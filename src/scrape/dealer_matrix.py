@@ -5,7 +5,7 @@ from shared.config import DEALER_TABLE_FILE, SIGNAL_PRIORITY, TREND_PRIORITY
 from shared.assertions import get_summary_path
 from scrape.wishlist_analysis import compute_wishlist_pressure, get_oos_wishlist_carryover, compute_wishlist_delta
 from shared.sparkline_helpers import extract_historical_values_with_carryforward, generate_stock_availability_sparkline
-from shared.driver_text_helpers import build_demand_section, build_price_section
+from shared.driver_text_helpers import build_drivers_text
 
 # =====================
 # DEALER MATRIX (Option B: Price Pressure informational)
@@ -29,11 +29,7 @@ def _generate_dealer_drivers_text(reliability, speed, price_pressure, wishlist_p
     """
     # Stock section
     stock_section = f"Stock: Reliability {reliability} (Restock {speed})"
-    
-    demand_section = build_demand_section(wishlist_pressure, wishlist_delta)
-    price_section = build_price_section(price_pressure)
-
-    return f"{stock_section}; {demand_section}; {price_section}"
+    return build_drivers_text(stock_section, price_pressure, wishlist_pressure, wishlist_delta)
 
 
 def build_dealer_supply_risk_table(history_rows):

@@ -5,7 +5,7 @@ from shared.config import BREEDER_TABLE_FILE, SIGNAL_PRIORITY, TREND_PRIORITY
 from shared.assertions import get_summary_path
 from scrape.wishlist_analysis import compute_wishlist_pressure, get_oos_wishlist_carryover, compute_wishlist_delta
 from shared.sparkline_helpers import extract_historical_values_with_carryforward
-from shared.driver_text_helpers import build_demand_section, build_price_section
+from shared.driver_text_helpers import build_drivers_text
 
 # =====================
 # BREEDER MATRIX (PRICE AWARE) — FIXED TO INCLUDE OUT-OF-STOCK ITEMS
@@ -33,11 +33,7 @@ def _generate_breeder_drivers_text(oos_status, oos_runs, pattern, price_trend, w
     status_text = f"currently {oos_status}" if oos_status else ""
     stock_detail = "; ".join(filter(None, [oos_text, status_text]))
     stock_section = f"Stock: {pattern} ({stock_detail})" if stock_detail else f"Stock: {pattern}"
-    
-    demand_section = build_demand_section(wishlist_pressure, wishlist_delta)
-    price_section = build_price_section(price_trend)
-
-    return f"{stock_section}; {demand_section}; {price_section}"
+    return build_drivers_text(stock_section, price_trend, wishlist_pressure, wishlist_delta)
 
 
 def build_breeder_opportunity_table(history_rows):
