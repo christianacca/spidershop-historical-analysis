@@ -79,3 +79,21 @@ def build_price_section(price_trend: str) -> str:
         Formatted price section (e.g., "Price: Rising")
     """
     return f"Price: {format_price_trend(price_trend)}"
+
+
+def build_drivers_text(stock_section: str, price_trend: str, wishlist_pressure: str, wishlist_delta: str) -> str:
+    """Build standardized drivers text combining stock, demand, and price sections.
+
+    Args:
+        stock_section: Pre-formatted stock section text (e.g., "Stock: Emerging (OOS 2 runs)")
+        price_trend: Price direction (↑/→/↓)
+        wishlist_pressure: Demand level (🔥/⚠️/❌)
+        wishlist_delta: Momentum (↑/→/↓)
+
+    Returns:
+        Semicolon-separated driver explanation
+        (e.g., "Stock: Emerging (OOS 2 runs); Demand: Wishlist High + rising; Price: Stable")
+    """
+    demand_section = build_demand_section(wishlist_pressure, wishlist_delta)
+    price_section = build_price_section(price_trend)
+    return f"{stock_section}; {demand_section}; {price_section}"

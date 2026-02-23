@@ -6,6 +6,7 @@ from shared.driver_text_helpers import (
     format_price_trend,
     build_demand_section,
     build_price_section,
+    build_drivers_text,
 )
 
 
@@ -85,3 +86,34 @@ class TestBuildPriceSection:
 
     def test_falls_back_to_raw_value_for_unknown_input(self):
         assert build_price_section("X") == "Price: X"
+
+
+class TestBuildDriversText:
+    """Test combined drivers text builder."""
+
+    def test_combines_stock_demand_and_price_sections(self):
+        result = build_drivers_text(
+            stock_section="Stock: Emerging (OOS 2 runs; currently OUT)",
+            price_trend="→",
+            wishlist_pressure="🔥",
+            wishlist_delta="↑",
+        )
+        assert result == "Stock: Emerging (OOS 2 runs; currently OUT); Demand: Wishlist High + rising; Price: Stable"
+
+    def test_simple_stock_section_no_detail(self):
+        result = build_drivers_text(
+            stock_section="Stock: Always Available",
+            price_trend="↓",
+            wishlist_pressure="❌",
+            wishlist_delta="→",
+        )
+        assert result == "Stock: Always Available; Demand: Wishlist Low + stable; Price: Falling"
+
+    def test_dealer_style_stock_section(self):
+        result = build_drivers_text(
+            stock_section="Stock: Reliability Low (Restock Slow)",
+            price_trend="↑",
+            wishlist_pressure="⚠️",
+            wishlist_delta="↑",
+        )
+        assert result == "Stock: Reliability Low (Restock Slow); Demand: Wishlist Moderate + rising; Price: Rising"

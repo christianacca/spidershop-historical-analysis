@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-import csv
 from shared.history_utils import group_by_run, k2
 from shared.config import DEALER_TABLE_FILE, SIGNAL_PRIORITY, TREND_PRIORITY
-from shared.assertions import get_summary_path
 from scrape.wishlist_analysis import compute_wishlist_pressure, get_oos_wishlist_carryover, compute_wishlist_delta
 from shared.sparkline_helpers import extract_historical_values_with_carryforward, generate_stock_availability_sparkline
-from shared.driver_text_helpers import build_demand_section, build_price_section
+from shared.driver_text_helpers import build_drivers_text
+from shared.csv_utils import write_matrix_csv
+from shared.summary_utils import MatrixSummaryConfig, write_matrix_summary
 
 # =====================
 # DEALER MATRIX (Option B: Price Pressure informational)
@@ -29,11 +29,7 @@ def _generate_dealer_drivers_text(reliability, speed, price_pressure, wishlist_p
     """
     # Stock section
     stock_section = f"Stock: Reliability {reliability} (Restock {speed})"
-    
-    demand_section = build_demand_section(wishlist_pressure, wishlist_delta)
-    price_section = build_price_section(price_pressure)
-
-    return f"{stock_section}; {demand_section}; {price_section}"
+    return build_drivers_text(stock_section, price_pressure, wishlist_pressure, wishlist_delta)
 
 
 def build_dealer_supply_risk_table(history_rows):
@@ -210,54 +206,25 @@ def build_dealer_supply_risk_table(history_rows):
     return table
 
 def write_dealer_outputs(table):
-    # Always create the CSV file, even if empty
-    if table:
-        with open(DEALER_TABLE_FILE, "w", newline="", encoding="utf-8") as f:
-            w = csv.DictWriter(f, fieldnames=table[0].keys())
-            w.writeheader()
-            w.writerows(table)
-    else:
-        # Create empty CSV with header row
-        fieldnames = ["Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration", 
-                      "Restock Speed", "Price Pressure", "Price History", "Wishlist Pressure", 
-                      "Wishlist Delta", "Wishlist History", "Stock Availability", "Dealer Risk", 
-                      "Dealer Recommendation", "Drivers"]
-        with open(DEALER_TABLE_FILE, "w", newline="", encoding="utf-8") as f:
-            w = csv.DictWriter(f, fieldnames=fieldnames)
-            w.writeheader()
+    fallback_fieldnames = [
+        "Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration",
+        "Restock Speed", "Price Pressure", "Price History", "Wishlist Pressure",
+        "Wishlist Delta", "Wishlist History", "Stock Availability", "Dealer Risk",
+        "Dealer Recommendation", "Drivers",
+    ]
+    write_matrix_csv(DEALER_TABLE_FILE, table, fallback_fieldnames)
 
-    # Write summary to GitHub Actions step summary if available
-    summary_path = get_summary_path()
-    if not summary_path:
-        return False
-
-    total = len(table) if table else 0
-    shown = min(10, total)
-
-    # Calculate risk statistics
-    risk_counts = {"🔥": 0, "⚠️": 0, "❌": 0}
-    if table:
-        for row in table:
-            risk = row.get("Dealer Risk", "")
-            if risk in risk_counts:
-                risk_counts[risk] += 1
-
-    with open(summary_path, "a", encoding="utf-8") as f:
-        f.write("\n## 🏪 Dealer Supply Risk Matrix (Top 10)\n\n")
-        if total == 0:
-            f.write("_No supply risks detected (conservative analysis requires sufficient historical data)._\n")
-        else:
-            # Write summary statistics
-            f.write(f"**Summary:** {total} species analyzed | 🔥 High Risk: {risk_counts['🔥']} | ⚠️ Moderate Risk: {risk_counts['⚠️']} | ❌ Low Risk: {risk_counts['❌']}\n\n")
-            
-            f.write("| Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Price History | Wishlist Pressure | Wishlist Delta | Wishlist History | Stock Availability | Dealer Risk | Dealer Recommendation |\n")
-            f.write("|---|---:|---|---:|---|---|---|---|---|---|---|---|---|\n")
-            for r in table[:shown]:
-                f.write(
-                    f"| {r['Species']} | {r['Size (cm)']} | {r['Stock Reliability']} | {r['Avg OOS Duration']} | "
-                    f"{r['Restock Speed']} | {r['Price Pressure']} | {r['Price History']} | {r['Wishlist Pressure']} | "
-                    f"{r['Wishlist Delta']} | {r['Wishlist History']} | {r['Stock Availability']} | {r['Dealer Risk']} | {r['Dealer Recommendation']} |\n"
-                )
-            if total > shown:
-                f.write(f"\n_Showing top {shown} of {total} entries — see `{DEALER_TABLE_FILE}` for full list._\n")
-    return True
+    config = MatrixSummaryConfig(
+        title="🏪 Dealer Supply Risk Matrix",
+        csv_filepath=DEALER_TABLE_FILE,
+        empty_message="No supply risks detected (conservative analysis requires sufficient historical data).",
+        indicator_field="Dealer Risk",
+        indicator_labels={"🔥": "High Risk", "⚠️": "Moderate Risk", "❌": "Low Risk"},
+        table_columns=[
+            "Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration",
+            "Restock Speed", "Price Pressure", "Price History", "Wishlist Pressure",
+            "Wishlist Delta", "Wishlist History", "Stock Availability", "Dealer Risk",
+            "Dealer Recommendation",
+        ],
+    )
+    return write_matrix_summary(table, config)
