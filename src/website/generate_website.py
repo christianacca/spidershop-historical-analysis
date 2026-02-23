@@ -557,6 +557,28 @@ def generate_analysis_page(config: BasePageConfig) -> str:
     )
 
 
+def _copy_files(
+    files: List[str],
+    source_dir: Path,
+    dest_dir: Path,
+    file_type: str
+) -> None:
+    """Copy files from source to destination directory.
+    
+    Args:
+        files: List of filenames to copy
+        source_dir: Source directory path
+        dest_dir: Destination directory path
+        file_type: Description of file type for logging (e.g., 'CSV', 'JavaScript')
+    """
+    print(f"  Copying {file_type} files...")
+    for filename in files:
+        source_file = source_dir / filename
+        if source_file.exists():
+            shutil.copy2(source_file, dest_dir / filename)
+            print(f"    Copied {filename}")
+
+
 def _build_common_name_map(history_csv: str) -> dict:
     """
     Build a mapping of scientific names to common names from history CSV.
@@ -756,49 +778,21 @@ def main() -> None:
     species_count = generate_species_pages()
     
     # Copy CSV files to output directory
-    print("  Copying CSV files...")
     csv_files = [
         "spidershop_spiderlings_scrape.csv",
         "spidershop_spiderlings_history.csv",
         "breeder_opportunity_table.csv",
         "dealer_supply_risk_table.csv"
     ]
+    _copy_files(csv_files, Path.cwd(), OUTPUT_DIR, "CSV")
     
-    for csv_file in csv_files:
-        if os.path.exists(csv_file):
-            with open(csv_file, "r", encoding="utf-8") as src:
-                content = src.read()
-            with open(OUTPUT_DIR / csv_file, "w", encoding="utf-8") as dst:
-                dst.write(content)
-            print(f"    Copied {csv_file}")
-    
-    # Copy JavaScript files to output directory
-    print("  Copying JavaScript files...")
     scripts_dir = Path(__file__).parent.parent.parent / "templates" / "scripts"
     js_files = ["constants.js", "utils.js", "table-interactions.js", "species-detail.js", "table-setup.js"]
+    _copy_files(js_files, scripts_dir, OUTPUT_DIR, "JavaScript")
     
-    for js_file in js_files:
-        js_source = scripts_dir / js_file
-        if js_source.exists():
-            with open(js_source, "r", encoding="utf-8") as src:
-                content = src.read()
-            with open(OUTPUT_DIR / js_file, "w", encoding="utf-8") as dst:
-                dst.write(content)
-            print(f"    Copied {js_file}")
-    
-    # Copy CSS files for species detail pages
-    print("  Copying CSS files...")
-    css_files = ["common.css", "analysis.css", "species-detail.css", "homepage.css", "history.css"]
     templates_dir = Path(__file__).parent.parent.parent / "templates"
-    
-    for css_file in css_files:
-        css_source = templates_dir / css_file
-        if css_source.exists():
-            with open(css_source, "r", encoding="utf-8") as src:
-                content = src.read()
-            with open(OUTPUT_DIR / css_file, "w", encoding="utf-8") as dst:
-                dst.write(content)
-            print(f"    Copied {css_file}")
+    css_files = ["common.css", "analysis.css", "species-detail.css", "homepage.css", "history.css"]
+    _copy_files(css_files, templates_dir, OUTPUT_DIR, "CSS")
     
     print(f"\n✅ Website generated successfully in '{OUTPUT_DIR}' directory")
     print(f"   Total HTML pages: {5 + species_count} (5 main pages + {species_count} species pages)")
