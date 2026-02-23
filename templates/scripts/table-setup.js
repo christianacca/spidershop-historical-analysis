@@ -182,6 +182,22 @@ function initDateFilter() {
   }
 
 /**
+ * Initialize open-details links
+ * Opens a <details> element and scrolls to it when the anchor is clicked.
+ */
+function initOpenDetailsLinks() {
+  document.querySelectorAll('a[data-action="open-details"]').forEach(link => {
+    link.addEventListener('click', function() {
+      const targetId = this.dataset.target;
+      const target = document.getElementById(targetId);
+      if (target && target.tagName === 'DETAILS') {
+        target.open = true;
+      }
+    });
+  });
+}
+
+/**
  * Initialize filtered CSV download button (history page only).
  * Intercepts the static download anchor and triggers a client-side
  * export of only the currently visible (filtered) rows.
@@ -208,6 +224,7 @@ function init() {
   initWishlistSliders();
   initDateFilter();
   initDownloadButton();
+  initOpenDetailsLinks();
 }
 
 // Initialize when DOM is ready

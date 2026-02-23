@@ -450,6 +450,10 @@ class TestGenerateSnapshotPage:
             strong = legend_details[0].find('strong', string='Legend')
             assert strong is not None
 
+            # Legend details must have id="legend-section" so the anchor link can target it
+            assert legend_details[0].get('id') == 'legend-section', \
+                "Legend <details> must have id='legend-section' for the anchor link to work"
+
     def test_omits_legend_when_none(self):
         """Should omit legend when not provided."""
         csv_content = "Col\n"
@@ -500,6 +504,12 @@ class TestGenerateSnapshotPage:
             assert 'signal' in text.lower()
             assert 'stock pattern' in text.lower()
 
+            # Should have a subtle anchor linking to the legend section
+            legend_link = instruction_box.find('a', attrs={'data-action': 'open-details'})
+            assert legend_link is not None, "Instruction box should have a legend anchor link"
+            assert legend_link.get('href') == '#legend-section'
+            assert legend_link.get('data-target') == 'legend-section'
+
     def test_includes_instruction_box_for_dealer_page(self):
         """Should include 'How to use this page' instruction box for dealer pages."""
         csv_content = "Species,Size (cm),Risk\nTest Spider,1.5,🔥\n"
@@ -530,6 +540,12 @@ class TestGenerateSnapshotPage:
             # Should explain strategic context
             assert 'restock' in text.lower()
             assert 'inventory' in text.lower()
+
+            # Should have a subtle anchor linking to the legend section
+            legend_link = instruction_box.find('a', attrs={'data-action': 'open-details'})
+            assert legend_link is not None, "Instruction box should have a legend anchor link"
+            assert legend_link.get('href') == '#legend-section'
+            assert legend_link.get('data-target') == 'legend-section'
 
     def test_omits_instruction_box_for_snapshot_page(self):
         """Should NOT include instruction box for snapshot pages (simple pages)."""
