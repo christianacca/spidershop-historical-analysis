@@ -268,7 +268,24 @@ Example content for dealers.
                     breeder_html = f.read()
                     assert "<table" in breeder_html, "Should have table rendered from CSV"
                     assert "Top 10" in breeder_html or "109 species" in breeder_html
-                
+
+                # Verify page headings include the icons matching the homepage cards
+                expected_headings = {
+                    "snapshot.html": "📸 Latest Snapshot",
+                    "history.html": "📊 Historical Data",
+                    "breeder.html": "🌱 Breeder Opportunities",
+                    "dealer.html": "📦 Dealer Supply Risk",
+                }
+                for filename, expected_heading in expected_headings.items():
+                    with open(OUTPUT_DIR / filename, "r", encoding="utf-8") as f:
+                        page_html = f.read()
+                    soup = BeautifulSoup(page_html, "html.parser")
+                    h2 = soup.find("h2")
+                    assert h2 is not None, f"{filename} should have an <h2> heading"
+                    assert h2.get_text(strip=True) == expected_heading, (
+                        f"{filename} <h2> should be '{expected_heading}', got '{h2.get_text(strip=True)}'"
+                    )
+
             finally:
                 # Restore original directory
                 os.chdir(original_dir)

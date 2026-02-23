@@ -251,9 +251,10 @@ export function downloadFilteredCsv(tableId) {
   const table = getElement(tableId);
   if (!table) return;
 
-  // Strip the sort indicator (⇅) from header text
+  // Prefer data-csv-name (raw column name for download) over display text.
+  // Fall back to stripping the sort indicator (⇅) from header text.
   const headers = Array.from(table.querySelectorAll('thead th'))
-    .map(th => th.textContent.replace('\u21c5', '').trim());
+    .map(th => th.dataset.csvName ?? th.textContent.replace('\u21c5', '').trim());
 
   const visibleRows = Array.from(table.querySelectorAll('tbody tr:not(.' + CSS.HIDDEN + ')'));
 

@@ -225,7 +225,7 @@ def _field_name_to_csv_header(field_name: str, dataclass_type=None) -> str:
     if dataclass_type and dataclass_type.__name__ == 'HistoryEntry':
         return field_name
     
-    # Special cases for breeder/dealer fields
+    # Special cases for breeder/dealer fields that can't be derived generically
     special_cases = {
         "size_cm": "Size (cm)",
         "risk": "Dealer Risk",
@@ -235,16 +235,15 @@ def _field_name_to_csv_header(field_name: str, dataclass_type=None) -> str:
     if field_name in special_cases:
         return special_cases[field_name]
     
-    # Convert snake_case to Title Case
-    # Handle acronyms like OOS
+    # Words that should be fully uppercased as acronyms
+    _ACRONYMS = {"oos"}
+
+    # Convert snake_case to Title Case, preserving known acronyms
     words = field_name.split("_")
-    formatted_words = []
-    for word in words:
-        if word.upper() in ["OOS"]:
-            formatted_words.append(word.upper())
-        else:
-            formatted_words.append(word.capitalize())
-    
+    formatted_words = [
+        word.upper() if word.lower() in _ACRONYMS else word.capitalize()
+        for word in words
+    ]
     return " ".join(formatted_words)
 
 
