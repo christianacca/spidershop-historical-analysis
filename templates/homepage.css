@@ -44,3 +44,27 @@
 .about-list {
     margin: 15px 0 15px 30px;
 }
+
+/* Disclaimer / T&C box */
+.disclaimer {
+    margin-top: 40px;
+    padding: 16px 20px;
+    background: #f8f8f8;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.82em;
+    color: #666;
+    line-height: 1.5;
+}
+
+.disclaimer h3 {
+    margin: 0 0 8px;
+    font-size: 0.95em;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #555;
+}
+
+.disclaimer p {
+    margin: 6px 0 0;
+}
