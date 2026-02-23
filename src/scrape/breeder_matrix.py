@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-import csv
 from shared.history_utils import group_by_run, k2
 from shared.config import BREEDER_TABLE_FILE, SIGNAL_PRIORITY, TREND_PRIORITY
-from shared.assertions import get_summary_path
 from scrape.wishlist_analysis import compute_wishlist_pressure, get_oos_wishlist_carryover, compute_wishlist_delta
 from shared.sparkline_helpers import extract_historical_values_with_carryforward
 from shared.driver_text_helpers import build_drivers_text
+from shared.csv_utils import write_matrix_csv
+from shared.summary_utils import MatrixSummaryConfig, write_matrix_summary
 
 # =====================
 # BREEDER MATRIX (PRICE AWARE) — FIXED TO INCLUDE OUT-OF-STOCK ITEMS
@@ -261,55 +261,23 @@ def build_breeder_opportunity_table(history_rows):
     return table
 
 def write_breeder_outputs(table):
-    # Always create the CSV file, even if empty
-    if table:
-        with open(BREEDER_TABLE_FILE, "w", newline="", encoding="utf-8") as f:
-            w = csv.DictWriter(f, fieldnames=table[0].keys())
-            w.writeheader()
-            w.writerows(table)
-    else:
-        # Create empty CSV with header row
-        fieldnames = ["Species", "Size (cm)", "OOS", "OOS Runs", "Stock Pattern", 
-                      "Price Trend", "Price History", "Wishlist Pressure", "Wishlist Delta", 
-                      "Wishlist History", "Signal", "Recommendation", "Drivers"]
-        with open(BREEDER_TABLE_FILE, "w", newline="", encoding="utf-8") as f:
-            w = csv.DictWriter(f, fieldnames=fieldnames)
-            w.writeheader()
+    fallback_fieldnames = [
+        "Species", "Size (cm)", "OOS", "OOS Runs", "Stock Pattern",
+        "Price Trend", "Price History", "Wishlist Pressure", "Wishlist Delta",
+        "Wishlist History", "Signal", "Recommendation", "Drivers",
+    ]
+    write_matrix_csv(BREEDER_TABLE_FILE, table, fallback_fieldnames)
 
-    # Write summary to GitHub Actions step summary if available
-    summary_path = get_summary_path()
-    if not summary_path:
-        return False
-
-    total = len(table) if table else 0
-    shown = min(10, total)
-
-    # Calculate signal statistics
-    signal_counts = {"🔥": 0, "⚠️": 0, "❌": 0}
-    if table:
-        for row in table:
-            signal = row.get("Signal", "")
-            if signal in signal_counts:
-                signal_counts[signal] += 1
-
-    with open(summary_path, "a", encoding="utf-8") as f:
-        f.write("\n## 🧬 Breeder Opportunity Matrix (Top 10)\n\n")
-        if total == 0:
-            f.write("_No breeding opportunities detected (conservative analysis requires sufficient historical data)._\n")
-        else:
-            # Write summary statistics
-            f.write(f"**Summary:** {total} species analyzed | 🔥 Hot: {signal_counts['🔥']} | ⚠️ Watch: {signal_counts['⚠️']} | ❌ Avoid: {signal_counts['❌']}\n\n")
-            
-            f.write("| Species | Size (cm) | OOS | OOS Runs | Stock Pattern | Price Trend | Price History | Wishlist Pressure | Wishlist Delta | Wishlist History | Signal | Recommendation |\n")
-            f.write("|---|---:|---|---:|---|---|---|---|---|---|---|---|\n")
-            for r in table[:shown]:
-                f.write(
-                    f"| {r['Species']} | {r['Size (cm)']} | {r['OOS']} | {r['OOS Runs']} | "
-                    f"{r['Stock Pattern']} | {r['Price Trend']} | {r['Price History']} | "
-                    f"{r['Wishlist Pressure']} | {r['Wishlist Delta']} | {r['Wishlist History']} | "
-                    f"{r['Signal']} | {r['Recommendation']} |\n"
-                )
-            if total > shown:
-                f.write(f"\n_Showing top {shown} of {total} entries — see `{BREEDER_TABLE_FILE}` for full list._\n")
-
-    return True
+    config = MatrixSummaryConfig(
+        title="🧬 Breeder Opportunity Matrix",
+        csv_filepath=BREEDER_TABLE_FILE,
+        empty_message="No breeding opportunities detected (conservative analysis requires sufficient historical data).",
+        indicator_field="Signal",
+        indicator_labels={"🔥": "Hot", "⚠️": "Watch", "❌": "Avoid"},
+        table_columns=[
+            "Species", "Size (cm)", "OOS", "OOS Runs", "Stock Pattern",
+            "Price Trend", "Price History", "Wishlist Pressure", "Wishlist Delta",
+            "Wishlist History", "Signal", "Recommendation",
+        ],
+    )
+    return write_matrix_summary(table, config)
