@@ -19,6 +19,13 @@ jinja_env = Environment(
     lstrip_blocks=True
 )
 
+try:
+    from website.page_config import NAV_ITEMS
+except ModuleNotFoundError:
+    from page_config import NAV_ITEMS  # type: ignore[no-redef]
+
+jinja_env.globals['nav_items'] = NAV_ITEMS
+
 
 def escape_html(text: Any) -> str:
     """Escape HTML special characters.

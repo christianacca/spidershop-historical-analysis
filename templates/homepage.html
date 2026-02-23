@@ -19,29 +19,15 @@
     <h3>Available Data</h3>
     
     <div class="card-grid">
+        {% for item in nav_items %}
+        {% if item.card_description %}
         <div class="card">
-            <h3>📸 Latest Snapshot</h3>
-            <p>View the most recent scrape of all available spiderling listings, including scientific names, common names, sizes, and prices.</p>
-            <a href="snapshot.html">View Snapshot →</a>
+            <h3>{{ item.icon }} {{ item.label }}</h3>
+            <p>{{ item.card_description }}</p>
+            <a href="{{ item.url }}">{{ item.card_link_text }} →</a>
         </div>
-        
-        <div class="card">
-            <h3>📊 Historical Data</h3>
-            <p>Explore accumulated pricing data across all scrapes to track trends and price changes over time.</p>
-            <a href="history.html">View History →</a>
-        </div>
-        
-        <div class="card">
-            <h3>🌱 Breeder Opportunities</h3>
-            <p>Analysis showing breeding opportunities based on market trends and pricing patterns.</p>
-            <a href="breeder.html">View Analysis →</a>
-        </div>
-        
-        <div class="card">
-            <h3>📦 Dealer Supply Risk</h3>
-            <p>Analysis highlighting inventory availability patterns and supply risk indicators.</p>
-            <a href="dealer.html">View Analysis →</a>
-        </div>
+        {% endif %}
+        {% endfor %}
     </div>
     
     <h3>Download Raw Data</h3>

@@ -43,7 +43,7 @@ from typing import Optional, Callable, Tuple, List, Any
 
 # Handle both direct script execution and module import
 try:
-    from website.page_config import BasePageConfig
+    from website.page_config import BasePageConfig, NAV_ITEMS
     from website.sparkline_conversion import (
         load_historical_sparkline_data,
         convert_sparklines_in_rows,
@@ -69,7 +69,7 @@ try:
     )
     from shared.parsing import format_datetime_smart, snake_to_display_header
 except ModuleNotFoundError:
-    from page_config import BasePageConfig
+    from page_config import BasePageConfig, NAV_ITEMS  # type: ignore[assignment]
     from sparkline_conversion import (
         load_historical_sparkline_data,
         convert_sparklines_in_rows,
@@ -90,6 +90,14 @@ except ModuleNotFoundError:
 # NOTE: This is RELATIVE to the current working directory when the script runs!
 # See docstring above for how this behaves in different execution contexts.
 OUTPUT_DIR = Path("website")
+
+
+def _page_nav_item(active_page: str):
+    """Return the NAV_ITEMS entry matching active_page."""
+    for item in NAV_ITEMS:
+        if item.active_page == active_page:
+            return item
+    raise ValueError(f"No nav item found for active_page={active_page!r}")
 
 
 def _calculate_column_range(
@@ -720,7 +728,7 @@ def main() -> None:
     with open(OUTPUT_DIR / "snapshot.html", "w", encoding="utf-8") as f:
         from website.page_config import SnapshotPageConfig
         f.write(generate_snapshot_page(config=SnapshotPageConfig(
-            title="📸 Latest Snapshot",
+            title=_page_nav_item("snapshot").title,
             description="Current scrape results showing all available tarantula spiderlings.",
             csv_filename="spidershop_spiderlings_scrape.csv",
             table_id="snapshot-table",
@@ -732,7 +740,7 @@ def main() -> None:
     with open(OUTPUT_DIR / "history.html", "w", encoding="utf-8") as f:
         from website.page_config import HistoryPageConfig
         f.write(generate_history_page(config=HistoryPageConfig(
-            title="📊 Historical Data",
+            title=_page_nav_item("history").title,
             description="Accumulated historical pricing data across all scrape runs.",
             csv_filename="spidershop_spiderlings_history.csv",
             table_id="history-table",
@@ -744,7 +752,7 @@ def main() -> None:
     with open(OUTPUT_DIR / "breeder.html", "w", encoding="utf-8") as f:
         from website.page_config import BreederPageConfig
         f.write(generate_analysis_page(config=BreederPageConfig(
-            title="🌱 Breeder Opportunities",
+            title=_page_nav_item("breeder").title,
             description="Analysis showing breeding opportunities based on market trends and pricing patterns.",
             csv_filename="breeder_opportunity_table.csv",
             table_id="breeder-table",
@@ -761,7 +769,7 @@ def main() -> None:
     with open(OUTPUT_DIR / "dealer.html", "w", encoding="utf-8") as f:
         from website.page_config import DealerPageConfig
         f.write(generate_analysis_page(config=DealerPageConfig(
-            title="📦 Dealer Supply Risk",
+            title=_page_nav_item("dealer").title,
             description="Analysis highlighting inventory availability patterns and supply risk indicators.",
             csv_filename="dealer_supply_risk_table.csv",
             table_id="dealer-table",
