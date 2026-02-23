@@ -340,6 +340,11 @@ footer a:hover {
     font-size: 0.95rem;
 }
 
+.table-stats-date {
+    font-size: 0.85rem;
+    color: #666;
+}
+
 /* Advanced Filters Toggle Button - uses secondary button style with specific enhancements */
 .advanced-filters-toggle:hover {
     background: #e9ecef;

@@ -227,13 +227,17 @@ def generate_snapshot_page(config: BasePageConfig) -> str:
     # Read CSV file
     headers, rows = read_csv_file(config.csv_filename)
     
-    # Format scrape_datetime column (date-only unless collision)
+    # Format scrape_datetime column (date-only unless collision) and capture for display
+    scrape_date = None
+    hidden_col_indices: list[int] = []
     if headers and rows and 'scrape_datetime' in headers:
         datetime_idx = headers.index('scrape_datetime')
         datetimes = [row[datetime_idx] for row in rows]
         formatted_dates = format_datetime_smart(datetimes)
         for i, row in enumerate(rows):
             row[datetime_idx] = formatted_dates[i]
+        scrape_date = rows[0][datetime_idx] if rows else None
+        hidden_col_indices = [datetime_idx]
     
     #Load sparkline data from history CSV for conversion
     sparkline_data = load_historical_sparkline_data()
@@ -285,6 +289,8 @@ def generate_snapshot_page(config: BasePageConfig) -> str:
         signal_col_idx=None,  # Snapshot has no signal column
         stock_pattern_col_idx=None,  # Snapshot has no stock pattern column
         drivers_col_idx=None,  # Snapshot has no drivers column
+        hidden_col_indices=hidden_col_indices,
+        scrape_date=scrape_date,
         sortable=True,
         timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     )

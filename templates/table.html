@@ -18,7 +18,9 @@
   <thead>
     <tr>
       {% for i, header in headers %}
-      {% if drivers_col_idx is defined and i == drivers_col_idx and drivers_col_idx is not none %}
+      {% if hidden_col_indices is defined and i in hidden_col_indices %}
+        {# Hidden column - skip header #}
+      {% elif drivers_col_idx is defined and i == drivers_col_idx and drivers_col_idx is not none %}
         {# Hide Drivers column header #}
       {% elif sortable %}
       <th data-sortable="true" data-column-index="{{ i }}" data-table-id="{{ table_id }}"
@@ -41,7 +43,9 @@
     <tr{% if signal_value %} data-signal="{{ signal_value }}"{% endif %}{% if stock_pattern_value %} data-stock-pattern="{{ stock_pattern_value }}"{% endif %}{% if price_value %} data-price="{{ price_value }}"{% endif %}{% if wishlist_value %} data-wishlist="{{ wishlist_value }}"{% endif %}{% if date_value %} data-date="{{ date_value }}"{% endif %}>
       {% for cell_idx, cell in row %}
       {% set header_text = headers[cell_idx][1] if cell_idx < headers|length else '' %}
-      {% if drivers_col_idx is defined and cell_idx == drivers_col_idx and drivers_col_idx is not none %}
+      {% if hidden_col_indices is defined and cell_idx in hidden_col_indices %}
+        {# Hidden column - skip cell #}
+      {% elif drivers_col_idx is defined and cell_idx == drivers_col_idx and drivers_col_idx is not none %}
         {# Hide Drivers column cell #}
       {% elif link_to_species_page and cell_idx == species_idx and species_idx is not none and size_idx is not none %}
         {# Breeder/Dealer table: link Species column to internal species page #}
