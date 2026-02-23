@@ -133,3 +133,37 @@ def _format_parsed_datetime(dt, date_str: str, date_to_times: dict) -> str:
     has_collision = len(date_to_times.get(date_str, set())) > 1
     return dt.strftime("%Y-%m-%d %H:%M") if has_collision else date_str
 
+
+# Overrides for column names that cannot be cleanly derived from snake_case alone
+# (e.g. because they contain units in parentheses or use abbreviations with
+# different casing from what simple title-casing would produce).
+_HEADER_DISPLAY_OVERRIDES: dict[str, str] = {
+    "scrape_datetime": "Scrape Date",
+    "size_cm": "Size (cm)",
+    "price_gbp": "Price (GBP)",
+    "page_url": "Page URL",
+}
+
+
+def snake_to_display_header(name: str) -> str:
+    """Convert a snake_case column name to a human-readable display name.
+
+    Falls back to title-casing each word when no explicit override exists.
+
+    Examples::
+
+        >>> snake_to_display_header("scientific_name")
+        'Scientific Name'
+        >>> snake_to_display_header("wishlist_count")
+        'Wishlist Count'
+        >>> snake_to_display_header("size_cm")
+        'Size (cm)'
+        >>> snake_to_display_header("price_gbp")
+        'Price (GBP)'
+        >>> snake_to_display_header("scrape_datetime")
+        'Scrape Date'
+    """
+    if name in _HEADER_DISPLAY_OVERRIDES:
+        return _HEADER_DISPLAY_OVERRIDES[name]
+    return " ".join(word.capitalize() for word in name.split("_"))
+

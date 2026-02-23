@@ -12,7 +12,7 @@
 #   All commands automatically activate the .venv virtual environment
 #   Ensure .venv exists and has dependencies installed first
 
-.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only clean-cache clean-artifacts clean-all test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install coverage .check-venv .check-gh
+.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only clean-cache clean-artifacts clean-all test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install coverage check-coverage .check-venv .check-gh
 
 # Shell configuration
 SHELL := /bin/bash
@@ -60,7 +60,9 @@ help:
 	@echo "  make test-e2e-debug         Run e2e with Playwright Inspector (PWDEBUG)"
 	@echo "  make test-e2e-headed        Run e2e with visible browser window"
 	@echo "  make test-e2e-show-trace    Open trace viewer for last e2e run"
-	@echo "  make coverage               View coverage report in browser"
+	@echo "  make coverage               View coverage report in browser
+	@echo "  make check-coverage         Print coverage summary (exits non-zero if below threshold)"
+	@echo "  make check-coverage MODULE=<path>  Check coverage for a specific module""
 	@echo ""
 	@echo "Examples:"
 	@echo "  make test-file FILE=tests/website_module/test_csv.py"
@@ -237,6 +239,13 @@ test-e2e-show-trace: .check-venv e2e-install
 coverage:
 	@echo "Opening coverage report in browser..."
 	open tmp/coverage/html/index.html
+
+check-coverage: .check-venv
+	@if [ -n "$(MODULE)" ]; then \
+		$(PYTHON) scripts/check_coverage.py --module=$(MODULE); \
+	else \
+		$(PYTHON) scripts/check_coverage.py; \
+	fi
 
 # ==============================================================================
 # Cleanup
