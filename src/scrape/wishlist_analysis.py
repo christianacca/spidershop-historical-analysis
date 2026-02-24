@@ -236,3 +236,39 @@ def compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=WISHLIST_D
         return "↓"
     else:
         return "→"
+
+
+def get_wishlist_metrics(key, by_run, runs, cur_run, wishlist_pressure_map):
+    """Get wishlist pressure and delta for a species with OOS carryover logic.
+
+    Consolidates the repeated pattern from breeder and dealer matrices:
+    - If the species is IN the current run, look up its pressure directly.
+    - If the species is OUT, carry forward the last known pressure (bounded lookback ≤ 5 runs).
+    - Wishlist delta is always computed with its own conservative bounded lookback (≤ 3 runs).
+
+    Args:
+        key: (scientific_name, size_cm) tuple identifying the species/size.
+        by_run: dict mapping run datetime -> list of row dicts.
+        runs: sorted list of run datetimes.
+        cur_run: datetime of the current run.
+        wishlist_pressure_map: pre-computed pressure map for the current run
+            (from ``compute_wishlist_pressure``).
+
+    Returns:
+        Tuple of (wishlist_pressure, wishlist_delta) where each value is
+        one of the standard symbols (🔥/⚠️/❌ and ↑/→/↓ respectively).
+    """
+    cur_keys = {
+        (r.get("scientific_name", ""), r.get("size_cm", ""))
+        for r in by_run[cur_run]
+    }
+
+    if key in cur_keys:
+        wishlist_pressure = wishlist_pressure_map.get(key, "❌")
+    else:
+        carried = get_oos_wishlist_carryover(key, by_run, runs, cur_run)
+        wishlist_pressure = carried if carried else "❌"
+
+    wishlist_delta = compute_wishlist_delta(key, by_run, runs, cur_run)
+
+    return wishlist_pressure, wishlist_delta

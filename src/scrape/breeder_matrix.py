@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from shared.history_utils import group_by_run, k2
 from shared.config import BREEDER_TABLE_FILE, SIGNAL_PRIORITY, TREND_PRIORITY
-from scrape.wishlist_analysis import compute_wishlist_pressure, get_oos_wishlist_carryover, compute_wishlist_delta
+from scrape.wishlist_analysis import compute_wishlist_pressure, get_wishlist_metrics
 from shared.sparkline_helpers import extract_historical_values_with_carryforward
 from shared.driver_text_helpers import build_drivers_text
 from shared.csv_utils import write_matrix_csv
@@ -161,20 +161,9 @@ def build_breeder_opportunity_table(history_rows):
 
         price_trend = price_trend_for_key(key)
 
-        # Get wishlist pressure with OOS carryover
-        # If species is OUT now, carry forward last known pressure (bounded lookback)
-        # Use lookback_limit=5 to capture wishlist pressure for sustained OOS species (4+ runs)
-        # This allows differentiation between "sustained scarcity" and "sustained scarcity + high demand"
-        if in_current:
-            wishlist_pressure = wishlist_pressure_map.get(key, "❌")
-        else:
-            # Species is OUT - try to carry forward recent pressure
-            carried = get_oos_wishlist_carryover(key, by_run, runs, cur_run)
-            wishlist_pressure = carried if carried else "❌"
-
-        # Compute wishlist delta (momentum signal)
-        # Keep lookback_limit=3 for delta per philosophy: "OUT carryover ≤ 3 runs" for momentum
-        wishlist_delta = compute_wishlist_delta(key, by_run, runs, cur_run)
+        wishlist_pressure, wishlist_delta = get_wishlist_metrics(
+            key, by_run, runs, cur_run, wishlist_pressure_map
+        )
 
         # Recommendation logic (conservative wishlist integration with delta)
         # Base signal driven by Pattern + Price Trend (unchanged)
