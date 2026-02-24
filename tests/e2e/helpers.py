@@ -408,7 +408,24 @@ def write_multi_species_test_data(cwd: Path) -> None:
         "## 🧬 Breeder Opportunity Matrix (Top 10)\n\n"
         "**Summary:** 5 species analyzed | 🔥 Hot: 2 | ⚠️ Watch: 2 | ❌ Avoid: 1\n\n"
         "## 🏪 Dealer Supply Risk Matrix (Top 10)\n\n"
-        "**Summary:** 5 species analyzed | 🔥 High Risk: 2 | ⚠️ Moderate Risk: 2 | ❌ Low Risk: 1\n",
+        "**Summary:** 5 species analyzed | 🔥 High Risk: 2 | ⚠️ Moderate Risk: 2 | ❌ Low Risk: 1\n\n"
+        "<details markdown=\"1\">\n"
+        "<summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>\n\n"
+        "### 🧬 Breeder Opportunity Matrix — Legend\n\n"
+        "**Signal**\n\n"
+        "- `🔥` — Strong breeding opportunity signal\n"
+        "- `⚠️` — Emerging opportunity\n"
+        "- `❌` — Oversupplied\n\n"
+        "### 📖 Breeder Matrix — Practical Examples\n\n"
+        "Example breeder scenario.\n\n"
+        "### 🏪 Dealer Supply Risk Matrix — Legend\n\n"
+        "**Risk**\n\n"
+        "- `🔥` — High supply risk\n"
+        "- `⚠️` — Moderate risk\n"
+        "- `❌` — Reliable supply\n\n"
+        "### 📖 Dealer Matrix — Practical Examples\n\n"
+        "Example dealer scenario.\n\n"
+        "</details>\n",
         encoding="utf-8",
     )
 

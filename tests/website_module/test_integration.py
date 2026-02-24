@@ -155,7 +155,7 @@ Example content for dealers.
             assert "Species 0" in html or "Species 1" in html
             assert "Top 10" in html, "Should have Top 10 heading"
             assert "<table" in html, "Should have table"
-            assert "<details>" in html
+            assert 'id="legend-section"' in html, "Legend <details> should have id='legend-section'"
             assert "Symbol" in html
             assert "</html>" in html
 

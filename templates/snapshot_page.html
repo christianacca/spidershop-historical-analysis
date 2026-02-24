@@ -33,11 +33,12 @@
     {% endif %}
     
     <div class="table-stats">
-        <strong>Showing:</strong> <span id="visible-count-{{ table_id }}">{{ rows|length }}</span> of {{ rows|length }} species
+        <span><strong>Showing:</strong> <span id="visible-count-{{ table_id }}">{{ rows|length }}</span> of {{ rows|length }} species</span>
+        {% if scrape_date %}<span class="table-stats-date">Scraped: {{ scrape_date }}</span>{% endif %}
     </div>
     
     <div style="overflow-x: auto;">
-        {% with headers=headers, rows=rows, signal_col_idx=signal_col_idx, stock_pattern_col_idx=stock_pattern_col_idx, page_url_idx=page_url_idx, scientific_name_idx=scientific_name_idx, sortable=sortable, table_id=table_id, price_idx=price_idx, wishlist_idx=wishlist_idx, raw_headers=raw_headers %}
+        {% with headers=headers, rows=rows, signal_col_idx=signal_col_idx, stock_pattern_col_idx=stock_pattern_col_idx, page_url_idx=page_url_idx, scientific_name_idx=scientific_name_idx, sortable=sortable, table_id=table_id, price_idx=price_idx, wishlist_idx=wishlist_idx, raw_headers=raw_headers, hidden_col_indices=hidden_col_indices %}
         {% include 'table.html' %}
         {% endwith %}
     </div>

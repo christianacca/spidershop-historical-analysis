@@ -540,6 +540,42 @@ def test_non_analysis_pages_lack_analysis_ui(e2e_site_multi_species) -> None:
 
 
 @pytest.mark.e2e
+def test_instruction_box_legend_link_opens_legend_section(e2e_site_multi_species) -> None:
+    """Clicking the 'See full column legend' link should open the legend <details> section."""
+    page, base_url, errors = e2e_site_multi_species
+
+    for page_name in ['breeder.html', 'dealer.html']:
+        page.goto(f"{base_url}/{page_name}", wait_until="domcontentloaded")
+
+        legend_section = page.locator('#legend-section')
+        if legend_section.count() == 0:
+            pytest.skip(f"No legend section rendered on {page_name} with current test data")
+
+        # Legend should start closed
+        is_open_before = legend_section.evaluate('el => el.open')
+        assert not is_open_before, f"{page_name}: #legend-section should be closed on page load"
+
+        # The legend link lives inside instruction-box which is a collapsed <details>.
+        # Open the instruction box first so the link becomes visible.
+        instruction_box = page.locator('.instruction-box')
+        instruction_box.locator('summary').click()
+        page.wait_for_timeout(100)
+
+        # Click the anchor inside instruction-box
+        legend_link = page.locator('.instruction-box a[data-action="open-details"]')
+        assert legend_link.count() == 1, \
+            f"{page_name}: instruction box should contain exactly one legend anchor"
+
+        legend_link.click()
+        page.wait_for_timeout(100)
+
+        # Legend should now be open (JS handler sets open=true)
+        is_open_after = legend_section.evaluate('el => el.open')
+        assert is_open_after, \
+            f"{page_name}: #legend-section should be open after clicking the legend link"
+
+
+@pytest.mark.e2e
 def test_filter_buttons_layout(e2e_site_multi_species) -> None:
     """Filter button containers should use flexbox; individual buttons use inline-flex."""
     page, base_url, errors = e2e_site_multi_species
