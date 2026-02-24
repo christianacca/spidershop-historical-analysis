@@ -20,7 +20,7 @@ PRICE_TEXT = {
 }
 
 
-def format_wishlist_pressure(wishlist_pressure):
+def format_wishlist_pressure(wishlist_pressure: str) -> str:
     """Convert wishlist pressure emoji to human-readable text.
     
     Args:
@@ -32,7 +32,7 @@ def format_wishlist_pressure(wishlist_pressure):
     return WISHLIST_PRESSURE_TEXT.get(wishlist_pressure, wishlist_pressure)
 
 
-def format_delta(delta):
+def format_delta(delta: str) -> str:
     """Convert delta arrow to human-readable text.
     
     Args:
@@ -44,7 +44,7 @@ def format_delta(delta):
     return DELTA_TEXT.get(delta, delta)
 
 
-def format_price_trend(price_trend):
+def format_price_trend(price_trend: str) -> str:
     """Convert price trend arrow to human-readable text.
     
     Args:

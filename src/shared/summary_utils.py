@@ -84,7 +84,8 @@ def write_matrix_summary(
         f.write(f"| {header} |\n")
 
         # Separator row
-        separator = "".join(f"|{_column_separator(col)}" for col in config.table_columns) + "|"
+        separators = [_column_separator(col) for col in config.table_columns]
+        separator = "|" + "|".join(separators) + "|"
         f.write(f"{separator}\n")
 
         # Data rows
