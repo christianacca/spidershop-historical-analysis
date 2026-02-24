@@ -11,7 +11,7 @@ from shared.summary_utils import MatrixSummaryConfig, write_matrix_summary
 # DEALER MATRIX (Option B: Price Pressure informational)
 # =====================
 
-def _generate_dealer_drivers_text(reliability, speed, price_pressure, wishlist_pressure, wishlist_delta):
+def _generate_dealer_drivers_text(reliability: str, speed: str, price_pressure: str, wishlist_pressure: str, wishlist_delta: str) -> str:
     """Generate structured explanation of risk drivers using semicolon separators.
     
     Args:
@@ -27,7 +27,6 @@ def _generate_dealer_drivers_text(reliability, speed, price_pressure, wishlist_p
     Example:
         "Stock: Reliability Low (Restock Slow); Demand: Wishlist High + rising; Price: Rising"
     """
-    # Stock section
     stock_section = f"Stock: Reliability {reliability} (Restock {speed})"
     return build_drivers_text(stock_section, price_pressure, wishlist_pressure, wishlist_delta)
 

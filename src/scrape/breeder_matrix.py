@@ -11,7 +11,7 @@ from shared.summary_utils import MatrixSummaryConfig, write_matrix_summary
 # BREEDER MATRIX (PRICE AWARE) — FIXED TO INCLUDE OUT-OF-STOCK ITEMS
 # =====================
 
-def _generate_breeder_drivers_text(oos_status, oos_runs, pattern, price_trend, wishlist_pressure, wishlist_delta):
+def _generate_breeder_drivers_text(oos_status: str, oos_runs: int, pattern: str, price_trend: str, wishlist_pressure: str, wishlist_delta: str) -> str:
     """Generate structured explanation of signal drivers using semicolon separators.
     
     Args:
@@ -29,10 +29,19 @@ def _generate_breeder_drivers_text(oos_status, oos_runs, pattern, price_trend, w
         "Stock: Emerging (OOS 2 runs; currently OUT); Demand: Wishlist 🔥 + rising; Price: Stable"
     """
     # Stock section
-    oos_text = f"OOS {oos_runs} run{'s' if int(oos_runs) != 1 else ''}" if int(oos_runs) > 0 else ""
-    status_text = f"currently {oos_status}" if oos_status else ""
-    stock_detail = "; ".join(filter(None, [oos_text, status_text]))
-    stock_section = f"Stock: {pattern} ({stock_detail})" if stock_detail else f"Stock: {pattern}"
+    parts = []
+    if oos_runs > 0:
+        plural = "s" if oos_runs != 1 else ""
+        parts.append(f"OOS {oos_runs} run{plural}")
+    if oos_status:
+        parts.append(f"currently {oos_status}")
+    
+    if parts:
+        stock_detail = "; ".join(parts)
+        stock_section = f"Stock: {pattern} ({stock_detail})"
+    else:
+        stock_section = f"Stock: {pattern}"
+    
     return build_drivers_text(stock_section, price_trend, wishlist_pressure, wishlist_delta)
 
 
