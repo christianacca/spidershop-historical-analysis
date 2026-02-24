@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from shared.history_utils import group_by_run, k2
 from shared.config import DEALER_TABLE_FILE, SIGNAL_PRIORITY, TREND_PRIORITY
-from scrape.wishlist_analysis import compute_wishlist_pressure, get_oos_wishlist_carryover, compute_wishlist_delta
+from scrape.wishlist_analysis import compute_wishlist_pressure, get_wishlist_metrics
 from shared.sparkline_helpers import extract_historical_values_with_carryforward, generate_stock_availability_sparkline
 from shared.driver_text_helpers import build_drivers_text
 from shared.csv_utils import write_matrix_csv
@@ -46,9 +46,6 @@ def build_dealer_supply_risk_table(history_rows):
     # Compute wishlist pressure for current run
     wishlist_pressure_map = compute_wishlist_pressure(cur_rows)
 
-    # Precompute current run keys for OOS check
-    cur_keys = {k2(r) for r in cur_rows}
-
     prev_prices = {k2(r): r.get("price_gbp", "") for r in by_run[prev_run] if r.get("price_gbp")}
     cur_prices = {k2(r): r.get("price_gbp", "") for r in by_run[cur_run] if r.get("price_gbp")}
 
@@ -92,20 +89,10 @@ def build_dealer_supply_risk_table(history_rows):
             except ValueError:
                 pp = "→"
 
-        # Get wishlist pressure with OOS carryover
-        # If species is OUT now, carry forward last known pressure (bounded lookback)
-        # Use lookback_limit=5 to capture historical demand within reasonable window (same as breeder matrix)
         key = (sci, size)
-        if key in cur_keys:
-            # Species is IN current run
-            wishlist_pressure = wishlist_pressure_map.get(key, "❌")
-        else:
-            # Species is OUT - try to carry forward recent pressure
-            carried = get_oos_wishlist_carryover(key, by_run, runs, cur_run)
-            wishlist_pressure = carried if carried else "❌"
-
-        # Compute wishlist delta (momentum signal)
-        wishlist_delta = compute_wishlist_delta(key, by_run, runs, cur_run)
+        wishlist_pressure, wishlist_delta = get_wishlist_metrics(
+            key, by_run, runs, cur_run, wishlist_pressure_map
+        )
 
         # Dealer risk logic: Supply-first hierarchy with demand as modifier
         # Low reliability species escalate to 🔥 based on supply failure + demand signals
