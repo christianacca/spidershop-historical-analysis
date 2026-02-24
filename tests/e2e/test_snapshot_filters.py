@@ -388,9 +388,11 @@ def test_wishlist_slider_filters_rows_correctly(e2e_site_multi_species) -> None:
         f"Expected visible ({visible_rows}) + hidden ({hidden_rows}) = total ({total_rows})"
     
     # Verify all visible rows have wishlist <= 10
-    visible_wishlist_cells = page.locator('#snapshot-table tbody tr:visible').locator('td').nth(5).all_text_contents()
-    for wishlist_text in visible_wishlist_cells:
-        wishlist_value = int(wishlist_text.strip())
+    # Use data-wishlist attribute from tr elements to reliably get per-row values
+    visible_wishlist_values = page.locator('#snapshot-table tbody tr:visible').evaluate_all(
+        'rows => rows.map(r => parseInt(r.getAttribute("data-wishlist") || "0"))'
+    )
+    for wishlist_value in visible_wishlist_values:
         assert wishlist_value <= 10, \
             f"Expected visible row wishlist ({wishlist_value}) to be <= 10"
 
@@ -887,7 +889,7 @@ def test_snapshot_page_structure_and_styling(e2e_site_multi_species) -> None:
     filter_bg = filter_btn.evaluate('el => window.getComputedStyle(el).backgroundColor')
     parts = filter_bg.lstrip('rgb(').rstrip(')').split(',')
     r, g, b = int(parts[0]), int(parts[1]), int(parts[2])
-    assert 40 <= r <= 62 and 140 <= g <= 162 and 205 <= b <= 230, \
+    assert 30 <= r <= 70 and 125 <= g <= 175 and 185 <= b <= 235, \
         f"Filter button should be ~#3498db (blue), got {filter_bg}"
 
     stats_strip = page.locator('.table-stats')

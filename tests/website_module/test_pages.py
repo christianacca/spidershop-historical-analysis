@@ -92,32 +92,24 @@ class TestGenerateHomepage:
         assert 'dealer_supply_risk_table.csv' in hrefs
 
     def test_includes_about_section(self):
-        """Should include about section describing the project."""
+        """Should include disclaimer section with non-affiliation and as-is notice."""
         html = generate_homepage()
         soup = BeautifulSoup(html, 'html.parser')
         
-        # Find h3 with "About This Project"
+        # Find h3 with "Disclaimer"
         headings = soup.find_all('h3')
-        about_heading = [h for h in headings if 'About This Project' in h.text]
-        assert len(about_heading) == 1
+        disclaimer_heading = [h for h in headings if 'Disclaimer' in h.text]
+        assert len(disclaimer_heading) == 1
         
-        # Check for "automatically scrapes" text (case insensitive)
-        assert 'automatically scrapes' in html.lower()
+        # Check for non-affiliation text
+        assert 'not affiliated' in html.lower()
 
     def test_includes_data_description(self):
-        """Should describe what data is collected."""
+        """Should include as-is / no-liability disclaimer text."""
         html = generate_homepage()
-        soup = BeautifulSoup(html, 'html.parser')
         
-        # Find the list describing captured data
-        lists = soup.find_all('ul')
-        data_description_found = False
-        for ul in lists:
-            list_text = ul.text
-            if all(term in list_text for term in ['Scientific name', 'Common name', 'Size', 'Price']):
-                data_description_found = True
-                break
-        assert data_description_found
+        assert 'as is' in html.lower()
+        assert 'no liability' in html.lower() or 'accepts no liability' in html.lower()
 
     def test_active_page_is_home(self):
         """Should mark home as active page in navigation."""
@@ -138,7 +130,7 @@ class TestGenerateSnapshotPage:
         "size_cm", "price_gbp", "wishlist_count", "page_url",
     ]
     _ALL_DISPLAY_HEADERS = [
-        "Scrape Date", "Scientific Name", "Common Name",
+        "Scientific Name", "Common Name",
         "Size (cm)", "Price (GBP)", "Wishlist Count", "Page URL",
     ]
 
@@ -458,6 +450,10 @@ class TestGenerateSnapshotPage:
             strong = legend_details[0].find('strong', string='Legend')
             assert strong is not None
 
+            # Legend details must have id="legend-section" so the anchor link can target it
+            assert legend_details[0].get('id') == 'legend-section', \
+                "Legend <details> must have id='legend-section' for the anchor link to work"
+
     def test_omits_legend_when_none(self):
         """Should omit legend when not provided."""
         csv_content = "Col\n"
@@ -508,6 +504,12 @@ class TestGenerateSnapshotPage:
             assert 'signal' in text.lower()
             assert 'stock pattern' in text.lower()
 
+            # Should have a subtle anchor linking to the legend section
+            legend_link = instruction_box.find('a', attrs={'data-action': 'open-details'})
+            assert legend_link is not None, "Instruction box should have a legend anchor link"
+            assert legend_link.get('href') == '#legend-section'
+            assert legend_link.get('data-target') == 'legend-section'
+
     def test_includes_instruction_box_for_dealer_page(self):
         """Should include 'How to use this page' instruction box for dealer pages."""
         csv_content = "Species,Size (cm),Risk\nTest Spider,1.5,🔥\n"
@@ -539,6 +541,12 @@ class TestGenerateSnapshotPage:
             assert 'restock' in text.lower()
             assert 'inventory' in text.lower()
 
+            # Should have a subtle anchor linking to the legend section
+            legend_link = instruction_box.find('a', attrs={'data-action': 'open-details'})
+            assert legend_link is not None, "Instruction box should have a legend anchor link"
+            assert legend_link.get('href') == '#legend-section'
+            assert legend_link.get('data-target') == 'legend-section'
+
     def test_omits_instruction_box_for_snapshot_page(self):
         """Should NOT include instruction box for snapshot pages (simple pages)."""
         csv_content = "Col\n"
@@ -555,7 +563,8 @@ class TestGenerateSnapshotPage:
             assert instruction_box is None, "Snapshot pages should not have instruction box"
 
     def test_table_headers_use_proper_english_display_names(self):
-        """All raw CSV column names must be replaced with proper English in <th> elements."""
+        """All raw CSV column names must be replaced with proper English in <th> elements.
+        scrape_datetime is excluded from the table and shown in an info box instead."""
         row = ",".join(["2026-01-15T06:10+00:00", "Species A", "Common A",
                         "1.5", "25.00", "5", "http://example.com"])
         csv_content = ",".join(self._ALL_CSV_COLUMNS) + "\n" + row + "\n"
@@ -577,6 +586,14 @@ class TestGenerateSnapshotPage:
                 assert display in th_texts, (
                     f"Expected display header '{display}' not found in table headers: {th_texts}"
                 )
+            assert "Scrape Date" not in th_texts, (
+                "Scrape Date should not appear as a table column (shown in stats strip instead)"
+            )
+
+            # scrape_date shown in the table-stats strip, not a separate info-box
+            stats_strip = soup.find(class_="table-stats")
+            assert stats_strip is not None, "Should have a table-stats strip"
+            assert "Scraped" in stats_strip.get_text(), "Stats strip should show scrape date"
 
 
 class TestPageConfig:

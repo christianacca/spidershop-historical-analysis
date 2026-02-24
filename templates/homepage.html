@@ -15,51 +15,33 @@
     {% endif %}
     
     <p>This website provides historical pricing data and market analysis for tarantula spiderlings from The Spider Shop UK. The data is automatically scraped and updated weekly.</p>
-    
+
     <h3>Available Data</h3>
     
     <div class="card-grid">
+        {% for item in nav_items %}
+        {% if item.card_description %}
         <div class="card">
-            <h3>📸 Latest Snapshot</h3>
-            <p>View the most recent scrape of all available spiderling listings, including scientific names, common names, sizes, and prices.</p>
-            <a href="snapshot.html">View Snapshot →</a>
+            <h3>{{ item.icon }} {{ item.label }}</h3>
+            <p>{{ item.card_description }}</p>
+            <a href="{{ item.url }}">{{ item.card_link_text }} →</a>
         </div>
-        
-        <div class="card">
-            <h3>📊 Historical Data</h3>
-            <p>Explore accumulated pricing data across all scrapes to track trends and price changes over time.</p>
-            <a href="history.html">View History →</a>
-        </div>
-        
-        <div class="card">
-            <h3>🌱 Breeder Opportunities</h3>
-            <p>Analysis showing breeding opportunities based on market trends and pricing patterns.</p>
-            <a href="breeder.html">View Analysis →</a>
-        </div>
-        
-        <div class="card">
-            <h3>📦 Dealer Supply Risk</h3>
-            <p>Analysis highlighting inventory availability patterns and supply risk indicators.</p>
-            <a href="dealer.html">View Analysis →</a>
-        </div>
+        {% endif %}
+        {% endfor %}
     </div>
     
     <h3>Download Raw Data</h3>
     <div class="download-links">
-        <a href="spidershop_spiderlings_scrape.csv" download class="btn btn-primary">⬇️ Download Snapshot CSV</a>
-        <a href="spidershop_spiderlings_history.csv" download class="btn btn-primary">⬇️ Download History CSV</a>
-        <a href="breeder_opportunity_table.csv" download class="btn btn-primary">⬇️ Download Breeder Table CSV</a>
-        <a href="dealer_supply_risk_table.csv" download class="btn btn-primary">⬇️ Download Dealer Table CSV</a>
+        <a href="spidershop_spiderlings_scrape.csv" download class="btn btn-download">⬇️ Download Snapshot CSV</a>
+        <a href="spidershop_spiderlings_history.csv" download class="btn btn-download">⬇️ Download History CSV</a>
+        <a href="breeder_opportunity_table.csv" download class="btn btn-download">⬇️ Download Breeder Table CSV</a>
+        <a href="dealer_supply_risk_table.csv" download class="btn btn-download">⬇️ Download Dealer Table CSV</a>
     </div>
     
-    <h3>About This Project</h3>
-    <p>This project automatically scrapes tarantula spiderling listings from The Spider Shop UK website on a weekly schedule. The data captures:</p>
-    <ul class="about-list">
-        <li><strong>Scientific name</strong> (Genus + species)</li>
-        <li><strong>Common name</strong> (descriptive name)</li>
-        <li><strong>Size</strong> (in centimeters)</li>
-        <li><strong>Price</strong> (in GBP)</li>
-    </ul>
-    <p>The collected data is used to track pricing history over time for market analysis and generate opportunity matrices for breeders and dealers.</p>
+    <div class="disclaimer">
+        <h3>Disclaimer</h3>
+        <p><strong>This site is not affiliated with, endorsed by, or associated with The Spider Shop UK in any way.</strong> It is an independent project that collects publicly available data for personal analysis purposes.</p>
+        <p>All data and analysis is provided <strong>"as is"</strong> without any warranty of accuracy, completeness, or fitness for a particular purpose. The author accepts no liability for any decisions made or consequences arising from use of this information.</p>
+    </div>
 </div>
 {% endblock %}

@@ -18,11 +18,9 @@
     <nav>
         <div class="container">
             <ul>
-                <li><a href="{{ path_prefix }}index.html" class="{% if active_page == 'home' %}active{% endif %}">Home</a></li>
-                <li><a href="{{ path_prefix }}snapshot.html" class="{% if active_page == 'snapshot' %}active{% endif %}">Latest Snapshot</a></li>
-                <li><a href="{{ path_prefix }}history.html" class="{% if active_page == 'history' %}active{% endif %}">Historical Data</a></li>
-                <li><a href="{{ path_prefix }}breeder.html" class="{% if active_page == 'breeder' %}active{% endif %}">Breeder Opportunities</a></li>
-                <li><a href="{{ path_prefix }}dealer.html" class="{% if active_page == 'dealer' %}active{% endif %}">Dealer Supply Risk</a></li>
+                {% for item in nav_items %}
+                <li><a href="{{ path_prefix }}{{ item.url }}" class="{% if active_page == item.active_page %}active{% endif %}">{{ item.icon }} {{ item.label }}</a></li>
+                {% endfor %}
             </ul>
         </div>
     </nav>

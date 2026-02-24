@@ -19,11 +19,11 @@
   <nav>
   <div class="container">
   <ul>
-  <li><a class="" href="index.html">Home</a></li>
-  <li><a class="" href="snapshot.html">Latest Snapshot</a></li>
-  <li><a class="" href="history.html">Historical Data</a></li>
-  <li><a class="" href="breeder.html">Breeder Opportunities</a></li>
-  <li><a class="" href="dealer.html">Dealer Supply Risk</a></li>
+  <li><a class="" href="index.html">🏠 Home</a></li>
+  <li><a class="" href="snapshot.html">📸 Latest Snapshot</a></li>
+  <li><a class="" href="history.html">📊 Historical Data</a></li>
+  <li><a class="" href="breeder.html">🌱 Breeder Opportunities</a></li>
+  <li><a class="" href="dealer.html">📦 Dealer Supply Risk</a></li>
   </ul>
   </div>
   </nav>
