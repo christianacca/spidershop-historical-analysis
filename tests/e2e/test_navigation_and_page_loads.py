@@ -139,7 +139,7 @@ def test_data_tables_styled_consistently_all_pages(e2e_site_minimal) -> None:
 
 @pytest.mark.e2e
 def test_homepage_styling(e2e_site_minimal) -> None:
-    """Homepage card grid, link/border colors, info-box, and about-list should be correctly styled."""
+    """Homepage card grid, link/border colors, info-box, and disclaimer section should be correctly styled."""
     page, base_url, errors = e2e_site_minimal
 
     page.goto(f"{base_url}/index.html", wait_until="domcontentloaded")
@@ -174,11 +174,8 @@ def test_homepage_styling(e2e_site_minimal) -> None:
     assert 'rgb(52, 152, 219)' in border_left, \
         f"Info-box left-border should be blue, got {border_left}"
 
-    about_list = page.locator('.about-list')
-    assert about_list.count() >= 1, "Homepage should have .about-list element"
-    margin_top = about_list.first.evaluate('el => window.getComputedStyle(el).marginTop')
-    margin_bottom = about_list.first.evaluate('el => window.getComputedStyle(el).marginBottom')
-    margin_left = about_list.first.evaluate('el => window.getComputedStyle(el).marginLeft')
-    assert margin_top == '15px', f".about-list should have margin-top: 15px, got {margin_top}"
-    assert margin_bottom == '15px', f".about-list should have margin-bottom: 15px, got {margin_bottom}"
-    assert margin_left == '30px', f".about-list should have margin-left: 30px, got {margin_left}"
+    disclaimer = page.locator('.disclaimer')
+    assert disclaimer.count() >= 1, "Homepage should have .disclaimer element"
+    disclaimer_text = disclaimer.first.text_content()
+    assert 'not affiliated' in disclaimer_text.lower(), \
+        f".disclaimer should contain affiliation notice, got: {disclaimer_text[:80]}"
