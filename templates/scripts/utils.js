@@ -112,7 +112,7 @@ export class RangeSlider {
  * @param {string} tableId - ID of the table element
  * @param {HTMLElement} button - Button that triggered the filter
  */
-export function filterByAttribute(attributeName, filterValue, tableId, button) {
+export function filterByAttribute(attributeName, filterValue, tableId, button, limit = null) {
   const table = getElement(tableId);
   if (!table) return;
   
@@ -120,9 +120,13 @@ export function filterByAttribute(attributeName, filterValue, tableId, button) {
   
   setActiveButton(button);
   
+  let matchCount = 0;
   rows.forEach(row => {
     const attrValue = row.getAttribute(attributeName);
-    const shouldShow = filterValue === 'all' || attrValue === filterValue;
+    const matches = filterValue === 'all' || attrValue === filterValue;
+    const withinLimit = limit === null || matchCount < limit;
+    const shouldShow = matches && withinLimit;
+    if (matches) matchCount++;
     toggleRowVisibility(row, shouldShow);
   });
   

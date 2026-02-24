@@ -55,7 +55,8 @@ function initSignalFilters() {
       button.addEventListener('click', function() {
         const signal = this.dataset.signal;
         const tableId = this.dataset.tableId;
-        filterByAttribute('data-signal', signal, tableId, this);
+        const limit = this.dataset.limit ? parseInt(this.dataset.limit, 10) : null;
+        filterByAttribute('data-signal', signal, tableId, this, limit);
       });
     });
   }

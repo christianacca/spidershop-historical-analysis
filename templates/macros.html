@@ -72,6 +72,7 @@
     <strong class="filter-label">🎯 {{ signal_label }}:</strong>
     <div class="filter-buttons-container">
         <button class="filter-btn active" data-action="filter-signal" data-signal="all" data-table-id="{{ table_id }}">Show All{% if summary_stats %} ({{ summary_stats.total }}){% endif %}</button>
+        <button class="filter-btn" data-action="filter-signal" data-signal="🔥" data-limit="10" data-table-id="{{ table_id }}">🔥 Hot (top 10)</button>
         <button class="filter-btn" data-action="filter-signal" data-signal="🔥" data-table-id="{{ table_id }}">🔥 Hot{% if summary_stats %} ({{ summary_stats.hot }}){% endif %}</button>
         <button class="filter-btn" data-action="filter-signal" data-signal="⚠️" data-table-id="{{ table_id }}">⚠️ Watch{% if summary_stats %} ({{ summary_stats.watch }}){% endif %}</button>
         <button class="filter-btn" data-action="filter-signal" data-signal="❌" data-table-id="{{ table_id }}">❌ Avoid{% if summary_stats %} ({{ summary_stats.avoid }}){% endif %}</button>

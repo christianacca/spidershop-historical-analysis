@@ -430,6 +430,101 @@ def write_multi_species_test_data(cwd: Path) -> None:
     )
 
 
+def write_large_table_test_data(cwd: Path) -> None:
+    """Write test data with 20 breeder species for top-10 filter limit tests.
+
+    Creates 20 breeder rows to verify the 'Hot (top 10)' filter correctly caps
+    visible rows at 10 even when more than 10 Hot rows exist:
+    - 15 species with signal 🔥 (Hot)
+    - 3 species with signal ⚠️ (Watch)
+    - 2 species with signal ❌ (Avoid)
+    """
+    from helpers.test_helpers import (
+        HistoryEntry,
+        BreederEntry,
+        DealerEntry,
+        create_history_csv_content,
+        create_breeder_csv_content,
+        create_dealer_csv_content,
+    )
+
+    hot_species = [f"Hot Species {i+1:02d}" for i in range(15)]
+    watch_species = [f"Watch Species {i+1:02d}" for i in range(3)]
+    avoid_species = [f"Avoid Species {i+1:02d}" for i in range(2)]
+    all_species = hot_species + watch_species + avoid_species
+
+    history_entries = [
+        HistoryEntry(
+            scrape_datetime="2026-01-01",
+            scientific_name=name,
+            common_name=name,
+            size_cm="1.5",
+            price_gbp="25.00",
+            wishlist_count="5",
+        )
+        for name in all_species
+    ]
+
+    breeder_entries = (
+        [
+            BreederEntry(
+                species=name,
+                size_cm="1.5",
+                signal="🔥",
+                oos_runs="4",
+                stock_pattern="Sustained",
+            )
+            for name in hot_species
+        ]
+        + [
+            BreederEntry(
+                species=name,
+                size_cm="1.5",
+                signal="⚠️",
+                oos_runs="2",
+                stock_pattern="Emerging",
+            )
+            for name in watch_species
+        ]
+        + [
+            BreederEntry(
+                species=name,
+                size_cm="1.5",
+                signal="❌",
+                oos_runs="0",
+                stock_pattern="Always",
+            )
+            for name in avoid_species
+        ]
+    )
+
+    (cwd / "spidershop_spiderlings_scrape.csv").write_text(
+        create_history_csv_content(history_entries), encoding="utf-8"
+    )
+    (cwd / "spidershop_spiderlings_history.csv").write_text(
+        create_history_csv_content(history_entries), encoding="utf-8"
+    )
+    (cwd / "breeder_opportunity_table.csv").write_text(
+        create_breeder_csv_content(breeder_entries), encoding="utf-8"
+    )
+    (cwd / "dealer_supply_risk_table.csv").write_text(
+        create_dealer_csv_content(
+            [
+                DealerEntry(species=name, size_cm="1.5", risk="🔥", stock_reliability="Low", restock_speed="Slow")
+                for name in all_species
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (cwd / "analysis_summary.md").write_text(
+        "## 🧬 Breeder Opportunity Matrix (Top 10)\n\n"
+        "**Summary:** 20 species analyzed | 🔥 Hot: 15 | ⚠️ Watch: 3 | ❌ Avoid: 2\n\n"
+        "## 🏦 Dealer Supply Risk Matrix (Top 10)\n\n"
+        "**Summary:** 20 species analyzed | 🔥 High Risk: 20 | ⚠️ Moderate Risk: 0 | ❌ Low Risk: 0\n",
+        encoding="utf-8",
+    )
+
+
 def write_history_multi_date_test_data(cwd: "Path") -> None:
     """Write test data with 3 species across 3 weekly dates for date filter tests.
 

@@ -103,8 +103,8 @@ def test_signal_filtering_on_breeder_table(e2e_site_multi_species) -> None:
     all_rows = page.locator('#breeder-table tbody tr').count()
     assert all_rows == 5, "Expected 5 species in test data"
     
-    # Click "🔥 Hot" filter button
-    hot_button = page.locator('button:has-text("🔥")')
+    # Click "🔥 Hot" filter button (use specific selector to avoid matching Hot (top 10))
+    hot_button = page.locator('button[data-action="filter-signal"][data-signal="🔥"]:not([data-limit])')
     hot_button.click()
     page.wait_for_timeout(100)
     
@@ -248,8 +248,8 @@ def test_combined_signal_and_stock_pattern_filters(e2e_site_multi_species) -> No
         advanced_toggle.click()
         page.wait_for_timeout(200)
     
-    # Apply signal filter: 🔥 Hot
-    hot_button = page.locator('button:has-text("🔥")')
+    # Apply signal filter: 🔥 Hot (use specific selector to avoid matching Hot (top 10))
+    hot_button = page.locator('button[data-action="filter-signal"][data-signal="🔥"]:not([data-limit])')
     hot_button.click()
     page.wait_for_timeout(100)
     
