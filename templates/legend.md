@@ -44,28 +44,13 @@
 - Shows pricing stability or volatility at a glance
 - Example: `▁▂▃▄▅▆▇█` shows steady price increases over 8 weeks
 
-**Wishlist Pressure** (Demand Amplifier)
+**Wishlist** (Count · Demand Tier · Momentum)
 
-- Represents **latent demand** (buyer interest, not sales)
-- Calculated using **relative ranking** within the current run (not absolute thresholds)
-- `🔥` — High wishlist pressure (top tier of current interest)
-- `⚠️` — Moderate wishlist pressure (middle range)
-- `❌` — Low or no wishlist pressure (bottom tier or zero interest)
-- For **OUT-of-stock** species: carries forward the most recent pressure from when it was IN (up to 5 runs back)
-- **Influence:** Can elevate `Emerging` patterns to 🔥 when combined with rising momentum
-- Can prevent `Always` patterns from being dismissed when demand is high
-- Never overrides `Sustained` scarcity signals (already definitive)
-
-**Wishlist Delta**
-
-- Measures **meaningful change in wishlist interest** between current and previous IN-stock observations
-- `↑` — Buyer interest increasing meaningfully (Delta ≥ +5)
-- `→` — Interest stable or within noise threshold (−4 ≤ Delta ≤ +4)
-- `↓` — Buyer interest declining meaningfully (Delta ≤ −5)
-- Calculated conservatively to avoid false signals from minor fluctuations
-- Uses bounded carryover for OUT-of-stock species (up to 3 runs back)
-- Acts as a **momentum modifier**, not a standalone signal
-- Can escalate or prevent escalation of emerging opportunities
+- Shows `count tier momentum` (e.g., `57 🔥 →`) — the raw wishlist count, relative demand tier, and momentum signal
+- **Count** — raw wishlist count (higher = more buyer interest); table sorts by count descending within each signal group
+- **Tier** (`🔥`/`⚠️`/`❌`) — relative ranking within the current run (not absolute thresholds); for **OUT-of-stock** species carries forward from most recent IN-stock run (up to 5 runs back)
+- **Momentum** (`↑`/`→`/`↓`) — meaningful change between current and previous IN-stock observations (±5 threshold); uses bounded carryover for OUT species (up to 3 runs back); returns `→` when no comparable value found
+- **Influence:** Tier can elevate `Emerging` patterns to 🔥 when combined with rising momentum; can prevent `Always` patterns from being dismissed when demand is high; never overrides `Sustained` scarcity signals
 
 **Wishlist History** (Trend Visualization)
 
@@ -84,7 +69,7 @@
 
 **Recommendation** (Final Assessment)
 
-- Combines **Stock Pattern + Price Trend + Wishlist Pressure**
+- Combines **Stock Pattern + Price Trend + Wishlist**
 - **Hierarchy:** Stock Pattern is primary (~70% influence), Price Trend and Wishlist together provide ~30% refinement
 - Modifiers can escalate signals but never override the base pattern category
 - Example: `Sustained` scarcity cannot be downgraded by falling prices
@@ -140,17 +125,13 @@
 - Shows pricing stability or volatility at a glance
 - Example: `▁▂▃▄▅▆▇█` shows steady price increases over 8 weeks
 
-**Wishlist Delta** (Momentum Modifier)
+**Wishlist** (Count · Demand Tier · Momentum)
 
-- Measures **meaningful change in wishlist interest** between current and previous IN-stock observations
-- `↑` — Buyer interest increasing meaningfully (Delta ≥ +5)
-- `→` — Interest stable or within noise threshold (−4 ≤ Delta ≤ +4)
-- `↓` — Buyer interest declining meaningfully (Delta ≤ −5)
-- Calculated conservatively to avoid false signals from minor fluctuations
-- Uses bounded carryover for OUT-of-stock species (up to 3 runs back)
-- **Influence:** Can escalate `Medium` reliability + high pressure to 🔥 when rising (surging demand)
-- Can prevent `High` reliability from being dismissed when falling (declining interest)
-- Acts as a **momentum modifier**, not a standalone signal
+- Shows `count tier momentum` (e.g., `57 🔥 →`) — the raw wishlist count, relative demand tier, and momentum signal
+- **Count** — raw wishlist count (higher = more buyer interest); table sorts by count descending within each risk group
+- **Tier** (`🔥`/`⚠️`/`❌`) — relative ranking within the current run; for **OUT-of-stock** species carries forward from most recent IN-stock run (up to 5 runs back)
+- **Momentum** (`↑`/`→`/`↓`) — meaningful change between observations (±5 threshold); bounded carryover for OUT species (up to 3 runs back); returns `→` when no comparable value found
+- **Influence:** Tier escalates `Low` or `Medium` reliability to 🔥 when combined with poor supply stability; rising momentum can escalate `Medium` reliability + high tier to 🔥; falling momentum reinforces `High` reliability ❌
 
 **Wishlist History** (Trend Visualization)
 
@@ -160,18 +141,6 @@
 - When species is OUT of stock, last known wishlist count is carried forward (interest persists)
 - Shows demand trajectory and momentum at a glance
 - Example: `▁▂▄▆█` shows accelerating interest over 5 weeks
-
-**Wishlist Pressure** (Demand Amplifier)
-
-- Represents **latent demand** (buyer interest, not sales)
-- Calculated using **relative ranking** within the current run (not absolute thresholds)
-- `🔥` — High wishlist pressure (top tier of current interest)
-- `⚠️` — Moderate wishlist pressure (middle range)
-- `❌` — Low or no wishlist pressure (bottom tier or zero interest)
-- For **OUT-of-stock** species: carries forward the most recent pressure from when it was IN (up to 5 runs back)
-- **Influence:** Escalates `Low` or `Medium` reliability to 🔥 when combined with poor supply stability
-- Can prevent `Medium` reliability from escalating to 🔥 when interest is weak
-- Never overrides `High` reliability (already well-supplied)
 
 **Stock Availability** (Supply Pattern Visualization)
 
@@ -193,7 +162,7 @@
 
 **Dealer Recommendation** (Final Assessment)
 
-- Combines **Stock Reliability + Restock Speed + Wishlist Pressure + Wishlist Delta**
+- Combines **Stock Reliability + Restock Speed + Wishlist**
 - **Hierarchy:** Supply metrics (Reliability + Restock Speed) are primary (~75% influence), demand signals provide ~25% refinement
 - Demand modifiers escalate urgency for supply-constrained species but cannot override healthy supply
 - Example: `Low` reliability + `Slow` restock = 🔥 regardless of wishlist interest

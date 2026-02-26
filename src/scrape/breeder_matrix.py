@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from shared.history_utils import group_by_run, k2
 from shared.config import BREEDER_TABLE_FILE, SIGNAL_PRIORITY, TREND_PRIORITY
-from scrape.wishlist_analysis import compute_wishlist_pressure, get_wishlist_metrics
+from scrape.wishlist_analysis import compute_wishlist_pressure, get_wishlist_metrics, get_wishlist_count
 from shared.sparkline_helpers import extract_historical_values_with_carryforward
 from shared.driver_text_helpers import build_drivers_text
 from shared.csv_utils import write_matrix_csv
@@ -165,6 +165,8 @@ def build_breeder_opportunity_table(history_rows):
             key, by_run, runs, cur_run, wishlist_pressure_map
         )
 
+        wishlist_count = get_wishlist_count(key, by_run, runs, cur_run)
+
         # Recommendation logic (conservative wishlist integration with delta)
         # Base signal driven by Pattern + Price Trend (unchanged)
         # Wishlist can upgrade confidence or escalate emerging signals
@@ -240,20 +242,17 @@ def build_breeder_opportunity_table(history_rows):
             "Stock Pattern": pattern,
             "Price Trend": price_trend,
             "Price History": price_sparkline,
-            "Wishlist Pressure": wishlist_pressure,
-            "Wishlist Delta": wishlist_delta,
+            "Wishlist": f"{wishlist_count} {wishlist_pressure} {wishlist_delta}",
             "Wishlist History": wishlist_sparkline,
             "Signal": signal,
             "Recommendation": rec,
             "Drivers": drivers
         })
 
-    # Sort: Signal priority (🔥 > ⚠️ > ❌), then Wishlist Pressure (🔥 > ⚠️ > ❌), 
-    # then Wishlist Delta (↑ > → > ↓), then OOS Runs (desc)
+    # Sort: Signal priority (🔥 > ⚠️ > ❌), then Wishlist count (desc), then OOS Runs (desc)
     table.sort(key=lambda r: (
         SIGNAL_PRIORITY[r["Signal"]],
-        SIGNAL_PRIORITY[r["Wishlist Pressure"]],
-        TREND_PRIORITY[r["Wishlist Delta"]],
+        -int(r["Wishlist"].split()[0]) if r.get("Wishlist", "").split() else 0,
         -int(r["OOS Runs"])
     ))
     return table
@@ -261,7 +260,7 @@ def build_breeder_opportunity_table(history_rows):
 def write_breeder_outputs(table):
     fallback_fieldnames = [
         "Species", "Size (cm)", "OOS", "OOS Runs", "Stock Pattern",
-        "Price Trend", "Price History", "Wishlist Pressure", "Wishlist Delta",
+        "Price Trend", "Price History", "Wishlist",
         "Wishlist History", "Signal", "Recommendation", "Drivers",
     ]
     write_matrix_csv(BREEDER_TABLE_FILE, table, fallback_fieldnames)
@@ -274,7 +273,7 @@ def write_breeder_outputs(table):
         indicator_labels={"🔥": "Hot", "⚠️": "Watch", "❌": "Avoid"},
         table_columns=[
             "Species", "Size (cm)", "OOS", "OOS Runs", "Stock Pattern",
-            "Price Trend", "Price History", "Wishlist Pressure", "Wishlist Delta",
+            "Price Trend", "Price History", "Wishlist",
             "Wishlist History", "Signal", "Recommendation",
         ],
     )

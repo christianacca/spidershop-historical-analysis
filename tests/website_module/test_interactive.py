@@ -42,8 +42,8 @@ class TestInteractiveFilterButtons:
         
         button_texts = [btn.get_text(strip=True) for btn in buttons]
         assert 'Show All' in button_texts[0], "Should have Show All button"
-        assert '🔥' in button_texts[1], "Should have Hot button with emoji"
-        assert 'top 10' in button_texts[2].lower(), "Should have Hot (top 10) button"
+        assert 'top 10' in button_texts[1].lower(), "Should have Hot (top 10) button"
+        assert '🔥' in button_texts[2] and 'top 10' not in button_texts[2].lower(), "Should have plain Hot button"
         assert '⚠️' in button_texts[3], "Should have Watch button with emoji"
         assert '❌' in button_texts[4], "Should have Avoid button with emoji"
 

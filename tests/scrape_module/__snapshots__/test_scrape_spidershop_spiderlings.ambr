@@ -21,21 +21,21 @@
   
   **Summary:** 3 species analyzed | 🔥 Hot: 1 | ⚠️ Watch: 1 | ❌ Avoid: 1
   
-  | Species | Size (cm) | OOS | OOS Runs | Stock Pattern | Price Trend | Price History | Wishlist Pressure | Wishlist Delta | Wishlist History | Signal | Recommendation |
-  |---|---:|---|---:|---|---|---|---|---|---|---|---|
-  | Cyriocosmus elegans | 0.5 | OUT | 4 | Sustained | → | ▄▄▄▄▄ | 🔥 | → | ▄▄▄▄▄ | 🔥 | Pair soon — sustained scarcity with strong buyer interest |
-  | Grammostola pulchra | 2.0 | IN | 0 | Always | → | ▄ | 🔥 | → | ▄ | ⚠️ | Watch closely — high latent demand |
-  | Aphonopelma seemanni | 1.0 | IN | 0 | Always | ↑ | ▁▄▅▇█ | ❌ | → | ▁▄▄██ | ❌ | Avoid for profit — oversupplied |
+  | Species | Size (cm) | OOS | OOS Runs | Stock Pattern | Price Trend | Price History | Wishlist | Wishlist History | Signal | Recommendation |
+  |---|---:|---|---:|---|---|---|---|---|---|---|
+  | Cyriocosmus elegans | 0.5 | OUT | 4 | Sustained | → | ▄▄▄▄▄ | 15 🔥 → | ▄▄▄▄▄ | 🔥 | Pair soon — sustained scarcity with strong buyer interest |
+  | Grammostola pulchra | 2.0 | IN | 0 | Always | → | ▄ | 15 🔥 → | ▄ | ⚠️ | Watch closely — high latent demand |
+  | Aphonopelma seemanni | 1.0 | IN | 0 | Always | ↑ | ▁▄▅▇█ | 5 ❌ → | ▁▄▄██ | ❌ | Avoid for profit — oversupplied |
   
   ## 🏪 Dealer Supply Risk Matrix (Top 10)
   
   **Summary:** 3 species analyzed | 🔥 High Risk: 2 | ⚠️ Moderate Risk: 0 | ❌ Low Risk: 1
   
-  | Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Price History | Wishlist Pressure | Wishlist Delta | Wishlist History | Stock Availability | Dealer Risk | Dealer Recommendation |
-  |---|---:|---|---:|---|---|---|---|---|---|---|---|---|
-  | Cyriocosmus elegans | 0.5 | Low | 4.0 | Slow | → | ▄▄▄▄▄ | 🔥 | → | ▄▄▄▄▄ | █     | 🔥 | Actively seek breeders — high demand, poor supply |
-  | Grammostola pulchra | 2.0 | Low | 4.0 | Slow | → | ▄ | 🔥 | → | ▄ |     █ | 🔥 | Actively seek breeders — high demand, poor supply |
-  | Aphonopelma seemanni | 1.0 | High | 0 | Fast | ↑ | ▁▄▅▇█ | ❌ | → | ▁▄▄██ | █████ | ❌ | No urgency / oversupplied |
+  | Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Price History | Wishlist | Wishlist History | Stock Availability | Dealer Risk | Dealer Recommendation |
+  |---|---:|---|---:|---|---|---|---|---|---|---|---|
+  | Cyriocosmus elegans | 0.5 | Low | 4.0 | Slow | → | ▄▄▄▄▄ | 15 🔥 → | ▄▄▄▄▄ | █     | 🔥 | Actively seek breeders — high demand, poor supply |
+  | Grammostola pulchra | 2.0 | Low | 4.0 | Slow | → | ▄ | 15 🔥 → | ▄ |     █ | 🔥 | Actively seek breeders — high demand, poor supply |
+  | Aphonopelma seemanni | 1.0 | High | 0 | Fast | ↑ | ▁▄▅▇█ | 5 ❌ → | ▁▄▄██ | █████ | ❌ | No urgency / oversupplied |
   
   <details>
   <summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>
@@ -82,28 +82,13 @@
   - Shows pricing stability or volatility at a glance
   - Example: `▁▂▃▄▅▆▇█` shows steady price increases over 8 weeks
   
-  **Wishlist Pressure** (Demand Amplifier)
+  **Wishlist** (Count · Demand Tier · Momentum)
   
-  - Represents **latent demand** (buyer interest, not sales)
-  - Calculated using **relative ranking** within the current run (not absolute thresholds)
-  - `🔥` — High wishlist pressure (top tier of current interest)
-  - `⚠️` — Moderate wishlist pressure (middle range)
-  - `❌` — Low or no wishlist pressure (bottom tier or zero interest)
-  - For **OUT-of-stock** species: carries forward the most recent pressure from when it was IN (up to 5 runs back)
-  - **Influence:** Can elevate `Emerging` patterns to 🔥 when combined with rising momentum
-  - Can prevent `Always` patterns from being dismissed when demand is high
-  - Never overrides `Sustained` scarcity signals (already definitive)
-  
-  **Wishlist Delta**
-  
-  - Measures **meaningful change in wishlist interest** between current and previous IN-stock observations
-  - `↑` — Buyer interest increasing meaningfully (Delta ≥ +5)
-  - `→` — Interest stable or within noise threshold (−4 ≤ Delta ≤ +4)
-  - `↓` — Buyer interest declining meaningfully (Delta ≤ −5)
-  - Calculated conservatively to avoid false signals from minor fluctuations
-  - Uses bounded carryover for OUT-of-stock species (up to 3 runs back)
-  - Acts as a **momentum modifier**, not a standalone signal
-  - Can escalate or prevent escalation of emerging opportunities
+  - Shows `count tier momentum` (e.g., `57 🔥 →`) — the raw wishlist count, relative demand tier, and momentum signal
+  - **Count** — raw wishlist count (higher = more buyer interest); table sorts by count descending within each signal group
+  - **Tier** (`🔥`/`⚠️`/`❌`) — relative ranking within the current run (not absolute thresholds); for **OUT-of-stock** species carries forward from most recent IN-stock run (up to 5 runs back)
+  - **Momentum** (`↑`/`→`/`↓`) — meaningful change between current and previous IN-stock observations (±5 threshold); uses bounded carryover for OUT species (up to 3 runs back); returns `→` when no comparable value found
+  - **Influence:** Tier can elevate `Emerging` patterns to 🔥 when combined with rising momentum; can prevent `Always` patterns from being dismissed when demand is high; never overrides `Sustained` scarcity signals
   
   **Wishlist History** (Trend Visualization)
   
@@ -122,7 +107,7 @@
   
   **Recommendation** (Final Assessment)
   
-  - Combines **Stock Pattern + Price Trend + Wishlist Pressure**
+  - Combines **Stock Pattern + Price Trend + Wishlist**
   - **Hierarchy:** Stock Pattern is primary (~70% influence), Price Trend and Wishlist together provide ~30% refinement
   - Modifiers can escalate signals but never override the base pattern category
   - Example: `Sustained` scarcity cannot be downgraded by falling prices

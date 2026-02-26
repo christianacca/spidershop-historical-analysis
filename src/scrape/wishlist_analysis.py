@@ -272,3 +272,50 @@ def get_wishlist_metrics(key, by_run, runs, cur_run, wishlist_pressure_map):
     wishlist_delta = compute_wishlist_delta(key, by_run, runs, cur_run)
 
     return wishlist_pressure, wishlist_delta
+
+
+def get_wishlist_count(key, by_run, runs, cur_run, lookback_limit=WISHLIST_OOS_CARRYOVER_LOOKBACK):
+    """Get the most recent known wishlist count for a species.
+
+    If the species is IN the current run, returns its current wishlist count.
+    If the species is OUT, walks back up to *lookback_limit* runs and returns
+    the count from the most recent IN-stock run (carryover), or 0 if none is
+    found within the window.
+
+    Args:
+        key: (scientific_name, size_cm) tuple.
+        by_run: dict mapping run datetime -> list of row dicts.
+        runs: sorted list of run datetimes.
+        cur_run: datetime of the current run.
+        lookback_limit: max number of recent runs to look back (default 5).
+
+    Returns:
+        int: wishlist count (0 if unavailable).
+    """
+    try:
+        cur_idx = runs.index(cur_run)
+    except ValueError:
+        return 0
+
+    cur_rows = by_run[cur_run]
+    cur_map = {(r.get("scientific_name", ""), r.get("size_cm", "")): r for r in cur_rows}
+
+    if key in cur_map:
+        try:
+            return int(cur_map[key].get("wishlist_count", "0") or "0")
+        except (ValueError, TypeError):
+            return 0
+
+    # OUT — walk back for last known count (same carryover logic as get_oos_wishlist_carryover)
+    lookback_start = max(0, cur_idx - lookback_limit)
+    for i in range(cur_idx - 1, lookback_start - 1, -1):
+        rt = runs[i]
+        run_rows = by_run[rt]
+        run_map = {(r.get("scientific_name", ""), r.get("size_cm", "")): r for r in run_rows}
+        if key in run_map:
+            try:
+                return int(run_map[key].get("wishlist_count", "0") or "0")
+            except (ValueError, TypeError):
+                return 0
+
+    return 0
