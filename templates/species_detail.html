@@ -81,13 +81,14 @@
         <div class="stat-label">OOS Runs (Current)</div>
         <div class="stat-note">Supply-side driver</div>
       </div>
-      <div class="stat-card stat-{% if species_data.breeder.wishlist_pressure == 'High' %}watch{% endif %}">
-        <div class="stat-value">{{ species_data.breeder.wishlist_pressure | default('—') }}</div>
+      {% set breeder_wishlist_parts = (species_data.breeder.wishlist | default('')).split() %}
+      <div class="stat-card stat-{% if (breeder_wishlist_parts[1] | default('')) == '🔥' %}hot{% elif (breeder_wishlist_parts[1] | default('')) == '⚠️' %}watch{% endif %}">
+        <div class="stat-value">{{ breeder_wishlist_parts[1] if breeder_wishlist_parts | length > 1 else '—' }}</div>
         <div class="stat-label">Wishlist Pressure</div>
         <div class="stat-note">Amplifier only</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value">{{ species_data.breeder.wishlist_delta | default('—') }}</div>
+        <div class="stat-value">{{ breeder_wishlist_parts[2] if breeder_wishlist_parts | length > 2 else '—' }}</div>
         <div class="stat-label">Wishlist Delta</div>
         <div class="stat-note">Meaningful change (Δ ≥ +5)</div>
       </div>
@@ -128,10 +129,16 @@
         <div class="stat-label">Restock Speed</div>
         <div class="stat-note">Avg OOS duration proxy</div>
       </div>
-      <div class="stat-card stat-{% if species_data.dealer.wishlist_pressure == 'High' %}watch{% endif %}">
-        <div class="stat-value">{{ species_data.dealer.wishlist_pressure | default('—') }}</div>
+      {% set dealer_wishlist_parts = (species_data.dealer.wishlist | default('')).split() %}
+      <div class="stat-card stat-{% if (dealer_wishlist_parts[1] | default('')) == '🔥' %}hot{% elif (dealer_wishlist_parts[1] | default('')) == '⚠️' %}watch{% endif %}">
+        <div class="stat-value">{{ dealer_wishlist_parts[1] if dealer_wishlist_parts | length > 1 else '—' }}</div>
         <div class="stat-label">Demand Context</div>
         <div class="stat-note">Wishlist is a modifier</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ dealer_wishlist_parts[2] if dealer_wishlist_parts | length > 2 else '—' }}</div>
+        <div class="stat-label">Wishlist Delta</div>
+        <div class="stat-note">Meaningful change (Δ ≥ +5)</div>
       </div>
     </div>
     {% else %}
