@@ -11,7 +11,7 @@ Covers:
 
 import pytest
 from shared.history_utils import group_by_run
-from scrape.wishlist_analysis import compute_wishlist_pressure, get_wishlist_metrics
+from scrape.wishlist_analysis import compute_wishlist_pressure, get_wishlist_metrics, get_wishlist_count
 from conftest import make_row
 
 
@@ -93,6 +93,73 @@ class TestGetWishlistMetrics:
 
         assert wishlist_delta == "→"
 
+
+class TestGetWishlistCount:
+    """Tests for get_wishlist_count() — bounded by WISHLIST_OOS_CARRYOVER_LOOKBACK (5 runs)."""
+
+    def _setup(self, history_rows):
+        by_run = group_by_run(history_rows)
+        runs = sorted(by_run)
+        cur_run = runs[-1]
+        return by_run, runs, cur_run
+
+    def test_in_current_run_returns_current_count(self):
+        """Species IN the current run → returns its actual wishlist count."""
+        history = [
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "10"),
+            make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "25.00", "20"),
+        ]
+        by_run, runs, cur_run = self._setup(history)
+        key = ("Aphonopelma seemanni", "1.0")
+
+        assert get_wishlist_count(key, by_run, runs, cur_run) == 20
+
+    def test_out_within_carryover_window_returns_last_known_count(self):
+        """Species OOS for 3 runs (within 5) → returns count from last IN-stock run."""
+        history = [
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "45"),
+        ]
+        filler = "Grammostola pulchra"
+        for week in range(1, 4):
+            dt = f"2025-01-{(1 + week * 7):02d}"
+            history.append(make_row(dt, filler, "2.0", "40.00", "5"))
+
+        by_run, runs, cur_run = self._setup(history)
+        key = ("Aphonopelma seemanni", "1.0")
+
+        assert get_wishlist_count(key, by_run, runs, cur_run) == 45
+
+    def test_out_beyond_carryover_window_returns_zero(self):
+        """Species OOS for 6 runs → beyond the 5-run window → returns 0.
+
+        The count window matches the pressure-tier carryover window so that the
+        raw count used for ranking expires at the same time as the pressure tier.
+        Once the pressure tier is ❌ the count should also be 0.
+        """
+        history = [
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "67"),
+        ]
+        filler = "Grammostola pulchra"
+        for week in range(1, 7):  # 6 filler runs → 6 OOS runs
+            dt = f"2025-01-{(1 + week * 7):02d}"
+            history.append(make_row(dt, filler, "2.0", "40.00", "5"))
+
+        by_run, runs, cur_run = self._setup(history)
+        key = ("Aphonopelma seemanni", "1.0")
+
+        # 6 OOS runs is beyond the 5-run window → expired, return 0
+        assert get_wishlist_count(key, by_run, runs, cur_run) == 0
+
+    def test_never_observed_returns_zero(self):
+        """Species never present in any run → returns 0."""
+        history = [
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "10"),
+            make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "25.00", "10"),
+        ]
+        by_run, runs, cur_run = self._setup(history)
+        key = ("Unknown spider", "1.0")
+
+        assert get_wishlist_count(key, by_run, runs, cur_run) == 0
     def test_in_stock_falling_wishlist_returns_down_delta(self):
         """Wishlist count falling by ≥5 → ↓ delta."""
         history = [

@@ -279,18 +279,24 @@ def get_wishlist_count(key, by_run, runs, cur_run, lookback_limit=WISHLIST_OOS_C
 
     If the species is IN the current run, returns its current wishlist count.
     If the species is OUT, walks back up to *lookback_limit* runs and returns
-    the count from the most recent IN-stock run (carryover), or 0 if none is
-    found within the window.
+    the count from the most recent IN-stock run, or 0 if none found within
+    the window.
+
+    The window deliberately matches WISHLIST_OOS_CARRYOVER_LOOKBACK (5 runs) so
+    that the raw count used for sort ordering expires at exactly the same time as
+    the pressure tier (❌).  This keeps the two signals consistent: once a species
+    has been OOS long enough for demand to be considered unreliable, the count also
+    resets to 0 and no longer inflates its ranking.
 
     Args:
         key: (scientific_name, size_cm) tuple.
         by_run: dict mapping run datetime -> list of row dicts.
         runs: sorted list of run datetimes.
         cur_run: datetime of the current run.
-        lookback_limit: max number of recent runs to look back (default 5).
+        lookback_limit: max runs to look back for an OOS species (default 5).
 
     Returns:
-        int: wishlist count (0 if unavailable).
+        int: wishlist count (0 if unavailable within the window).
     """
     try:
         cur_idx = runs.index(cur_run)
@@ -306,7 +312,7 @@ def get_wishlist_count(key, by_run, runs, cur_run, lookback_limit=WISHLIST_OOS_C
         except (ValueError, TypeError):
             return 0
 
-    # OUT — walk back for last known count (same carryover logic as get_oos_wishlist_carryover)
+    # OUT — walk back within the bounded window for the last known count.
     lookback_start = max(0, cur_idx - lookback_limit)
     for i in range(cur_idx - 1, lookback_start - 1, -1):
         rt = runs[i]
