@@ -37,13 +37,13 @@ def generate_sparkline(values: List[Optional[Union[str, float, int]]], max_lengt
     non_none_values = [v for v in numeric_values if v is not None]
     if not non_none_values:
         return "-"
-    
-    # If only one value, show single character
-    if len(non_none_values) == 1:
-        return "▄"  # Mid-height bar for single value
-    
-    # Generate sparkline using sparklines library
-    # Returns list of strings, one per line (we use single line)
+
+    # Generate sparkline using sparklines library.
+    # The library correctly handles leading/trailing None gaps by emitting space
+    # characters, so ' ▄' is produced for [None, 35.0] — preserving the gap that
+    # represents a run where the species was present but the value was missing.
+    # Do NOT special-case single values: ' ▄' is more informative than '▄' when
+    # there is a preceding gap, and '▄' is still produced when no gaps exist.
     result = sparklines(numeric_values, num_lines=1)
     
     # sparklines returns a generator/list of lines

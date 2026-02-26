@@ -56,9 +56,11 @@ def convert_sparkline_to_svg(unicode_sparkline: str, values: Optional[List[float
     if metric_type in ["price", "wishlist"]:
         assert values is not None, f"Values required for {metric_type} sparklines"
         assert len(values) > 0, f"Values array cannot be empty for {metric_type} sparklines"
-        # Validate all values are numeric
+        # Validate all non-gap values are numeric (None/empty strings are gaps and are allowed)
         for v in values:
-            assert v is not None and str(v).replace('.', '').replace('-', '').isdigit(), \
+            if v is None or v == "":
+                continue  # Gaps (None/empty) are treated as missing data, not errors
+            assert str(v).replace('.', '').replace('-', '').isdigit(), \
                 f"Invalid non-numeric value in {metric_type} sparkline: {v}"
     
     # Determine trend direction for color coding
@@ -123,29 +125,40 @@ def convert_sparkline_to_svg(unicode_sparkline: str, values: Optional[List[float
     if metric_type == "stock":
         # Stock: Use Unicode character heights (IN/OUT status, not numeric)
         bar_heights_method = "unicode"
+        compact_values = None
+        compact_is_carried_forward = None
     else:
-        # Price/Wishlist: Use zero-based proportional scaling from actual values
+        # Price/Wishlist: compact_values strips gap entries (None/"") so that
+        # bar_index correctly aligns with rendered bars.
+        # This is necessary because generate_sparkline produces a compact sparkline
+        # (e.g. "▄" for a single real value) that does NOT include leading gap
+        # characters, so len(sparkline) may be < len(values).
         bar_heights_method = "proportional"
-        numeric_values = [float(v) for v in values]
-        max_val = max(numeric_values)
+        non_gap = [(v, cf) for v, cf in zip(values, is_carried_forward or [False] * len(values)) if v not in (None, "")]
+        compact_values = [v for v, _ in non_gap]
+        compact_is_carried_forward = [cf for _, cf in non_gap]
+        valid_numeric_values = [float(v) for v in compact_values]
+        max_val = max(valid_numeric_values) if valid_numeric_values else 1.0
         min_val = 0  # Zero-based normalization
         value_range = max_val if max_val > 0 else 1.0
-    
-    # Track how many non-None bars we've processed for proper values indexing
+
+    # bar_index tracks how many non-None bars have been rendered,
+    # used to index into compact_values/compact_is_carried_forward.
     bar_index = 0
-    
+
     for i, height in enumerate(bars):
         x = i * bar_spacing
-        
+
         if height is None:
             # Gap - represents OUT-of-stock (only used in stock sparklines)
             # Don't render anything (true gap)
             continue
-        
+
         # Calculate bar height
         if bar_heights_method == "proportional":
-            # Use actual numeric value for proportional height
-            val_float = numeric_values[bar_index]
+            if bar_index >= len(compact_values):
+                break  # Safety guard: more bars than values (shouldn't happen)
+            val_float = float(compact_values[bar_index])
             # Normalize to 0-1 range, then scale to max height
             # Add small minimum (10%) to ensure all bars are visible
             normalized = (val_float - min_val) / value_range
@@ -153,34 +166,33 @@ def convert_sparkline_to_svg(unicode_sparkline: str, values: Optional[List[float
         else:
             # Stock: Use Unicode character height
             bar_height = (height / 8.0) * max_bar_height
-        
+
         y = svg_height - bar_height
-        
+
         # Check if this bar is carried-forward
-        is_carried = is_carried_forward and bar_index < len(is_carried_forward) and is_carried_forward[bar_index]
-        
+        is_carried = compact_is_carried_forward and bar_index < len(compact_is_carried_forward) and compact_is_carried_forward[bar_index]
+
         # Generate tooltip
         if metric_type == "price":
-            val = values[bar_index]
+            val = compact_values[bar_index]
             # Format price with square brackets if carried forward
             tooltip = f"[£{val}]" if is_carried else f"£{val}"
         elif metric_type == "wishlist":
-            val = values[bar_index]
+            val = compact_values[bar_index]
             # Format wishlist count with singular/plural and square brackets
             plural = "wishlist" if val == "1" else "wishlists"
             tooltip = f"[{val} {plural}]" if is_carried else f"{val} {plural}"
         else:  # stock
             tooltip = "IN"
-        
+
         # Adjust opacity based on position (gradient effect)
         opacity = 0.7 + (i / len(bars)) * 0.3
-        
+
         svg_bars.append(
             f'<rect x="{x}" y="{y:.1f}" width="{bar_width}" height="{bar_height:.1f}" '
             f'fill="{color}" opacity="{opacity:.2f}"><title>{tooltip}</title></rect>'
         )
-        
-        # Increment bar_index only for rendered bars
+
         bar_index += 1
     
     # Assemble final SVG
