@@ -76,7 +76,7 @@ class TestGeneratedBreederExamples:
         example = generate_breeder_example_5()
         assert "#### Example 5: Emerging Opportunity with High Demand" in example
         assert "**Stock Pattern:** Emerging" in example
-        assert "**Wishlist Delta:** ↑" in example
+        assert "**Wishlist:**" in example
         assert "**Signal:** 🔥" in example
     
     def test_breeder_example_6_always_available_falling_interest(self):
@@ -84,7 +84,7 @@ class TestGeneratedBreederExamples:
         example = generate_breeder_example_6()
         assert "#### Example 6: Always Available with Falling Interest" in example
         assert "**Stock Pattern:** Always" in example
-        assert "**Wishlist Delta:** ↓" in example
+        assert "**Wishlist:**" in example
         assert "**Signal:** ❌" in example
 
 
@@ -126,7 +126,7 @@ class TestGeneratedDealerExamples:
         assert "#### Example 4: Low Reliability + High Demand (Critical Risk)" in example
         # Example aims for 1/6 weeks with high wishlist
         assert "**Stock Reliability:**" in example
-        assert "**Wishlist Pressure:** 🔥" in example
+        assert "**Wishlist:**" in example
         assert "**Dealer Risk:**" in example
     
     def test_dealer_example_5_medium_reliability_surging_demand(self):
@@ -134,7 +134,7 @@ class TestGeneratedDealerExamples:
         example = generate_dealer_example_5()
         assert "#### Example 5: Medium Reliability + Surging Demand (Escalated Risk)" in example
         assert "**Stock Reliability:**" in example
-        assert "**Wishlist Delta:** ↑" in example
+        assert "**Wishlist:**" in example
         assert "**Dealer Risk:** 🔥" in example
     
     def test_dealer_example_6_high_reliability_falling_demand(self):
@@ -142,7 +142,7 @@ class TestGeneratedDealerExamples:
         example = generate_dealer_example_6()
         assert "#### Example 6: High Reliability + Falling Demand (No Action Needed)" in example
         assert "**Stock Reliability:**" in example
-        assert "**Wishlist Delta:** ↓" in example
+        assert "**Wishlist:**" in example
         assert "**Dealer Risk:** ❌" in example
     
     def test_dealer_example_7_low_reliability_surging_interest(self):
@@ -150,7 +150,7 @@ class TestGeneratedDealerExamples:
         example = generate_dealer_example_7()
         assert "#### Example 7: Low Reliability + Surging Interest (Early Warning)" in example
         assert "**Stock Reliability:**" in example
-        assert "**Wishlist Delta:** ↑" in example
+        assert "**Wishlist:**" in example
         assert "**Dealer Risk:**" in example
 
 

@@ -295,11 +295,11 @@ class TestBuildBreederOpportunityTable:
         
         assert seemanni_entry["Stock Pattern"] == "Always"
         # Falling delta should keep it as ❌
-        if seemanni_entry["Wishlist Delta"] == "↓":
+        if seemanni_entry["Wishlist"].split()[2] == "↓":
             assert seemanni_entry["Signal"] == "❌"
 
     def test_sorting_priority_signal_then_wishlist_pressure(self):
-        """Table should sort by Signal (🔥>⚠️>❌), then Wishlist Pressure, then Delta, then OOS Runs."""
+        """Table should sort by Signal (🔥>⚠️>❌), then Wishlist count (desc), then OOS Runs."""
         history = [
             # Create species with different signals
             # Species A: Sustained (🔥)
@@ -376,7 +376,7 @@ class TestBuildBreederOpportunityTable:
         seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
         
         # No previous in-stock value to compare
-        assert seemanni_entry["Wishlist Delta"] == "→"
+        assert seemanni_entry["Wishlist"].split()[2] == "→"
 
     def test_result_structure_has_all_required_columns(self):
         """Result should have all expected columns in correct format."""
@@ -393,7 +393,7 @@ class TestBuildBreederOpportunityTable:
         # Verify all expected keys exist (including new sparkline columns)
         expected_keys = {
             "Species", "Size (cm)", "OOS", "OOS Runs", "Stock Pattern",
-            "Price Trend", "Price History", "Wishlist Pressure", "Wishlist Delta", 
+            "Price Trend", "Price History", "Wishlist", 
             "Wishlist History", "Signal", "Recommendation", "Drivers"
         }
         assert set(entry.keys()) == expected_keys
@@ -541,7 +541,7 @@ class TestBuildBreederOpportunityTable:
         
         # With lookback_limit=5, the high wishlist from run 1 should be carried forward
         # (run 1 is 4 runs back from run 5, which is within the 5-run lookback window)
-        assert seemanni_entry["Wishlist Pressure"] == "🔥"
+        assert seemanni_entry["Wishlist"].split()[1] == "🔥"
         
         # Signal should be 🔥 with enhanced recommendation
         assert seemanni_entry["Signal"] == "🔥"
@@ -622,19 +622,19 @@ class TestSummaryStatistics:
         table = [
             {"Species": "Species A", "Size (cm)": "1", "OOS": "OUT", "OOS Runs": "5", 
              "Stock Pattern": "Sustained", "Price Trend": "→", "Price History": "▄▄▄",
-             "Wishlist Pressure": "🔥", "Wishlist Delta": "→", "Wishlist History": "▄▄▄",
+             "Wishlist": "0 🔥 →", "Wishlist History": "▄▄▄",
              "Signal": "🔥", "Recommendation": "Pair soon"},
             {"Species": "Species B", "Size (cm)": "2", "OOS": "OUT", "OOS Runs": "2",
              "Stock Pattern": "Emerging", "Price Trend": "→", "Price History": "▄▄▄",
-             "Wishlist Pressure": "🔥", "Wishlist Delta": "↑", "Wishlist History": "▁██",
+             "Wishlist": "0 🔥 ↑", "Wishlist History": "▁██",
              "Signal": "🔥", "Recommendation": "Consider pairing"},
             {"Species": "Species C", "Size (cm)": "1", "OOS": "IN", "OOS Runs": "0",
              "Stock Pattern": "Always", "Price Trend": "→", "Price History": "▄▄▄",
-             "Wishlist Pressure": "🔥", "Wishlist Delta": "→", "Wishlist History": "▄▄▄",
+             "Wishlist": "0 🔥 →", "Wishlist History": "▄▄▄",
              "Signal": "⚠️", "Recommendation": "Watch closely"},
             {"Species": "Species D", "Size (cm)": "1", "OOS": "IN", "OOS Runs": "0",
              "Stock Pattern": "Always", "Price Trend": "→", "Price History": "▄▄▄",
-             "Wishlist Pressure": "❌", "Wishlist Delta": "↓", "Wishlist History": "█▁▁",
+             "Wishlist": "0 ❌ ↓", "Wishlist History": "█▁▁",
              "Signal": "❌", "Recommendation": "Avoid"},
         ]
         

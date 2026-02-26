@@ -186,7 +186,7 @@ class TestCreateDealerCsvContent:
         """Should create dealer CSV with default values."""
         result = create_dealer_csv_content()
         
-        assert "Species,Size (cm),Stock Reliability,Avg OOS Duration,Restock Speed,Price Pressure,Price History,Wishlist Pressure,Wishlist Delta,Wishlist History,Stock Availability,Dealer Risk,Dealer Recommendation" in result
+        assert "Species,Size (cm),Stock Reliability,Avg OOS Duration,Restock Speed,Price Pressure,Price History,Wishlist,Wishlist History,Stock Availability,Dealer Risk,Dealer Recommendation" in result
         assert "Test Species,1.0" in result
         assert "🔥" in result
 

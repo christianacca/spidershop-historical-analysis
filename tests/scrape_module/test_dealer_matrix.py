@@ -269,7 +269,7 @@ class TestBuildDealerSupplyRiskTable:
         
         assert seemanni_entry["Dealer Risk"] == "🔥"
         # Species is OUT for 5 runs, within 5-run carryover, so wishlist is still 🔥
-        assert seemanni_entry["Wishlist Pressure"] == "🔥"
+        assert seemanni_entry["Wishlist"].split()[1] == "🔥"
         assert "high demand" in seemanni_entry["Dealer Recommendation"].lower()
 
     def test_low_reliability_fast_restock_high_wishlist_fire_risk(self):
@@ -330,7 +330,7 @@ class TestBuildDealerSupplyRiskTable:
         
         assert seemanni_entry["Stock Reliability"] == "Low"
         # Avg OOS should be >= 3 for Slow, otherwise not
-        assert seemanni_entry["Wishlist Pressure"] == "🔥"
+        assert seemanni_entry["Wishlist"].split()[1] == "🔥"
         assert seemanni_entry["Dealer Risk"] == "🔥"
         # If Slow, matches line 94-96; if not Slow, matches line 98-100
         # Both contain "high demand"
@@ -375,8 +375,8 @@ class TestBuildDealerSupplyRiskTable:
         # OOS events: [2, 2, 1] gives different avg
         # Seems the calculation gave Fast, not Moderate
         assert seemanni_entry["Restock Speed"] in ["Fast", "Moderate"]
-        assert seemanni_entry["Wishlist Pressure"] != "🔥"  # Not high
-        assert seemanni_entry["Wishlist Delta"] == "↑"
+        assert seemanni_entry["Wishlist"].split()[1] != "🔥"  # Not high
+        assert seemanni_entry["Wishlist"].split()[2] == "↑"
         # Medium + not-high wishlist + rising delta doesn't automatically get 🔥
         # Only Medium + high wishlist + rising delta gets 🔥 (line 104-107)
         # So this will fall through to Medium alone = ⚠️
@@ -417,8 +417,8 @@ class TestBuildDealerSupplyRiskTable:
         seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
         
         assert seemanni_entry["Stock Reliability"] == "Medium"
-        assert seemanni_entry["Wishlist Pressure"] == "🔥"
-        assert seemanni_entry["Wishlist Delta"] == "↑"
+        assert seemanni_entry["Wishlist"].split()[1] == "🔥"
+        assert seemanni_entry["Wishlist"].split()[2] == "↑"
         assert seemanni_entry["Dealer Risk"] == "🔥"
         assert "surging demand" in seemanni_entry["Dealer Recommendation"].lower()
 
@@ -456,8 +456,8 @@ class TestBuildDealerSupplyRiskTable:
         seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
         
         assert seemanni_entry["Stock Reliability"] == "Medium"
-        assert seemanni_entry["Wishlist Pressure"] == "🔥"
-        assert seemanni_entry["Wishlist Delta"] == "→"
+        assert seemanni_entry["Wishlist"].split()[1] == "🔥"
+        assert seemanni_entry["Wishlist"].split()[2] == "→"
         assert seemanni_entry["Dealer Risk"] == "⚠️"
         assert "moderate demand" in seemanni_entry["Dealer Recommendation"].lower()
 
@@ -501,7 +501,7 @@ class TestBuildDealerSupplyRiskTable:
         seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
         
         assert seemanni_entry["Stock Reliability"] == "High"
-        assert seemanni_entry["Wishlist Pressure"] == "❌"
+        assert seemanni_entry["Wishlist"].split()[1] == "❌"
         assert seemanni_entry["Dealer Risk"] == "❌"
         assert "No urgency" in seemanni_entry["Dealer Recommendation"]
 
@@ -531,7 +531,7 @@ class TestBuildDealerSupplyRiskTable:
         seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
         
         assert seemanni_entry["Stock Reliability"] == "High"
-        assert seemanni_entry["Wishlist Delta"] == "↓"
+        assert seemanni_entry["Wishlist"].split()[2] == "↓"
         assert seemanni_entry["Dealer Risk"] == "❌"
         assert "interest declining" in seemanni_entry["Dealer Recommendation"].lower()
 
@@ -561,7 +561,7 @@ class TestBuildDealerSupplyRiskTable:
         seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
         
         assert seemanni_entry["Stock Reliability"] == "High"
-        assert seemanni_entry["Wishlist Pressure"] == "🔥"
+        assert seemanni_entry["Wishlist"].split()[1] == "🔥"
         assert seemanni_entry["Dealer Risk"] == "❌"
         assert "monitor demand" in seemanni_entry["Dealer Recommendation"].lower()
 
@@ -596,7 +596,7 @@ class TestBuildDealerSupplyRiskTable:
         
         # Should carry forward wishlist pressure for first 5 OOS runs
         # By run 7, it's been OUT for 6 runs, so carryover should expire
-        assert seemanni_entry["Wishlist Pressure"] == "❌"
+        assert seemanni_entry["Wishlist"].split()[1] == "❌"
 
     def test_low_reliability_fast_restock_high_wishlist_covers_line_102(self):
         """
@@ -643,7 +643,7 @@ class TestBuildDealerSupplyRiskTable:
         # OOS events: [1, 1, 6] = avg 2.67 which rounds to 2.7, so Moderate (not Slow, not Fast)
         # Actually avg might be calculated differently - let's verify it's NOT Slow
         assert seemanni_entry["Restock Speed"] != "Slow"
-        assert seemanni_entry["Wishlist Pressure"] == "🔥"
+        assert seemanni_entry["Wishlist"].split()[1] == "🔥"
         assert seemanni_entry["Dealer Risk"] == "🔥"
         # This should hit line 102-103 (Low + not-Slow + high wishlist)
         assert "high demand" in seemanni_entry["Dealer Recommendation"].lower()
@@ -691,8 +691,8 @@ class TestBuildDealerSupplyRiskTable:
         
         assert seemanni_entry["Stock Reliability"] == "Low"
         assert seemanni_entry["Restock Speed"] != "Slow"  # Should be Fast or Moderate
-        assert seemanni_entry["Wishlist Pressure"] != "🔥"  # NOT high pressure
-        assert seemanni_entry["Wishlist Delta"] == "↑"  # Rising delta
+        assert seemanni_entry["Wishlist"].split()[1] != "🔥"  # NOT high pressure
+        assert seemanni_entry["Wishlist"].split()[2] == "↑"  # Rising delta
         assert seemanni_entry["Dealer Risk"] == "🔥"
         # This should hit line 108-109 (Low + rising delta without Slow or high wishlist)
         assert "unreliable supply" in seemanni_entry["Dealer Recommendation"].lower()
@@ -741,7 +741,7 @@ class TestBuildDealerSupplyRiskTable:
         
         assert test_species[0]["Species"] == "Species B"
         assert test_species[0]["Dealer Risk"] == "🔥"
-        assert test_species[0]["Wishlist Pressure"] == "🔥"
+        assert test_species[0]["Wishlist"].split()[1] == "🔥"
         
         assert test_species[1]["Species"] == "Species A"
         assert test_species[1]["Dealer Risk"] == "🔥"
@@ -761,8 +761,8 @@ class TestBuildDealerSupplyRiskTable:
         
         expected_keys = {
             "Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration",
-            "Restock Speed", "Price Pressure", "Price History", "Wishlist Pressure", 
-            "Wishlist Delta", "Wishlist History", "Stock Availability", "Dealer Risk", 
+            "Restock Speed", "Price Pressure", "Price History", "Wishlist", 
+            "Wishlist History", "Stock Availability", "Dealer Risk", 
             "Dealer Recommendation", "Drivers"
         }
         assert set(entry.keys()) == expected_keys
@@ -901,8 +901,8 @@ class TestWriteDealerOutputs:
                 f"Separator: {separator_line}"
             )
             
-            # Verify expected column count (13 columns for dealer matrix with sparklines)
-            if header_columns != 13:
+            # Verify expected column count (12 columns for dealer matrix with sparklines)
+            if header_columns != 12:
                 # Diagnostic: print the actual markdown content for debugging CI issues
                 print(f"\n{'='*80}")
                 print("DIAGNOSTIC INFO FOR CI DEBUGGING:")
@@ -915,7 +915,7 @@ class TestWriteDealerOutputs:
                 print(summary_content)
                 print(f"{'='*80}\n")
             
-            assert header_columns == 13, f"Expected 13 columns, got {header_columns}"
+            assert header_columns == 12, f"Expected 12 columns, got {header_columns}"
             
         finally:
             os.chdir(original_cwd)
@@ -1032,16 +1032,16 @@ class TestDealerSummaryStatistics:
         # Create table with mix of risk signals
         table = [
             {"Species": "Species A", "Size (cm)": "1", "Stock Reliability": "Low", "Avg OOS Duration": 5.0, "Restock Speed": "Slow",
-             "Price Pressure": "→", "Price History": "▄▄▄", "Wishlist Pressure": "🔥", "Wishlist Delta": "→", "Wishlist History": "▄▄▄",
+             "Price Pressure": "→", "Price History": "▄▄▄", "Wishlist": "5 🔥 →", "Wishlist History": "▄▄▄",
              "Stock Availability": "█", "Dealer Risk": "🔥", "Dealer Recommendation": "Actively seek breeders"},
             {"Species": "Species B", "Size (cm)": "2", "Stock Reliability": "Medium", "Avg OOS Duration": 2.0, "Restock Speed": "Fast",
-             "Price Pressure": "→", "Price History": "▄▄▄", "Wishlist Pressure": "🔥", "Wishlist Delta": "↑", "Wishlist History": "▁██",
+             "Price Pressure": "→", "Price History": "▄▄▄", "Wishlist": "5 🔥 ↑", "Wishlist History": "▁██",
              "Stock Availability": "███", "Dealer Risk": "🔥", "Dealer Recommendation": "Actively seek breeders"},
             {"Species": "Species C", "Size (cm)": "1", "Stock Reliability": "Medium", "Avg OOS Duration": 1.5, "Restock Speed": "Fast",
-             "Price Pressure": "→", "Price History": "▄▄▄", "Wishlist Pressure": "🔥", "Wishlist Delta": "→", "Wishlist History": "▄▄▄",
+             "Price Pressure": "→", "Price History": "▄▄▄", "Wishlist": "5 🔥 →", "Wishlist History": "▄▄▄",
              "Stock Availability": "████", "Dealer Risk": "⚠️", "Dealer Recommendation": "Buy opportunistically"},
             {"Species": "Species D", "Size (cm)": "1", "Stock Reliability": "High", "Avg OOS Duration": 0.0, "Restock Speed": "Fast",
-             "Price Pressure": "→", "Price History": "▄▄▄", "Wishlist Pressure": "❌", "Wishlist Delta": "↓", "Wishlist History": "█▁▁",
+             "Price Pressure": "→", "Price History": "▄▄▄", "Wishlist": "5 ❌ ↓", "Wishlist History": "█▁▁",
              "Stock Availability": "███████", "Dealer Risk": "❌", "Dealer Recommendation": "No urgency"},
         ]
         

@@ -387,8 +387,8 @@ class TestGenerateSnapshotPage:
         table = soup.find('table', id='test-table')
         assert table is None
 
-    def test_includes_top_10_table_when_provided(self):
-        """Should render top 10 table from CSV data."""
+    def test_includes_top_10_filter_button_when_data_provided(self):
+        """Should render top 10 filter button when there is data."""
         csv_content = "Species,Size (cm),Signal\n" + "".join(f"Species {i},1,🔥\n" for i in range(15))
         with temp_csv_file(csv_content) as filename:
             config = page_config.breeder(filename) \
@@ -398,14 +398,17 @@ class TestGenerateSnapshotPage:
             html = generate_analysis_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
-            # Top 10 table should be rendered from CSV (first 10 rows)
-            h3_tags = soup.find_all('h3')
-            top_10_heading = [h for h in h3_tags if 'Top 10' in h.text]
-            assert len(top_10_heading) > 0, "Should have 'Top 10' heading"
+            # Top 10 filter button should exist with correct data attributes
+            top10_btn = soup.find('button', attrs={
+                'data-action': 'filter-signal',
+                'data-signal': '🔥',
+                'data-limit': '10'
+            })
+            assert top10_btn is not None, "Should have a 🔥 Hot (top 10) filter button"
             
-            # Should have at least one table
+            # Should have one table
             tables = soup.find_all('table')
-            assert len(tables) > 0, "Should have table rendered from CSV"
+            assert len(tables) == 1, "Should have exactly one table rendered from CSV"
 
     def test_omits_analysis_section_when_none(self):
         """Should omit analysis section when markdown not provided."""

@@ -224,7 +224,7 @@ def generate_breeder_example_4():
 - **OOS:** {entry["OOS"]}
 - **OOS Runs:** {entry["OOS Runs"]}
 - **Stock Pattern:** {entry["Stock Pattern"]}
-- **Wishlist Pressure:** {entry["Wishlist Pressure"]}
+- **Wishlist:** {entry["Wishlist"]}
 - **Signal:** {entry["Signal"]}
 - **Recommendation:** {entry["Recommendation"]}
 
@@ -261,8 +261,7 @@ def generate_breeder_example_5():
 - **OOS:** {entry["OOS"]}
 - **OOS Runs:** {entry["OOS Runs"]}
 - **Stock Pattern:** {entry["Stock Pattern"]}
-- **Wishlist Pressure:** {entry["Wishlist Pressure"]} (carried from last seen)
-- **Wishlist Delta:** {entry["Wishlist Delta"]} (+10)
+- **Wishlist:** {entry["Wishlist"]} (carried from last seen)
 - **Signal:** {entry["Signal"]}
 - **Recommendation:** {entry["Recommendation"]}
 
@@ -295,7 +294,7 @@ def generate_breeder_example_6():
 - **OOS:** {entry["OOS"]}
 - **OOS Runs:** {entry["OOS Runs"]}
 - **Stock Pattern:** {entry["Stock Pattern"]}
-- **Wishlist Delta:** {entry["Wishlist Delta"]} (20 → 15 → 8)
+- **Wishlist:** {entry["Wishlist"]}
 - **Signal:** {entry["Signal"]}
 - **Recommendation:** {entry["Recommendation"]}
 
@@ -334,8 +333,7 @@ def generate_breeder_example_7():
 - **OOS:** {breeder_entry["OOS"]} (currently listed)
 - **OOS Runs:** {breeder_entry["OOS Runs"]} (no consecutive scarcity right now)
 - **Stock Pattern:** {breeder_entry["Stock Pattern"]}
-- **Wishlist Pressure:** {breeder_entry["Wishlist Pressure"]}
-- **Wishlist Delta:** {breeder_entry["Wishlist Delta"]}
+- **Wishlist:** {breeder_entry["Wishlist"]}
 - **Signal:** {breeder_entry["Signal"]}
 - **Recommendation:** {breeder_entry["Recommendation"]}
 
@@ -344,8 +342,7 @@ def generate_breeder_example_7():
 - **Stock Reliability:** {dealer_entry["Stock Reliability"]} (only in stock 3 of 10 weeks = 30%)
 - **Avg OOS Duration:** {dealer_entry["Avg OOS Duration"]} runs (when it goes OUT, stays OUT ~4 weeks)
 - **Restock Speed:** {dealer_entry["Restock Speed"]}
-- **Wishlist Pressure:** {dealer_entry["Wishlist Pressure"]}
-- **Wishlist Delta:** {dealer_entry["Wishlist Delta"]}
+- **Wishlist:** {dealer_entry["Wishlist"]}
 - **Dealer Risk:** {dealer_entry["Dealer Risk"]}
 - **Recommendation:** {dealer_entry["Dealer Recommendation"]}
 
@@ -432,7 +429,7 @@ def generate_dealer_example_1():
 
 - **Stock Reliability:** {entry["Stock Reliability"]} (9/10 weeks = 90%)
 - **Restock Speed:** {entry["Restock Speed"]}
-- **Wishlist Pressure:** {entry["Wishlist Pressure"]}
+- **Wishlist:** {entry["Wishlist"]}
 - **Dealer Risk:** {entry["Dealer Risk"]}
 - **Recommendation:** {entry["Dealer Recommendation"]}
 
@@ -520,7 +517,7 @@ def generate_dealer_example_4():
 **Analysis Result:**
 
 - **Stock Reliability:** {entry["Stock Reliability"]} (1/6 weeks)
-- **Wishlist Pressure:** {entry["Wishlist Pressure"]} (carried from last seen)
+- **Wishlist:** {entry["Wishlist"]} (carried from last seen)
 - **Dealer Risk:** {entry["Dealer Risk"]}
 - **Recommendation:** {entry["Dealer Recommendation"]}
 
@@ -550,8 +547,7 @@ def generate_dealer_example_5():
 **Analysis Result:**
 
 - **Stock Reliability:** {entry["Stock Reliability"]}
-- **Wishlist Pressure:** {entry["Wishlist Pressure"]}
-- **Wishlist Delta:** {entry["Wishlist Delta"]} (+14 from first to last)
+- **Wishlist:** {entry["Wishlist"]}
 - **Dealer Risk:** {entry["Dealer Risk"]}
 - **Recommendation:** {entry["Dealer Recommendation"]}
 
@@ -578,8 +574,7 @@ def generate_dealer_example_6():
 **Analysis Result:**
 
 - **Stock Reliability:** {entry["Stock Reliability"]}
-- **Wishlist Pressure:** {entry["Wishlist Pressure"]}
-- **Wishlist Delta:** {entry["Wishlist Delta"]}
+- **Wishlist:** {entry["Wishlist"]}
 - **Dealer Risk:** {entry["Dealer Risk"]}
 - **Recommendation:** {entry["Dealer Recommendation"]}
 
@@ -607,7 +602,7 @@ def generate_dealer_example_7():
 **Analysis Result:**
 
 - **Stock Reliability:** {entry["Stock Reliability"]}
-- **Wishlist Delta:** {entry["Wishlist Delta"]} (+7)
+- **Wishlist:** {entry["Wishlist"]}
 - **Dealer Risk:** {entry["Dealer Risk"]}
 - **Recommendation:** {entry["Dealer Recommendation"]}
 
