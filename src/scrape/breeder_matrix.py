@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from shared.history_utils import group_by_run, k2
+from shared.history_utils import group_by_run, k2, compare_prices
 from shared.config import BREEDER_TABLE_FILE, SIGNAL_PRIORITY, TREND_PRIORITY
 from scrape.wishlist_analysis import compute_wishlist_pressure, get_wishlist_metrics, get_wishlist_count
 from shared.sparkline_helpers import extract_historical_values_with_carryforward
@@ -80,18 +80,10 @@ def build_breeder_opportunity_table(history_rows):
     def price_trend_for_key(key):
         # If present now and present previous -> compare those
         if key in cur_map and key in prev_map:
-            c = cur_map[key].get("price_gbp", "")
-            p = prev_map[key].get("price_gbp", "")
-            try:
-                if c and p:
-                    cf = float(c); pf = float(p)
-                    if cf > pf:
-                        return "↑"
-                    if cf < pf:
-                        return "↓"
-            except ValueError:
-                pass
-            return "→"
+            return compare_prices(
+                cur_map[key].get("price_gbp", ""),
+                prev_map[key].get("price_gbp", "")
+            )
 
         # If OUT now: compare last seen price vs price in run before last seen (if available)
         # Walk backward through runs to find last two occurrences with prices
@@ -106,15 +98,7 @@ def build_breeder_opportunity_table(history_rows):
                     break
 
         if len(prices) >= 2:
-            try:
-                latest = float(prices[0])
-                prior = float(prices[1])
-                if latest > prior:
-                    return "↑"
-                if latest < prior:
-                    return "↓"
-            except ValueError:
-                return "→"
+            return compare_prices(prices[0], prices[1])
         return "→"
 
     table = []
