@@ -409,8 +409,20 @@ class TestGenerateSpeciesPage:
         from website.species_detail import generate_species_page
 
         species_data = {
-            "breeder": {"signal": "🔥", "oos_runs": "8", "stock_pattern": "Sustained"},
-            "dealer": {"risk": "⚠️", "stock_reliability": "45%", "restock_speed": "Slow"},
+            "breeder": {
+                "signal": "🔥",
+                "oos_runs": "8",
+                "stock_pattern": "Sustained",
+                "wishlist": "24 🔥 ↑",
+                "drivers": "",
+            },
+            "dealer": {
+                "risk": "⚠️",
+                "stock_reliability": "45%",
+                "restock_speed": "Slow",
+                "wishlist": "24 ⚠️ →",
+                "drivers": "",
+            },
         }
         chart_data = {"runs": []}
         
@@ -447,6 +459,21 @@ class TestGenerateSpeciesPage:
         assert 'class="summary-stats"' in html, ".summary-stats missing (from analysis.css)"
         assert 'class="stat-card' in html, ".stat-card missing (from analysis.css)"
         assert 'class="stat-value"' in html, ".stat-value missing (from analysis.css)"
+
+        # Regression: wishlist is a composite 'count pressure delta' string that the
+        # template must split and render per part. If the template references the wrong
+        # key the cards silently show '—'.
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(html, "html.parser")
+        stat_values = [el.get_text(strip=True) for el in soup.select(".stat-value")]
+        assert "🔥" in stat_values, "Breeder Wishlist Pressure card must render '🔥', not '—'"
+        assert "↑" in stat_values, "Breeder Wishlist Delta card must render '↑', not '—'"
+        assert "⚠️" in stat_values, "Dealer Demand Context card must render '⚠️', not '—'"
+        assert "→" in stat_values, "Dealer Wishlist Delta card must render '→', not '—'"
+        assert "—" not in stat_values, (
+            "No stat card should show '—' when wishlist data is provided; "
+            f"got stat values: {stat_values}"
+        )
 
     def test_includes_breadcrumb_navigation(self):
         """Should include breadcrumb with perspective origin."""
