@@ -16,6 +16,34 @@ from shared.config import (
     WISHLIST_DELTA_PREV_LOOKBACK,
     WISHLIST_SMALL_N_FLATTEN_THRESHOLD
 )
+from shared.history_utils import k2
+
+
+def _build_key_map(rows):
+    """Build a dict mapping (scientific_name, size_cm) to row data.
+    
+    Args:
+        rows: List of row dicts with scientific_name and size_cm fields.
+        
+    Returns:
+        Dict mapping (scientific_name, size_cm) tuple to row dict.
+    """
+    return {k2(r): r for r in rows}
+
+
+def _get_wishlist_count(row):
+    """Extract wishlist count from a row, defaulting to 0 on error.
+    
+    Args:
+        row: Row dict with optional wishlist_count field.
+        
+    Returns:
+        Integer wishlist count (0 if missing or invalid).
+    """
+    try:
+        return int(row.get("wishlist_count", "0") or "0")
+    except (ValueError, TypeError):
+        return 0
 
 
 def compute_wishlist_pressure(rows):
@@ -37,15 +65,7 @@ def compute_wishlist_pressure(rows):
     This is run per-scrape to ensure bands adapt to current distribution.
     """
     # Extract wishlist counts, filtering to current rows only
-    wishlist_data = []
-    for r in rows:
-        try:
-            count = int(r.get("wishlist_count", "0") or "0")
-            key = (r.get("scientific_name", ""), r.get("size_cm", ""))
-            wishlist_data.append((key, count))
-        except (ValueError, TypeError):
-            key = (r.get("scientific_name", ""), r.get("size_cm", ""))
-            wishlist_data.append((key, 0))
+    wishlist_data = [(k2(r), _get_wishlist_count(r)) for r in rows]
     
     if not wishlist_data:
         return {}
@@ -126,7 +146,7 @@ def get_oos_wishlist_carryover(key, by_run, runs, cur_run, lookback_limit=WISHLI
         rt = runs[i]
         # Check if key exists in this run
         run_rows = by_run[rt]
-        run_map = {(r.get("scientific_name", ""), r.get("size_cm", "")): r for r in run_rows}
+        run_map = _build_key_map(run_rows)
         
         if key in run_map:
             # Found the species in this run - compute its pressure
@@ -171,32 +191,25 @@ def compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=WISHLIST_D
     # Get current wishlist count (the "current reference run")
     # First, check if species is IN current run
     cur_rows = by_run[cur_run]
-    cur_map = {(r.get("scientific_name", ""), r.get("size_cm", "")): r for r in cur_rows}
+    cur_map = _build_key_map(cur_rows)
     
     current_count = None
     current_ref_idx = cur_idx  # Track which run we're using as the current reference
     
     if key in cur_map:
         # Species is IN current run
-        try:
-            current_count = int(cur_map[key].get("wishlist_count", "0") or "0")
-        except (ValueError, TypeError):
-            current_count = 0
+        current_count = _get_wishlist_count(cur_map[key])
     else:
         # Species is OUT - look back for last IN-stock wishlist count (carryover run)
         lookback_start = max(0, cur_idx - lookback_limit)
         for i in range(cur_idx - 1, lookback_start - 1, -1):
             rt = runs[i]
             run_rows = by_run[rt]
-            run_map = {(r.get("scientific_name", ""), r.get("size_cm", "")): r for r in run_rows}
+            run_map = _build_key_map(run_rows)
             
             if key in run_map:
-                try:
-                    current_count = int(run_map[key].get("wishlist_count", "0") or "0")
-                    current_ref_idx = i  # Update reference index to the carryover run
-                except (ValueError, TypeError):
-                    current_count = 0
-                    current_ref_idx = i
+                current_count = _get_wishlist_count(run_map[key])
+                current_ref_idx = i  # Update reference index to the carryover run
                 break
     
     # If we couldn't find a current count, return neutral
@@ -214,13 +227,10 @@ def compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=WISHLIST_D
     for i in range(current_ref_idx - 1, prev_lookback_start - 1, -1):
         rt = runs[i]
         run_rows = by_run[rt]
-        run_map = {(r.get("scientific_name", ""), r.get("size_cm", "")): r for r in run_rows}
+        run_map = _build_key_map(run_rows)
         
         if key in run_map:
-            try:
-                previous_count = int(run_map[key].get("wishlist_count", "0") or "0")
-            except (ValueError, TypeError):
-                previous_count = 0
+            previous_count = _get_wishlist_count(run_map[key])
             break
     
     # If we couldn't find a previous count within the bounded window, return neutral
@@ -258,10 +268,7 @@ def get_wishlist_metrics(key, by_run, runs, cur_run, wishlist_pressure_map):
         Tuple of (wishlist_pressure, wishlist_delta) where each value is
         one of the standard symbols (🔥/⚠️/❌ and ↑/→/↓ respectively).
     """
-    cur_keys = {
-        (r.get("scientific_name", ""), r.get("size_cm", ""))
-        for r in by_run[cur_run]
-    }
+    cur_keys = set(_build_key_map(by_run[cur_run]).keys())
 
     if key in cur_keys:
         wishlist_pressure = wishlist_pressure_map.get(key, "❌")

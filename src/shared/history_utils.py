@@ -47,6 +47,33 @@ def create_species_key(row: Dict[str, Any]) -> Tuple[str, str]:
     """
     return (row["scientific_name"], row["size_cm"])
 
+
+def compare_prices(price_current: str, price_previous: str) -> str:
+    """Compare two price strings and return a trend symbol.
+    
+    Args:
+        price_current: Current price as string (e.g., "12.99")
+        price_previous: Previous price as string (e.g., "10.99")
+        
+    Returns:
+        Trend symbol: "↑" (rising), "↓" (falling), or "→" (stable/unchanged)
+    """
+    try:
+        if not price_current or not price_previous:
+            return "→"
+        
+        current = float(price_current)
+        previous = float(price_previous)
+        
+        if current > previous:
+            return "↑"
+        elif current < previous:
+            return "↓"
+        return "→"
+    except (ValueError, TypeError):
+        return "→"
+
+
 # Backward compatibility aliases
 k3 = create_species_key_with_common_name
 k2 = create_species_key

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from shared.history_utils import group_by_run, k2
+from shared.history_utils import group_by_run, k2, compare_prices
 from shared.config import DEALER_TABLE_FILE, SIGNAL_PRIORITY, TREND_PRIORITY
 from scrape.wishlist_analysis import compute_wishlist_pressure, get_wishlist_metrics
 from shared.sparkline_helpers import extract_historical_values_with_carryforward, generate_stock_availability_sparkline
@@ -77,17 +77,10 @@ def build_dealer_supply_risk_table(history_rows):
         avg_oos = round(sum(oos_events) / len(oos_events), 1) if oos_events else 0
         speed = "Slow" if avg_oos >= 3 else "Moderate" if avg_oos == 2 else "Fast"
 
-        pp = "→"
-        if (sci, size) in prev_prices and (sci, size) in cur_prices:
-            try:
-                p_prev = float(prev_prices[(sci, size)])
-                p_cur = float(cur_prices[(sci, size)])
-                if p_cur > p_prev:
-                    pp = "↑"
-                elif p_cur < p_prev:
-                    pp = "↓"
-            except ValueError:
-                pp = "→"
+        pp = compare_prices(
+            cur_prices.get((sci, size), ""),
+            prev_prices.get((sci, size), "")
+        )
 
         key = (sci, size)
         wishlist_pressure, wishlist_delta = get_wishlist_metrics(
