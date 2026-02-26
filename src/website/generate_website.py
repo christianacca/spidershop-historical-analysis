@@ -425,13 +425,6 @@ def generate_analysis_page(config: BasePageConfig) -> str:
     analysis_markdown = getattr(config, 'analysis_markdown', None)
     summary_stats = extract_summary_stats(analysis_markdown) if analysis_markdown else None
     
-    # Generate top 10 table from CSV (first 10 rows, already sorted by analysis modules)
-    top_10_headers = None
-    top_10_rows = None
-    if headers and rows and len(rows) > 0:
-        top_10_headers = headers
-        top_10_rows = rows[:10]  # CSV is already sorted by breeder_matrix/dealer_matrix
-    
     # No markdown to HTML conversion for analysis - no tables to render
     analysis_html = None
     
@@ -529,10 +522,6 @@ def generate_analysis_page(config: BasePageConfig) -> str:
     headers_enum = list(enumerate(headers)) if headers else []
     rows_enum = [list(enumerate(row)) for row in rows] if rows else []
     
-    # Enumerate top 10 headers and rows for separate rendering
-    top_10_headers_enum = list(enumerate(top_10_headers)) if top_10_headers else []
-    top_10_rows_enum = [list(enumerate(row)) for row in top_10_rows] if top_10_rows else []
-    
     # Find drivers column index for tooltip rendering
     # Drivers column exists in breeder/dealer tables but not history/snapshot
     drivers_col_idx = headers.index('Drivers') if headers and 'Drivers' in headers else None
@@ -552,8 +541,6 @@ def generate_analysis_page(config: BasePageConfig) -> str:
         tooltips=tooltips,
         legend_html=legend_html,
         examples_html=examples_html,
-        top_10_headers=top_10_headers_enum,
-        top_10_rows=top_10_rows_enum,
         headers=headers_enum,
         rows=rows_enum,
         drivers_col_idx=drivers_col_idx,

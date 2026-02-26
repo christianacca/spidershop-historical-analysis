@@ -55,7 +55,8 @@ function initSignalFilters() {
       button.addEventListener('click', function() {
         const signal = this.dataset.signal;
         const tableId = this.dataset.tableId;
-        filterByAttribute('data-signal', signal, tableId, this);
+        const limit = this.dataset.limit ? parseInt(this.dataset.limit, 10) : null;
+        filterByAttribute('data-signal', signal, tableId, this, limit);
       });
     });
   }
@@ -212,9 +213,23 @@ function initDownloadButton() {
 }
 
 /**
+ * Stamp each table row with its original CSV position so that limit-based
+ * filters (e.g. 'Hot top 10') always select the first N rows from source
+ * order, regardless of any user-applied sort.
+ */
+function initOriginalRowIndexes() {
+  document.querySelectorAll('table[id] tbody').forEach(tbody => {
+    Array.from(tbody.querySelectorAll('tr')).forEach((row, index) => {
+      row.setAttribute('data-original-index', index);
+    });
+  });
+}
+
+/**
  * Initialize all table interactions
  */
 function init() {
+  initOriginalRowIndexes();
   initTableSorting();
   initSearchFiltering();
   initSignalFilters();

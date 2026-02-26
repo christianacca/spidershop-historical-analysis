@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from shared.history_utils import group_by_run, k2
 from shared.config import DEALER_TABLE_FILE, SIGNAL_PRIORITY, TREND_PRIORITY
-from scrape.wishlist_analysis import compute_wishlist_pressure, get_wishlist_metrics
+from scrape.wishlist_analysis import compute_wishlist_pressure, get_wishlist_metrics, get_wishlist_count
 from shared.sparkline_helpers import extract_historical_values_with_carryforward, generate_stock_availability_sparkline
 from shared.driver_text_helpers import build_drivers_text
 from shared.csv_utils import write_matrix_csv
@@ -94,6 +94,8 @@ def build_dealer_supply_risk_table(history_rows):
             key, by_run, runs, cur_run, wishlist_pressure_map
         )
 
+        wishlist_count = get_wishlist_count(key, by_run, runs, cur_run)
+
         # Dealer risk logic: Supply-first hierarchy with demand as modifier
         # Low reliability species escalate to 🔥 based on supply failure + demand signals
         # Medium reliability varies between ⚠️ and 🔥 based on demand context
@@ -172,8 +174,7 @@ def build_dealer_supply_risk_table(history_rows):
             "Restock Speed": speed,
             "Price Pressure": pp,
             "Price History": price_history_sparkline,
-            "Wishlist Pressure": wishlist_pressure,
-            "Wishlist Delta": wishlist_delta,
+            "Wishlist": f"{wishlist_count} {wishlist_pressure} {wishlist_delta}",
             "Wishlist History": wishlist_history_sparkline,
             "Stock Availability": stock_availability_sparkline,
             "Dealer Risk": risk,
@@ -181,12 +182,10 @@ def build_dealer_supply_risk_table(history_rows):
             "Drivers": drivers
         })
 
-    # Sort: Dealer Risk (🔥 > ⚠️ > ❌), then Wishlist Pressure (🔥 > ⚠️ > ❌), 
-    # then Wishlist Delta (↑ > → > ↓), then Avg OOS Duration (desc)
+    # Sort: Dealer Risk (🔥 > ⚠️ > ❌), then Wishlist count (desc), then Avg OOS Duration (desc)
     table.sort(key=lambda r: (
         SIGNAL_PRIORITY[r["Dealer Risk"]],
-        SIGNAL_PRIORITY[r["Wishlist Pressure"]],
-        TREND_PRIORITY[r["Wishlist Delta"]],
+        -int(r["Wishlist"].split()[0]) if r.get("Wishlist", "").split() else 0,
         -r["Avg OOS Duration"]
     ))
     return table
@@ -194,8 +193,8 @@ def build_dealer_supply_risk_table(history_rows):
 def write_dealer_outputs(table):
     fallback_fieldnames = [
         "Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration",
-        "Restock Speed", "Price Pressure", "Price History", "Wishlist Pressure",
-        "Wishlist Delta", "Wishlist History", "Stock Availability", "Dealer Risk",
+        "Restock Speed", "Price Pressure", "Price History", "Wishlist",
+        "Wishlist History", "Stock Availability", "Dealer Risk",
         "Dealer Recommendation", "Drivers",
     ]
     write_matrix_csv(DEALER_TABLE_FILE, table, fallback_fieldnames)
@@ -208,8 +207,8 @@ def write_dealer_outputs(table):
         indicator_labels={"🔥": "High Risk", "⚠️": "Moderate Risk", "❌": "Low Risk"},
         table_columns=[
             "Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration",
-            "Restock Speed", "Price Pressure", "Price History", "Wishlist Pressure",
-            "Wishlist Delta", "Wishlist History", "Stock Availability", "Dealer Risk",
+            "Restock Speed", "Price Pressure", "Price History", "Wishlist",
+            "Wishlist History", "Stock Availability", "Dealer Risk",
             "Dealer Recommendation",
         ],
     )

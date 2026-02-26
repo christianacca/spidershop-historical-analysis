@@ -38,13 +38,14 @@ class TestInteractiveFilterButtons:
         
         # Should have filter buttons with correct labels and emojis
         buttons = filter_container.find_all('button', class_='filter-btn')
-        assert len(buttons) == 4, "Should have 4 filter buttons (All, Hot, Watch, Avoid)"
+        assert len(buttons) == 5, "Should have 5 filter buttons (All, Hot, Hot top 10, Watch, Avoid)"
         
         button_texts = [btn.get_text(strip=True) for btn in buttons]
         assert 'Show All' in button_texts[0], "Should have Show All button"
-        assert '🔥' in button_texts[1], "Should have Hot button with emoji"
-        assert '⚠️' in button_texts[2], "Should have Watch button with emoji"
-        assert '❌' in button_texts[3], "Should have Avoid button with emoji"
+        assert 'top 10' in button_texts[1].lower(), "Should have Hot (top 10) button"
+        assert '🔥' in button_texts[2] and 'top 10' not in button_texts[2].lower(), "Should have plain Hot button"
+        assert '⚠️' in button_texts[3], "Should have Watch button with emoji"
+        assert '❌' in button_texts[4], "Should have Avoid button with emoji"
 
     def test_dealer_page_has_filter_buttons(self, tmp_path):
         """Dealer page should include filter buttons above the table for Dealer Risk column."""
@@ -67,7 +68,7 @@ class TestInteractiveFilterButtons:
         assert filter_container is not None, "Should have filter buttons container"
         
         buttons = filter_container.find_all('button', class_='filter-btn')
-        assert len(buttons) == 4, "Should have 4 filter buttons"
+        assert len(buttons) == 5, "Should have 5 filter buttons"
 
     def test_filter_buttons_have_onclick_handlers(self, tmp_path):
         """Filter buttons should have data attributes for JavaScript filtering (behavior tested by E2E)."""
@@ -183,20 +184,20 @@ class TestStockPatternFiltering:
         assert rows[1].get('data-stock-pattern') == 'Emerging'
         assert rows[1].get('data-signal') == '⚠️'
     
-    def test_top_10_and_full_table_have_unique_ids_and_correct_filter_attributes(self, tmp_path):
-        """Regression test: Top 10 and full table must have unique IDs and full table needs filter attributes.
+    def test_top_10_filter_button_replaces_separate_table(self, tmp_path):
+        """Verify the Top 10 section is a filter button, not a separate table.
         
-        Bug fixed: When top 10 table was introduced, both tables had id='breeder-table',
-        causing JavaScript filters to target the wrong table (top 10 instead of full table).
-        Additionally, the full table's rows lacked data-signal and data-stock-pattern attributes
-        because context variables weren't passed to the template include.
+        The old approach rendered a separate top 10 table. The new approach
+        uses a '🔥 Hot (top 10)' filter button that limits the full table to
+        the first 10 Hot rows via client-side JS (data-limit attribute).
         
         This test ensures:
-        - Table IDs are unique (breeder-table-top10 vs breeder-table)
+        - Only ONE table exists (no separate top 10 table)
+        - A '🔥 Hot (top 10)' filter button exists with correct data attributes
         - Full table rows have all required data attributes for filtering
-        - Filter buttons target the correct table ID (full table, not top 10)
+        - The top 10 button targets the correct table ID
         """
-        # Create 15 rows to ensure top 10 section renders
+        # Create 15 rows to ensure the full dataset is large enough
         rows = []
         for i in range(15):
             pattern = ['Sustained', 'Emerging', 'Cyclical'][i % 3]
@@ -215,46 +216,34 @@ class TestStockPatternFiltering:
         
         soup = BeautifulSoup(html, 'html.parser')
         
-        # Should have EXACTLY 2 tables (top 10 + full)
+        # Should have exactly ONE table (no separate top 10 table)
         all_tables = soup.find_all('table')
-        assert len(all_tables) == 2, f"Should have 2 tables (top 10 + full), found {len(all_tables)}"
+        assert len(all_tables) == 1, f"Should have 1 table (no separate top 10), found {len(all_tables)}"
         
-        # Tables MUST have UNIQUE IDs (was the root cause of the bug)
-        table_ids = [t.get('id') for t in all_tables]
-        assert len(table_ids) == len(set(table_ids)), f"Table IDs must be unique, found duplicates: {table_ids}"
-        assert 'breeder-table-top10' in table_ids, "Top 10 table should have -top10 suffix"
-        assert 'breeder-table' in table_ids, "Full table should have base ID"
-        
-        # Top 10 table should have exactly 10 rows
-        top_10_table = soup.find('table', id='breeder-table-top10')
-        assert top_10_table is not None, "Top 10 table should exist"
-        top_10_rows = top_10_table.select('tbody tr')
-        assert len(top_10_rows) == 10, f"Top 10 should have 10 rows, found {len(top_10_rows)}"
-        
-        # Full table should have all 15 rows
+        # The single table should be the full table with base ID
         full_table = soup.find('table', id='breeder-table')
-        assert full_table is not None, "Full table should exist"
+        assert full_table is not None, "Full table should have base ID 'breeder-table'"
         full_rows = full_table.select('tbody tr')
-        assert len(full_rows) == 15, f"Full table should have 15 rows, found {len(full_rows)}"
+        assert len(full_rows) == 15, f"Full table should have all 15 rows, found {len(full_rows)}"
         
         # CRITICAL: Full table rows MUST have data-signal and data-stock-pattern attributes
-        # This was missing because template {% include %} didn't pass context variables
         for i, row in enumerate(full_rows):
             signal_attr = row.get('data-signal')
             pattern_attr = row.get('data-stock-pattern')
-            assert signal_attr is not None, f"Full table row {i} missing data-signal attribute (filters won't work)"
-            assert pattern_attr is not None, f"Full table row {i} missing data-stock-pattern attribute (filters won't work)"
+            assert signal_attr is not None, f"Row {i} missing data-signal attribute (filters won't work)"
+            assert pattern_attr is not None, f"Row {i} missing data-stock-pattern attribute (filters won't work)"
             assert signal_attr in ['🔥', '⚠️', '❌'], f"Invalid signal value: {signal_attr}"
         
-        # Filter buttons MUST target the full table (breeder-table), NOT the top 10 table
-        filter_buttons = soup.find_all('button', class_='filter-btn')
-        assert len(filter_buttons) > 0, "Should have filter buttons"
-        
-        for btn in filter_buttons:
-            onclick = btn.get('onclick', '')
-            if 'filterBySignal' in onclick or 'filterByStockPattern' in onclick:
-                assert "'breeder-table'" in onclick, f"Filter button should target 'breeder-table', found: {onclick}"
-                assert "'breeder-table-top10'" not in onclick, f"Filter must NOT target top 10 table: {onclick}"
+        # There must be a '🔥 Hot (top 10)' filter button with the correct data attributes
+        top10_btn = soup.find('button', attrs={
+            'data-action': 'filter-signal',
+            'data-signal': '🔥',
+            'data-limit': '10'
+        })
+        assert top10_btn is not None, "Should have a '🔥 Hot (top 10)' filter button"
+        assert 'top 10' in top10_btn.text.lower(), f"Button text should mention 'top 10', got: {top10_btn.text}"
+        assert top10_btn.get('data-table-id') == 'breeder-table', \
+            f"Top 10 button should target 'breeder-table', got: {top10_btn.get('data-table-id')}"
 
     def test_dealer_page_does_not_have_stock_pattern_filters(self, tmp_path):
         """Dealer page should NOT have Stock Pattern filters (not applicable)."""
