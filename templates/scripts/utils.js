@@ -119,14 +119,33 @@ export function filterByAttribute(attributeName, filterValue, tableId, button, l
   const rows = table.querySelectorAll('tbody tr');
   
   setActiveButton(button);
-  
-  let matchCount = 0;
+
+  // When a limit is set, determine which rows to show by their original CSV
+  // index (data-original-index), not their current DOM position.  This ensures
+  // the same N entries are always selected regardless of the active sort order.
+  let allowedOriginalIndexes = null;
+  if (limit !== null) {
+    const matchingRows = Array.from(rows).filter(
+      row => filterValue === 'all' || row.getAttribute(attributeName) === filterValue
+    );
+    matchingRows.sort(
+      (a, b) => parseInt(a.getAttribute('data-original-index') ?? '0', 10)
+             - parseInt(b.getAttribute('data-original-index') ?? '0', 10)
+    );
+    allowedOriginalIndexes = new Set(
+      matchingRows.slice(0, limit).map(row => row.getAttribute('data-original-index'))
+    );
+  }
+
   rows.forEach(row => {
     const attrValue = row.getAttribute(attributeName);
     const matches = filterValue === 'all' || attrValue === filterValue;
-    const withinLimit = limit === null || matchCount < limit;
-    const shouldShow = matches && withinLimit;
-    if (matches) matchCount++;
+    let shouldShow;
+    if (allowedOriginalIndexes !== null) {
+      shouldShow = matches && allowedOriginalIndexes.has(row.getAttribute('data-original-index'));
+    } else {
+      shouldShow = matches;
+    }
     toggleRowVisibility(row, shouldShow);
   });
   

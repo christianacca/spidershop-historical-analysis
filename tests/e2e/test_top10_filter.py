@@ -94,3 +94,44 @@ def test_show_all_resets_after_hot_top_10_filter(e2e_site_large_table) -> None:
 
     visible_rows = page.locator('#breeder-table tbody tr:visible').count()
     assert visible_rows == 20, f"Expected all 20 rows after Show All, got {visible_rows}"
+
+
+@pytest.mark.e2e
+def test_hot_top_10_shows_same_entries_regardless_of_sort_order(e2e_site_large_table) -> None:
+    """'Hot (top 10)' should always show the same 10 species in original CSV order,
+    regardless of any sort currently applied to the table.
+
+    Regression test: Before the fix, sorting the table by name descending then clicking
+    'Hot (top 10)' would select 'Hot Species 15'-'Hot Species 06' (first 10 Hot rows in
+    the sorted DOM) instead of 'Hot Species 01'-'Hot Species 10' (first 10 from original
+    CSV order).
+    """
+    page, base_url, errors = e2e_site_large_table
+
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    # Sort by species name — first click toggles to descending order.
+    # (sortTable defaults the initial direction to 'asc', so first click → 'desc')
+    # After sort-desc: Watch Species 03 > ... > Hot Species 15 > ... > Hot Species 01 > Avoid ...
+    species_header = page.locator('#breeder-table thead th').filter(has_text="Species")
+    species_header.click()
+    page.wait_for_timeout(100)
+
+    # With the table sorted descending, the first 10 Hot rows in DOM order are
+    # "Hot Species 15" through "Hot Species 06".  The button must instead show
+    # "Hot Species 01" through "Hot Species 10" — the first 10 from original CSV order.
+    top10_button = page.locator('button[data-action="filter-signal"][data-limit="10"]')
+    top10_button.click()
+    page.wait_for_timeout(100)
+
+    visible_rows = page.locator('#breeder-table tbody tr:visible')
+    assert visible_rows.count() == 10
+
+    # The first 10 from original CSV order must be present
+    assert visible_rows.filter(has_text="Hot Species 01").count() == 1, (
+        "'Hot Species 01' must be visible — it is in the original top 10"
+    )
+    # The last 5 Hot rows must NOT be visible
+    assert visible_rows.filter(has_text="Hot Species 15").count() == 0, (
+        "'Hot Species 15' must not be visible — it is outside the original top 10 in CSV order"
+    )
