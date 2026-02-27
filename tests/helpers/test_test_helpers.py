@@ -146,7 +146,7 @@ class TestCreateBreederCsvContent:
         """Should create breeder CSV with default values."""
         result = create_breeder_csv_content()
         
-        assert "Species,Size (cm),OOS,OOS Runs,Stock Pattern,Price Trend,Price History,Wishlist Pressure,Wishlist Delta,Wishlist History,Signal,Recommendation" in result
+        assert "Species,Size (cm),OOS,OOS Runs,Stock Pattern,Price,Price History,Wishlist Pressure,Wishlist Delta,Wishlist History,Signal,Recommendation" in result
         assert "Test Species,1.0" in result
         assert "🔥" in result
 
@@ -169,12 +169,12 @@ class TestCreateBreederCsvContent:
         result = create_breeder_csv_content([
             BreederEntry(
                 oos_runs="5",
-                price_trend="↑"
+                price="£25.00 ↑"
             )
         ])
         
         assert "OOS Runs" in result
-        assert "Price Trend" in result
+        assert "Price" in result
         assert "5" in result
         assert "↑" in result
 
@@ -186,7 +186,7 @@ class TestCreateDealerCsvContent:
         """Should create dealer CSV with default values."""
         result = create_dealer_csv_content()
         
-        assert "Species,Size (cm),Stock Reliability,Avg OOS Duration,Restock Speed,Price Pressure,Price History,Wishlist,Wishlist History,Stock Availability,Dealer Risk,Dealer Recommendation" in result
+        assert "Species,Size (cm),Stock Reliability,Avg OOS Duration,Restock Speed,Price,Price History,Wishlist,Wishlist History,Stock Availability,Dealer Risk,Dealer Recommendation" in result
         assert "Test Species,1.0" in result
         assert "🔥" in result
 

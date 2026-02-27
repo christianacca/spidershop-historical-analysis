@@ -655,7 +655,7 @@ class TestSignalTooltipDrivers:
                 "oos_runs": "4",
                 "oos": "OUT",
                 "stock_pattern": "Sustained",
-                "price_trend": "↑",
+                "price": "£20.00 ↑",
                 "wishlist_pressure": "🔥",
                 "wishlist_delta": "↑",
                 "drivers": "Stock: Sustained (OOS 4 runs; currently OUT); Demand: Wishlist High + rising; Price: Rising"
@@ -695,7 +695,7 @@ class TestSignalTooltipDrivers:
                 "risk": "🔥",
                 "stock_reliability": "Low",
                 "restock_speed": "Slow",
-                "price_pressure": "↑",
+                "price": "£20.00 ↑",
                 "wishlist_pressure": "🔥",
                 "wishlist_delta": "↑",
                 "drivers": "Stock: Reliability Low (Restock Slow); Demand: Wishlist High + rising; Price: Rising"

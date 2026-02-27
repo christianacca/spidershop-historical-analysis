@@ -101,37 +101,59 @@ def test_hot_top_10_shows_same_entries_regardless_of_sort_order(e2e_site_large_t
     """'Hot (top 10)' should always show the same 10 species in original CSV order,
     regardless of any sort currently applied to the table.
 
-    Regression test: Before the fix, sorting the table by name descending then clicking
-    'Hot (top 10)' would select 'Hot Species 15'-'Hot Species 06' (first 10 Hot rows in
-    the sorted DOM) instead of 'Hot Species 01'-'Hot Species 10' (first 10 from original
-    CSV order).
+    Covers two sort types that each produce a different DOM order:
+    1. Name descending: Hot Species 15 … 01 — DOM-first 10 would be 15-06
+    2. Price descending: Hot 11-15 (£40) above Hot 01-10 (£20) — DOM-first 10 would be 11-15 + 01-05
+    In both cases the button must select Hot 01-10 (original CSV order).
     """
     page, base_url, errors = e2e_site_large_table
 
     page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
 
-    # Sort by species name — first click toggles to descending order.
-    # (sortTable defaults the initial direction to 'asc', so first click → 'desc')
+    top10_button = page.locator('button[data-action="filter-signal"][data-limit="10"]')
+
+    def assert_original_top10_selected() -> None:
+        visible_rows = page.locator('#breeder-table tbody tr:visible')
+        assert visible_rows.count() == 10
+        assert visible_rows.filter(has_text="Hot Species 01").count() == 1, (
+            "'Hot Species 01' must be visible — it is in the original top 10"
+        )
+        assert visible_rows.filter(has_text="Hot Species 10").count() == 1, (
+            "'Hot Species 10' must be visible — it is the 10th in original CSV order"
+        )
+        assert visible_rows.filter(has_text="Hot Species 11").count() == 0, (
+            "'Hot Species 11' must not be visible — it is outside the original top 10 in CSV order"
+        )
+        assert visible_rows.filter(has_text="Hot Species 15").count() == 0, (
+            "'Hot Species 15' must not be visible — it is outside the original top 10 in CSV order"
+        )
+
+    # --- Sort 1: name descending ---
     # After sort-desc: Watch Species 03 > ... > Hot Species 15 > ... > Hot Species 01 > Avoid ...
+    # DOM-first 10 Hot rows would be Hot 15 – 06; button must use original CSV order instead.
     species_header = page.locator('#breeder-table thead th').filter(has_text="Species")
     species_header.click()
     page.wait_for_timeout(100)
-
-    # With the table sorted descending, the first 10 Hot rows in DOM order are
-    # "Hot Species 15" through "Hot Species 06".  The button must instead show
-    # "Hot Species 01" through "Hot Species 10" — the first 10 from original CSV order.
-    top10_button = page.locator('button[data-action="filter-signal"][data-limit="10"]')
     top10_button.click()
     page.wait_for_timeout(100)
+    assert_original_top10_selected()
 
-    visible_rows = page.locator('#breeder-table tbody tr:visible')
-    assert visible_rows.count() == 10
+    # Reset for next sort
+    show_all = page.locator('button[data-action="filter-signal"][data-signal="all"]')
+    show_all.click()
+    page.wait_for_timeout(100)
 
-    # The first 10 from original CSV order must be present
-    assert visible_rows.filter(has_text="Hot Species 01").count() == 1, (
-        "'Hot Species 01' must be visible — it is in the original top 10"
+    # --- Sort 2: price descending ---
+    # Hot 11-15 have price £40.00; Hot 01-10 have £20.00.
+    # After price-desc sort, DOM-first 10 Hot rows would be Hot 11-15 + Hot 01-05.
+    # Button must still select Hot 01-10 by original CSV order.
+    header_texts = page.locator('#breeder-table thead th').all_text_contents()
+    price_col_idx = next(
+        i for i, h in enumerate(header_texts)
+        if "Price" in h and "Price History" not in h
     )
-    # The last 5 Hot rows must NOT be visible
-    assert visible_rows.filter(has_text="Hot Species 15").count() == 0, (
-        "'Hot Species 15' must not be visible — it is outside the original top 10 in CSV order"
-    )
+    page.locator('#breeder-table thead th').nth(price_col_idx).click()
+    page.wait_for_timeout(100)
+    top10_button.click()
+    page.wait_for_timeout(100)
+    assert_original_top10_selected()

@@ -49,6 +49,14 @@ def build_dealer_supply_risk_table(history_rows):
     prev_prices = {k2(r): r.get("price_gbp", "") for r in by_run[prev_run] if r.get("price_gbp")}
     cur_prices = {k2(r): r.get("price_gbp", "") for r in by_run[cur_run] if r.get("price_gbp")}
 
+    # Last known price per key across all runs (for OUT species display)
+    last_known_price_map: dict = {}
+    for rt in runs:
+        for r in by_run[rt]:
+            val = r.get("price_gbp", "")
+            if val:
+                last_known_price_map[k2(r)] = val
+
     present_runs_map = {}
     for rt in runs:
         for r in by_run[rt]:
@@ -157,13 +165,16 @@ def build_dealer_supply_risk_table(history_rows):
             wishlist_delta=wishlist_delta
         )
 
+        last_known_price = last_known_price_map.get((sci, size), "")
+        combined_price = f"£{last_known_price} {pp}" if last_known_price else pp
+
         table.append({
             "Species": sci,
             "Size (cm)": size,
             "Stock Reliability": reliability,
             "Avg OOS Duration": avg_oos,
             "Restock Speed": speed,
-            "Price Pressure": pp,
+            "Price": combined_price,
             "Price History": price_history_sparkline,
             "Wishlist": f"{wishlist_count} {wishlist_pressure} {wishlist_delta}",
             "Wishlist History": wishlist_history_sparkline,
@@ -173,10 +184,20 @@ def build_dealer_supply_risk_table(history_rows):
             "Drivers": drivers
         })
 
-    # Sort: Dealer Risk (🔥 > ⚠️ > ❌), then Wishlist count (desc), then Avg OOS Duration (desc)
+    # Sort: Dealer Risk (🔥 > ⚠️ > ❌), then Wishlist count (desc), then Price (desc), then Avg OOS Duration (desc)
+    def _price_sort_key(price_str: str) -> float:
+        parts = price_str.split()
+        if parts and parts[0].startswith("£"):
+            try:
+                return float(parts[0].lstrip("£"))
+            except ValueError:
+                return 0.0
+        return 0.0
+
     table.sort(key=lambda r: (
         SIGNAL_PRIORITY[r["Dealer Risk"]],
         -int(r["Wishlist"].split()[0]) if r.get("Wishlist", "").split() else 0,
+        -_price_sort_key(r.get("Price", "")),
         -r["Avg OOS Duration"]
     ))
     return table
@@ -184,7 +205,7 @@ def build_dealer_supply_risk_table(history_rows):
 def write_dealer_outputs(table):
     fallback_fieldnames = [
         "Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration",
-        "Restock Speed", "Price Pressure", "Price History", "Wishlist",
+        "Restock Speed", "Price", "Price History", "Wishlist",
         "Wishlist History", "Stock Availability", "Dealer Risk",
         "Dealer Recommendation", "Drivers",
     ]
@@ -198,7 +219,7 @@ def write_dealer_outputs(table):
         indicator_labels={"🔥": "High Risk", "⚠️": "Moderate Risk", "❌": "Low Risk"},
         table_columns=[
             "Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration",
-            "Restock Speed", "Price Pressure", "Price History", "Wishlist",
+            "Restock Speed", "Price", "Price History", "Wishlist",
             "Wishlist History", "Stock Availability", "Dealer Risk",
             "Dealer Recommendation",
         ],

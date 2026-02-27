@@ -21,21 +21,21 @@
   
   **Summary:** 3 species analyzed | 🔥 Hot: 1 | ⚠️ Watch: 1 | ❌ Avoid: 1
   
-  | Species | Size (cm) | OOS | OOS Runs | Stock Pattern | Price Trend | Price History | Wishlist | Wishlist History | Signal | Recommendation |
+  | Species | Size (cm) | OOS | OOS Runs | Stock Pattern | Price | Price History | Wishlist | Wishlist History | Signal | Recommendation |
   |---|---:|---|---:|---|---|---|---|---|---|---|
-  | Cyriocosmus elegans | 0.5 | OUT | 4 | Sustained | → | ▄▄▄▄▄ | 15 🔥 → | ▄▄▄▄▄ | 🔥 | Pair soon — sustained scarcity with strong buyer interest |
-  | Grammostola pulchra | 2.0 | IN | 0 | Always | → | ▄ | 15 🔥 → | ▄ | ⚠️ | Watch closely — high latent demand |
-  | Aphonopelma seemanni | 1.0 | IN | 0 | Always | ↑ | ▁▄▅▇█ | 5 ❌ → | ▁▄▄██ | ❌ | Avoid for profit — oversupplied |
+  | Cyriocosmus elegans | 0.5 | OUT | 4 | Sustained | £25.00 → | ▄▄▄▄▄ | 15 🔥 → | ▄▄▄▄▄ | 🔥 | Pair soon — sustained scarcity with strong buyer interest |
+  | Grammostola pulchra | 2.0 | IN | 0 | Always | £40.00 → | ▄ | 15 🔥 → | ▄ | ⚠️ | Watch closely — high latent demand |
+  | Aphonopelma seemanni | 1.0 | IN | 0 | Always | £25.00 ↑ | ▁▄▅▇█ | 5 ❌ → | ▁▄▄██ | ❌ | Avoid for profit — oversupplied |
   
   ## 🏪 Dealer Supply Risk Matrix (Top 10)
   
   **Summary:** 3 species analyzed | 🔥 High Risk: 2 | ⚠️ Moderate Risk: 0 | ❌ Low Risk: 1
   
-  | Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price Pressure | Price History | Wishlist | Wishlist History | Stock Availability | Dealer Risk | Dealer Recommendation |
+  | Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price | Price History | Wishlist | Wishlist History | Stock Availability | Dealer Risk | Dealer Recommendation |
   |---|---:|---|---:|---|---|---|---|---|---|---|---|
-  | Cyriocosmus elegans | 0.5 | Low | 4.0 | Slow | → | ▄▄▄▄▄ | 15 🔥 → | ▄▄▄▄▄ | █     | 🔥 | Actively seek breeders — high demand, poor supply |
-  | Grammostola pulchra | 2.0 | Low | 4.0 | Slow | → | ▄ | 15 🔥 → | ▄ |     █ | 🔥 | Actively seek breeders — high demand, poor supply |
-  | Aphonopelma seemanni | 1.0 | High | 0 | Fast | ↑ | ▁▄▅▇█ | 5 ❌ → | ▁▄▄██ | █████ | ❌ | No urgency / oversupplied |
+  | Grammostola pulchra | 2.0 | Low | 4.0 | Slow | £40.00 → | ▄ | 15 🔥 → | ▄ |     █ | 🔥 | Actively seek breeders — high demand, poor supply |
+  | Cyriocosmus elegans | 0.5 | Low | 4.0 | Slow | £25.00 → | ▄▄▄▄▄ | 15 🔥 → | ▄▄▄▄▄ | █     | 🔥 | Actively seek breeders — high demand, poor supply |
+  | Aphonopelma seemanni | 1.0 | High | 0 | Fast | £25.00 ↑ | ▁▄▅▇█ | 5 ❌ → | ▁▄▄██ | █████ | ❌ | No urgency / oversupplied |
   
   <details>
   <summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>
@@ -65,13 +65,15 @@
   - `Cyclical` — Repeated disappear / reappear pattern (batch supply)
   - This is the **foundation** of all recommendations — modifiers can only refine, not override
   
-  **Price Trend** (Confidence Modifier)
+  **Price** (Current Price · Trend Modifier)
   
+  - Shows current price with trend, e.g. `£25.00 ↑`
   - `↑` — Price rising vs last observed price
-  - `→` — Price stable
+  - `→` — Price stable (or no comparable price within the lookback window)
   - `↓` — Price falling
-  - **Influence:** Can escalate `Emerging` patterns to 🔥 when rising (strong confirmation of demand)
+  - **Influence:** Can escalate `Emerging` patterns to 🔥 when rising; also used as tertiary sort key (higher price ranks first within tier)
   - Does not affect `Sustained` signals (already high-confidence) or downgrade any patterns
+  - **OUT-of-stock lookback:** For species currently OUT, trend is computed from the last 5 runs only. If no in-window price data exists (species absent longer than 5 runs), trend defaults to `→` to avoid stale comparisons influencing signals
   
   **Price History** (Trend Visualization)
   

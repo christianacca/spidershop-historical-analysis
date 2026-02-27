@@ -24,42 +24,73 @@ from e2e.fixtures import e2e_site_multi_species
 
 @pytest.mark.e2e
 def test_table_sorting_numeric_columns(e2e_site_multi_species) -> None:
-    """Verify clicking numeric column headers sorts the table correctly (ascending/descending)."""
+    """Verify clicking numeric column headers sorts the table correctly (ascending/descending).
+
+    Covers two numeric column types:
+    - OOS Runs: plain integer
+    - Price: mixed '£XX.XX ↑/→/↓' string parsed as a float by the JS sort
+    """
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
-    
-    # Find the "OOS Runs" column header (index 3 based on breeder table structure)
+
+    # --- OOS Runs (plain integer column) ---
     # Species | Size | Signal | OOS Runs | ...
     oos_header = page.locator('#breeder-table thead th').nth(3)
-    
-    # First click: sort descending (default direction flips from undefined to desc)
+
+    # First click: sort descending
     oos_header.click()
-    page.wait_for_timeout(100)  # Small delay for sorting to complete
-    
-    # Verify sort direction attribute
-    sort_direction = oos_header.get_attribute('data-sort-direction')
-    assert sort_direction == 'desc', "Expected descending sort after first click"
-    
-    # Get all OOS values from visible rows
+    page.wait_for_timeout(100)
+    assert oos_header.get_attribute('data-sort-direction') == 'desc', (
+        "Expected descending sort after first click"
+    )
     oos_cells = page.locator('#breeder-table tbody tr:visible td').nth(3).all_text_contents()
     oos_values = [int(cell.strip()) for cell in oos_cells if cell.strip().isdigit()]
-    
-    # Verify descending order
     assert oos_values == sorted(oos_values, reverse=True), f"Expected descending order, got {oos_values}"
-    
+
     # Second click: sort ascending
     oos_header.click()
     page.wait_for_timeout(100)
-    
-    sort_direction = oos_header.get_attribute('data-sort-direction')
-    assert sort_direction == 'asc', "Expected ascending sort after second click"
-    
+    assert oos_header.get_attribute('data-sort-direction') == 'asc', (
+        "Expected ascending sort after second click"
+    )
     oos_cells = page.locator('#breeder-table tbody tr:visible td').nth(3).all_text_contents()
     oos_values = [int(cell.strip()) for cell in oos_cells if cell.strip().isdigit()]
-    
-    # Verify ascending order
     assert oos_values == sorted(oos_values), f"Expected ascending order, got {oos_values}"
+
+    # --- Price ('£XX.XX ↑/→/↓' mixed-format column parsed as float by JS sort) ---
+    # Fixture has 5 species with distinct prices (£10, £15, £25, £30, £40).
+    header_texts = page.locator('#breeder-table thead th').all_text_contents()
+    price_col_idx = next(
+        i for i, h in enumerate(header_texts)
+        if "Price" in h and "Price History" not in h
+    )
+    price_header = page.locator('#breeder-table thead th').nth(price_col_idx)
+
+    def extract_prices() -> list:
+        cells = page.locator(
+            f'#breeder-table tbody tr:visible td:nth-child({price_col_idx + 1})'
+        ).all_text_contents()
+        return [float(c.replace("£", "").split()[0]) for c in cells if c.strip()]
+
+    # First click → descending
+    price_header.click()
+    page.wait_for_timeout(100)
+    assert price_header.get_attribute('data-sort-direction') == 'desc', (
+        "Expected descending price sort after first click"
+    )
+    prices = extract_prices()
+    assert len(prices) > 1, "Need at least 2 rows to verify price sort order"
+    assert prices == sorted(prices, reverse=True), f"Expected descending price order, got {prices}"
+
+    # Second click → ascending
+    price_header.click()
+    page.wait_for_timeout(100)
+    assert price_header.get_attribute('data-sort-direction') == 'asc', (
+        "Expected ascending price sort after second click"
+    )
+    prices = extract_prices()
+    assert prices == sorted(prices), f"Expected ascending price order, got {prices}"
 
 
 @pytest.mark.e2e
@@ -785,3 +816,45 @@ def test_search_input_styling(e2e_site_multi_species) -> None:
     )
     assert 14 <= font_size <= 16, \
         f".search-input should have font-size ~0.95rem (~15px), got {font_size}px"
+
+
+@pytest.mark.e2e
+def test_price_column_structure(e2e_site_multi_species) -> None:
+    """Verify the Price column header name and cell format in breeder and dealer tables.
+
+    Regression guard: confirms the column is named 'Price' (not 'Price Trend'/'Price Pressure')
+    and that cells contain a combined '\u00a3XX.XX \u2191/\u2192/\u2193' format.
+    """
+    page, base_url, errors = e2e_site_multi_species
+
+    # --- Breeder table ---
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+    breeder_headers = page.locator("#breeder-table thead th").all_text_contents()
+    assert any("Price" in h and "Price History" not in h for h in breeder_headers), (
+        f"Expected a 'Price' header in breeder table, got: {breeder_headers}"
+    )
+    price_col_idx = next(
+        i for i, h in enumerate(breeder_headers) if "Price" in h and "Price History" not in h
+    )
+    price_cells = page.locator(
+        f"#breeder-table tbody tr:visible td:nth-child({price_col_idx + 1})"
+    ).all_text_contents()
+    assert any("\u00a3" in cell for cell in price_cells), (
+        f"Expected at least one '\u00a3' in 'Price' column cells, got: {price_cells}"
+    )
+
+    # --- Dealer table ---
+    page.goto(f"{base_url}/dealer.html", wait_until="domcontentloaded")
+    dealer_headers = page.locator("#dealer-table thead th").all_text_contents()
+    assert any("Price" in h and "Price History" not in h for h in dealer_headers), (
+        f"Expected a 'Price' header in dealer table, got: {dealer_headers}"
+    )
+    price_col_idx = next(
+        i for i, h in enumerate(dealer_headers) if "Price" in h and "Price History" not in h
+    )
+    price_cells = page.locator(
+        f"#dealer-table tbody tr:visible td:nth-child({price_col_idx + 1})"
+    ).all_text_contents()
+    assert any("\u00a3" in cell for cell in price_cells), (
+        f"Expected at least one '\u00a3' in 'Price' column cells, got: {price_cells}"
+    )

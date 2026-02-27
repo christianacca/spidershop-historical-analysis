@@ -27,13 +27,15 @@
 - `Cyclical` — Repeated disappear / reappear pattern (batch supply)
 - This is the **foundation** of all recommendations — modifiers can only refine, not override
 
-**Price Trend** (Confidence Modifier)
+**Price** (Current Price · Trend Modifier)
 
+- Shows current price with trend, e.g. `£25.00 ↑`
 - `↑` — Price rising vs last observed price
-- `→` — Price stable
+- `→` — Price stable (or no comparable price within the lookback window)
 - `↓` — Price falling
-- **Influence:** Can escalate `Emerging` patterns to 🔥 when rising (strong confirmation of demand)
+- **Influence:** Can escalate `Emerging` patterns to 🔥 when rising; also used as tertiary sort key (higher price ranks first within tier)
 - Does not affect `Sustained` signals (already high-confidence) or downgrade any patterns
+- **OUT-of-stock lookback:** For species currently OUT, trend is computed from the last 5 runs only. If no in-window price data exists (species absent longer than 5 runs), trend defaults to `→` to avoid stale comparisons influencing signals
 
 **Price History** (Trend Visualization)
 
@@ -109,12 +111,14 @@
 - `Slow` — Prolonged absence after sell-out
 - **Influence:** Combines with Stock Reliability to define supply stability; slow restock amplifies low reliability risks
 
-**Price Pressure** (Informational)
+**Price** (Current Price · Trend)
 
-- `↑` — Prices increasing
+- Shows last known price with trend direction, e.g. `£25.00 ↑`
+- For OUT-of-stock species, shows last observed price
+- `↑` — Prices increasing vs last run
 - `→` — Stable pricing
 - `↓` — Prices softening
-- **Influence:** Informational only; does not affect risk classification (supply and demand signals take precedence)
+- **Influence:** Informational only; also used as tertiary sort key (higher price ranks first within risk tier)
 
 **Price History** (Trend Visualization)
 

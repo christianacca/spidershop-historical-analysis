@@ -164,7 +164,7 @@ def generate_breeder_example_2():
 - **OOS:** {entry["OOS"]}
 - **OOS Runs:** {entry["OOS Runs"]}
 - **Stock Pattern:** {entry["Stock Pattern"]}
-- **Price Trend:** {entry["Price Trend"]} (£25 → £30)
+- **Price:** {entry["Price"]}
 - **Signal:** {entry["Signal"]}
 - **Recommendation:** {entry["Recommendation"]}
 

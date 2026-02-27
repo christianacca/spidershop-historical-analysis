@@ -189,7 +189,7 @@ class TestBuildDealerSupplyRiskTable:
         table = build_dealer_supply_risk_table(history)
         entry = table[0]
         
-        assert entry["Price Pressure"] == "↑"
+        assert entry["Price"].split()[-1] == "↑"
 
     def test_price_pressure_falling(self):
         """Should detect falling price pressure between last two runs."""
@@ -201,7 +201,7 @@ class TestBuildDealerSupplyRiskTable:
         table = build_dealer_supply_risk_table(history)
         entry = table[0]
         
-        assert entry["Price Pressure"] == "↓"
+        assert entry["Price"].split()[-1] == "↓"
 
     def test_price_pressure_stable(self):
         """Should detect stable price pressure between last two runs."""
@@ -213,7 +213,7 @@ class TestBuildDealerSupplyRiskTable:
         table = build_dealer_supply_risk_table(history)
         entry = table[0]
         
-        assert entry["Price Pressure"] == "→"
+        assert entry["Price"].split()[-1] == "→"
 
     def test_price_pressure_invalid_values_defaults_to_stable(self):
         """Invalid price values should result in stable (→) price pressure."""
@@ -225,7 +225,20 @@ class TestBuildDealerSupplyRiskTable:
         table = build_dealer_supply_risk_table(history)
         entry = table[0]
         
-        assert entry["Price Pressure"] == "→"
+        assert entry["Price"].split()[-1] == "→"
+
+    def test_price_column_combines_value_and_trend(self):
+        """Price column should contain both the GBP value and trend symbol, e.g. '£25.00 ↑'."""
+        history = [
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "5"),
+            make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "30.00", "6"),
+        ]
+        table = build_dealer_supply_risk_table(history)
+        entry = table[0]
+        assert "Price" in entry, "Expected 'Price' column in result"
+        assert entry["Price"] == "£30.00 ↑", (
+            f"Expected combined format '£30.00 ↑', got: {entry.get('Price')!r}"
+        )
 
     def test_low_reliability_slow_restock_high_fire_risk(self):
         """Low reliability + slow restock = 🔥 risk."""
@@ -761,7 +774,7 @@ class TestBuildDealerSupplyRiskTable:
         
         expected_keys = {
             "Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration",
-            "Restock Speed", "Price Pressure", "Price History", "Wishlist", 
+            "Restock Speed", "Price", "Price History", "Wishlist", 
             "Wishlist History", "Stock Availability", "Dealer Risk", 
             "Dealer Recommendation", "Drivers"
         }
@@ -1032,16 +1045,16 @@ class TestDealerSummaryStatistics:
         # Create table with mix of risk signals
         table = [
             {"Species": "Species A", "Size (cm)": "1", "Stock Reliability": "Low", "Avg OOS Duration": 5.0, "Restock Speed": "Slow",
-             "Price Pressure": "→", "Price History": "▄▄▄", "Wishlist": "5 🔥 →", "Wishlist History": "▄▄▄",
+             "Price": "→", "Price History": "▄▄▄", "Wishlist": "5 🔥 →", "Wishlist History": "▄▄▄",
              "Stock Availability": "█", "Dealer Risk": "🔥", "Dealer Recommendation": "Actively seek breeders"},
             {"Species": "Species B", "Size (cm)": "2", "Stock Reliability": "Medium", "Avg OOS Duration": 2.0, "Restock Speed": "Fast",
-             "Price Pressure": "→", "Price History": "▄▄▄", "Wishlist": "5 🔥 ↑", "Wishlist History": "▁██",
+             "Price": "→", "Price History": "▄▄▄", "Wishlist": "5 🔥 ↑", "Wishlist History": "▁██",
              "Stock Availability": "███", "Dealer Risk": "🔥", "Dealer Recommendation": "Actively seek breeders"},
             {"Species": "Species C", "Size (cm)": "1", "Stock Reliability": "Medium", "Avg OOS Duration": 1.5, "Restock Speed": "Fast",
-             "Price Pressure": "→", "Price History": "▄▄▄", "Wishlist": "5 🔥 →", "Wishlist History": "▄▄▄",
+             "Price": "→", "Price History": "▄▄▄", "Wishlist": "5 🔥 →", "Wishlist History": "▄▄▄",
              "Stock Availability": "████", "Dealer Risk": "⚠️", "Dealer Recommendation": "Buy opportunistically"},
             {"Species": "Species D", "Size (cm)": "1", "Stock Reliability": "High", "Avg OOS Duration": 0.0, "Restock Speed": "Fast",
-             "Price Pressure": "→", "Price History": "▄▄▄", "Wishlist": "5 ❌ ↓", "Wishlist History": "█▁▁",
+             "Price": "→", "Price History": "▄▄▄", "Wishlist": "5 ❌ ↓", "Wishlist History": "█▁▁",
              "Stock Availability": "███████", "Dealer Risk": "❌", "Dealer Recommendation": "No urgency"},
         ]
         
@@ -1208,3 +1221,52 @@ class TestDealerSparklineColumns:
         # Should contain key information structured
         assert "Reliability" in drivers or "Stock" in drivers
         assert "Demand" in drivers or "Wishlist" in drivers
+
+
+class TestDealerSorting:
+    """Guard tests for dealer matrix sort order."""
+
+    def test_sorting_within_tier_by_avg_oos_duration(self):
+        """Within the same risk tier and equal wishlist count, rows sort by Avg OOS Duration descending.
+
+        Both A and B are Medium reliability (⚠️) and both IN the current run with
+        identical wishlist=5 so wishlist count is equal. A had a longer OOS event
+        (3 runs) than B (2 runs), so A (avg_oos=3) must rank before B (avg_oos=2).
+        """
+        history = [
+            # Run 1: All present with equal wishlist=5
+            make_row("2025-01-01", "Species A", "1.0", "25.00", "5"),
+            make_row("2025-01-01", "Species B", "1.0", "25.00", "5"),
+            make_row("2025-01-01", "Species C", "1.0", "25.00", "5"),
+            # Run 2: B and C present; A goes OOS (1st OOS run for A)
+            make_row("2025-01-08", "Species B", "1.0", "25.00", "5"),
+            make_row("2025-01-08", "Species C", "1.0", "25.00", "5"),
+            # Run 3: C only; both A and B OOS (A=2nd run, B=1st run)
+            make_row("2025-01-15", "Species C", "1.0", "25.00", "5"),
+            # Run 4: C only; both A and B OOS (A=3rd run, B=2nd run — end of B's event)
+            make_row("2025-01-22", "Species C", "1.0", "25.00", "5"),
+            # Run 5 (current): All back in stock with wishlist=5
+            make_row("2025-01-29", "Species A", "1.0", "25.00", "5"),
+            make_row("2025-01-29", "Species B", "1.0", "25.00", "5"),
+            make_row("2025-01-29", "Species C", "1.0", "25.00", "5"),
+        ]
+        # A: present runs 1, 5 → 2/5=40% → Medium; 1 OOS event of 3 runs → avg=3.0 → ⚠️
+        # B: present runs 1, 2, 5 → 3/5=60% → Medium; 1 OOS event of 2 runs → avg=2.0 → ⚠️
+        # C: present all 5 runs → High → ❌
+        # Current run wishlist is live (all IN stock), so both A and B have count=5
+        table = build_dealer_supply_risk_table(history)
+        watch_rows = [r for r in table if r["Dealer Risk"] == "⚠️"]
+        assert len(watch_rows) >= 2, "Expected at least two ⚠️ rows"
+        watch_species = [r["Species"] for r in watch_rows]
+        assert "Species A" in watch_species and "Species B" in watch_species, (
+            f"Expected both A and B in ⚠️ rows, got: {watch_species}"
+        )
+        a_count = int(next(r for r in watch_rows if r["Species"] == "Species A")["Wishlist"].split()[0])
+        b_count = int(next(r for r in watch_rows if r["Species"] == "Species B")["Wishlist"].split()[0])
+        assert a_count == b_count == 5, (
+            f"Expected equal wishlist counts; A={a_count}, B={b_count}"
+        )
+        # Species A (avg_oos=3.0) should rank before Species B (avg_oos=2.0)
+        assert watch_species.index("Species A") < watch_species.index("Species B"), (
+            "Expected higher Avg OOS Duration to rank first within same tier and equal wishlist count"
+        )

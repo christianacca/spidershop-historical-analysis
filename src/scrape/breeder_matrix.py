@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from shared.history_utils import group_by_run, k2, compare_prices
-from shared.config import BREEDER_TABLE_FILE, SIGNAL_PRIORITY, TREND_PRIORITY
+from shared.config import BREEDER_TABLE_FILE, SIGNAL_PRIORITY, TREND_PRIORITY, PRICE_TREND_OOS_LOOKBACK
 from scrape.wishlist_analysis import compute_wishlist_pressure, get_wishlist_metrics, get_wishlist_count
 from shared.sparkline_helpers import extract_historical_values_with_carryforward
 from shared.driver_text_helpers import build_drivers_text
@@ -88,7 +88,7 @@ def build_breeder_opportunity_table(history_rows):
         # If OUT now: compare last seen price vs price in run before last seen (if available)
         # Walk backward through runs to find last two occurrences with prices
         prices = []
-        for rt in reversed(runs):
+        for rt in reversed(runs[-PRICE_TREND_OOS_LOOKBACK:]):
             m = {k2(r): r for r in by_run[rt]}
             if key in m:
                 val = m[key].get("price_gbp", "")
@@ -215,13 +215,16 @@ def build_breeder_opportunity_table(history_rows):
             wishlist_delta=wishlist_delta
         )
 
+        price_gbp = row.get("price_gbp", "")
+        combined_price = f"£{price_gbp} {price_trend}" if price_gbp else price_trend
+
         table.append({
             "Species": row.get("scientific_name", key[0]),
             "Size (cm)": row.get("size_cm", key[1]),
             "OOS": oos_status,
             "OOS Runs": str(oos_runs),
             "Stock Pattern": pattern,
-            "Price Trend": price_trend,
+            "Price": combined_price,
             "Price History": price_sparkline,
             "Wishlist": f"{wishlist_count} {wishlist_pressure} {wishlist_delta}",
             "Wishlist History": wishlist_sparkline,
@@ -230,10 +233,20 @@ def build_breeder_opportunity_table(history_rows):
             "Drivers": drivers
         })
 
-    # Sort: Signal priority (🔥 > ⚠️ > ❌), then Wishlist count (desc), then OOS Runs (desc)
+    # Sort: Signal priority (🔥 > ⚠️ > ❌), then Wishlist count (desc), then Price (desc), then OOS Runs (desc)
+    def _price_sort_key(price_str: str) -> float:
+        parts = price_str.split()
+        if parts and parts[0].startswith("£"):
+            try:
+                return float(parts[0].lstrip("£"))
+            except ValueError:
+                return 0.0
+        return 0.0
+
     table.sort(key=lambda r: (
         SIGNAL_PRIORITY[r["Signal"]],
         -int(r["Wishlist"].split()[0]) if r.get("Wishlist", "").split() else 0,
+        -_price_sort_key(r.get("Price", "")),
         -int(r["OOS Runs"])
     ))
     return table
@@ -241,7 +254,7 @@ def build_breeder_opportunity_table(history_rows):
 def write_breeder_outputs(table):
     fallback_fieldnames = [
         "Species", "Size (cm)", "OOS", "OOS Runs", "Stock Pattern",
-        "Price Trend", "Price History", "Wishlist",
+        "Price", "Price History", "Wishlist",
         "Wishlist History", "Signal", "Recommendation", "Drivers",
     ]
     write_matrix_csv(BREEDER_TABLE_FILE, table, fallback_fieldnames)
@@ -254,7 +267,7 @@ def write_breeder_outputs(table):
         indicator_labels={"🔥": "Hot", "⚠️": "Watch", "❌": "Avoid"},
         table_columns=[
             "Species", "Size (cm)", "OOS", "OOS Runs", "Stock Pattern",
-            "Price Trend", "Price History", "Wishlist",
+            "Price", "Price History", "Wishlist",
             "Wishlist History", "Signal", "Recommendation",
         ],
     )
