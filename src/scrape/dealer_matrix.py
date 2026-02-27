@@ -93,50 +93,48 @@ def build_dealer_supply_risk_table(history_rows):
         # Low reliability species escalate to 🔥 based on supply failure + demand signals
         # Medium reliability varies between ⚠️ and 🔥 based on demand context
         # High reliability defaults to ❌ (well-supplied) unless exceptional demand
-        if reliability == "Low" and speed == "Slow":
-            # Low reliability + slow restock = high risk regardless of demand
-            if wishlist_pressure == "🔥":
-                risk = "🔥"
-                rec = "Actively seek breeders — high demand, poor supply"
-            else:
-                risk = "🔥"
-                rec = "Actively seek breeders"
+        
+        # Low reliability + slow restock (high risk regardless of demand)
+        if reliability == "Low" and speed == "Slow" and wishlist_pressure == "🔥":
+            risk = "🔥"
+            rec = "Actively seek breeders — high demand, poor supply"
+        elif reliability == "Low" and speed == "Slow":
+            risk = "🔥"
+            rec = "Actively seek breeders"
+        # Low reliability + high wishlist (even with faster restock)
         elif reliability == "Low" and wishlist_pressure == "🔥":
-            # Low reliability + high wishlist even with faster restock
             risk = "🔥"
             rec = "Actively seek breeders — high demand, unreliable supply"
+        # Low reliability + rising delta (early-stage demand growth)
         elif reliability == "Low" and wishlist_delta == "↑":
-            # Low reliability + rising delta (early-stage demand growth on unreliable species)
-            # Rarely reached: most Low reliability cases are caught by previous branches
-            # Kept for edge case where interest is accelerating but not yet at high pressure
             risk = "🔥"
             rec = "Actively seek breeders — unreliable supply, surging interest"
+        # Medium reliability + high wishlist + rising delta
         elif reliability == "Medium" and wishlist_pressure == "🔥" and wishlist_delta == "↑":
-            # Medium reliability + high wishlist + rising delta -> escalate to 🔥
             risk = "🔥"
             rec = "Actively seek breeders — surging demand, variable supply"
+        # Medium reliability + high wishlist (without rising delta)
         elif reliability == "Medium" and wishlist_pressure == "🔥":
-            # Medium reliability + high wishlist (without rising delta)
             risk = "⚠️"
             rec = "Buy opportunistically — moderate demand, variable supply"
+        # Medium reliability with lower demand signals
         elif reliability == "Medium":
-            # Medium reliability with lower demand signals
             risk = "⚠️"
             rec = "Buy opportunistically"
+        # High reliability with low/moderate interest
         elif reliability == "High" and wishlist_pressure in ("❌", "⚠️"):
-            # High reliability with low/moderate interest
             risk = "❌"
             rec = "No urgency / oversupplied"
+        # High reliability + falling delta
         elif reliability == "High" and wishlist_delta == "↓":
-            # High reliability + falling delta (interest declining even if currently high)
             risk = "❌"
             rec = "No urgency / oversupplied — interest declining"
+        # High reliability + very high interest
         elif reliability == "High" and wishlist_pressure == "🔥":
-            # High reliability but very high interest - slight watch
             risk = "❌"
             rec = "Well-supplied, but monitor demand"
+        # Fallback for any remaining cases
         else:
-            # Fallback for any remaining cases
             risk = "❌"
             rec = "No urgency / oversupplied"
 

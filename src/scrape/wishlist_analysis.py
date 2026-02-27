@@ -311,7 +311,7 @@ def get_wishlist_count(key, by_run, runs, cur_run, lookback_limit=WISHLIST_OOS_C
         return 0
 
     cur_rows = by_run[cur_run]
-    cur_map = {(r.get("scientific_name", ""), r.get("size_cm", "")): r for r in cur_rows}
+    cur_map = _build_key_map(cur_rows)
 
     if key in cur_map:
         try:
@@ -324,7 +324,7 @@ def get_wishlist_count(key, by_run, runs, cur_run, lookback_limit=WISHLIST_OOS_C
     for i in range(cur_idx - 1, lookback_start - 1, -1):
         rt = runs[i]
         run_rows = by_run[rt]
-        run_map = {(r.get("scientific_name", ""), r.get("size_cm", "")): r for r in run_rows}
+        run_map = _build_key_map(run_rows)
         if key in run_map:
             try:
                 return int(run_map[key].get("wishlist_count", "0") or "0")
