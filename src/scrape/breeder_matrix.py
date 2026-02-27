@@ -156,46 +156,43 @@ def build_breeder_opportunity_table(history_rows):
         # Wishlist can upgrade confidence or escalate emerging signals
         # Wishlist Delta acts as momentum modifier
         
-        if pattern == "Sustained" and price_trend in ("↑", "→"):
-            # Sustained scarcity is already strong - never downgrade
-            # Wishlist Delta does NOT affect sustained signals (already high confidence)
-            # With lookback_limit=5, we can now differentiate sustained scarcity signals:
-            # - High historical demand (🔥 pressure) -> enhanced recommendation
-            # - Normal or low demand -> standard sustained recommendation
-            if wishlist_pressure == "🔥":
-                signal = "🔥"
-                rec = "Pair soon — sustained scarcity with strong buyer interest"
-            else:
-                signal = "🔥"
-                rec = "Pair soon — sustained scarcity"
+        # Sustained scarcity with strong buyer interest
+        if pattern == "Sustained" and price_trend in ("↑", "→") and wishlist_pressure == "🔥":
+            signal = "🔥"
+            rec = "Pair soon — sustained scarcity with strong buyer interest"
+        # Sustained scarcity (standard case)
+        elif pattern == "Sustained" and price_trend in ("↑", "→"):
+            signal = "🔥"
+            rec = "Pair soon — sustained scarcity"
+        # Emerging with rising price
         elif pattern == "Emerging" and price_trend == "↑":
             signal = "🔥"
             rec = "Consider pairing — rising demand"
+        # Emerging + high wishlist + rising delta -> escalate to 🔥
+        elif pattern == "Emerging" and wishlist_pressure == "🔥" and wishlist_delta == "↑":
+            signal = "🔥"
+            rec = "Consider pairing — emerging scarcity with surging interest"
+        # Emerging + high wishlist (without rising delta)
+        elif pattern == "Emerging" and wishlist_pressure == "🔥":
+            signal = "⚠️"
+            rec = "Monitor closely — emerging scarcity and rising interest"
+        # Emerging (base case)
         elif pattern == "Emerging":
-            # Emerging + high wishlist can escalate to warning
-            # NEW: Emerging + high wishlist + rising delta -> escalate to 🔥
-            # NEW: Emerging + falling delta -> do NOT escalate (remain ⚠️)
-            if wishlist_pressure == "🔥" and wishlist_delta == "↑":
-                signal = "🔥"
-                rec = "Consider pairing — emerging scarcity with surging interest"
-            elif wishlist_pressure == "🔥":
-                signal = "⚠️"
-                rec = "Monitor closely — emerging scarcity and rising interest"
-            else:
-                signal = "⚠️"
-                rec = "Monitor closely — supply tightening"
+            signal = "⚠️"
+            rec = "Monitor closely — supply tightening"
+        # Cyclical restocking pattern
         elif pattern == "Cyclical":
             signal = "⚠️"
             rec = "Breed cautiously — wave restocking"
+        # Always available + high wishlist + falling delta
+        elif pattern == "Always" and wishlist_pressure == "🔥" and wishlist_delta == "↓":
+            signal = "❌"
+            rec = "Avoid for profit — interest declining"
+        # Always available + high wishlist (early watch signal)
         elif pattern == "Always" and wishlist_pressure == "🔥":
-            # Always + high wishlist = early watch (NOT breeding signal yet)
-            # NEW: Always + high wishlist + falling delta -> remain ❌
-            if wishlist_delta == "↓":
-                signal = "❌"
-                rec = "Avoid for profit — interest declining"
-            else:
-                signal = "⚠️"
-                rec = "Watch closely — high latent demand"
+            signal = "⚠️"
+            rec = "Watch closely — high latent demand"
+        # Default: oversupplied
         else:
             signal = "❌"
             rec = "Avoid for profit — oversupplied"
