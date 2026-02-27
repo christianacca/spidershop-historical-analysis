@@ -52,7 +52,7 @@ class TestGeneratedBreederExamples:
         example = generate_breeder_example_2()
         assert "#### Example 2: Emerging Scarcity with Rising Price" in example
         assert "**Stock Pattern:** Emerging" in example
-        assert "**Price Trend:** ↑" in example
+        assert "**Price:** £30.00 ↑" in example
         assert "**Signal:** 🔥" in example
     
     def test_breeder_example_3_cyclical_pattern(self):

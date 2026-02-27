@@ -11,7 +11,7 @@ This module provides conservative, time-bounded analysis of wishlist metrics:
 from shared.config import (
     WISHLIST_DELTA_INCREASE_THRESHOLD,
     WISHLIST_DELTA_DECREASE_THRESHOLD,
-    WISHLIST_OOS_CARRYOVER_LOOKBACK,
+    OOS_CARRYOVER_LOOKBACK,
     WISHLIST_DELTA_LOOKBACK,
     WISHLIST_DELTA_PREV_LOOKBACK,
     WISHLIST_SMALL_N_FLATTEN_THRESHOLD
@@ -114,7 +114,7 @@ def compute_wishlist_pressure(rows):
     return result
 
 
-def get_oos_wishlist_carryover(key, by_run, runs, cur_run, lookback_limit=WISHLIST_OOS_CARRYOVER_LOOKBACK):
+def get_oos_wishlist_carryover(key, by_run, runs, cur_run, lookback_limit=OOS_CARRYOVER_LOOKBACK):
     """
     For OUT-of-stock species, carry forward wishlist pressure from the most recent run
     where it was IN stock, within a bounded lookback window.
@@ -281,7 +281,7 @@ def get_wishlist_metrics(key, by_run, runs, cur_run, wishlist_pressure_map):
     return wishlist_pressure, wishlist_delta
 
 
-def get_wishlist_count(key, by_run, runs, cur_run, lookback_limit=WISHLIST_OOS_CARRYOVER_LOOKBACK):
+def get_wishlist_count(key, by_run, runs, cur_run, lookback_limit=OOS_CARRYOVER_LOOKBACK):
     """Get the most recent known wishlist count for a species.
 
     If the species is IN the current run, returns its current wishlist count.
@@ -289,7 +289,7 @@ def get_wishlist_count(key, by_run, runs, cur_run, lookback_limit=WISHLIST_OOS_C
     the count from the most recent IN-stock run, or 0 if none found within
     the window.
 
-    The window deliberately matches WISHLIST_OOS_CARRYOVER_LOOKBACK (5 runs) so
+    The window deliberately matches OOS_CARRYOVER_LOOKBACK (5 runs) so
     that the raw count used for sort ordering expires at exactly the same time as
     the pressure tier (❌).  This keeps the two signals consistent: once a species
     has been OOS long enough for demand to be considered unreliable, the count also

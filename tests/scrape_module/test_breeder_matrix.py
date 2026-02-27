@@ -18,6 +18,11 @@ from scrape.breeder_matrix import build_breeder_opportunity_table
 from conftest import make_row
 
 
+def assert_price_cell(price_cell: str, expected_arrow: str, expected_value: str) -> None:
+    """Assert a combined price cell has expected value and trend arrow."""
+    assert price_cell == f"£{expected_value} {expected_arrow}"
+
+
 class TestBuildBreederOpportunityTable:
     """Test suite for breeder opportunity matrix generation."""
 
@@ -133,8 +138,8 @@ class TestBuildBreederOpportunityTable:
         
         table = build_breeder_opportunity_table(history)
         entry = table[0]
-        
-        assert entry["Price Trend"] == "↑"
+
+        assert_price_cell(entry["Price"], "↑", "30.00")
 
     def test_price_trend_falling(self):
         """Should detect falling price trend."""
@@ -145,8 +150,8 @@ class TestBuildBreederOpportunityTable:
         
         table = build_breeder_opportunity_table(history)
         entry = table[0]
-        
-        assert entry["Price Trend"] == "↓"
+
+        assert_price_cell(entry["Price"], "↓", "25.00")
 
     def test_price_trend_stable(self):
         """Should detect stable price trend."""
@@ -157,8 +162,8 @@ class TestBuildBreederOpportunityTable:
         
         table = build_breeder_opportunity_table(history)
         entry = table[0]
-        
-        assert entry["Price Trend"] == "→"
+
+        assert_price_cell(entry["Price"], "→", "25.00")
 
     def test_price_trend_for_oos_species(self):
         """Should compute price trend for OUT species using last two known prices."""
@@ -176,7 +181,7 @@ class TestBuildBreederOpportunityTable:
         
         table = build_breeder_opportunity_table(history_rising)
         seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
-        assert seemanni_entry["Price Trend"] == "↑"
+        assert_price_cell(seemanni_entry["Price"], "↑", "30.00")
         
         # Test falling price trend (covers line 79)
         history_falling = [
@@ -196,7 +201,27 @@ class TestBuildBreederOpportunityTable:
         
         table = build_breeder_opportunity_table(history_falling)
         hamorii_entry = [r for r in table if r["Species"] == "Brachypelma hamorii"][0]
-        assert hamorii_entry["Price Trend"] == "↓"
+        assert_price_cell(hamorii_entry["Price"], "↓", "25.00")
+
+    def test_price_value_for_oos_species_expires_after_bounded_lookback(self):
+        """OUT species beyond bounded lookback should show N/A price value."""
+        history = [
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "5"),
+            make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "8"),
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "8"),
+            make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "8"),
+            make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "8"),
+            make_row("2025-01-29", "Grammostola pulchra", "2.0", "40.00", "8"),
+            make_row("2025-02-05", "Grammostola pulchra", "2.0", "40.00", "8"),
+            make_row("2025-02-12", "Grammostola pulchra", "2.0", "40.00", "8"),
+        ]
+
+        table = build_breeder_opportunity_table(history)
+        seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+
+        assert seemanni_entry["OOS"] == "OUT"
+        assert seemanni_entry["OOS Runs"] == "6"
+        assert seemanni_entry["Price"] == "N/A →"
 
     def test_emerging_with_rising_price_gets_fire_signal(self):
         """Emerging scarcity + rising price should get 🔥 signal."""
@@ -220,7 +245,7 @@ class TestBuildBreederOpportunityTable:
         seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
         
         assert seemanni_entry["Stock Pattern"] == "Emerging"
-        assert seemanni_entry["Price Trend"] == "↑"
+        assert_price_cell(seemanni_entry["Price"], "↑", "30.00")
         assert seemanni_entry["Signal"] == "🔥"
         assert "rising demand" in seemanni_entry["Recommendation"].lower()
 
@@ -393,7 +418,7 @@ class TestBuildBreederOpportunityTable:
         # Verify all expected keys exist (including new sparkline columns)
         expected_keys = {
             "Species", "Size (cm)", "OOS", "OOS Runs", "Stock Pattern",
-            "Price Trend", "Price History", "Wishlist", 
+            "Price", "Price History", "Wishlist", 
             "Wishlist History", "Signal", "Recommendation", "Drivers"
         }
         assert set(entry.keys()) == expected_keys
@@ -401,7 +426,7 @@ class TestBuildBreederOpportunityTable:
         assert isinstance(entry["OOS Runs"], str)  # Stored as string
         assert entry["Signal"] in ["🔥", "⚠️", "❌"]
         assert entry["Stock Pattern"] in ["Sustained", "Emerging", "Cyclical", "Always"]
-        assert entry["Price Trend"] in ["↑", "↓", "→"]
+        assert entry["Price"].endswith(("↑", "↓", "→"))
 
     def test_complex_multi_species_scenario(self):
         """Integration test with multiple species showing different patterns."""
@@ -437,12 +462,12 @@ class TestBuildBreederOpportunityTable:
         # Species B should show always available with rising price
         species_b = [r for r in table if r["Species"] == "Species B"][0]
         assert species_b["Stock Pattern"] == "Always"
-        assert species_b["Price Trend"] == "↑"
+        assert_price_cell(species_b["Price"], "↑", "38.00")
         
         # Species C should show always available with stable price
         species_c = [r for r in table if r["Species"] == "Species C"][0]
         assert species_c["Stock Pattern"] == "Always"
-        assert species_c["Price Trend"] == "→"
+        assert_price_cell(species_c["Price"], "→", "20.00")
 
     def test_price_trend_with_invalid_price_values(self):
         """Should handle invalid price values gracefully (ValueError exception)."""
@@ -457,8 +482,9 @@ class TestBuildBreederOpportunityTable:
         table = build_breeder_opportunity_table(history)
         entry = table[0]
         
-        # Should default to stable when prices can't be parsed
-        assert entry["Price Trend"] == "→"
+        # Trend should default to neutral when historical comparison fails,
+        # while still showing the current valid price
+        assert_price_cell(entry["Price"], "→", "25.00")
 
     def test_price_trend_oos_species_with_invalid_historical_prices(self):
         """Should handle invalid historical prices for OUT species."""
@@ -481,7 +507,7 @@ class TestBuildBreederOpportunityTable:
         seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
         
         # Should default to stable when historical prices can't be parsed (hits line 79)
-        assert seemanni_entry["Price Trend"] == "→"
+        assert seemanni_entry["Price"].endswith("→")
 
     def test_price_trend_only_one_historical_price_for_oos_species(self):
         """Should default to neutral when only one historical price exists for OUT species."""
@@ -498,7 +524,7 @@ class TestBuildBreederOpportunityTable:
         seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
         
         # With only 1 historical price, should default to neutral
-        assert seemanni_entry["Price Trend"] == "→"
+        assert_price_cell(seemanni_entry["Price"], "→", "25.00")
 
     def test_sustained_scarcity_with_high_wishlist_pressure(self):
         """
@@ -621,19 +647,19 @@ class TestSummaryStatistics:
         # Create table with mix of signals
         table = [
             {"Species": "Species A", "Size (cm)": "1", "OOS": "OUT", "OOS Runs": "5", 
-             "Stock Pattern": "Sustained", "Price Trend": "→", "Price History": "▄▄▄",
+               "Stock Pattern": "Sustained", "Price": "£25.00 →", "Price History": "▄▄▄",
              "Wishlist": "0 🔥 →", "Wishlist History": "▄▄▄",
              "Signal": "🔥", "Recommendation": "Pair soon"},
             {"Species": "Species B", "Size (cm)": "2", "OOS": "OUT", "OOS Runs": "2",
-             "Stock Pattern": "Emerging", "Price Trend": "→", "Price History": "▄▄▄",
+               "Stock Pattern": "Emerging", "Price": "£30.00 →", "Price History": "▄▄▄",
              "Wishlist": "0 🔥 ↑", "Wishlist History": "▁██",
              "Signal": "🔥", "Recommendation": "Consider pairing"},
             {"Species": "Species C", "Size (cm)": "1", "OOS": "IN", "OOS Runs": "0",
-             "Stock Pattern": "Always", "Price Trend": "→", "Price History": "▄▄▄",
+               "Stock Pattern": "Always", "Price": "£20.00 →", "Price History": "▄▄▄",
              "Wishlist": "0 🔥 →", "Wishlist History": "▄▄▄",
              "Signal": "⚠️", "Recommendation": "Watch closely"},
             {"Species": "Species D", "Size (cm)": "1", "OOS": "IN", "OOS Runs": "0",
-             "Stock Pattern": "Always", "Price Trend": "→", "Price History": "▄▄▄",
+               "Stock Pattern": "Always", "Price": "£18.00 →", "Price History": "▄▄▄",
              "Wishlist": "0 ❌ ↓", "Wishlist History": "█▁▁",
              "Signal": "❌", "Recommendation": "Avoid"},
         ]

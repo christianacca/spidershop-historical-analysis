@@ -197,6 +197,7 @@ test-e2e: .check-venv e2e-install
 	@mkdir -p $(TESTING_DIR)
 	source $(VENV)/bin/activate && cd $(TESTING_DIR) && \
 		export PYTHONPATH="$$PWD/../../src:$$PWD/../../tests:$$PYTHONPATH" && \
+		export PYTEST_ADDOPTS="--basetemp=.pytest_tmp $$PYTEST_ADDOPTS" && \
 		RUN_E2E=1 pytest ../../tests/e2e -m e2e -v
 
 test-e2e-file: .check-venv e2e-install
@@ -209,6 +210,7 @@ test-e2e-file: .check-venv e2e-install
 	@mkdir -p $(TESTING_DIR)
 	source $(VENV)/bin/activate && cd $(TESTING_DIR) && \
 		export PYTHONPATH="$$PWD/../../src:$$PWD/../../tests:$$PYTHONPATH" && \
+		export PYTEST_ADDOPTS="--basetemp=.pytest_tmp $$PYTEST_ADDOPTS" && \
 		RUN_E2E=1 pytest ../../$(TEST) -v
 
 test-e2e-debug: .check-venv e2e-install
@@ -217,6 +219,7 @@ test-e2e-debug: .check-venv e2e-install
 	@mkdir -p $(TESTING_DIR)
 	source $(VENV)/bin/activate && cd $(TESTING_DIR) && \
 		export PYTHONPATH="$$PWD/../../src:$$PWD/../../tests:$$PYTHONPATH" && \
+		export PYTEST_ADDOPTS="--basetemp=.pytest_tmp $$PYTEST_ADDOPTS" && \
 		PWDEBUG=1 RUN_E2E=1 pytest ../../tests/e2e -m e2e -v -s
 
 test-e2e-headed: .check-venv e2e-install
@@ -224,6 +227,7 @@ test-e2e-headed: .check-venv e2e-install
 	@mkdir -p $(TESTING_DIR)
 	source $(VENV)/bin/activate && cd $(TESTING_DIR) && \
 		export PYTHONPATH="$$PWD/../../src:$$PWD/../../tests:$$PYTHONPATH" && \
+		export PYTEST_ADDOPTS="--basetemp=.pytest_tmp $$PYTEST_ADDOPTS" && \
 		PWHEADED=1 RUN_E2E=1 pytest ../../tests/e2e -m e2e -v -s
 
 test-e2e-show-trace: .check-venv e2e-install

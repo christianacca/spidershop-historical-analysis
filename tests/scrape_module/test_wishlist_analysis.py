@@ -95,7 +95,7 @@ class TestGetWishlistMetrics:
 
 
 class TestGetWishlistCount:
-    """Tests for get_wishlist_count() — bounded by WISHLIST_OOS_CARRYOVER_LOOKBACK (5 runs)."""
+    """Tests for get_wishlist_count() — bounded by OOS_CARRYOVER_LOOKBACK (5 runs)."""
 
     def _setup(self, history_rows):
         by_run = group_by_run(history_rows)

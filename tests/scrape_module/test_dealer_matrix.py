@@ -17,6 +17,11 @@ from scrape.dealer_matrix import build_dealer_supply_risk_table, write_dealer_ou
 from conftest import make_row
 
 
+def assert_price_cell(price_cell: str, expected_arrow: str, expected_value: str) -> None:
+    """Assert a combined price cell has expected value and trend arrow."""
+    assert price_cell == f"£{expected_value} {expected_arrow}"
+
+
 class TestBuildDealerSupplyRiskTable:
     """Test suite for dealer supply risk matrix generation."""
 
@@ -188,8 +193,8 @@ class TestBuildDealerSupplyRiskTable:
         
         table = build_dealer_supply_risk_table(history)
         entry = table[0]
-        
-        assert entry["Price Pressure"] == "↑"
+
+        assert_price_cell(entry["Price"], "↑", "30.00")
 
     def test_price_pressure_falling(self):
         """Should detect falling price pressure between last two runs."""
@@ -200,8 +205,8 @@ class TestBuildDealerSupplyRiskTable:
         
         table = build_dealer_supply_risk_table(history)
         entry = table[0]
-        
-        assert entry["Price Pressure"] == "↓"
+
+        assert_price_cell(entry["Price"], "↓", "25.00")
 
     def test_price_pressure_stable(self):
         """Should detect stable price pressure between last two runs."""
@@ -212,8 +217,8 @@ class TestBuildDealerSupplyRiskTable:
         
         table = build_dealer_supply_risk_table(history)
         entry = table[0]
-        
-        assert entry["Price Pressure"] == "→"
+
+        assert_price_cell(entry["Price"], "→", "25.00")
 
     def test_price_pressure_invalid_values_defaults_to_stable(self):
         """Invalid price values should result in stable (→) price pressure."""
@@ -224,8 +229,26 @@ class TestBuildDealerSupplyRiskTable:
         
         table = build_dealer_supply_risk_table(history)
         entry = table[0]
-        
-        assert entry["Price Pressure"] == "→"
+
+        assert_price_cell(entry["Price"], "→", "25.00")
+
+    def test_price_value_for_oos_species_expires_after_bounded_lookback(self):
+        """OUT species beyond bounded lookback should show N/A price value."""
+        history = [
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "5"),
+            make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "8"),
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "8"),
+            make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "8"),
+            make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "8"),
+            make_row("2025-01-29", "Grammostola pulchra", "2.0", "40.00", "8"),
+            make_row("2025-02-05", "Grammostola pulchra", "2.0", "40.00", "8"),
+            make_row("2025-02-12", "Grammostola pulchra", "2.0", "40.00", "8"),
+        ]
+
+        table = build_dealer_supply_risk_table(history)
+        seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+
+        assert seemanni_entry["Price"] == "N/A →"
 
     def test_low_reliability_slow_restock_high_fire_risk(self):
         """Low reliability + slow restock = 🔥 risk."""
@@ -761,7 +784,7 @@ class TestBuildDealerSupplyRiskTable:
         
         expected_keys = {
             "Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration",
-            "Restock Speed", "Price Pressure", "Price History", "Wishlist", 
+            "Restock Speed", "Price", "Price History", "Wishlist", 
             "Wishlist History", "Stock Availability", "Dealer Risk", 
             "Dealer Recommendation", "Drivers"
         }
@@ -1032,16 +1055,16 @@ class TestDealerSummaryStatistics:
         # Create table with mix of risk signals
         table = [
             {"Species": "Species A", "Size (cm)": "1", "Stock Reliability": "Low", "Avg OOS Duration": 5.0, "Restock Speed": "Slow",
-             "Price Pressure": "→", "Price History": "▄▄▄", "Wishlist": "5 🔥 →", "Wishlist History": "▄▄▄",
+               "Price": "£25.00 →", "Price History": "▄▄▄", "Wishlist": "5 🔥 →", "Wishlist History": "▄▄▄",
              "Stock Availability": "█", "Dealer Risk": "🔥", "Dealer Recommendation": "Actively seek breeders"},
             {"Species": "Species B", "Size (cm)": "2", "Stock Reliability": "Medium", "Avg OOS Duration": 2.0, "Restock Speed": "Fast",
-             "Price Pressure": "→", "Price History": "▄▄▄", "Wishlist": "5 🔥 ↑", "Wishlist History": "▁██",
+               "Price": "£30.00 →", "Price History": "▄▄▄", "Wishlist": "5 🔥 ↑", "Wishlist History": "▁██",
              "Stock Availability": "███", "Dealer Risk": "🔥", "Dealer Recommendation": "Actively seek breeders"},
             {"Species": "Species C", "Size (cm)": "1", "Stock Reliability": "Medium", "Avg OOS Duration": 1.5, "Restock Speed": "Fast",
-             "Price Pressure": "→", "Price History": "▄▄▄", "Wishlist": "5 🔥 →", "Wishlist History": "▄▄▄",
+               "Price": "£20.00 →", "Price History": "▄▄▄", "Wishlist": "5 🔥 →", "Wishlist History": "▄▄▄",
              "Stock Availability": "████", "Dealer Risk": "⚠️", "Dealer Recommendation": "Buy opportunistically"},
             {"Species": "Species D", "Size (cm)": "1", "Stock Reliability": "High", "Avg OOS Duration": 0.0, "Restock Speed": "Fast",
-             "Price Pressure": "→", "Price History": "▄▄▄", "Wishlist": "5 ❌ ↓", "Wishlist History": "█▁▁",
+               "Price": "£18.00 →", "Price History": "▄▄▄", "Wishlist": "5 ❌ ↓", "Wishlist History": "█▁▁",
              "Stock Availability": "███████", "Dealer Risk": "❌", "Dealer Recommendation": "No urgency"},
         ]
         
