@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
-from shared.history_utils import group_by_run, k2, compare_prices
+from shared.history_utils import k2, compare_prices
 from shared.config import (
     DEALER_TABLE_FILE,
-    SIGNAL_PRIORITY,
-    TREND_PRIORITY,
     OOS_CARRYOVER_LOOKBACK,
 )
-from scrape.wishlist_analysis import compute_wishlist_pressure, get_wishlist_metrics, get_wishlist_count
-from shared.sparkline_helpers import extract_historical_values_with_carryforward, generate_stock_availability_sparkline
+from scrape.wishlist_analysis import compute_wishlist_pressure
+from shared.sparkline_helpers import generate_stock_availability_sparkline
 from shared.driver_text_helpers import build_drivers_text
 from shared.price_text_helpers import format_price_cell
-from shared.csv_utils import write_matrix_csv
-from shared.summary_utils import MatrixSummaryConfig, write_matrix_summary
+from shared.summary_utils import MatrixOutputConfig, write_matrix_outputs
+from scrape.matrix_workflow import (
+    generate_price_wishlist_sparklines,
+    get_wishlist_display_metrics,
+    prepare_matrix_runs,
+    sort_matrix_table,
+)
 
 # =====================
 # DEALER MATRIX (Option B: Price Pressure informational)
@@ -38,16 +41,12 @@ def _generate_dealer_drivers_text(reliability: str, speed: str, price_pressure: 
 
 
 def build_dealer_supply_risk_table(history_rows):
-    by_run = group_by_run(history_rows)
-    runs = sorted(by_run)
-    total_runs = len(runs)
-    if total_runs < 2:
+    prepared = prepare_matrix_runs(history_rows)
+    if prepared is None:
         return []
 
-    prev_run = runs[-2]
-    cur_run = runs[-1]
-    
-    cur_rows = by_run[cur_run]
+    by_run, runs, cur_run, prev_run, cur_rows = prepared
+    total_runs = len(runs)
 
     # Compute wishlist pressure for current run
     wishlist_pressure_map = compute_wishlist_pressure(cur_rows)
@@ -103,11 +102,9 @@ def build_dealer_supply_risk_table(history_rows):
         price_cell = format_price_cell(current_or_last_price, pp)
 
         key = (sci, size)
-        wishlist_pressure, wishlist_delta = get_wishlist_metrics(
+        wishlist_pressure, wishlist_delta, wishlist_count, wishlist_display = get_wishlist_display_metrics(
             key, by_run, runs, cur_run, wishlist_pressure_map
         )
-
-        wishlist_count = get_wishlist_count(key, by_run, runs, cur_run)
 
         # Dealer risk logic: Supply-first hierarchy with demand as modifier
         # Low reliability species escalate to 🔥 based on supply failure + demand signals
@@ -160,11 +157,9 @@ def build_dealer_supply_risk_table(history_rows):
 
         # Generate sparklines for historical trends (last 8 weeks)
         # Use carry-forward to show persistent values when OUT (price/wishlist don't disappear)
-        price_history = extract_historical_values_with_carryforward((sci, size), by_run, runs, "price_gbp", max_runs=8)
-        price_history_sparkline = price_history['unicode']
-        
-        wishlist_history = extract_historical_values_with_carryforward((sci, size), by_run, runs, "wishlist_count", max_runs=8)
-        wishlist_history_sparkline = wishlist_history['unicode']
+        price_history_sparkline, wishlist_history_sparkline = generate_price_wishlist_sparklines(
+            (sci, size), by_run, runs, max_runs=8
+        )
         
         stock_availability_sparkline = generate_stock_availability_sparkline((sci, size), by_run, runs, max_runs=8)
         
@@ -185,7 +180,7 @@ def build_dealer_supply_risk_table(history_rows):
             "Restock Speed": speed,
             "Price": price_cell,
             "Price History": price_history_sparkline,
-            "Wishlist": f"{wishlist_count} {wishlist_pressure} {wishlist_delta}",
+            "Wishlist": wishlist_display,
             "Wishlist History": wishlist_history_sparkline,
             "Stock Availability": stock_availability_sparkline,
             "Dealer Risk": risk,
@@ -194,28 +189,22 @@ def build_dealer_supply_risk_table(history_rows):
         })
 
     # Sort: Dealer Risk (🔥 > ⚠️ > ❌), then Wishlist count (desc), then Avg OOS Duration (desc)
-    table.sort(key=lambda r: (
-        SIGNAL_PRIORITY[r["Dealer Risk"]],
-        -int(r["Wishlist"].split()[0]) if r.get("Wishlist", "").split() else 0,
-        -r["Avg OOS Duration"]
-    ))
+    sort_matrix_table(table, "Dealer Risk", lambda row: float(row["Avg OOS Duration"]))
     return table
 
 def write_dealer_outputs(table):
-    fallback_fieldnames = [
-        "Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration",
-        "Restock Speed", "Price", "Price History", "Wishlist",
-        "Wishlist History", "Stock Availability", "Dealer Risk",
-        "Dealer Recommendation", "Drivers",
-    ]
-    write_matrix_csv(DEALER_TABLE_FILE, table, fallback_fieldnames)
-
-    config = MatrixSummaryConfig(
+    output_config = MatrixOutputConfig(
         title="🏪 Dealer Supply Risk Matrix",
         csv_filepath=DEALER_TABLE_FILE,
         empty_message="No supply risks detected (conservative analysis requires sufficient historical data).",
         indicator_field="Dealer Risk",
         indicator_labels={"🔥": "High Risk", "⚠️": "Moderate Risk", "❌": "Low Risk"},
+        fallback_fieldnames=[
+        "Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration",
+        "Restock Speed", "Price", "Price History", "Wishlist",
+        "Wishlist History", "Stock Availability", "Dealer Risk",
+        "Dealer Recommendation", "Drivers",
+        ],
         table_columns=[
             "Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration",
             "Restock Speed", "Price", "Price History", "Wishlist",
@@ -223,4 +212,4 @@ def write_dealer_outputs(table):
             "Dealer Recommendation",
         ],
     )
-    return write_matrix_summary(table, config)
+    return write_matrix_outputs(table, output_config)

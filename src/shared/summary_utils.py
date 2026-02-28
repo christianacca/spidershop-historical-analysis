@@ -1,9 +1,10 @@
-"""Shared GitHub Actions step-summary utilities for matrix output."""
+"""Shared GitHub Actions step-summary and matrix output utilities."""
 
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from shared.assertions import get_summary_path
+from shared.csv_utils import write_matrix_csv
 
 # Columns whose values should be right-aligned in the markdown table.
 _RIGHT_ALIGN_COLUMNS = {"OOS Runs", "Avg OOS Duration"}
@@ -34,6 +35,42 @@ class MatrixSummaryConfig:
     indicator_field: str
     indicator_labels: Dict[str, str]
     table_columns: List[str]
+
+
+@dataclass
+class MatrixOutputConfig:
+    """Configuration for writing matrix CSV output and markdown summary."""
+
+    title: str
+    csv_filepath: str
+    empty_message: str
+    indicator_field: str
+    indicator_labels: Dict[str, str]
+    fallback_fieldnames: List[str]
+    table_columns: Optional[List[str]] = None
+
+
+def write_matrix_outputs(
+    table: List[Dict[str, Any]],
+    config: MatrixOutputConfig,
+    max_shown: int = 10,
+) -> bool:
+    """Write matrix CSV output and GitHub Actions summary from one config."""
+    write_matrix_csv(config.csv_filepath, table, config.fallback_fieldnames)
+
+    summary_columns = config.table_columns
+    if summary_columns is None:
+        summary_columns = [field for field in config.fallback_fieldnames if field != "Drivers"]
+
+    summary_config = MatrixSummaryConfig(
+        title=config.title,
+        csv_filepath=config.csv_filepath,
+        empty_message=config.empty_message,
+        indicator_field=config.indicator_field,
+        indicator_labels=config.indicator_labels,
+        table_columns=summary_columns,
+    )
+    return write_matrix_summary(table, summary_config, max_shown=max_shown)
 
 
 def write_matrix_summary(
