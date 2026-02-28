@@ -47,7 +47,7 @@ help:
 	@echo "  make scrape-only            Run scraper only (no website generation)"
 	@echo "  make generate-website       Generate website from existing CSV files"
 	@echo "  make serve-only             Serve existing website (no regeneration)"
-	@echo "  make build-client           Build client-side TS/Svelte assets (run before generate-website)"
+	@echo "  make build-client           Build client-side TS/Svelte assets (auto-run by generate-website)"
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test                   Run pytest with coverage"
@@ -102,7 +102,7 @@ help:
 # ==============================================================================
 
 # Build client-side TypeScript/Svelte assets.
-# Must be run before generate-website when client source has changed.
+# Called automatically by generate-website (and all targets that depend on it).
 build-client:
 	@echo "🔨 Building client-side assets..."
 	cd client && npm ci && npm run build
@@ -154,7 +154,7 @@ scrape-only: .check-venv clean-cache
 		python -m scrape
 	@echo "✅ Scrape complete. CSV files saved to $(TESTING_DIR)/"
 
-generate-website: .check-venv clean-cache
+generate-website: build-client .check-venv clean-cache
 	@echo "🌐 Generating website..."
 	@if [ ! -f "$(TESTING_DIR)/spidershop_spiderlings_scrape.csv" ]; then \
 		echo "❌ CSV files not found in $(TESTING_DIR)/"; \

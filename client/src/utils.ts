@@ -7,12 +7,18 @@
 
 import { CSS } from './constants.js';
 
+interface RangeSliderConfig {
+  minId: string;
+  maxId: string;
+  displayId: string;
+  parse: (value: string) => number;
+  format: (min: number, max: number) => string;
+}
+
 /**
  * Get element by ID with warning if not found
- * @param {string} id - Element ID
- * @returns {HTMLElement|null}
  */
-export function getElement(id) {
+export function getElement(id: string): HTMLElement | null {
   const el = document.getElementById(id);
   if (!el) console.warn(`Element not found: ${id}`);
   return el;
@@ -20,20 +26,17 @@ export function getElement(id) {
 
 /**
  * Set active state on a button within a group
- * @param {HTMLElement} button - Button to activate
  */
-export function setActiveButton(button) {
-  const buttons = button.parentElement.querySelectorAll(`.${CSS.FILTER_BTN}`);
+export function setActiveButton(button: HTMLElement): void {
+  const buttons = button.parentElement!.querySelectorAll(`.${CSS.FILTER_BTN}`);
   buttons.forEach(btn => btn.classList.remove(CSS.ACTIVE));
   button.classList.add(CSS.ACTIVE);
 }
 
 /**
  * Toggle row visibility using CSS class
- * @param {HTMLElement} row - Table row element
- * @param {boolean} shouldShow - Whether to show the row
  */
-export function toggleRowVisibility(row, shouldShow) {
+export function toggleRowVisibility(row: HTMLElement, shouldShow: boolean): void {
   row.classList.toggle(CSS.HIDDEN, !shouldShow);
 }
 
@@ -42,63 +45,60 @@ export function toggleRowVisibility(row, shouldShow) {
  * Manages min/max slider constraints and display updates
  */
 export class RangeSlider {
-  /**
-   * @param {Object} config - Configuration object
-   * @param {string} config.minId - Min slider element ID
-   * @param {string} config.maxId - Max slider element ID
-   * @param {string} config.displayId - Display element ID
-   * @param {Function} config.parse - Parse function (parseFloat or parseInt)
-   * @param {Function} config.format - Format function (min, max) => string
-   */
-  constructor(config) {
+  private minSlider: HTMLElement | null;
+  private maxSlider: HTMLElement | null;
+  private display: HTMLElement | null;
+  private parse: (value: string) => number;
+  private format: (min: number, max: number) => string;
+
+  constructor(config: RangeSliderConfig) {
     this.minSlider = getElement(config.minId);
     this.maxSlider = getElement(config.maxId);
     this.display = getElement(config.displayId);
     this.parse = config.parse;
     this.format = config.format;
   }
-  
+
   /**
    * Enforce min <= max constraint when sliders change
-   * @param {Event} event - Input event from slider
    */
-  enforceConstraints(event) {
+  enforceConstraints(event?: Event): void {
     if (!this.minSlider || !this.maxSlider) return;
-    
-    let min = this.parse(this.minSlider.value);
-    let max = this.parse(this.maxSlider.value);
-    
+
+    const minInput = this.minSlider as HTMLInputElement;
+    const maxInput = this.maxSlider as HTMLInputElement;
+
+    let min = this.parse(minInput.value);
+    let max = this.parse(maxInput.value);
+
     if (min > max) {
       if (event?.target === this.minSlider) {
         min = max;
-        this.minSlider.value = max;
+        minInput.value = String(max);
       } else {
         max = min;
-        this.maxSlider.value = min;
+        maxInput.value = String(min);
       }
     }
-    
+
     this.updateDisplay(min, max);
   }
-  
+
   /**
    * Get current slider values
-   * @returns {[number, number]} [min, max] values
    */
-  getValues() {
+  getValues(): [number, number] {
     if (!this.minSlider || !this.maxSlider) return [0, Infinity];
     return [
-      this.parse(this.minSlider.value),
-      this.parse(this.maxSlider.value)
+      this.parse((this.minSlider as HTMLInputElement).value),
+      this.parse((this.maxSlider as HTMLInputElement).value)
     ];
   }
-  
+
   /**
    * Update display text with formatted values
-   * @param {number} min - Min value
-   * @param {number} max - Max value
    */
-  updateDisplay(min, max) {
+  updateDisplay(min: number, max: number): void {
     if (this.display) {
       this.display.textContent = this.format(min, max);
     }
@@ -107,23 +107,25 @@ export class RangeSlider {
 
 /**
  * Generic attribute-based row filtering
- * @param {string} attributeName - Data attribute to filter by (e.g., 'data-signal')
- * @param {string} filterValue - Value to match ('all' shows everything)
- * @param {string} tableId - ID of the table element
- * @param {HTMLElement} button - Button that triggered the filter
  */
-export function filterByAttribute(attributeName, filterValue, tableId, button, limit = null) {
+export function filterByAttribute(
+  attributeName: string,
+  filterValue: string,
+  tableId: string,
+  button: HTMLElement,
+  limit: number | null = null
+): void {
   const table = getElement(tableId);
   if (!table) return;
-  
+
   const rows = table.querySelectorAll('tbody tr');
-  
+
   setActiveButton(button);
 
   // When a limit is set, determine which rows to show by their original CSV
   // index (data-original-index), not their current DOM position.  This ensures
   // the same N entries are always selected regardless of the active sort order.
-  let allowedOriginalIndexes = null;
+  let allowedOriginalIndexes: Set<string | null> | null = null;
   if (limit !== null) {
     const matchingRows = Array.from(rows).filter(
       row => filterValue === 'all' || row.getAttribute(attributeName) === filterValue
@@ -140,21 +142,21 @@ export function filterByAttribute(attributeName, filterValue, tableId, button, l
   rows.forEach(row => {
     const attrValue = row.getAttribute(attributeName);
     const matches = filterValue === 'all' || attrValue === filterValue;
-    let shouldShow;
+    let shouldShow: boolean;
     if (allowedOriginalIndexes !== null) {
       shouldShow = matches && allowedOriginalIndexes.has(row.getAttribute('data-original-index'));
     } else {
       shouldShow = matches;
     }
-    toggleRowVisibility(row, shouldShow);
+    toggleRowVisibility(row as HTMLElement, shouldShow);
   });
-  
+
   // Update visible count (signal/stock filters don't update badge)
   const countElement = getElement(`visible-count-${tableId}`);
   if (countElement) {
     const visibleCount = Array.from(rows).filter(
       row => !row.classList.contains(CSS.HIDDEN)
     ).length;
-    countElement.textContent = visibleCount;
+    countElement.textContent = String(visibleCount);
   }
 }

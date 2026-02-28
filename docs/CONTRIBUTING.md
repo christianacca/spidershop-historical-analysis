@@ -587,15 +587,15 @@ make generate-website
 # 1. Get data (only needed once)
 make download-artifacts  # OR: make scrape-only
 
-# 2. Build client assets, generate website, and start server
-make build-client && make website-serve
+# 2. Generate website and start server (builds client assets automatically)
+make website-serve
 # Open http://localhost:8000
 
 # 3. In a NEW terminal: make changes to client/src/
 # ... edit TypeScript files ...
 
 # 4. Rebuild and regenerate (in the new terminal)
-make build-client && make generate-website
+make generate-website
 
 # 5. Refresh browser to see changes
 

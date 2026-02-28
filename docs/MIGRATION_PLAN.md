@@ -148,42 +148,42 @@ Vite 6 requires the entry path to match the actual file extension.
 Import statements inside the files (`import { CSS } from './constants.js'`) do **not**
 need changing — `moduleResolution: "bundler"` resolves `.js` → `.ts` transparently.
 
-- [ ] 10. Rename `constants.js` → `constants.ts`. Update `vite.config.ts` entry.
+- [x] 10. Rename `constants.js` → `constants.ts`. Update `vite.config.ts` entry.
           Add explicit property types to the three exported const objects
           (`CHART`, `CSS`, `CONFIG`).
 
-- [ ] 11. Rename `utils.js` → `utils.ts`. Update `vite.config.ts` entry.
+- [x] 11. Rename `utils.js` → `utils.ts`. Update `vite.config.ts` entry.
           Type all exported functions and the `RangeSlider` class:
           - `getElement(id: string): HTMLElement | null`
           - `setActiveButton(button: HTMLElement): void`
           - `toggleRowVisibility(row: HTMLElement, shouldShow: boolean): void`
           - `filterByAttribute(attributeName, filterValue, tableId, button, limit?: number | null): void`
-          - `RangeSlider`: constructor config type, `enforceConstraints(event: Event): void`,
+          - `RangeSlider`: constructor config type, `enforceConstraints(event?: Event): void`,
             `getValues(): [number, number]`, `updateDisplay(min: number, max: number): void`.
 
-- [ ] 12. Rename `table-interactions.js` → `table-interactions.ts`. Update `vite.config.ts` entry.
+- [x] 12. Rename `table-interactions.js` → `table-interactions.ts`. Update `vite.config.ts` entry.
           Type all exported functions (`sortTable`, `filterByPrice`, `filterByWishlist`,
           `filterRows`, `toggleAdvancedFilters`, `downloadFilteredCsv`, `updateDateSummary`)
           and private helpers.
 
-- [ ] 13. Rename `table-setup.js` → `table-setup.ts`. Update `vite.config.ts` entry.
+- [x] 13. Rename `table-setup.js` → `table-setup.ts`. Update `vite.config.ts` entry.
           Imports from all others — type errors cascade
           here, catching any remaining gaps.
 
-- [ ] 14. Rename `species-detail.js` → `species-detail.ts`. Update `vite.config.ts` entry.
-          Create `client/src/global.d.ts` declaring `window.speciesChartData`:
+- [x] 14. Rename `species-detail.js` → `species-detail.ts`. Update `vite.config.ts` entry.
+          Created `client/src/global.d.ts` declaring `window.speciesChartData`:
           ```ts
           interface SpeciesRun { observed: boolean; price: string; wishlist: string; }
-          interface Window { speciesChartData?: { runs: SpeciesRun[] }; }
+          interface SpeciesChartData { runs: SpeciesRun[]; }
+          interface Window { speciesChartData?: SpeciesChartData; }
           ```
-          Type the `renderLineChart` destructured options object
-          (`containerId`, `series`, `stroke`, `yMin`, `yMax`, `yLabelTop`,
-          `yLabelMid`, `yLabelLow`, `yLabelBottom`, `formatValue`).
+          Typed the `renderLineChart` options as `LineChartConfig` interface;
+          `Point = [number, number, number, number]` and `ChartLayout` types added.
 
-- [ ] 15. After each rename: `make build-client` must emit zero type errors.
-          Run `make test-e2e` after the final file.
+- [x] 15. After each rename: `make build-client` emits zero type errors.
+          `make test-e2e` → 106/106 passed.
 
-- [ ] Doc: Update copilot-instructions.md — note that JS source files are now TypeScript (`.ts`).
+- [x] Doc: Updated copilot-instructions.md — `client/src/` is now pure TypeScript source.
 
 ---
 
@@ -191,27 +191,73 @@ need changing — `moduleResolution: "bundler"` resolves `.js` → `.ts` transpa
 
 **Goal:** Move from flat `client/src/*.ts` to page-oriented slices. No logic changes.
 
-- [ ] 16. Extract shared utilities from `table-interactions.ts` and `utils.ts` into
-          `shared/dom-utils.ts`, `shared/range-slider.ts`, `shared/sort.ts`, `shared/filter.ts`.
-          Move `constants.ts` to `shared/constants.ts`.
+- [ ] 16. Extract shared utilities from `table-interactions.ts` and `utils.ts` into:
+          - `shared/constants.ts` ← move `constants.ts` here
+          - `shared/dom-utils.ts` ← `getElement`, `setActiveButton`, `toggleRowVisibility` (from `utils.ts`)
+          - `shared/range-slider.ts` ← `RangeSlider` class + `RangeSliderConfig` interface (from `utils.ts`)
+          - `shared/sort.ts` ← `sortTable` (from `table-interactions.ts`)
+          - `shared/filter.ts` ← `filterByAttribute` (from `utils.ts`), `filterRows`, `updateFilterBadge`, `updateVisibleCount`, `toggleAdvancedFilters` (from `table-interactions.ts`)
+
+          ⚠️ **Do NOT put `filterByPrice` / `filterByWishlist` into `shared/filter.ts`.**
+          These functions reference page-specific DOM IDs (`priceMin`, `priceMax`,
+          `wishlistMin`, `wishlistMax`) and depend on module-level singletons
+          (`priceSlider: RangeSlider | null`, `wishlistSlider: RangeSlider | null`).
+          They are page-specific and must move into each page-slice `index.ts`
+          (breeder, dealer, snapshot) alongside their slider singletons.
 
 - [ ] 17. Create each feature-slice folder with an `index.ts` that imports from `shared/` and
-          wires event handlers for that page only. `history-page/index.ts` owns the date-filter
-          logic (currently buried in `table-setup.ts`). `species-page/index.ts` + `charts.ts`
-          own the former `species-detail.ts` content.
+          wires event handlers for that page only:
+          - `breeder-page/index.ts` — sorting, filtering, signal/stock-pattern filters, price/wishlist sliders
+          - `dealer-page/index.ts` — same as breeder (different table ID)
+          - `snapshot-page/index.ts` — sorting, filtering, price/wishlist sliders
+          - `history-page/index.ts` — all of the above plus:
+            - Date-filter logic (`initDateFilter`, currently in `table-setup.ts`)
+            - `downloadFilteredCsv` and `updateDateSummary` (currently in `table-interactions.ts`;
+              these are history-page-only — not called from any other page)
+          - `species-page/index.ts` + `species-page/charts.ts` — former `species-detail.ts` content
+
+          After this step, `table-setup.ts` and `table-interactions.ts` should be
+          fully dissolved (all code redistributed) and can be deleted.
 
 - [ ] 18. Update `vite.config.ts` entry map — one entry per slice:
           `{ "breeder-page": "src/breeder-page/index.ts", "dealer-page": ...,
           "snapshot-page": ..., "history-page": ..., "species-page": ... }`.
-          No more `table-setup.js` / `table-interactions.js` as output files.
+          Delete the source files `table-setup.ts` and `table-interactions.ts`
+          (fully dissolved in step 17). Vite output will no longer emit
+          `table-setup.js` or `table-interactions.js`.
 
 - [ ] 19. Update page templates to load the correct slice script per page.
-          Update `templates/base.html` so JS is no longer loaded globally —
-          each page template declares its own script.
+          Currently `templates/base.html` (lines 38-39) loads two scripts globally on every page:
+          ```html
+          <script type="module" src="{{ path_prefix }}table-interactions.js"></script>
+          <script type="module" src="{{ path_prefix }}table-setup.js"></script>
+          ```
+          Remove both of these from `base.html`. Instead, add a `<script>` tag for the
+          appropriate page slice in each page template's `{% block extra_css %}` (or a new
+          `{% block extra_js %}` block if one doesn't exist):
+          - `analysis_page.html` / `homepage.html` for breeder/dealer pages — load `breeder-page.js` / `dealer-page.js`
+          - `snapshot_page.html` — load `snapshot-page.js`
+          - `history_page.html` — load `history-page.js`
+          - `species_detail.html` already has its own `<script>` (line 236) — change to load `species-page.js`
+
+          Check `templates/base.html` and each page template for where to inject the
+          `{% block extra_js %}` block (mirroring the existing `{% block extra_css %}` pattern).
 
 - [ ] 20. Update `generate_website.py` asset-copy logic to copy the new output filenames.
+          Currently line 791 hardcodes:
+          ```python
+          js_files = ["constants.js", "utils.js", "table-interactions.js", "species-detail.js", "table-setup.js"]
+          ```
+          Replace with the 5 new page-slice filenames:
+          ```python
+          js_files = ["breeder-page.js", "dealer-page.js", "snapshot-page.js", "history-page.js", "species-page.js"]
+          ```
+          Note: `constants.js` and `utils.js` will no longer be top-level Vite entries after Phase 2
+          (they become internal imports within each slice), so they drop out of the copy list.
 
-- [ ] 21. Run `make build-client && make test-e2e`.
+- [ ] 21. Run `make test-e2e` (this automatically runs `make build-client` via the
+          `generate-website` dependency). A plain `make build-client` check first is
+          useful to surface type errors before the slower E2E suite.
 
 - [ ] Doc: Update CONTRIBUTING.md project structure — show the feature-slice folder layout
          (`breeder-page/`, `history-page/`, etc.) replacing the flat `client/src/*.ts` listing.
@@ -466,5 +512,7 @@ Tight Vitest feedback — tested in isolation before assembly.
 | **BEM applied at Phase 4a only, to permanent global CSS only** | Most current CSS classes are being deleted into Svelte scopes — renaming before then is double churn. Applied once, at the audit step, when permanent-vs-migrating is clear. |
 | **CSS three-layer architecture** | `common.css` = reset + tokens + chrome; page-level CSS = static Python HTML only; Svelte `<style>` = all component styles. Vite emits per-entry `.css`; Python copies them; page templates link them. |
 | **Design tokens before components** | Svelte components reference `var(--color-signal-hot)` natively — tokens must exist before component `<style>` blocks are written (Phase 4a before 4c). |
+| **Arrow functions in `table-setup.ts` event listeners** (Phase 1) | Event callbacks in `table-setup.ts` used `function()` + `this` in the original JS. TypeScript strict mode would require `this: HTMLElement` parameters, which conflicts with the `EventListener` interface (`this: EventTarget`). Instead, generic `querySelectorAll<HTMLElement>()` was used and inner callbacks were converted to arrow functions closing over the typed element. No logic change — behavior is identical. |
+| **`window.event` for `enforceConstraints`** (Phase 1) | `filterByPrice` / `filterByWishlist` used the deprecated global `event` to pass to `enforceConstraints`. Replaced with `window.event` (typed `Event \| undefined` in the DOM lib). The `enforceConstraints` parameter changed from `event: Event` to `event?: Event` (optional). No behavior change — the `?.target` optional chain already handled undefined. |
 | **No snapshot purge** | Table-page snapshots shrink to mount-div + data-script in Phase 4b — still guard against server-rendered scaffold regressions. Update, don't delete. |
 | **Phase 4 split into 4a–4e + c-i/ii/iii** | Separates CSS audit/BEM (4a), data contract (4b), primitive foundations (4c-i), `SortableTable` (4c-ii), `HistoryTable` (4c-iii), CSV (4d), cleanup (4e). |

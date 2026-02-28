@@ -14,65 +14,90 @@
 import { CHART } from './constants.js';
 import { getElement } from './utils.js';
 
+type Point = [number, number, number, number]; // [x, y, value, run]
+
+interface ChartLayout {
+  width: number;
+  height: number;
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
+interface LineChartConfig {
+  containerId: string;
+  series: (number | null)[];
+  stroke: string;
+  yMin: number;
+  yMax: number;
+  yLabelTop: string;
+  yLabelMid: string;
+  yLabelLow: string;
+  yLabelBottom: string;
+  formatValue?: (value: number) => string;
+}
+
 /**
  * Initialize tab switching behavior
  */
-function initTabSwitching() {
+function initTabSwitching(): void {
   document.querySelectorAll('[role="tab"]').forEach(tab => {
-  tab.addEventListener('click', (e) => {
-    const view = e.target.dataset.view;
-    
-    // Update tabs
-    document.querySelectorAll('[role="tab"]').forEach(t => {
-      t.setAttribute('aria-selected', 'false');
-    });
-    e.target.setAttribute('aria-selected', 'true');
-    
-    // Update panels
-    document.querySelectorAll('[role="tabpanel"]').forEach(panel => {
-      panel.style.display = 'none';
-    });
-    document.getElementById(`panel-${view}`).style.display = 'block';
-    
-    // Update hint text
-    const hint = document.getElementById('view-hint');
-    hint.textContent = view === 'breeder'
-      ? 'Breeder view: focuses on opportunity signals and scarcity.'
-      : 'Dealer view: focuses on supply risk, reliability, and restock speed.';
+    tab.addEventListener('click', (e) => {
+      const view = (e.target as HTMLElement).dataset.view;
 
-    // Highlight the correct origin button
-    const backBreeder = document.getElementById('back-breeder');
-    const backDealer = document.getElementById('back-dealer');
-    if (backBreeder && backDealer) {
-      backBreeder.classList.toggle('origin-btn', view === 'breeder');
-      backDealer.classList.toggle('origin-btn', view === 'dealer');
-    }
-    
-    // Update URL
-    const url = new URL(window.location);
-    url.searchParams.set('view', view);
-    window.history.pushState({}, '', url);
+      // Update tabs
+      document.querySelectorAll('[role="tab"]').forEach(t => {
+        t.setAttribute('aria-selected', 'false');
+      });
+      (e.target as HTMLElement).setAttribute('aria-selected', 'true');
+
+      // Update panels
+      document.querySelectorAll('[role="tabpanel"]').forEach(panel => {
+        (panel as HTMLElement).style.display = 'none';
+      });
+      document.getElementById(`panel-${view}`)!.style.display = 'block';
+
+      // Update hint text
+      const hint = document.getElementById('view-hint');
+      if (hint) {
+        hint.textContent = view === 'breeder'
+          ? 'Breeder view: focuses on opportunity signals and scarcity.'
+          : 'Dealer view: focuses on supply risk, reliability, and restock speed.';
+      }
+
+      // Highlight the correct origin button
+      const backBreeder = document.getElementById('back-breeder');
+      const backDealer = document.getElementById('back-dealer');
+      if (backBreeder && backDealer) {
+        backBreeder.classList.toggle('origin-btn', view === 'breeder');
+        backDealer.classList.toggle('origin-btn', view === 'dealer');
+      }
+
+      // Update URL
+      const url = new URL(window.location.href);
+      url.searchParams.set('view', view ?? '');
+      window.history.pushState({}, '', url);
+    });
   });
-});
 }
 
 /**
  * Initialize view from URL parameter on page load
  */
-function initViewFromURL() {
+function initViewFromURL(): void {
   const urlParams = new URLSearchParams(window.location.search);
-const viewParam = urlParams.get('view');
-if (viewParam && (viewParam === 'breeder' || viewParam === 'dealer')) {
-  const tab = document.querySelector(`[data-view="${viewParam}"]`);
-  if (tab) tab.click();
-}
+  const viewParam = urlParams.get('view');
+  if (viewParam && (viewParam === 'breeder' || viewParam === 'dealer')) {
+    const tab = document.querySelector(`[data-view="${viewParam}"]`);
+    if (tab) (tab as HTMLElement).click();
+  }
 }
 
 /**
  * Calculate chart layout dimensions
- * @returns {Object} Layout object with dimensions
  */
-function calculateLayout() {
+function calculateLayout(): ChartLayout {
   return {
     width: CHART.WIDTH,
     height: CHART.HEIGHT,
@@ -85,35 +110,33 @@ function calculateLayout() {
 
 /**
  * Map data points to SVG coordinates
- * @param {Array} series - Array of values (null for gaps)
- * @param {number} yMin - Y-axis minimum
- * @param {number} yMax - Y-axis maximum
- * @param {Object} layout - Chart layout dimensions
- * @returns {Array} Array of [x, y] coordinates (null for gaps)
  */
-function mapPointsToCoordinates(series, yMin, yMax, layout) {
+function mapPointsToCoordinates(
+  series: (number | null)[],
+  yMin: number,
+  yMax: number,
+  layout: ChartLayout
+): (Point | null)[] {
   const n = series.length;
   const dx = n > 1 ? (layout.right - layout.left) / (n - 1) : 0;
-  
+
   return series.map((v, i) => {
     const x = layout.left + i * dx;
     if (v == null) return null;
-    
+
     const t = (v - yMin) / (yMax - yMin);
     const y = layout.bottom - t * (layout.bottom - layout.top);
-    return [x, Math.max(layout.top, Math.min(layout.bottom, y)), v, i + 1];
+    return [x, Math.max(layout.top, Math.min(layout.bottom, y)), v, i + 1] as Point;
   });
 }
 
 /**
  * Build polyline segments from points, splitting on gaps
- * @param {Array} points - Array of [x, y, value, run] or null
- * @returns {Array} Array of segments (each segment is array of [x,y] points)
  */
-function buildPolylineSegments(points) {
-  const segments = [];
-  let current = [];
-  
+function buildPolylineSegments(points: (Point | null)[]): [number, number][][] {
+  const segments: [number, number][][] = [];
+  let current: [number, number][] = [];
+
   for (const p of points) {
     if (!p) {
       if (current.length >= 2) segments.push(current);
@@ -122,20 +145,17 @@ function buildPolylineSegments(points) {
     }
     current.push([p[0], p[1]]);
   }
-  
+
   if (current.length >= 2) segments.push(current);
   return segments;
 }
 
 /**
  * Create circle SVG elements with tooltips
- * @param {Array} points - Array of [x, y, value, run] or null
- * @param {Function} formatValue - Function to format values for tooltips
- * @returns {string} SVG circle elements
  */
-function createCircleElements(points, formatValue) {
+function createCircleElements(points: (Point | null)[], formatValue: (v: number) => string): string {
   return points
-    .filter(p => p !== null)
+    .filter((p): p is Point => p !== null)
     .map(([x, y, value, run]) => {
       const title = `Run ${run} — ${formatValue(value)}`;
       return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${CHART.CIRCLE_RADIUS}"><title>${title}</title></circle>`;
@@ -145,11 +165,8 @@ function createCircleElements(points, formatValue) {
 
 /**
  * Create polyline SVG elements for continuous segments
- * @param {Array} segments - Array of segments (each is array of [x,y] points)
- * @param {string} stroke - SVG stroke color
- * @returns {string} SVG polyline elements
  */
-function createPolylines(segments, stroke) {
+function createPolylines(segments: [number, number][][], stroke: string): string {
   return segments
     .map(seg => {
       const pts = seg.map(p => `${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(' ');
@@ -160,40 +177,28 @@ function createPolylines(segments, stroke) {
 
 /**
  * Render a line chart with gap support for missing data
- * 
- * @param {Object} config - Chart configuration
- * @param {string} config.containerId - ID of container element
- * @param {Array} config.series - Array of numeric values (null for gaps)
- * @param {string} config.stroke - SVG stroke color
- * @param {number} config.yMin - Y-axis minimum value
- * @param {number} config.yMax - Y-axis maximum value
- * @param {string} config.yLabelTop - Label for top Y-axis
- * @param {string} config.yLabelMid - Label for middle Y-axis
- * @param {string} config.yLabelLow - Label for lower-mid Y-axis
- * @param {string} config.yLabelBottom - Label for bottom Y-axis
- * @param {Function} config.formatValue - Function to format values for tooltips
  */
-function renderLineChart({ containerId, series, stroke, yMin, yMax, yLabelTop, yLabelMid, yLabelLow, yLabelBottom, formatValue }) {
+function renderLineChart({ containerId, series, stroke, yMin, yMax, yLabelTop, yLabelMid, yLabelLow, yLabelBottom, formatValue }: LineChartConfig): void {
   const container = getElement(containerId);
   if (!container || !series.length) {
     if (container) container.innerHTML = '<p>No data available</p>';
     return;
   }
-  
+
   try {
     const layout = calculateLayout();
-    const fmt = formatValue ?? ((v) => String(v));
-    
+    const fmt = formatValue ?? ((v: number) => String(v));
+
     // Transform data to coordinates
     const points = mapPointsToCoordinates(series, yMin, yMax, layout);
-    
+
     // Build continuous segments
     const segments = buildPolylineSegments(points);
-    
+
     // Create SVG elements
     const polylines = createPolylines(segments, stroke);
     const circles = createCircleElements(points, fmt);
-    
+
     // Assemble final SVG
     container.innerHTML = `
       <svg width="100%" height="${layout.height}" viewBox="0 0 ${layout.width} ${layout.height}" role="img">
@@ -227,10 +232,10 @@ function renderLineChart({ containerId, series, stroke, yMin, yMax, yLabelTop, y
  * Render stock observation timeline strip
  * Shows observed (green) vs not-observed (gray) runs
  */
-function renderStockStrip(chartData) {
+function renderStockStrip(chartData: SpeciesChartData): void {
   const container = getElement('stock-strip');
   if (!container) return;
-  
+
   const width = CHART.WIDTH;
   const height = 34;
   const left = CHART.MARGINS.left;
@@ -245,7 +250,7 @@ function renderStockStrip(chartData) {
   const startX = left + Math.floor(extra / 2);
 
   let x = startX;
-  const rects = [];
+  const rects: string[] = [];
   for (const [i, obs] of observed.entries()) {
     const fill = obs ? '#dcfce7' : '#f1f5f9';
     const stroke = obs ? '#16a34a' : '#94a3b8';
@@ -267,7 +272,7 @@ function renderStockStrip(chartData) {
 /**
  * Render all charts using data from window.speciesChartData
  */
-function renderCharts() {
+function renderCharts(): void {
   // Check if chart data is available
   if (!window.speciesChartData || !window.speciesChartData.runs || window.speciesChartData.runs.length === 0) {
     return;
@@ -276,21 +281,21 @@ function renderCharts() {
   const chartData = window.speciesChartData;
 
   // Extract price and wishlist arrays from chart_data
-  const prices = chartData.runs.map(({ observed, price }) => 
+  const prices = chartData.runs.map(({ observed, price }) =>
     observed ? parseFloat(price) : null
   );
-  const wishlists = chartData.runs.map(({ observed, wishlist }) => 
+  const wishlists = chartData.runs.map(({ observed, wishlist }) =>
     observed ? parseInt(wishlist) : null
   );
 
   // Calculate min/max for price chart
-  const validPrices = prices.filter(p => p !== null);
+  const validPrices = prices.filter((p): p is number => p !== null);
   const priceMin = validPrices.length ? Math.floor(Math.min(...validPrices) / CHART.PRICE_ROUNDING) * CHART.PRICE_ROUNDING : 0;
   const priceMax = validPrices.length ? Math.ceil(Math.max(...validPrices) / CHART.PRICE_ROUNDING) * CHART.PRICE_ROUNDING + CHART.PRICE_ROUNDING : 50;
   const priceMid = Math.round((priceMin + priceMax) / 2);
 
   // Calculate min/max for wishlist chart
-  const validWishlists = wishlists.filter(w => w !== null);
+  const validWishlists = wishlists.filter((w): w is number => w !== null);
   const wishlistMin = validWishlists.length ? Math.floor(Math.min(...validWishlists) / CHART.WISHLIST_ROUNDING) * CHART.WISHLIST_ROUNDING : 0;
   const wishlistMax = validWishlists.length ? Math.ceil(Math.max(...validWishlists) / CHART.WISHLIST_ROUNDING) * CHART.WISHLIST_ROUNDING + CHART.WISHLIST_ROUNDING : 100;
   const wishlistMid = Math.round((wishlistMin + wishlistMax) / 2);
@@ -330,15 +335,15 @@ function renderCharts() {
 /**
  * Initialize all species detail page functionality
  */
-function init() {
+function init(): void {
   initTabSwitching();
-initViewFromURL();
-renderCharts();
+  initViewFromURL();
+  renderCharts();
 }
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
-document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', init);
 } else {
-init();
+  init();
 }
