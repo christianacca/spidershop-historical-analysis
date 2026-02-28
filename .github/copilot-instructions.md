@@ -1,5 +1,20 @@
 # Copilot Instructions for spidershop-historical-analysis
 
+## TypeScript / Svelte Migration
+
+If the user asks you to work on any of the following, read `docs/MIGRATION_PLAN.md` first:
+- The `client/` directory or anything in it
+- TypeScript or Svelte components
+- Vite build config (`vite.config.ts`, `tsconfig.json`, `client/package.json`)
+- CSS design tokens or the BEM refactor
+- Any phase of the TypeScript/Svelte migration
+
+The plan file contains the authoritative step list, target folder structure, CSS conventions,
+and decisions log. At the end of a migration phase conversation, update the plan file to tick
+off completed steps and record any decisions that deviated from the plan.
+
+---
+
 ## Python Code Hygiene Guidelines
 
 **Descriptive Naming**: Use clear, descriptive names for variables and functions (snake_case) and classes (PascalCase). Avoid nonstandard abbreviations or single-letter names.
