@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 from shared.history_utils import group_by_run, k2, compare_prices
-from shared.config import BREEDER_TABLE_FILE, SIGNAL_PRIORITY, TREND_PRIORITY
+from shared.config import (
+    BREEDER_TABLE_FILE,
+    SIGNAL_PRIORITY,
+    TREND_PRIORITY,
+    OOS_CARRYOVER_LOOKBACK,
+)
 from scrape.wishlist_analysis import compute_wishlist_pressure, get_wishlist_metrics, get_wishlist_count
 from shared.sparkline_helpers import extract_historical_values_with_carryforward
 from shared.driver_text_helpers import build_drivers_text
+from shared.price_text_helpers import format_price_cell
 from shared.csv_utils import write_matrix_csv
 from shared.summary_utils import MatrixSummaryConfig, write_matrix_summary
 
@@ -70,11 +76,18 @@ def build_breeder_opportunity_table(history_rows):
         for r in by_run[rt]:
             all_keys.add(k2(r))
 
-    # For display of OUT items: last-seen row
-    last_seen = {}
-    for rt in runs:
-        for r in by_run[rt]:
-            last_seen[k2(r)] = r  # later runs overwrite earlier
+    # For display of OUT items: bounded last-seen row
+    run_index = {rt: idx for idx, rt in enumerate(runs)}
+
+    def get_last_seen_row_within_lookback(key):
+        cur_idx = run_index[cur_run]
+        lookback_start = max(0, cur_idx - OOS_CARRYOVER_LOOKBACK)
+        for i in range(cur_idx - 1, lookback_start - 1, -1):
+            rt = runs[i]
+            for candidate in by_run[rt]:
+                if k2(candidate) == key:
+                    return candidate
+        return None
 
     # Helper: last 2 price points for a key before/at current
     def price_trend_for_key(key):
@@ -85,10 +98,18 @@ def build_breeder_opportunity_table(history_rows):
                 prev_map[key].get("price_gbp", "")
             )
 
-        # If OUT now: compare last seen price vs price in run before last seen (if available)
-        # Walk backward through runs to find last two occurrences with prices
+        # Compare the last two known prices within bounded lookback.
+        # If IN now but missing previous run (flapping), include current price.
         prices = []
-        for rt in reversed(runs):
+        if key in cur_map:
+            current_value = cur_map[key].get("price_gbp", "")
+            if current_value:
+                prices.append(current_value)
+
+        cur_idx = run_index[cur_run]
+        lookback_start = max(0, cur_idx - OOS_CARRYOVER_LOOKBACK)
+        for i in range(cur_idx - 1, lookback_start - 1, -1):
+            rt = runs[i]
             m = {k2(r): r for r in by_run[rt]}
             if key in m:
                 val = m[key].get("price_gbp", "")
@@ -110,8 +131,11 @@ def build_breeder_opportunity_table(history_rows):
         in_current = key in keys_by_run[cur_run]
         in_prev = key in keys_by_run[prev_run]
 
-        # Use current row if present, otherwise last-seen row for display
-        row = cur_map.get(key) or last_seen.get(key) or {"scientific_name": key[0], "size_cm": key[1]}
+        # Use current row if present, otherwise bounded last-seen row for display
+        row = cur_map.get(key) or get_last_seen_row_within_lookback(key) or {
+            "scientific_name": key[0],
+            "size_cm": key[1],
+        }
 
         # OOS status + consecutive OOS runs (INCLUDING the current run if OUT)
         if in_current:
@@ -144,6 +168,7 @@ def build_breeder_opportunity_table(history_rows):
             pattern = "Always"
 
         price_trend = price_trend_for_key(key)
+        price_cell = format_price_cell(row.get("price_gbp", ""), price_trend)
 
         wishlist_pressure, wishlist_delta = get_wishlist_metrics(
             key, by_run, runs, cur_run, wishlist_pressure_map
@@ -221,7 +246,7 @@ def build_breeder_opportunity_table(history_rows):
             "OOS": oos_status,
             "OOS Runs": str(oos_runs),
             "Stock Pattern": pattern,
-            "Price Trend": price_trend,
+            "Price": price_cell,
             "Price History": price_sparkline,
             "Wishlist": f"{wishlist_count} {wishlist_pressure} {wishlist_delta}",
             "Wishlist History": wishlist_sparkline,
@@ -241,7 +266,7 @@ def build_breeder_opportunity_table(history_rows):
 def write_breeder_outputs(table):
     fallback_fieldnames = [
         "Species", "Size (cm)", "OOS", "OOS Runs", "Stock Pattern",
-        "Price Trend", "Price History", "Wishlist",
+        "Price", "Price History", "Wishlist",
         "Wishlist History", "Signal", "Recommendation", "Drivers",
     ]
     write_matrix_csv(BREEDER_TABLE_FILE, table, fallback_fieldnames)
@@ -254,7 +279,7 @@ def write_breeder_outputs(table):
         indicator_labels={"🔥": "Hot", "⚠️": "Watch", "❌": "Avoid"},
         table_columns=[
             "Species", "Size (cm)", "OOS", "OOS Runs", "Stock Pattern",
-            "Price Trend", "Price History", "Wishlist",
+            "Price", "Price History", "Wishlist",
             "Wishlist History", "Signal", "Recommendation",
         ],
     )

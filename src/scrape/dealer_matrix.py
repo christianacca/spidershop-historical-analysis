@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 from shared.history_utils import group_by_run, k2, compare_prices
-from shared.config import DEALER_TABLE_FILE, SIGNAL_PRIORITY, TREND_PRIORITY
+from shared.config import (
+    DEALER_TABLE_FILE,
+    SIGNAL_PRIORITY,
+    TREND_PRIORITY,
+    OOS_CARRYOVER_LOOKBACK,
+)
 from scrape.wishlist_analysis import compute_wishlist_pressure, get_wishlist_metrics, get_wishlist_count
 from shared.sparkline_helpers import extract_historical_values_with_carryforward, generate_stock_availability_sparkline
 from shared.driver_text_helpers import build_drivers_text
+from shared.price_text_helpers import format_price_cell
 from shared.csv_utils import write_matrix_csv
 from shared.summary_utils import MatrixSummaryConfig, write_matrix_summary
 
@@ -56,6 +62,18 @@ def build_dealer_supply_risk_table(history_rows):
 
     table = []
 
+    run_index = {rt: idx for idx, rt in enumerate(runs)}
+
+    def last_seen_price_for_key(key):
+        cur_idx = run_index[cur_run]
+        lookback_start = max(0, cur_idx - OOS_CARRYOVER_LOOKBACK)
+        for i in range(cur_idx - 1, lookback_start - 1, -1):
+            rt = runs[i]
+            for row in by_run[rt]:
+                if k2(row) == key and row.get("price_gbp", ""):
+                    return row.get("price_gbp", "")
+        return ""
+
     for (sci, size), present_runs in present_runs_map.items():
         present_pct = len(present_runs) / total_runs
         reliability = "High" if present_pct >= 0.8 else "Medium" if present_pct >= 0.4 else "Low"
@@ -81,6 +99,8 @@ def build_dealer_supply_risk_table(history_rows):
             cur_prices.get((sci, size), ""),
             prev_prices.get((sci, size), "")
         )
+        current_or_last_price = cur_prices.get((sci, size), "") or last_seen_price_for_key((sci, size))
+        price_cell = format_price_cell(current_or_last_price, pp)
 
         key = (sci, size)
         wishlist_pressure, wishlist_delta = get_wishlist_metrics(
@@ -163,7 +183,7 @@ def build_dealer_supply_risk_table(history_rows):
             "Stock Reliability": reliability,
             "Avg OOS Duration": avg_oos,
             "Restock Speed": speed,
-            "Price Pressure": pp,
+            "Price": price_cell,
             "Price History": price_history_sparkline,
             "Wishlist": f"{wishlist_count} {wishlist_pressure} {wishlist_delta}",
             "Wishlist History": wishlist_history_sparkline,
@@ -184,7 +204,7 @@ def build_dealer_supply_risk_table(history_rows):
 def write_dealer_outputs(table):
     fallback_fieldnames = [
         "Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration",
-        "Restock Speed", "Price Pressure", "Price History", "Wishlist",
+        "Restock Speed", "Price", "Price History", "Wishlist",
         "Wishlist History", "Stock Availability", "Dealer Risk",
         "Dealer Recommendation", "Drivers",
     ]
@@ -198,7 +218,7 @@ def write_dealer_outputs(table):
         indicator_labels={"🔥": "High Risk", "⚠️": "Moderate Risk", "❌": "Low Risk"},
         table_columns=[
             "Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration",
-            "Restock Speed", "Price Pressure", "Price History", "Wishlist",
+            "Restock Speed", "Price", "Price History", "Wishlist",
             "Wishlist History", "Stock Availability", "Dealer Risk",
             "Dealer Recommendation",
         ],

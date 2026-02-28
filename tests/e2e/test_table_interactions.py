@@ -23,43 +23,47 @@ from e2e.fixtures import e2e_site_multi_species
 
 
 @pytest.mark.e2e
-def test_table_sorting_numeric_columns(e2e_site_multi_species) -> None:
-    """Verify clicking numeric column headers sorts the table correctly (ascending/descending)."""
+@pytest.mark.parametrize(
+    "column_index,parse_cell",
+    [
+        (3, lambda cell: int(cell.strip())),
+        (7, lambda cell: float(cell.strip().split()[0].replace("£", ""))),
+    ],
+)
+def test_table_sorting_numeric_columns(e2e_site_multi_species, column_index, parse_cell) -> None:
+    """Verify clicking numeric headers (including Price) sorts ascending/descending."""
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
-    
-    # Find the "OOS Runs" column header (index 3 based on breeder table structure)
-    # Species | Size | Signal | OOS Runs | ...
-    oos_header = page.locator('#breeder-table thead th').nth(3)
-    
+
+    column_header = page.locator('#breeder-table thead th').nth(column_index)
+
     # First click: sort descending (default direction flips from undefined to desc)
-    oos_header.click()
+    column_header.click()
     page.wait_for_timeout(100)  # Small delay for sorting to complete
-    
+
     # Verify sort direction attribute
-    sort_direction = oos_header.get_attribute('data-sort-direction')
+    sort_direction = column_header.get_attribute('data-sort-direction')
     assert sort_direction == 'desc', "Expected descending sort after first click"
-    
-    # Get all OOS values from visible rows
-    oos_cells = page.locator('#breeder-table tbody tr:visible td').nth(3).all_text_contents()
-    oos_values = [int(cell.strip()) for cell in oos_cells if cell.strip().isdigit()]
-    
+
+    column_cells = page.locator('#breeder-table tbody tr:visible td').nth(column_index).all_text_contents()
+    column_values = [parse_cell(cell) for cell in column_cells if cell.strip()]
+
     # Verify descending order
-    assert oos_values == sorted(oos_values, reverse=True), f"Expected descending order, got {oos_values}"
-    
+    assert column_values == sorted(column_values, reverse=True), f"Expected descending order, got {column_values}"
+
     # Second click: sort ascending
-    oos_header.click()
+    column_header.click()
     page.wait_for_timeout(100)
-    
-    sort_direction = oos_header.get_attribute('data-sort-direction')
+
+    sort_direction = column_header.get_attribute('data-sort-direction')
     assert sort_direction == 'asc', "Expected ascending sort after second click"
-    
-    oos_cells = page.locator('#breeder-table tbody tr:visible td').nth(3).all_text_contents()
-    oos_values = [int(cell.strip()) for cell in oos_cells if cell.strip().isdigit()]
-    
+
+    column_cells = page.locator('#breeder-table tbody tr:visible td').nth(column_index).all_text_contents()
+    column_values = [parse_cell(cell) for cell in column_cells if cell.strip()]
+
     # Verify ascending order
-    assert oos_values == sorted(oos_values), f"Expected ascending order, got {oos_values}"
+    assert column_values == sorted(column_values), f"Expected ascending order, got {column_values}"
 
 
 @pytest.mark.e2e
@@ -90,6 +94,44 @@ def test_table_sorting_string_columns(e2e_site_multi_species) -> None:
     
     # Verify reverse alphabetical order
     assert species_names == sorted(species_names, reverse=True), f"Expected reverse order, got {species_names}"
+
+
+@pytest.mark.e2e
+def test_breeder_price_column_exists_with_currency_and_arrow_values(e2e_site_multi_species) -> None:
+    """Breeder table should expose the Price column with currency+arrow values."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    headers = [h.strip() for h in page.locator("#breeder-table thead th").all_text_contents()]
+    price_idx = next((index for index, header in enumerate(headers) if header.startswith("Price")), None)
+    assert price_idx is not None, f"Expected Price header, got: {headers}"
+    price_cells = page.locator(f"#breeder-table tbody tr:visible td:nth-child({price_idx + 1})").all_text_contents()
+    price_values = [cell.strip() for cell in price_cells if cell.strip()]
+
+    assert price_values, "Expected non-empty Price values in breeder table"
+    assert all(value.startswith("£") and value.endswith(("↑", "→", "↓")) for value in price_values), (
+        f"Expected currency+arrow values, got: {price_values}"
+    )
+
+
+@pytest.mark.e2e
+def test_dealer_price_column_exists_with_currency_and_arrow_values(e2e_site_multi_species) -> None:
+    """Dealer table should expose the Price column with currency+arrow values."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/dealer.html", wait_until="domcontentloaded")
+
+    headers = [h.strip() for h in page.locator("#dealer-table thead th").all_text_contents()]
+    price_idx = next((index for index, header in enumerate(headers) if header.startswith("Price")), None)
+    assert price_idx is not None, f"Expected Price header, got: {headers}"
+    price_cells = page.locator(f"#dealer-table tbody tr:visible td:nth-child({price_idx + 1})").all_text_contents()
+    price_values = [cell.strip() for cell in price_cells if cell.strip()]
+
+    assert price_values, "Expected non-empty Price values in dealer table"
+    assert all(value.startswith("£") and value.endswith(("↑", "→", "↓")) for value in price_values), (
+        f"Expected currency+arrow values, got: {price_values}"
+    )
 
 
 @pytest.mark.e2e

@@ -97,29 +97,34 @@ def test_show_all_resets_after_hot_top_10_filter(e2e_site_large_table) -> None:
 
 
 @pytest.mark.e2e
-def test_hot_top_10_shows_same_entries_regardless_of_sort_order(e2e_site_large_table) -> None:
+@pytest.mark.parametrize(
+    "header_name,first_visible_after_sort",
+    [
+        ("Species ⇅", "Hot Species 15"),
+        ("Price ⇅", "Hot Species 01"),
+    ],
+)
+def test_hot_top_10_shows_same_entries_regardless_of_sort_order(
+    e2e_site_large_table, header_name: str, first_visible_after_sort: str
+) -> None:
     """'Hot (top 10)' should always show the same 10 species in original CSV order,
-    regardless of any sort currently applied to the table.
+    regardless of any active sort.
 
-    Regression test: Before the fix, sorting the table by name descending then clicking
-    'Hot (top 10)' would select 'Hot Species 15'-'Hot Species 06' (first 10 Hot rows in
-    the sorted DOM) instead of 'Hot Species 01'-'Hot Species 10' (first 10 from original
-    CSV order).
+    Regression test: when sorted first, Hot (top 10) must still select the first 10
+    HOT entries from original CSV order, not the first 10 visible rows in sorted DOM order.
     """
     page, base_url, errors = e2e_site_large_table
 
     page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
 
-    # Sort by species name — first click toggles to descending order.
-    # (sortTable defaults the initial direction to 'asc', so first click → 'desc')
-    # After sort-desc: Watch Species 03 > ... > Hot Species 15 > ... > Hot Species 01 > Avoid ...
-    species_header = page.locator('#breeder-table thead th').filter(has_text="Species")
-    species_header.click()
+    # First click on sortable header should produce descending order.
+    sortable_header = page.get_by_role("columnheader", name=header_name, exact=True)
+    sortable_header.click()
     page.wait_for_timeout(100)
 
-    # With the table sorted descending, the first 10 Hot rows in DOM order are
-    # "Hot Species 15" through "Hot Species 06".  The button must instead show
-    # "Hot Species 01" through "Hot Species 10" — the first 10 from original CSV order.
+    visible_rows_after_sort = page.locator('#breeder-table tbody tr:visible')
+    assert visible_rows_after_sort.first.locator('td').first.text_content() == first_visible_after_sort
+
     top10_button = page.locator('button[data-action="filter-signal"][data-limit="10"]')
     top10_button.click()
     page.wait_for_timeout(100)

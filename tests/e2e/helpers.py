@@ -329,35 +329,40 @@ def write_multi_species_test_data(cwd: Path) -> None:
                 size_cm="1.5",
                 signal="🔥",
                 oos_runs="4",
-                stock_pattern="Sustained"
+                stock_pattern="Sustained",
+                price="£25.00 ↑"
             ),
             BreederEntry(
                 species="Brachypelma hamorii",
                 size_cm="2.0",
                 signal="⚠️",
                 oos_runs="2",
-                stock_pattern="Emerging"
+                stock_pattern="Emerging",
+                price="£28.00 →"
             ),
             BreederEntry(
                 species="Grammostola pulchra",
                 size_cm="3.5",
                 signal="❌",
                 oos_runs="0",
-                stock_pattern="Always"
+                stock_pattern="Always",
+                price="£30.00 ↓"
             ),
             BreederEntry(
                 species="Lasiodora parahybana",
                 size_cm="4.0",
                 signal="🔥",
                 oos_runs="6",
-                stock_pattern="Cyclical"
+                stock_pattern="Cyclical",
+                price="£20.00 ↑"
             ),
             BreederEntry(
                 species="Pterinochilus murinus",
                 size_cm="1.0",
                 signal="⚠️",
                 oos_runs="3",
-                stock_pattern="Emerging"
+                stock_pattern="Emerging",
+                price="£15.00 →"
             ),
         ]),
         encoding="utf-8",
@@ -370,35 +375,40 @@ def write_multi_species_test_data(cwd: Path) -> None:
                 size_cm="1.5",
                 risk="🔥",
                 stock_reliability="Low",
-                restock_speed="Slow"
+                restock_speed="Slow",
+                price="£25.00 ↑"
             ),
             DealerEntry(
                 species="Brachypelma hamorii",
                 size_cm="2.0",
                 risk="⚠️",
                 stock_reliability="Medium",
-                restock_speed="Medium"
+                restock_speed="Medium",
+                price="£28.00 →"
             ),
             DealerEntry(
                 species="Grammostola pulchra",
                 size_cm="3.5",
                 risk="❌",
                 stock_reliability="High",
-                restock_speed="Fast"
+                restock_speed="Fast",
+                price="£30.00 ↓"
             ),
             DealerEntry(
                 species="Lasiodora parahybana",
                 size_cm="4.0",
                 risk="🔥",
                 stock_reliability="Low",
-                restock_speed="Slow"
+                restock_speed="Slow",
+                price="£20.00 ↑"
             ),
             DealerEntry(
                 species="Pterinochilus murinus",
                 size_cm="1.0",
                 risk="⚠️",
                 stock_reliability="Medium",
-                restock_speed="Fast"
+                restock_speed="Fast",
+                price="£15.00 →"
             ),
         ]),
         encoding="utf-8",

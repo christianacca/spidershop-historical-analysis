@@ -27,8 +27,9 @@
 - `Cyclical` — Repeated disappear / reappear pattern (batch supply)
 - This is the **foundation** of all recommendations — modifiers can only refine, not override
 
-**Price Trend** (Confidence Modifier)
+**Price** (Value + Trend)
 
+- Shows current (or last-seen) price plus direction (e.g., `£30.00 ↑`)
 - `↑` — Price rising vs last observed price
 - `→` — Price stable
 - `↓` — Price falling
@@ -69,8 +70,8 @@
 
 **Recommendation** (Final Assessment)
 
-- Combines **Stock Pattern + Price Trend + Wishlist**
-- **Hierarchy:** Stock Pattern is primary (~70% influence), Price Trend and Wishlist together provide ~30% refinement
+- Combines **Stock Pattern + Price + Wishlist**
+- **Hierarchy:** Stock Pattern is primary (~70% influence), Price and Wishlist together provide ~30% refinement
 - Modifiers can escalate signals but never override the base pattern category
 - Example: `Sustained` scarcity cannot be downgraded by falling prices
 - Example: `Always` available cannot reach 🔥 regardless of wishlist interest
@@ -109,8 +110,9 @@
 - `Slow` — Prolonged absence after sell-out
 - **Influence:** Combines with Stock Reliability to define supply stability; slow restock amplifies low reliability risks
 
-**Price Pressure** (Informational)
+**Price** (Value + Trend)
 
+- Shows current (or last-seen) price plus direction (e.g., `£30.00 ↑`)
 - `↑` — Prices increasing
 - `→` — Stable pricing
 - `↓` — Prices softening
