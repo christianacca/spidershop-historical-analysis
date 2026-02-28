@@ -1,6 +1,6 @@
 /**
  * Constants and Configuration Values
- * 
+ *
  * Centralizes all magic numbers, CSS class names, and configuration values
  * used across JavaScript modules.
  */

@@ -39,6 +39,7 @@ Thumbs.db
 
 # Test coverage
 .pytest_cache/
+.pytest_tmp/
 
 # Generated website output (CI/CD output at project root)
 /website/

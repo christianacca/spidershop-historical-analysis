@@ -805,7 +805,25 @@ spidershop-historical-analysis/
 │   ├── package.json
 │   ├── tsconfig.json
 │   ├── vite.config.ts
-│   └── src/               # Edit JS/TS here — NOT templates/scripts/ directly
+│   └── src/               # Edit TS here — NOT templates/scripts/ directly
+│       ├── global.d.ts    # window.speciesChartData type declarations
+│       ├── shared/        # Shared utilities (no page-specific logic)
+│       │   ├── constants.ts
+│       │   ├── dom-utils.ts
+│       │   ├── filter.ts
+│       │   ├── range-slider.ts
+│       │   └── sort.ts
+│       ├── breeder-page/  # Vite entry: breeder-page.js
+│       │   └── index.ts
+│       ├── dealer-page/   # Vite entry: dealer-page.js
+│       │   └── index.ts
+│       ├── snapshot-page/ # Vite entry: snapshot-page.js
+│       │   └── index.ts
+│       ├── history-page/  # Vite entry: history-page.js
+│       │   └── index.ts
+│       └── species-page/  # Vite entry: species-page.js
+│           ├── charts.ts
+│           └── index.ts
 ├── templates/             # Jinja2 HTML templates and static assets
 │   ├── scripts/
 │   │   └── dist/          # Vite build output (git-ignored; rebuilt by make build-client)

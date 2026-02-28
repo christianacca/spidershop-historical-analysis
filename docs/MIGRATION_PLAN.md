@@ -187,11 +187,11 @@ need changing — `moduleResolution: "bundler"` resolves `.js` → `.ts` transpa
 
 ---
 
-## Phase 2 — Reorganise into feature-slice folders
+## Phase 2 — Reorganise into feature-slice folders ✅
 
 **Goal:** Move from flat `client/src/*.ts` to page-oriented slices. No logic changes.
 
-- [ ] 16. Extract shared utilities from `table-interactions.ts` and `utils.ts` into:
+- [x] 16. Extract shared utilities from `table-interactions.ts` and `utils.ts` into:
           - `shared/constants.ts` ← move `constants.ts` here
           - `shared/dom-utils.ts` ← `getElement`, `setActiveButton`, `toggleRowVisibility` (from `utils.ts`)
           - `shared/range-slider.ts` ← `RangeSlider` class + `RangeSliderConfig` interface (from `utils.ts`)
@@ -205,7 +205,7 @@ need changing — `moduleResolution: "bundler"` resolves `.js` → `.ts` transpa
           They are page-specific and must move into each page-slice `index.ts`
           (breeder, dealer, snapshot) alongside their slider singletons.
 
-- [ ] 17. Create each feature-slice folder with an `index.ts` that imports from `shared/` and
+- [x] 17. Create each feature-slice folder with an `index.ts` that imports from `shared/` and
           wires event handlers for that page only:
           - `breeder-page/index.ts` — sorting, filtering, signal/stock-pattern filters, price/wishlist sliders
           - `dealer-page/index.ts` — same as breeder (different table ID)
@@ -219,50 +219,42 @@ need changing — `moduleResolution: "bundler"` resolves `.js` → `.ts` transpa
           After this step, `table-setup.ts` and `table-interactions.ts` should be
           fully dissolved (all code redistributed) and can be deleted.
 
-- [ ] 18. Update `vite.config.ts` entry map — one entry per slice:
+- [x] 18. Update `vite.config.ts` entry map — one entry per slice:
           `{ "breeder-page": "src/breeder-page/index.ts", "dealer-page": ...,
           "snapshot-page": ..., "history-page": ..., "species-page": ... }`.
           Delete the source files `table-setup.ts` and `table-interactions.ts`
-          (fully dissolved in step 17). Vite output will no longer emit
-          `table-setup.js` or `table-interactions.js`.
+          (fully dissolved in step 17). Also deleted `constants.ts`, `utils.ts`, `species-detail.ts`.
+          Vite output will no longer emit `table-setup.js` or `table-interactions.js`.
 
-- [ ] 19. Update page templates to load the correct slice script per page.
-          Currently `templates/base.html` (lines 38-39) loads two scripts globally on every page:
-          ```html
-          <script type="module" src="{{ path_prefix }}table-interactions.js"></script>
-          <script type="module" src="{{ path_prefix }}table-setup.js"></script>
-          ```
-          Remove both of these from `base.html`. Instead, add a `<script>` tag for the
-          appropriate page slice in each page template's `{% block extra_css %}` (or a new
-          `{% block extra_js %}` block if one doesn't exist):
-          - `analysis_page.html` / `homepage.html` for breeder/dealer pages — load `breeder-page.js` / `dealer-page.js`
-          - `snapshot_page.html` — load `snapshot-page.js`
-          - `history_page.html` — load `history-page.js`
-          - `species_detail.html` already has its own `<script>` (line 236) — change to load `species-page.js`
+- [x] 19. Update page templates to load the correct slice script per page.
+          Removed both global `<script>` tags from `base.html`. Added `{% block extra_js %}` block
+          to `base.html`. Each page template overrides this block:
+          - `analysis_page.html` — `{{ page_script }}` variable (set by Python to `breeder-page.js` / `dealer-page.js`)
+          - `snapshot_page.html` — loads `snapshot-page.js`
+          - `history_page.html` — loads `history-page.js`
+          - `species_detail.html` — changed to load `species-page.js`
 
-          Check `templates/base.html` and each page template for where to inject the
-          `{% block extra_js %}` block (mirroring the existing `{% block extra_css %}` pattern).
+- [x] 20. Update `generate_website.py` asset-copy logic.
+          Added `page_script` variable to `generate_analysis_page` template render call.
+          Replaced named-file JS copy with `shutil.copytree` to recursively copy the entire
+          `dist/` tree (including `shared/` and `species-page/` subdirectories).
 
-- [ ] 20. Update `generate_website.py` asset-copy logic to copy the new output filenames.
-          Currently line 791 hardcodes:
-          ```python
-          js_files = ["constants.js", "utils.js", "table-interactions.js", "species-detail.js", "table-setup.js"]
-          ```
-          Replace with the 5 new page-slice filenames:
-          ```python
-          js_files = ["breeder-page.js", "dealer-page.js", "snapshot-page.js", "history-page.js", "species-page.js"]
-          ```
-          Note: `constants.js` and `utils.js` will no longer be top-level Vite entries after Phase 2
-          (they become internal imports within each slice), so they drop out of the copy list.
+- [x] 21. `make build-client` — zero type errors. `make test-e2e` — 106/106 passed.
+          `make test` — 620 passed, 95.50% coverage.
 
-- [ ] 21. Run `make test-e2e` (this automatically runs `make build-client` via the
-          `generate-website` dependency). A plain `make build-client` check first is
-          useful to surface type errors before the slower E2E suite.
-
-- [ ] Doc: Update CONTRIBUTING.md project structure — show the feature-slice folder layout
+- [x] Doc: Update CONTRIBUTING.md project structure — show the feature-slice folder layout
          (`breeder-page/`, `history-page/`, etc.) replacing the flat `client/src/*.ts` listing.
-- [ ] Doc: Update copilot-instructions.md — document the feature-slice entry-point structure;
+- [x] Doc: Update copilot-instructions.md — document the feature-slice entry-point structure;
          note that Vite entry names now map to page-slice folders, not individual TS files.
+
+**Decision:** `filterRows` in `shared/filter.ts` was changed to accept optional `priceSlider`
+and `wishlistSlider` parameters rather than closing over module-level singletons. This keeps
+the shared function pure with respect to external state while each page slice owns its singletons.
+
+**Decision:** JS asset copy changed from a named-file list (`_copy_files`) to `shutil.copytree`
+of the entire `dist/` directory tree. With `preserveModules: true`, shared/ subdirectories are
+generated alongside the entry files and must all be served. `copytree` is simpler and self-maintaining
+as new shared modules are added in future phases.
 
 ---
 
@@ -270,23 +262,36 @@ need changing — `moduleResolution: "bundler"` resolves `.js` → `.ts` transpa
 
 **Goal:** Add tooling. No behaviour changes, no Svelte components yet.
 
+**Pre-existing state at Phase 3 handoff:**
+- `client/package.json` already has `"test": "vitest run"` in `scripts` — do NOT add it again.
+  Steps 23 and 26 are additions only: add packages and the Makefile target.
+- `make test-client` does not yet exist in `Makefile`.
+
 - [ ] 22. `npm install svelte@^5 @sveltejs/vite-plugin-svelte@^4 --save-dev` in `client/`.
 
 - [ ] 23. `npm install vitest@^3 @testing-library/svelte@^5 @testing-library/jest-dom jsdom --save-dev`
-          in `client/`.
+          in `client/`. (The `"test": "vitest run"` script already exists in `package.json`.)
 
 - [ ] 24. Update `client/vite.config.ts` to add `svelte()` plugin and Vitest config
           (`environment: "jsdom"`, `setupFiles: ["src/test-setup.ts"]`).
-          Confirm `build.cssCodeSplit: true` is set (Vite default for lib mode) — verify it
-          emits per-entry `.css` files alongside `.js`.
+          Note: this project uses `rollupOptions` + `preserveModules: true`, NOT `build.lib` mode.
+          With that setup + the Svelte plugin, Vite emits one aggregate `.css` file per page-slice
+          entry (e.g. `breeder-page.css`) containing all Svelte component styles compiled for
+          that entry — not one `.css` per module file. The smoke test in step 28 must confirm
+          a `.css` file is emitted by checking `templates/scripts/dist/` after build.
 
 - [ ] 25. Create `client/src/test-setup.ts` importing `@testing-library/jest-dom`.
 
 - [ ] 26. Add `make test-client` to `Makefile`: `cd client && npm run test` (Vitest run mode).
-          Fold it into the `make test` target so it runs as part of the standard suite.
+          **Do NOT fold into `make test`.**  `make test` is the fast Python-only loop (≤1s,
+          no Node required); merging would add a Node dependency to every Python edit cycle.
+          The verification gates already list `make test` and `make test-client` separately.
+          Update `copilot-instructions.md` instead: add `make test-client` as the mandatory
+          command for any edit in `client/src/`.
 
 - [ ] 27. Add a `make test-client` step to the CI `deploy-pages.yml` workflow, run after
-          `make build-client` and before `make test`.
+          `make build-client` and before `make test`. Node/npm are already available at that
+          point (installed by `actions/setup-node@v4` + `npm ci` inside `make build-client`).
 
 - [ ] 28. Write a trivial `HelloWorld.svelte` smoke test using a `$state` counter.
           Confirm Vitest and `make build-client` both pass and that a `.css` file is emitted

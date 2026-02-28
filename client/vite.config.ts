@@ -1,26 +1,23 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
-// Phase 1: entry points updated from .js → .ts after TypeScript migration.
+// Phase 2: reorganised into feature-slice folders.
+// One entry per page slice; shared/ utilities are internal imports only.
 // preserveModules keeps each module as its own file in dist/,
 // maintaining relative imports — output is structurally identical to source.
-// build.lib is intentionally avoided here: it bundles entries together,
-// which would break the singleton state shared between table-interactions.ts
-// and table-setup.ts when both are loaded on the same page.
 export default defineConfig({
   build: {
     outDir: resolve(__dirname, '../templates/scripts/dist'),
     emptyOutDir: true,
     minify: false,
     rollupOptions: {
-      // preserveModules requires preserveEntrySignatures !== false (Vite 6 default)
       preserveEntrySignatures: 'allow-extension',
       input: {
-        constants: resolve(__dirname, 'src/constants.ts'),
-        utils: resolve(__dirname, 'src/utils.ts'),
-        'table-interactions': resolve(__dirname, 'src/table-interactions.ts'),
-        'table-setup': resolve(__dirname, 'src/table-setup.ts'),
-        'species-detail': resolve(__dirname, 'src/species-detail.ts'),
+        'breeder-page': resolve(__dirname, 'src/breeder-page/index.ts'),
+        'dealer-page': resolve(__dirname, 'src/dealer-page/index.ts'),
+        'snapshot-page': resolve(__dirname, 'src/snapshot-page/index.ts'),
+        'history-page': resolve(__dirname, 'src/history-page/index.ts'),
+        'species-page': resolve(__dirname, 'src/species-page/index.ts'),
       },
       output: {
         format: 'es',

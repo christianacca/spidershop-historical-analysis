@@ -35,7 +35,6 @@
         <p>Generated: {{ timestamp }}</p>
     </footer>
     
-    <script type="module" src="{{ path_prefix }}table-interactions.js"></script>
-    <script type="module" src="{{ path_prefix }}table-setup.js"></script>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

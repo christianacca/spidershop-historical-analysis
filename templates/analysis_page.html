@@ -4,6 +4,7 @@
 {% block title %}{{ page_title }}{% endblock %}
 
 {% block extra_css %}<link rel="stylesheet" href="{{ path_prefix }}analysis.css">{% endblock %}
+{% block extra_js %}<script type="module" src="{{ path_prefix }}{{ page_script }}"></script>{% endblock %}
 
 {% block content %}
 <div class="content">
