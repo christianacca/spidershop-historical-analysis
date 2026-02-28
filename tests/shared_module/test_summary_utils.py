@@ -2,7 +2,12 @@
 import os
 import pytest
 
-from shared.summary_utils import MatrixSummaryConfig, write_matrix_summary
+from shared.summary_utils import (
+    MatrixOutputConfig,
+    MatrixSummaryConfig,
+    write_matrix_outputs,
+    write_matrix_summary,
+)
 
 
 def _make_config(**overrides) -> MatrixSummaryConfig:
@@ -126,3 +131,53 @@ class TestWriteMatrixSummaryColumnSeparators:
     def test_column_separator_alignment(self, col, expected_sep):
         from shared.summary_utils import _column_separator
         assert _column_separator(col) == expected_sep
+
+
+class TestWriteMatrixOutputs:
+    """Tests for shared CSV + summary output writing."""
+
+    def test_uses_default_table_columns_without_drivers(self):
+        table = [{
+            "Species": "Spider A",
+            "Size (cm)": "1.0",
+            "Signal": "🔥",
+            "Drivers": "Stock: Sustained",
+        }]
+        config = MatrixOutputConfig(
+            title="🧪 Test Matrix",
+            csv_filepath="matrix.csv",
+            empty_message="No rows.",
+            indicator_field="Signal",
+            indicator_labels={"🔥": "Hot", "⚠️": "Watch", "❌": "Avoid"},
+            fallback_fieldnames=["Species", "Size (cm)", "Signal", "Drivers"],
+        )
+
+        result = write_matrix_outputs(table, config)
+        assert result is True
+
+        content = _read_summary()
+        assert "| Species | Size (cm) | Signal |" in content
+        assert "Drivers" not in content
+
+    def test_respects_explicit_table_columns(self):
+        table = [{
+            "Species": "Spider A",
+            "Signal": "🔥",
+            "Wishlist": "10 🔥 ↑",
+            "Drivers": "Stock: Emerging",
+        }]
+        config = MatrixOutputConfig(
+            title="🧪 Test Matrix",
+            csv_filepath="matrix.csv",
+            empty_message="No rows.",
+            indicator_field="Signal",
+            indicator_labels={"🔥": "Hot", "⚠️": "Watch", "❌": "Avoid"},
+            fallback_fieldnames=["Species", "Signal", "Wishlist", "Drivers"],
+            table_columns=["Species", "Wishlist", "Signal"],
+        )
+
+        result = write_matrix_outputs(table, config)
+        assert result is True
+
+        content = _read_summary()
+        assert "| Species | Wishlist | Signal |" in content

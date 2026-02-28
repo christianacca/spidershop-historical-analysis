@@ -634,62 +634,6 @@ class TestBuildBreederOpportunityTable:
         finally:
             os.chdir(original_cwd)
 
-
-class TestSummaryStatistics:
-    """Test suite for summary statistics in markdown output."""
-
-    def test_summary_stats_included_in_markdown(self):
-        """Should include summary statistics line before the table in markdown output."""
-        import tempfile
-        import os
-        from scrape.breeder_matrix import write_breeder_outputs
-        
-        # Create table with mix of signals
-        table = [
-            {"Species": "Species A", "Size (cm)": "1", "OOS": "OUT", "OOS Runs": "5", 
-               "Stock Pattern": "Sustained", "Price": "£25.00 →", "Price History": "▄▄▄",
-             "Wishlist": "0 🔥 →", "Wishlist History": "▄▄▄",
-             "Signal": "🔥", "Recommendation": "Pair soon"},
-            {"Species": "Species B", "Size (cm)": "2", "OOS": "OUT", "OOS Runs": "2",
-               "Stock Pattern": "Emerging", "Price": "£30.00 →", "Price History": "▄▄▄",
-             "Wishlist": "0 🔥 ↑", "Wishlist History": "▁██",
-             "Signal": "🔥", "Recommendation": "Consider pairing"},
-            {"Species": "Species C", "Size (cm)": "1", "OOS": "IN", "OOS Runs": "0",
-               "Stock Pattern": "Always", "Price": "£20.00 →", "Price History": "▄▄▄",
-             "Wishlist": "0 🔥 →", "Wishlist History": "▄▄▄",
-             "Signal": "⚠️", "Recommendation": "Watch closely"},
-            {"Species": "Species D", "Size (cm)": "1", "OOS": "IN", "OOS Runs": "0",
-               "Stock Pattern": "Always", "Price": "£18.00 →", "Price History": "▄▄▄",
-             "Wishlist": "0 ❌ ↓", "Wishlist History": "█▁▁",
-             "Signal": "❌", "Recommendation": "Avoid"},
-        ]
-        
-        with tempfile.TemporaryDirectory() as tmpdir:
-            os.environ["GITHUB_STEP_SUMMARY"] = os.path.join(tmpdir, "summary.md")
-            
-            try:
-                write_breeder_outputs(table)
-                
-                with open(os.environ["GITHUB_STEP_SUMMARY"], "r", encoding="utf-8") as f:
-                    content = f.read()
-                
-                # Should contain summary stats line
-                assert "**Summary:**" in content
-                assert "106 species" in content or "4 species" in content  # Total count
-                assert "🔥" in content  # Hot signal count
-                assert "⚠️" in content  # Watch signal count
-                assert "❌" in content  # Avoid signal count
-                
-                # Should have format like: "**Summary:** 4 species analyzed | 🔥 Hot: 2 | ⚠️ Watch: 1 | ❌ Avoid: 1"
-                assert "Hot:" in content
-                assert "Watch:" in content  
-                assert "Avoid:" in content
-                
-            finally:
-                if "GITHUB_STEP_SUMMARY" in os.environ:
-                    del os.environ["GITHUB_STEP_SUMMARY"]
-
-
 class TestSparklineColumns:
     """Test suite for sparkline trend visualization in breeder matrix."""
 
