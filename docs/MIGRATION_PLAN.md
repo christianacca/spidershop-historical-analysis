@@ -99,36 +99,42 @@ client/
 
 ---
 
-## Phase 0 — Vite + TypeScript foundation
+## Phase 0 — Vite + TypeScript foundation ✅
 
 **Goal:** Wire up a build pipeline. Existing JS continues to work identically.
 
-- [ ] 1. Create `client/package.json` with `vite`, `typescript`, `@types/node` as devDeps,
+- [x] 1. Create `client/package.json` with `vite`, `typescript`, `@types/node` as devDeps,
          `"type": "module"`, `"build": "vite build"`.
 
-- [ ] 2. Create `client/tsconfig.json`: `ESNext` modules, `DOM` + `DOM.Iterable` lib, `strict: true`,
+- [x] 2. Create `client/tsconfig.json`: `ESNext` modules, `DOM` + `DOM.Iterable` lib, `strict: true`,
          `verbatimModuleSyntax: true`, `rootDir: "src"`.
 
-- [ ] 3. Create `client/vite.config.ts` with `build.lib` multi-entry map for the five existing files,
-         `entryFileNames: "[name].js"` (no content hashes),
+- [x] 3. Create `client/vite.config.ts` with `build.rollupOptions` multi-entry map for the five
+         existing files, `preserveModules: true` (see Decisions), `entryFileNames: "[name].js"`,
          `build.outDir: "../templates/scripts/dist"`, `build.emptyOutDir: true`.
 
-- [ ] 4. Mirror the five existing `.js` files as pass-through re-exports in `client/src/`.
-         Run `npm run build`, verify `dist/*.js` output is functionally identical to the originals.
+- [x] 4. Copy the five existing `.js` files into `client/src/` (see Decisions).
+         Built with `npm run build`, verified `dist/*.js` maintains relative imports and is
+         functionally identical to the originals.
 
-- [ ] 5. Add `templates/scripts/dist/` to `.gitignore`.
+- [x] 5. Added `templates/scripts/dist/` and `client/node_modules/` to `.gitignore`.
 
-- [ ] 6. Add `make build-client` to `Makefile`: `cd client && npm ci && npm run build`.
+- [x] 6. Added `make build-client` to `Makefile`: `cd client && npm ci && npm run build`.
 
-- [ ] 7. Update `generate_website.py` to copy JS from `templates/scripts/dist/` instead of
+- [x] 7. Updated `generate_website.py` to copy JS from `templates/scripts/dist/` instead of
          `templates/scripts/`.
 
-- [ ] 8. **Update CI** — in `.github/workflows/deploy-pages.yml`: add `actions/setup-node@v4`
-         (Node 22 LTS) and run `make build-client` before the Python generate step.
-         The scrape workflow is unaffected.
+- [x] 8. **Updated CI** — in `.github/workflows/deploy-pages.yml`: added `actions/setup-node@v4`
+         (Node 22 LTS) with npm cache on `client/package-lock.json`, and `make build-client`
+         before the Python generate step.
 
-- [ ] 9. **Verify:** `make build-client && make generate-website && make test-e2e` all green.
-         Confirm CI passes.
+- [x] 9. **Verified:** `make build-client` succeeds. `make test-e2e` → 106/106 passed.
+
+- [x] Doc: Updated CONTRIBUTING.md — added Node.js 22 install step to all OS setup sections,
+         added client-side iterative dev workflow, updated Project Structure diagram,
+         updated E2E required list (`client/src/` replaces `templates/scripts/`).
+- [x] Doc: Updated copilot-instructions.md — updated E2E required entry: `client/src/` is
+         the JS source; `templates/scripts/dist/` is build output only.
 
 ---
 
@@ -136,22 +142,48 @@ client/
 
 **Goal:** Type-check each file with no `any`. Zero logic changes.
 
-- [ ] 10. Rename `constants.js` → `constants.ts`. Add explicit property types to the three
-          exported const objects.
+**Important:** After renaming each file from `.js` → `.ts`, update the corresponding
+`vite.config.ts` entry in `rollupOptions.input` from `src/<name>.js` → `src/<name>.ts`.
+Vite 6 requires the entry path to match the actual file extension.
+Import statements inside the files (`import { CSS } from './constants.js'`) do **not**
+need changing — `moduleResolution: "bundler"` resolves `.js` → `.ts` transparently.
 
-- [ ] 11. Rename `utils.js` → `utils.ts`. Type `RangeSlider` class fully (constructor params,
-          method signatures, return types). Type `filterByAttribute` parameters.
+- [ ] 10. Rename `constants.js` → `constants.ts`. Update `vite.config.ts` entry.
+          Add explicit property types to the three exported const objects
+          (`CHART`, `CSS`, `CONFIG`).
 
-- [ ] 12. Rename `table-interactions.js` → `table-interactions.ts`. Type all exported functions.
+- [ ] 11. Rename `utils.js` → `utils.ts`. Update `vite.config.ts` entry.
+          Type all exported functions and the `RangeSlider` class:
+          - `getElement(id: string): HTMLElement | null`
+          - `setActiveButton(button: HTMLElement): void`
+          - `toggleRowVisibility(row: HTMLElement, shouldShow: boolean): void`
+          - `filterByAttribute(attributeName, filterValue, tableId, button, limit?: number | null): void`
+          - `RangeSlider`: constructor config type, `enforceConstraints(event: Event): void`,
+            `getValues(): [number, number]`, `updateDisplay(min: number, max: number): void`.
 
-- [ ] 13. Rename `table-setup.js` → `table-setup.ts`. Imports from all others — type errors cascade
+- [ ] 12. Rename `table-interactions.js` → `table-interactions.ts`. Update `vite.config.ts` entry.
+          Type all exported functions (`sortTable`, `filterByPrice`, `filterByWishlist`,
+          `filterRows`, `toggleAdvancedFilters`, `downloadFilteredCsv`, `updateDateSummary`)
+          and private helpers.
+
+- [ ] 13. Rename `table-setup.js` → `table-setup.ts`. Update `vite.config.ts` entry.
+          Imports from all others — type errors cascade
           here, catching any remaining gaps.
 
-- [ ] 14. Rename `species-detail.js` → `species-detail.ts`. Type `renderLineChart` options object.
-          Declare `window.speciesChartData` interface in `client/src/global.d.ts`.
+- [ ] 14. Rename `species-detail.js` → `species-detail.ts`. Update `vite.config.ts` entry.
+          Create `client/src/global.d.ts` declaring `window.speciesChartData`:
+          ```ts
+          interface SpeciesRun { observed: boolean; price: string; wishlist: string; }
+          interface Window { speciesChartData?: { runs: SpeciesRun[] }; }
+          ```
+          Type the `renderLineChart` destructured options object
+          (`containerId`, `series`, `stroke`, `yMin`, `yMax`, `yLabelTop`,
+          `yLabelMid`, `yLabelLow`, `yLabelBottom`, `formatValue`).
 
 - [ ] 15. After each rename: `make build-client` must emit zero type errors.
           Run `make test-e2e` after the final file.
+
+- [ ] Doc: Update copilot-instructions.md — note that JS source files are now TypeScript (`.ts`).
 
 ---
 
@@ -181,6 +213,11 @@ client/
 
 - [ ] 21. Run `make build-client && make test-e2e`.
 
+- [ ] Doc: Update CONTRIBUTING.md project structure — show the feature-slice folder layout
+         (`breeder-page/`, `history-page/`, etc.) replacing the flat `client/src/*.ts` listing.
+- [ ] Doc: Update copilot-instructions.md — document the feature-slice entry-point structure;
+         note that Vite entry names now map to page-slice folders, not individual TS files.
+
 ---
 
 ## Phase 3 — Introduce Svelte + Vitest tooling
@@ -209,6 +246,12 @@ client/
           Confirm Vitest and `make build-client` both pass and that a `.css` file is emitted
           alongside the `.js` output. Delete it.
 
+- [ ] Doc: Update CONTRIBUTING.md — add `make test-client` to the Running Tests section.
+         Document when Vitest tests are required (new Svelte components, shared utilities).
+- [ ] Doc: Update copilot-instructions.md — add `make test-client` to the mandatory test
+         commands. Document that Vitest covers component logic; E2E covers browser
+         interactions and real data shape.
+
 ---
 
 ## Phase 4a — CSS audit: tokens, BEM, and permanent scope
@@ -235,6 +278,10 @@ can reference `var(--color-signal-hot)` without importing anything.
           Do not BEM component-bound rules — they are going away.
 
 - [ ] 32. Run `make test-e2e` to confirm no visual regressions.
+
+- [ ] Doc: Update copilot-instructions.md — document the 3-layer CSS architecture
+         (`common.css` global BEM, page-level BEM, Svelte scoped). Note BEM naming
+         conventions and design token prefix (`--category-name`).
 
 ---
 
@@ -285,6 +332,10 @@ Tight Vitest feedback — tested in isolation before assembly.
           `<link rel="stylesheet" href="{{ path_prefix }}<slice-name>.css">`
           alongside each slice `<script>` tag.
           Confirm empty CSS links cause no E2E errors.
+
+- [ ] Doc: Update copilot-instructions.md — add Svelte 5 component authoring guidelines:
+         use runes (`$state`, `$derived`, `$props`), semantic class names in `<style>` blocks,
+         write Vitest tests for props/events, E2E for browser interactions.
 
 ---
 
@@ -373,6 +424,11 @@ Tight Vitest feedback — tested in isolation before assembly.
 
 - [ ] 59. Run `make test && make test-client && make test-e2e`. Full green required.
 
+- [ ] Doc: Update CONTRIBUTING.md project structure — reflect the final feature-slice layout
+         with Svelte components and page-entry points. Remove stale references.
+- [ ] Doc: Update copilot-instructions.md — update CI test commands to include
+         `make test-client`. Update E2E required triggers for the final project structure.
+
 ---
 
 ## Phase 5 — Species-page charts (future)
@@ -388,12 +444,17 @@ Tight Vitest feedback — tested in isolation before assembly.
 
 - [ ] 62. Write Vitest tests. Run `make test-client && make test-e2e`.
 
+- [ ] Doc: Update CONTRIBUTING.md project structure — add `LineChart.svelte`,
+         `StockStrip.svelte` under `species-page/` in the diagram.
+
 ---
 
 ## Decisions log
 
 | Decision | Rationale |
 |---|---|
+| **`build.rollupOptions` + `preserveModules` instead of `build.lib`** (Phase 0) | `build.lib` bundles inter-entry dependencies together, which would break the `priceSlider`/`wishlistSlider` singletons shared between `table-interactions.js` and `table-setup.js` when both are loaded on the same page. `preserveModules: true` keeps each module as a separate file with relative imports intact — output is structurally identical to source. Required `preserveEntrySignatures: 'allow-extension'` to override Vite 6's default `false` (incompatible with `preserveModules`). |
+| **Copy files into `client/src/` instead of re-exports** (Phase 0) | Re-exporting from `../../templates/scripts/*.js` would create cross-directory relative paths in the dist output that would break deployment (only `dist/` files are copied to the website output — `templates/scripts/` is not). Copying makes `client/src/` the self-contained source. |
 | **dist/ not committed** | Built via `make build-client` locally; CI wires `setup-node` (Node 22 LTS) + `make build-client` in `deploy-pages.yml` before the Python generate step. Scrape workflow unchanged. |
 | **Vite, not webpack** | Zero config, native ES modules, no content hashing needed, first-class Svelte 5 plugin. |
 | **Svelte 5 runes throughout** | `$state`, `$derived`, `$props`, snippets — canonical latest API. Not Svelte 4 stores. |

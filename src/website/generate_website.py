@@ -787,7 +787,7 @@ def main() -> None:
     ]
     _copy_files(csv_files, Path.cwd(), OUTPUT_DIR, "CSV")
     
-    scripts_dir = Path(__file__).parent.parent.parent / "templates" / "scripts"
+    scripts_dir = Path(__file__).parent.parent.parent / "templates" / "scripts" / "dist"
     js_files = ["constants.js", "utils.js", "table-interactions.js", "species-detail.js", "table-setup.js"]
     _copy_files(js_files, scripts_dir, OUTPUT_DIR, "JavaScript")
     

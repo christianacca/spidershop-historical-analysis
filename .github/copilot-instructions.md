@@ -59,7 +59,8 @@ These browser-based tests are **essential** for catching regressions that unit t
 
 **E2E tests are REQUIRED when you change:**
 - Anything in `src/website/` (HTML generation affects JavaScript targets)
-- Anything in `templates/` (especially `templates/scripts/`)
+- Anything in `client/src/` (TypeScript/JS source — Vite builds this to `templates/scripts/dist/`)
+- Anything in `templates/` (except `templates/scripts/dist/` which is build output, never edited directly)
 - Any generated URL/path logic (e.g. `path_prefix`, link building)
 - Any feature involving user interaction or browser behavior
 

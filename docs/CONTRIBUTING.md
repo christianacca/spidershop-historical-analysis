@@ -96,6 +96,19 @@ python --version   # Should show 3.11+
 pip list           # Should show installed packages
 ```
 
+### Step 10: Install Node.js
+
+The client-side build pipeline requires **Node.js 22 LTS** or higher.
+
+```sh
+# Using Homebrew (recommended)
+brew install node@22
+
+# Verify installation
+node --version  # Should show v22.x.x
+npm --version
+```
+
 ✅ You're ready! Continue to [Running Tests](#running-tests)
 
 </details>
@@ -171,6 +184,19 @@ pip install -r requirements-dev.txt
 ```sh
 python --version   # Should show 3.11+
 pip list           # Should show installed packages
+```
+
+### Step 9: Install Node.js
+
+The client-side build pipeline requires **Node.js 22 LTS** or higher.
+
+1. Download from [nodejs.org](https://nodejs.org/) — choose **22 LTS**
+2. Run the installer (default options are fine)
+3. Verify installation:
+
+```sh
+node --version  # Should show v22.x.x
+npm --version
 ```
 
 ✅ You're ready! Continue to [Running Tests](#running-tests)
@@ -258,6 +284,20 @@ python --version   # Should show 3.11+
 pip list           # Should show installed packages
 ```
 
+### Step 10: Install Node.js
+
+The client-side build pipeline requires **Node.js 22 LTS** or higher.
+
+```sh
+# Using NodeSource (recommended)
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Verify installation
+node --version  # Should show v22.x.x
+npm --version
+```
+
 ✅ You're ready! Continue to [Running Tests](#running-tests)
 
 </details>
@@ -313,7 +353,7 @@ They are kept separate from `make test` for speed (~1 second for unit tests vs ~
 
 **When E2E tests are REQUIRED:**
 - After ANY changes to `src/website/` or `templates/` directories
-- After ANY changes to `templates/scripts/table-interactions.js`
+- After ANY changes to `client/src/` (TypeScript source — compiled to `templates/scripts/dist/` via `make build-client`)
 - Before submitting PRs that modify website generation or client-side behavior
 - When debugging regressions related to user interactions or JavaScript
 - When adding features that involve browser behavior (sorting, filtering, tabs, etc.)
@@ -537,6 +577,31 @@ make generate-website
 # 6. Repeat steps 3-5 as needed
 ```
 
+**Iterative client-side development workflow** - When making changes to `client/src/`:
+
+> ⚠️ **Important:** Edit TypeScript/JavaScript files in `client/src/` only.
+> `templates/scripts/*.js` are stale originals no longer used by the build — do not edit them.
+> `templates/scripts/dist/` is Vite build output (git-ignored) — never edit directly.
+
+```bash
+# 1. Get data (only needed once)
+make download-artifacts  # OR: make scrape-only
+
+# 2. Build client assets, generate website, and start server
+make build-client && make website-serve
+# Open http://localhost:8000
+
+# 3. In a NEW terminal: make changes to client/src/
+# ... edit TypeScript files ...
+
+# 4. Rebuild and regenerate (in the new terminal)
+make build-client && make generate-website
+
+# 5. Refresh browser to see changes
+
+# 6. Repeat steps 3-5 as needed
+```
+
 **Python bytecode cache:** Python automatically generates `.pyc` files and `__pycache__/` directories to speed up module loading. During development, this cache can sometimes prevent updated code from running. All Python-executing targets (`make scrape-only`, `make generate-website`, and their dependent workflows) automatically clear the cache before execution. If you encounter issues where code changes aren't reflected:
 
 ```bash
@@ -736,6 +801,15 @@ spidershop-historical-analysis/
 │   ├── scrape/            # Scraping and analysis modules
 │   ├── shared/            # Shared utilities (config, parsing, etc.)
 │   └── website/           # Static website generation
+├── client/                # TypeScript/Svelte client-side source (Vite build)
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── vite.config.ts
+│   └── src/               # Edit JS/TS here — NOT templates/scripts/ directly
+├── templates/             # Jinja2 HTML templates and static assets
+│   ├── scripts/
+│   │   └── dist/          # Vite build output (git-ignored; rebuilt by make build-client)
+│   └── *.html, *.css
 ├── tests/                 # Test suite
 │   ├── scrape_module/     # Tests for src/scrape/
 │   ├── shared_module/     # Tests for src/shared/

@@ -12,7 +12,7 @@
 #   All commands automatically activate the .venv virtual environment
 #   Ensure .venv exists and has dependencies installed first
 
-.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only clean-cache clean-artifacts clean-all test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install coverage check-coverage .check-venv .check-gh
+.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only clean-cache clean-artifacts clean-all build-client test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install coverage check-coverage .check-venv .check-gh
 
 # Shell configuration
 SHELL := /bin/bash
@@ -47,6 +47,7 @@ help:
 	@echo "  make scrape-only            Run scraper only (no website generation)"
 	@echo "  make generate-website       Generate website from existing CSV files"
 	@echo "  make serve-only             Serve existing website (no regeneration)"
+	@echo "  make build-client           Build client-side TS/Svelte assets (run before generate-website)"
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test                   Run pytest with coverage"
@@ -95,6 +96,17 @@ help:
 		echo "Run: gh auth login"; \
 		exit 1; \
 	fi
+
+# ==============================================================================
+# Client Build
+# ==============================================================================
+
+# Build client-side TypeScript/Svelte assets.
+# Must be run before generate-website when client source has changed.
+build-client:
+	@echo "🔨 Building client-side assets..."
+	cd client && npm ci && npm run build
+	@echo "✅ Client assets built to templates/scripts/dist/"
 
 # ==============================================================================
 # Website Workflows
