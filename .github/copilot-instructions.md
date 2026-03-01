@@ -1,5 +1,41 @@
 # Copilot Instructions for spidershop-historical-analysis
 
+## TypeScript / Svelte Migration
+
+If the user asks you to work on any of the following, read `docs/MIGRATION_PLAN.md` first:
+- The `client/` directory or anything in it
+- TypeScript or Svelte components
+- Vite build config (`vite.config.ts`, `tsconfig.json`, `client/package.json`)
+- CSS design tokens or the BEM refactor
+- Any phase of the TypeScript/Svelte migration
+
+The plan file contains the authoritative step list, target folder structure, CSS conventions,
+and decisions log. At the end of a migration phase conversation, update the plan file to tick
+off completed steps and record any decisions that deviated from the plan.
+
+### client/src/ feature-slice structure (Phase 2+)
+
+`client/src/` is organised into **page-slice folders**, each with an `index.ts` that is a
+separate Vite entry point. Shared utilities live in `client/src/shared/` and are internal
+imports — they are never Vite entry points themselves.
+
+| Vite entry | File | Purpose |
+|---|---|---|
+| `breeder-page.js` | `breeder-page/index.ts` | Breeder Opportunities page |
+| `dealer-page.js` | `dealer-page/index.ts` | Dealer Supply Risk page |
+| `snapshot-page.js` | `snapshot-page/index.ts` | Latest Snapshot page |
+| `history-page.js` | `history-page/index.ts` | Historical Data page (+ date filter + CSV download) |
+| `species-page.js` | `species-page/index.ts` + `charts.ts` | Species Detail page |
+
+`filterByPrice` and `filterByWishlist` are **page-local** in each slice's `index.ts`
+(they own module-level `RangeSlider` singletons). `filterRows` in `shared/filter.ts`
+accepts the sliders as parameters.
+
+The dist output mirrors the source tree (`shared/`, `species-page/` subdirectories).
+`generate_website.py` copies the entire dist tree with `shutil.copytree`.
+
+---
+
 ## Python Code Hygiene Guidelines
 
 **Descriptive Naming**: Use clear, descriptive names for variables and functions (snake_case) and classes (PascalCase). Avoid nonstandard abbreviations or single-letter names.
@@ -44,7 +80,8 @@ These browser-based tests are **essential** for catching regressions that unit t
 
 **E2E tests are REQUIRED when you change:**
 - Anything in `src/website/` (HTML generation affects JavaScript targets)
-- Anything in `templates/` (especially `templates/scripts/`)
+- Anything in `client/src/` (TypeScript source — Vite builds this to `templates/scripts/dist/`)
+- Anything in `templates/` (except `templates/scripts/dist/` which is build output, never edited directly)
 - Any generated URL/path logic (e.g. `path_prefix`, link building)
 - Any feature involving user interaction or browser behavior
 
@@ -179,7 +216,7 @@ Are you testing HTML generation?
 
 **Anti-pattern examples (DO NOT WRITE THESE):**
 - ❌ Unit test checking `onclick="sortTable(0, 'breeder-table')"` exact string content
-- ❌ Grep for function names inside `table-interactions.js` (e.g., checking for `isNumeric`)
+- ❌ Grep for function names or variables inside any `.js` file in `templates/scripts/dist/`
 - ❌ Verify JS variable names or implementation details in generated HTML
 - ❌ Test CSS class changes without actually running JS in a browser
 

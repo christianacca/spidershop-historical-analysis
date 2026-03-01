@@ -39,9 +39,16 @@ Thumbs.db
 
 # Test coverage
 .pytest_cache/
+.pytest_tmp/
 
 # Generated website output (CI/CD output at project root)
 /website/
+
+# Client-side build output (built via `make build-client`, never committed)
+templates/scripts/dist/
+
+# Node.js
+client/node_modules/
 
 # Temporary files and local testing (includes coverage, local-testing, etc.)
 tmp/

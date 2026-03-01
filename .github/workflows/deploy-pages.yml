@@ -123,6 +123,12 @@ jobs:
           ls -lh *.csv || echo "No CSV files found"
 
       # --------------------------------
+      # Build client-side assets
+      # --------------------------------
+      - name: Build client assets
+        uses: ./.github/actions/build-client
+
+      # --------------------------------
       # Generate static website
       # --------------------------------
       - name: Generate HTML website

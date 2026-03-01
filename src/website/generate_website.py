@@ -533,6 +533,7 @@ def generate_analysis_page(config: BasePageConfig) -> str:
         csv_filename=config.csv_filename,
         table_id=config.table_id,
         active_page=config.active_page,
+        page_script=f"{config.active_page}-page.js",
         path_prefix="",
         search_filter=getattr(config, 'search_filter', True),
         analysis_html=analysis_html,
@@ -787,9 +788,13 @@ def main() -> None:
     ]
     _copy_files(csv_files, Path.cwd(), OUTPUT_DIR, "CSV")
     
-    scripts_dir = Path(__file__).parent.parent.parent / "templates" / "scripts"
-    js_files = ["constants.js", "utils.js", "table-interactions.js", "species-detail.js", "table-setup.js"]
-    _copy_files(js_files, scripts_dir, OUTPUT_DIR, "JavaScript")
+    scripts_dir = Path(__file__).parent.parent.parent / "templates" / "scripts" / "dist"
+    print("  Copying JavaScript files (dist tree)...")
+    if scripts_dir.exists():
+        shutil.copytree(str(scripts_dir), str(OUTPUT_DIR), dirs_exist_ok=True)
+        print(f"    Copied JS dist tree from {scripts_dir}")
+    else:
+        print(f"    WARNING: dist directory not found at {scripts_dir}")
     
     templates_dir = Path(__file__).parent.parent.parent / "templates"
     css_files = ["common.css", "analysis.css", "species-detail.css", "homepage.css", "history.css"]

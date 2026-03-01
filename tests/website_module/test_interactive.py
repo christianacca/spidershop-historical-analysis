@@ -116,12 +116,8 @@ class TestInteractiveFilterButtons:
         html = generate_analysis_page(config)
         
         # Verify HTML includes JS reference and data attributes (structure only)
-        assert 'src="table-interactions.js"' in html, "Should reference external JavaScript file"
+        assert 'src="breeder-page.js"' in html, "Should reference the breeder page slice script"
         assert 'data-signal=' in html, "Table rows should have data-signal attributes for filtering"
-        
-        # Verify JS file exists (but don't check implementation - E2E tests verify behavior)
-        js_file = Path(__file__).parent.parent.parent / "templates" / "scripts" / "table-interactions.js"
-        assert js_file.exists(), "JavaScript file should exist"
 
 
 class TestStockPatternFiltering:
@@ -275,15 +271,10 @@ class TestStockPatternFiltering:
         config = page_config.breeder("breeder.csv").with_title("Breeder Opportunities").with_description("Test").build()
         html = generate_analysis_page(config)
         
-        # Should reference external JS file and have data attributes
-        assert 'src="table-interactions.js"' in html, "Should reference external JavaScript file"
+        # Should reference the breeder page slice script and have data attributes
+        # Actual filtering behaviour is verified by E2E tests
+        assert 'src="breeder-page.js"' in html, "Should reference the breeder page slice script"
         assert 'data-stock-pattern=' in html, "Table rows should have data-stock-pattern attributes"
-        
-        # Verify the generic filtering function exists in utils.js (refactored from filterByStockPattern)
-        utils_file = Path(__file__).parent.parent.parent / "templates" / "scripts" / "utils.js"
-        assert utils_file.exists(), "utils.js file should exist"
-        utils_content = utils_file.read_text()
-        assert 'function filterByAttribute' in utils_content or 'filterByAttribute(' in utils_content
 
     def test_stock_pattern_buttons_have_counts(self, tmp_path):
         """Stock pattern filter buttons should display counts for each pattern."""

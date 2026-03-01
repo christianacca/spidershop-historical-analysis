@@ -3,6 +3,8 @@
 
 {% block title %}{{ page_title }}{% endblock %}
 
+{% block extra_js %}<script type="module" src="{{ path_prefix }}snapshot-page.js"></script>{% endblock %}
+
 {% block content %}
 <div class="content">
     <h2>{{ page_title }}</h2>
