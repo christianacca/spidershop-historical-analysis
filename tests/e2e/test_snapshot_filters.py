@@ -31,7 +31,7 @@ def test_price_slider_exists_and_initializes_correctly(e2e_site_multi_species) -
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn-filters")
+    toggle_button = page.locator(".btn--filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -81,7 +81,7 @@ def test_price_slider_filters_rows_correctly(e2e_site_multi_species) -> None:
     assert total_rows > 0, "Expected at least one row in snapshot table"
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn-filters")
+    toggle_button = page.locator(".btn--filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -116,7 +116,7 @@ def test_price_slider_updates_display_text(e2e_site_multi_species) -> None:
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn-filters")
+    toggle_button = page.locator(".btn--filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -156,7 +156,7 @@ def test_price_slider_updates_filter_badge(e2e_site_multi_species) -> None:
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn-filters")
+    toggle_button = page.locator(".btn--filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -205,7 +205,7 @@ def test_price_slider_updates_visible_count(e2e_site_multi_species) -> None:
     total_species = int(initial_stats.split("of")[1].strip().split(" ")[0])
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn-filters")
+    toggle_button = page.locator(".btn--filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -234,7 +234,7 @@ def test_price_slider_and_search_filter_combine_with_AND_logic(e2e_site_multi_sp
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn-filters")
+    toggle_button = page.locator(".btn--filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -276,7 +276,7 @@ def test_price_slider_reset_to_max_shows_all_rows(e2e_site_multi_species) -> Non
     total_rows = page.locator('#snapshot-table tbody tr').count()
     
     # Expand advanced filters and apply filter
-    toggle_button = page.locator(".btn-filters")
+    toggle_button = page.locator(".btn--filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -319,7 +319,7 @@ def test_wishlist_slider_exists_and_initializes_correctly(e2e_site_multi_species
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn-filters")
+    toggle_button = page.locator(".btn--filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -369,7 +369,7 @@ def test_wishlist_slider_filters_rows_correctly(e2e_site_multi_species) -> None:
     assert total_rows > 0, "Expected at least one row in snapshot table"
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn-filters")
+    toggle_button = page.locator(".btn--filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -405,7 +405,7 @@ def test_wishlist_slider_updates_display_text(e2e_site_multi_species) -> None:
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn-filters")
+    toggle_button = page.locator(".btn--filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -445,7 +445,7 @@ def test_wishlist_slider_updates_filter_badge(e2e_site_multi_species) -> None:
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn-filters")
+    toggle_button = page.locator(".btn--filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -488,7 +488,7 @@ def test_wishlist_and_price_sliders_combine_in_badge(e2e_site_multi_species) -> 
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn-filters")
+    toggle_button = page.locator(".btn--filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -530,7 +530,7 @@ def test_wishlist_slider_and_search_combine_with_AND_logic(e2e_site_multi_specie
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn-filters")
+    toggle_button = page.locator(".btn--filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -573,7 +573,7 @@ def test_price_min_slider_filters_rows_correctly(e2e_site_multi_species) -> None
     assert total_rows > 0, "Expected at least one row in snapshot table"
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn-filters")
+    toggle_button = page.locator(".btn--filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -614,7 +614,7 @@ def test_price_min_max_sliders_work_together(e2e_site_multi_species) -> None:
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn-filters")
+    toggle_button = page.locator(".btn--filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -660,7 +660,7 @@ def test_wishlist_min_slider_filters_rows_correctly(e2e_site_multi_species) -> N
     total_rows = page.locator('#snapshot-table tbody tr').count()
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn-filters")
+    toggle_button = page.locator(".btn--filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -685,7 +685,7 @@ def test_wishlist_min_max_sliders_work_together(e2e_site_multi_species) -> None:
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn-filters")
+    toggle_button = page.locator(".btn--filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -714,7 +714,7 @@ def test_price_min_slider_updates_filter_badge(e2e_site_multi_species) -> None:
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn-filters")
+    toggle_button = page.locator(".btn--filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -757,7 +757,7 @@ def test_wishlist_min_slider_updates_filter_badge(e2e_site_multi_species) -> Non
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn-filters")
+    toggle_button = page.locator(".btn--filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -800,7 +800,7 @@ def test_both_price_sliders_count_as_one_filter(e2e_site_multi_species) -> None:
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn-filters")
+    toggle_button = page.locator(".btn--filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -833,7 +833,7 @@ def test_both_wishlist_sliders_count_as_one_filter(e2e_site_multi_species) -> No
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn-filters")
+    toggle_button = page.locator(".btn--filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -874,10 +874,10 @@ def test_snapshot_page_structure_and_styling(e2e_site_multi_species) -> None:
     assert action_buttons.count() == 1, "Snapshot page should have .action-buttons container"
     display = action_buttons.evaluate('el => window.getComputedStyle(el).display')
     assert 'flex' in display, f"Action buttons should use flexbox layout, got {display}"
-    download_btn = action_buttons.locator('.btn-download')
+    download_btn = action_buttons.locator('.btn--download')
     assert download_btn.count() == 1 and download_btn.is_visible(), \
         "Download button should be present and visible"
-    filter_btn = action_buttons.locator('.btn-filters')
+    filter_btn = action_buttons.locator('.btn--filters')
     assert filter_btn.count() == 1 and filter_btn.is_visible(), \
         "Filter button should be present and visible"
 

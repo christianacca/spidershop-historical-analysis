@@ -34,6 +34,46 @@ accepts the sliders as parameters.
 The dist output mirrors the source tree (`shared/`, `species-page/` subdirectories).
 `generate_website.py` copies the entire dist tree with `shutil.copytree`.
 
+### CSS Architecture (3-layer model, established Phase 4a)
+
+The project uses a strict 3-layer CSS model. Understand which layer you are in before
+writing or editing any CSS.
+
+| Layer | Files | Scope | Class naming |
+|---|---|---|---|
+| **1 — Global chrome** | `templates/common.css` | Browser reset, `:root` tokens, page chrome (header, nav, footer, buttons) | BEM (`btn--primary`, `nav__link--active`) |
+| **2 — Page-level static** | `templates/analysis.css`, `homepage.css`, `history.css`, `species-detail.css` | Python-rendered HTML that is not inside a Svelte island | BEM (`stat-card--hot`, `badge--watch`) |
+| **3 — Svelte component** | `client/src/**/*.svelte` `<style>` blocks | Elements owned by a Svelte component | Simple semantic names (`.track`, `.thumb`, `.label`) — Svelte scopes them automatically |
+
+#### Design tokens
+
+All design tokens are CSS custom properties defined in the `:root` block at the top of
+`templates/common.css`. **Never hard-code a colour, spacing, or type-scale value in any
+stylesheet** — use the corresponding token.
+
+Naming convention: `--category-name`
+
+Key token groups:
+- `--color-primary`, `--color-accent`, `--color-accent-hover`
+- `--color-signal-hot`, `--color-signal-watch`, `--color-signal-avoid`
+- `--color-success`, `--color-danger`
+- `--color-info-accent`, `--color-info-bg`
+- `--color-date-filter`, `--color-date-filter-bg`, `--color-date-filter-hover`
+- `--color-text`, `--color-text-heading`, `--color-text-muted`, `--color-text-dim`
+- `--color-bg`, `--color-surface`, `--color-surface-light`, `--color-surface-alt`
+- `--color-border`, `--color-border-light`, `--color-border-alt`
+- `--shadow-sm`, `--shadow-md`, `--shadow-lg`, `--shadow-card-hover`
+- `--spacing-xs/sm/md/lg/xl`, `--radius-sm/md/lg`, `--font-sm`, `--font-base`
+
+Svelte component `<style>` blocks should reference these tokens directly (e.g.
+`color: var(--color-signal-hot)`) without importing anything.
+
+#### BEM conventions
+
+- **Modifier** (variant of a block or element): double dash — `.btn--primary`, `.stat-card--hot`
+- **Element** (child owned by a block): double underscore — `.nav__link--active`
+- Component-bound CSS (Layer 3) does **not** use BEM — it will be deleted when Svelte islands are introduced.
+
 ---
 
 ## Python Code Hygiene Guidelines

@@ -77,7 +77,7 @@
         <button class="filter-btn" data-action="filter-signal" data-signal="⚠️" data-table-id="{{ table_id }}">⚠️ Watch{% if summary_stats %} ({{ summary_stats.watch }}){% endif %}</button>
         <button class="filter-btn" data-action="filter-signal" data-signal="❌" data-table-id="{{ table_id }}">❌ Avoid{% if summary_stats %} ({{ summary_stats.avoid }}){% endif %}</button>
         {% if has_advanced_filters %}
-        <button class="btn btn-secondary advanced-filters-toggle" data-action="toggle-filters" data-content-id="advanced-filters-{{ table_id }}">
+        <button class="btn btn--secondary advanced-filters-toggle" data-action="toggle-filters" data-content-id="advanced-filters-{{ table_id }}">
             <span class="arrow">▶</span>
             <span>More Filters</span>
         </button>

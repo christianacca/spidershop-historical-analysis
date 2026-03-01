@@ -25,10 +25,10 @@
 
   <div class="badge-row">
     {% if species_data.breeder %}
-    <span class="badge {% if species_data.breeder.signal == '🔥' %}hot{% elif species_data.breeder.signal == '⚠️' %}watch{% else %}avoid{% endif %}">Breeder Signal: {{ species_data.breeder.signal | default('—') }}</span>
+    <span class="badge {% if species_data.breeder.signal == '🔥' %}badge--hot{% elif species_data.breeder.signal == '⚠️' %}badge--watch{% else %}badge--avoid{% endif %}">Breeder Signal: {{ species_data.breeder.signal | default('—') }}</span>
     {% endif %}
     {% if species_data.dealer %}
-    <span class="badge {% if species_data.dealer.risk == '🔥' %}hot{% elif species_data.dealer.risk == '⚠️' %}watch{% else %}avoid{% endif %}">Dealer Risk: {{ species_data.dealer.risk | default('—') }}</span>
+    <span class="badge {% if species_data.dealer.risk == '🔥' %}badge--hot{% elif species_data.dealer.risk == '⚠️' %}badge--watch{% else %}badge--avoid{% endif %}">Dealer Risk: {{ species_data.dealer.risk | default('—') }}</span>
     {% endif %}
     <span class="badge">Showing size: {{ size }}cm</span>
   </div>
@@ -71,7 +71,7 @@
     </div>
 
     <div class="summary-stats">
-      <div class="stat-card stat-{% if species_data.breeder.signal == '🔥' %}hot{% elif species_data.breeder.signal == '⚠️' %}watch{% else %}avoid{% endif %}">
+      <div class="stat-card stat-card--{% if species_data.breeder.signal == '🔥' %}hot{% elif species_data.breeder.signal == '⚠️' %}watch{% else %}avoid{% endif %}">
         <div class="stat-value">{{ species_data.breeder.signal | default('—') }}</div>
         <div class="stat-label">Opportunity Signal{{ driver_tooltip(species_data.breeder.drivers) }}</div>
         <div class="stat-note">Conservative classification</div>
@@ -82,7 +82,7 @@
         <div class="stat-note">Supply-side driver</div>
       </div>
       {% set breeder_wishlist_parts = (species_data.breeder.wishlist | default('')).split() %}
-      <div class="stat-card stat-{% if (breeder_wishlist_parts[1] | default('')) == '🔥' %}hot{% elif (breeder_wishlist_parts[1] | default('')) == '⚠️' %}watch{% endif %}">
+      <div class="stat-card stat-card--{% if (breeder_wishlist_parts[1] | default('')) == '🔥' %}hot{% elif (breeder_wishlist_parts[1] | default('')) == '⚠️' %}watch{% endif %}">
         <div class="stat-value">{{ breeder_wishlist_parts[1] if breeder_wishlist_parts | length > 1 else '—' }}</div>
         <div class="stat-label">Wishlist Pressure</div>
         <div class="stat-note">Amplifier only</div>
@@ -114,7 +114,7 @@
     </div>
 
     <div class="summary-stats">
-      <div class="stat-card stat-{% if species_data.dealer.risk == '🔥' %}hot{% elif species_data.dealer.risk == '⚠️' %}watch{% else %}avoid{% endif %}">
+      <div class="stat-card stat-card--{% if species_data.dealer.risk == '🔥' %}hot{% elif species_data.dealer.risk == '⚠️' %}watch{% else %}avoid{% endif %}">
         <div class="stat-value">{{ species_data.dealer.risk | default('—') }}</div>
         <div class="stat-label">Supply Risk{{ driver_tooltip(species_data.dealer.drivers) }}</div>
         <div class="stat-note">Conservative classification</div>
@@ -130,7 +130,7 @@
         <div class="stat-note">Avg OOS duration proxy</div>
       </div>
       {% set dealer_wishlist_parts = (species_data.dealer.wishlist | default('')).split() %}
-      <div class="stat-card stat-{% if (dealer_wishlist_parts[1] | default('')) == '🔥' %}hot{% elif (dealer_wishlist_parts[1] | default('')) == '⚠️' %}watch{% endif %}">
+      <div class="stat-card stat-card--{% if (dealer_wishlist_parts[1] | default('')) == '🔥' %}hot{% elif (dealer_wishlist_parts[1] | default('')) == '⚠️' %}watch{% endif %}">
         <div class="stat-value">{{ dealer_wishlist_parts[1] if dealer_wishlist_parts | length > 1 else '—' }}</div>
         <div class="stat-label">Demand Context</div>
         <div class="stat-note">Wishlist is a modifier</div>
@@ -220,8 +220,8 @@
     {% endif %}
 
     <div class="actions">
-      <a id="back-breeder" class="btn secondary {% if default_view == 'breeder' %}origin-btn{% endif %}" href="{{ path_prefix }}breeder.html">← Back to Breeder Table</a>
-      <a id="back-dealer" class="btn secondary {% if default_view == 'dealer' %}origin-btn{% endif %}" href="{{ path_prefix }}dealer.html">← Back to Dealer Table</a>
+      <a id="back-breeder" class="btn btn--secondary {% if default_view == 'breeder' %}origin-btn{% endif %}" href="{{ path_prefix }}breeder.html">← Back to Breeder Table</a>
+      <a id="back-dealer" class="btn btn--secondary {% if default_view == 'dealer' %}origin-btn{% endif %}" href="{{ path_prefix }}dealer.html">← Back to Dealer Table</a>
       {% if page_url %}
       <a class="btn" href="{{ page_url }}" target="_blank" rel="noopener noreferrer">Open SpiderShop Listing ↗</a>
       {% endif %}

@@ -117,7 +117,7 @@ class TestGenerateHomepage:
         soup = BeautifulSoup(html, 'html.parser')
         
         # Find active link in navigation
-        active_links = soup.select('nav a.active')
+        active_links = soup.select('nav a.nav__link--active')
         assert len(active_links) == 1
         assert active_links[0]['href'] == 'index.html'
 
@@ -179,9 +179,9 @@ class TestGenerateSnapshotPage:
             html = generate_snapshot_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
-            # Find download link (now uses btn-download class)
-            download_links = soup.find_all('a', class_='btn-download')
-            assert len(download_links) >= 1, "Should have at least one download link with btn-download class"
+            # Find download link (now uses btn--download class)
+            download_links = soup.find_all('a', class_='btn--download')
+            assert len(download_links) >= 1, "Should have at least one download link with btn--download class"
             
             # Check for "Download CSV" text
             link_texts = [link.text for link in download_links]
@@ -215,8 +215,8 @@ class TestGenerateSnapshotPage:
             html = generate_snapshot_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
-            # Find toggle button (now uses btn-filters class)
-            toggle_button = soup.find('button', class_='btn-filters')
+            # Find toggle button (now uses btn--filters class)
+            toggle_button = soup.find('button', class_='btn--filters')
             assert toggle_button is not None, "Toggle button should exist when search is enabled"
             
             # Verify button uses data attributes (ES modules pattern)
@@ -290,15 +290,15 @@ class TestGenerateSnapshotPage:
             assert action_buttons is not None, "Should have action-buttons container"
             
             # Check download button
-            download_link = action_buttons.find('a', class_='btn-download')
-            assert download_link is not None, "Should have download button with btn-download class"
+            download_link = action_buttons.find('a', class_='btn--download')
+            assert download_link is not None, "Should have download button with btn--download class"
             assert 'Download CSV' in download_link.text, "Download button should have text"
             assert download_link.has_attr('download'), "Download button should have download attribute"
             assert download_link.has_attr('href'), "Download button should have href"
             
             # Check filter button
-            filter_button = action_buttons.find('button', class_='btn-filters')
-            assert filter_button is not None, "Should have filter button with btn-filters class"
+            filter_button = action_buttons.find('button', class_='btn--filters')
+            assert filter_button is not None, "Should have filter button with btn--filters class"
             assert 'More Filters' in filter_button.text or 'Filters' in filter_button.text, "Filter button should have text"
             assert filter_button.has_attr('data-action'), "Filter button should have data-action attribute"
             assert filter_button['data-action'] == 'toggle-filters', "Filter button should have toggle-filters action"
@@ -321,11 +321,11 @@ class TestGenerateSnapshotPage:
             soup = BeautifulSoup(html, 'html.parser')
             
             # Download button should exist
-            download_link = soup.find('a', class_='btn-download')
+            download_link = soup.find('a', class_='btn--download')
             assert download_link is not None, "Should have download button"
             
             # Filter button should NOT exist
-            filter_button = soup.find('button', class_='btn-filters')
+            filter_button = soup.find('button', class_='btn--filters')
             assert filter_button is None, "Should NOT have filter button when search disabled"
 
     def test_table_stats_strip_shows_species_count(self):
@@ -1090,13 +1090,13 @@ class TestGenerateHistoryPage:
             # Download link should be in the stats bar
             stats_strip = soup.find('div', class_='table-stats')
             assert stats_strip is not None, "Should have table-stats strip"
-            download_link = stats_strip.find('a', class_='btn-download')
+            download_link = stats_strip.find('a', class_='btn--download')
             assert download_link is not None, "Download link should be inside the stats bar"
             assert download_link.has_attr('download'), "Download link should have download attribute"
             assert 'Download' in download_link.text
 
             # More Filters button should exist as a standalone button (not inside action-buttons)
-            filter_button = soup.find('button', class_='btn-filters')
+            filter_button = soup.find('button', class_='btn--filters')
             assert filter_button is not None, "Should have More Filters toggle button"
             assert filter_button['data-action'] == 'toggle-filters'
             assert filter_button.has_attr('data-content-id')
@@ -1144,7 +1144,7 @@ class TestGenerateHistoryPage:
             html = generate_history_page(config)
             soup = BeautifulSoup(html, 'html.parser')
 
-            filter_button = soup.find('button', class_='btn-filters')
+            filter_button = soup.find('button', class_='btn--filters')
             badge = filter_button.find('span', class_='filter-badge')
             assert badge is not None, "Toggle button should contain filter-badge span"
             assert 'hidden' in badge.get('class', []), "Badge should be hidden initially"
@@ -1174,7 +1174,7 @@ class TestGenerateHistoryPage:
             html = generate_history_page(config)
             soup = BeautifulSoup(html, 'html.parser')
 
-            assert soup.find('button', class_='btn-filters') is None, "Should not have filter toggle when search disabled"
+            assert soup.find('button', class_='btn--filters') is None, "Should not have filter toggle when search disabled"
             assert soup.find('input', type='text') is None, "Should not have search input when search disabled"
 
     def test_table_stats_strip_shows_row_count(self):

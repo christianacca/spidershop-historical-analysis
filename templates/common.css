@@ -1,5 +1,77 @@
 /* Common CSS - Used by ALL pages */
 
+/* ============================================================
+   Design Tokens — CSS custom properties shared across all layers.
+   Svelte component <style> blocks reference these directly via
+   var(--token-name) without any imports.
+   ============================================================ */
+:root {
+    /* === Brand / Accent === */
+    --color-primary:            #2c3e50; /* dark navy — header bg, headings, primary text */
+    --color-primary-light:      #34495e; /* slightly lighter navy — subheadings, th bg */
+    --color-accent:             #3498db; /* blue — buttons, links, borders, active states */
+    --color-accent-hover:       #2980b9; /* darker blue — hover state for accent elements */
+
+    /* === Status === */
+    --color-success:            #27ae60; /* green — download / success actions */
+    --color-success-hover:      #229954;
+    --color-danger:             #e74c3c; /* red — alerts, badges, hot-stat cards */
+
+    /* === Signal colours (used by table cells and Svelte components) === */
+    --color-signal-hot:         #ef4444;
+    --color-signal-watch:       #f59e0b; /* amber */
+    --color-signal-avoid:       #94a3b8; /* slate */
+
+    /* === Info accent (used by instruction/info boxes) === */
+    --color-info-accent:        #2196F3;
+    --color-info-accent-dark:   #1976d2;
+
+    /* === Date-filter accent (history page) === */
+    --color-date-filter:        #ffc107;
+    --color-date-filter-bg:     #fff8e1;
+    --color-date-filter-hover:  #e0a800;
+
+    /* === Text === */
+    --color-text:               #333;
+    --color-text-heading:       #2c3e50; /* alias of --color-primary */
+    --color-text-muted:         #7f8c8d;
+    --color-text-dim:           #607080; /* species-detail muted tones */
+
+    /* === Surfaces === */
+    --color-bg:                 #f5f5f5; /* page background */
+    --color-surface:            #ffffff;
+    --color-surface-light:      #f8f9fa; /* cards, filter panels */
+    --color-surface-alt:        #ecf0f1; /* nav hover, secondary button bg */
+    --color-info-bg:            #e8f4f8; /* info/callout blocks */
+
+    /* === Borders === */
+    --color-border:             #dee2e6;
+    --color-border-light:       #ddd;
+    --color-border-alt:         #e1e8ed;
+
+    /* === Shadows === */
+    --shadow-sm:                0 2px 5px rgba(0, 0, 0, 0.05);
+    --shadow-md:                0 2px 5px rgba(0, 0, 0, 0.1);
+    --shadow-lg:                0 4px 12px rgba(0, 0, 0, 0.1);
+    --shadow-card-hover:        0 4px 8px rgba(0, 0, 0, 0.1);
+
+    /* === Spacing === */
+    --spacing-xs:   5px;
+    --spacing-sm:   10px;
+    --spacing-md:   15px;
+    --spacing-lg:   20px;
+    --spacing-xl:   30px;
+
+    /* === Border radius === */
+    --radius-sm:    4px;
+    --radius-md:    6px;
+    --radius-lg:    8px;
+
+    /* === Font sizes === */
+    --font-sm:      0.9rem;
+    --font-base:    0.95rem;
+}
+
 /* Reset and Base Styles */
 * {
     margin: 0;
@@ -10,8 +82,8 @@
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     line-height: 1.6;
-    color: #333;
-    background: #f5f5f5;
+    color: var(--color-text);
+    background: var(--color-bg);
 }
 
 .container {
@@ -27,11 +99,11 @@ body {
 
 /* Header */
 header {
-    background: #2c3e50;
+    background: var(--color-primary);
     color: white;
     padding: 20px 0;
     margin-bottom: 30px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-md);
 }
 
 header .container {
@@ -53,7 +125,7 @@ nav {
     background: white;
     padding: 15px 0;
     margin-bottom: 30px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    box-shadow: var(--shadow-sm);
 }
 
 nav ul {
@@ -65,7 +137,7 @@ nav ul {
 }
 
 nav a {
-    color: #2c3e50;
+    color: var(--color-primary);
     text-decoration: none;
     padding: 10px 20px;
     border-radius: 5px;
@@ -74,11 +146,11 @@ nav a {
 }
 
 nav a:hover {
-    background: #ecf0f1;
+    background: var(--color-surface-alt);
 }
 
-nav a.active {
-    background: #3498db;
+nav a.nav__link--active {
+    background: var(--color-accent);
     color: white;
 }
 
@@ -86,20 +158,20 @@ nav a.active {
 .content {
     background: white;
     padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
     margin-bottom: 30px;
 }
 
 h2 {
-    color: #2c3e50;
+    color: var(--color-primary);
     margin-bottom: 20px;
     padding-bottom: 10px;
-    border-bottom: 2px solid #3498db;
+    border-bottom: 2px solid var(--color-accent);
 }
 
 h3 {
-    color: #34495e;
+    color: var(--color-primary-light);
     margin: 20px 0 15px 0;
 }
 
@@ -113,7 +185,7 @@ h3 {
 }
 
 .data-table th {
-    background: #34495e;
+    background: var(--color-primary-light);
     color: white;
     padding: 12px;
     text-align: left;
@@ -126,7 +198,7 @@ h3 {
 }
 
 .data-table th:hover {
-    background: #2c3e50;
+    background: var(--color-primary);
 }
 
 .sort-indicator {
@@ -137,7 +209,7 @@ h3 {
 
 .data-table td {
     padding: 10px 12px;
-    border-bottom: 1px solid #ecf0f1;
+    border-bottom: 1px solid var(--color-surface-alt);
 }
 
 .data-table tbody tr:hover {
@@ -155,7 +227,7 @@ h3 {
 /* Color-coded signal cells */
 .data-table .signal-hot {
     background: linear-gradient(135deg, #fff5f5 0%, #ffe5e5 100%);
-    border-left: 4px solid #ef4444;
+    border-left: 4px solid var(--color-signal-hot);
     text-align: center;
     font-size: 1.8rem;
     padding: 8px;
@@ -165,7 +237,7 @@ h3 {
 
 .data-table .signal-watch {
     background: linear-gradient(135deg, #fffef5 0%, #fff7e5 100%);
-    border-left: 4px solid #f59e0b;
+    border-left: 4px solid var(--color-signal-watch);
     text-align: center;
     font-size: 1.8rem;
     padding: 8px;
@@ -175,7 +247,7 @@ h3 {
 
 .data-table .signal-avoid {
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border-left: 4px solid #94a3b8;
+    border-left: 4px solid var(--color-signal-avoid);
     text-align: center;
     font-size: 1.8rem;
     padding: 8px;
@@ -185,11 +257,11 @@ h3 {
 
 /* Info Box */
 .info-box {
-    background: #e8f4f8;
-    border-left: 4px solid #3498db;
+    background: var(--color-info-bg);
+    border-left: 4px solid var(--color-accent);
     padding: 15px;
     margin: 20px 0;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
 }
 
 /* Download Links */
@@ -208,12 +280,12 @@ h3 {
 footer {
     text-align: center;
     padding: 30px 20px;
-    color: #7f8c8d;
+    color: var(--color-text-muted);
     margin-top: 50px;
 }
 
 footer a {
-    color: #3498db;
+    color: var(--color-accent);
     text-decoration: none;
 }
 
@@ -265,8 +337,8 @@ footer a:hover {
     gap: 6px;
     padding: 10px 20px;
     border: none;
-    border-radius: 6px;
-    font-size: 0.95rem;
+    border-radius: var(--radius-md);
+    font-size: var(--font-base);
     font-weight: 500;
     text-decoration: none;
     cursor: pointer;
@@ -274,56 +346,56 @@ footer a:hover {
 }
 
 /* Primary button variant (blue) - for standard actions */
-.btn-primary {
-    background: #3498db;
+.btn--primary {
+    background: var(--color-accent);
     color: white;
 }
 
-.btn-primary:hover {
-    background: #2980b9;
+.btn--primary:hover {
+    background: var(--color-accent-hover);
 }
 
-/* Success button variant (green) - for download actions */
-.btn-success,
-.btn-download {
-    background: #27ae60;
+/* Success/download button variant (green) - for download actions */
+.btn--success,
+.btn--download {
+    background: var(--color-success);
     color: white;
 }
 
-.btn-success:hover,
-.btn-download:hover {
-    background: #229954;
+.btn--success:hover,
+.btn--download:hover {
+    background: var(--color-success-hover);
 }
 
 /* Secondary button variant (gray outline) - for less prominent actions */
-.btn-secondary {
-    background: #f8f9fa;
-    border: 2px solid #ddd;
+.btn--secondary {
+    background: var(--color-surface-light);
+    border: 2px solid var(--color-border-light);
     color: #495057;
     padding: 8px 16px; /* Slightly smaller padding for secondary actions */
 }
 
-.btn-secondary:hover {
+.btn--secondary:hover {
     background: #e9ecef;
-    border-color: #3498db;
+    border-color: var(--color-accent);
 }
 
 /* Filters button - extends primary button style */
-.btn-filters {
-    background: #3498db;
+.btn--filters {
+    background: var(--color-accent);
     color: white;
 }
 
-.btn-filters:hover {
-    background: #2980b9;
+.btn--filters:hover {
+    background: var(--color-accent-hover);
 }
 
-.btn-filters .arrow {
+.btn--filters .arrow {
     transition: transform 0.2s;
     font-size: 0.8rem;
 }
 
-.btn-filters.expanded .arrow {
+.btn--filters.expanded .arrow {
     transform: rotate(90deg);
 }
 
@@ -332,12 +404,12 @@ footer a:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #e8f4f8;
+    background: var(--color-info-bg);
     padding: 12px 15px;
     margin-bottom: 15px;
-    border-radius: 4px;
-    color: #2c3e50;
-    font-size: 0.95rem;
+    border-radius: var(--radius-sm);
+    color: var(--color-primary);
+    font-size: var(--font-base);
 }
 
 .table-stats-date {
@@ -348,7 +420,7 @@ footer a:hover {
 /* Advanced Filters Toggle Button - uses secondary button style with specific enhancements */
 .advanced-filters-toggle:hover {
     background: #e9ecef;
-    border-color: #3498db;
+    border-color: var(--color-accent);
 }
 
 .advanced-filters-toggle .arrow {
@@ -375,7 +447,7 @@ footer a:hover {
 /* Filter badge indicator */
 .filter-badge {
     display: inline-block;
-    background: #e74c3c;
+    background: var(--color-danger);
     color: white;
     border-radius: 50%;
     width: 20px;
@@ -395,9 +467,9 @@ footer a:hover {
 .advanced-filters-content {
     display: none;
     padding: 15px;
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 6px;
+    background: var(--color-surface-light);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
     margin-top: 10px;
 }
 
@@ -414,7 +486,7 @@ footer a:hover {
 }
 
 .filter-row strong {
-    color: #34495e;
+    color: var(--color-primary-light);
     margin-right: 10px;
     display: block;
     margin-bottom: 8px;
@@ -429,7 +501,7 @@ footer a:hover {
 .dual-range-slider {
     position: relative;
     height: 20px;
-    margin: 10px 0;
+    margin: var(--spacing-sm) 0;
 }
 
 .dual-range-slider .slider {
@@ -482,7 +554,7 @@ footer a:hover {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: #3498db;
+    background: var(--color-accent);
     cursor: pointer;
     position: relative;
     margin-top: -6px;
@@ -493,7 +565,7 @@ footer a:hover {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: #3498db;
+    background: var(--color-accent);
     cursor: pointer;
     border: none;
     position: relative;
@@ -501,11 +573,11 @@ footer a:hover {
 
 /* Differentiate min handle with darker color */
 .dual-range-slider .slider-min::-webkit-slider-thumb {
-    background: #2980b9;
+    background: var(--color-accent-hover);
 }
 
 .dual-range-slider .slider-min::-moz-range-thumb {
-    background: #2980b9;
+    background: var(--color-accent-hover);
 }
 
 /* Single slider style (for non-dual sliders if any) */
@@ -530,7 +602,7 @@ footer a:hover {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: #3498db;
+    background: var(--color-accent);
     cursor: pointer;
 }
 
@@ -538,7 +610,7 @@ footer a:hover {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: #3498db;
+    background: var(--color-accent);
     cursor: pointer;
     border: none;
 }
@@ -547,13 +619,13 @@ footer a:hover {
     display: flex;
     justify-content: space-between;
     margin-top: 5px;
-    color: #7f8c8d;
-    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    font-size: var(--font-sm);
 }
 
 .slider-current {
     margin-top: 8px;
-    color: #2c3e50;
+    color: var(--color-primary);
     font-weight: 600;
 }
 
@@ -575,19 +647,19 @@ details {
 details summary {
     cursor: pointer;
     font-weight: 600;
-    color: #2c3e50;
+    color: var(--color-primary);
     padding: 10px;
     border-radius: 5px;
     transition: background 0.3s;
 }
 
 details summary:hover {
-    background: #f8f9fa;
+    background: var(--color-surface-light);
 }
 
 details[open] summary {
     margin-bottom: 15px;
-    border-bottom: 1px solid #e1e8ed;
+    border-bottom: 1px solid var(--color-border-alt);
 }
 
 details p {
@@ -603,7 +675,7 @@ details ul {
 details hr {
     margin: 30px 0;
     border: none;
-    border-top: 2px solid #dee2e6;
+    border-top: 2px solid var(--color-border);
 }
 
 /* Mobile Responsive Card Layout */
@@ -623,7 +695,7 @@ details hr {
         gap: 12px;
         padding: 20px;
         margin-bottom: 20px;
-        border: 2px solid #e1e8ed;
+        border: 2px solid var(--color-border-alt);
         border-radius: 12px;
         background: white;
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
@@ -671,15 +743,15 @@ details hr {
     }
     
     .data-table .signal-hot {
-        border-color: #ef4444;
+        border-color: var(--color-signal-hot);
     }
     
     .data-table .signal-watch {
-        border-color: #f59e0b;
+        border-color: var(--color-signal-watch);
     }
     
     .data-table .signal-avoid {
-        border-color: #94a3b8;
+        border-color: var(--color-signal-avoid);
     }
     
     .data-table .signal-hot::before,
@@ -698,9 +770,9 @@ details hr {
     .data-table td:first-child {
         font-size: 1.1rem;
         font-weight: 600;
-        color: #2c3e50;
+        color: var(--color-primary);
         padding-bottom: 8px;
-        border-bottom: 2px solid #e1e8ed;
+        border-bottom: 2px solid var(--color-border-alt);
         margin-bottom: 8px;
     }
     

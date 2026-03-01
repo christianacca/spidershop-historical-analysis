@@ -14,9 +14,9 @@
     <h3>Data Table</h3>
     
     <div class="action-buttons">
-        <a href="{{ csv_filename }}" download class="btn btn-download">⬇️ Download CSV</a>
+        <a href="{{ csv_filename }}" download class="btn btn--download">⬇️ Download CSV</a>
         {% if search_filter %}
-        <button class="btn btn-filters" data-action="toggle-filters" data-content-id="advanced-filters-{{ table_id }}">
+        <button class="btn btn--filters" data-action="toggle-filters" data-content-id="advanced-filters-{{ table_id }}">
             <span class="arrow">▶</span>
             <span>More Filters</span>
             <span class="filter-badge hidden" id="filterBadge-{{ table_id }}">0</span>

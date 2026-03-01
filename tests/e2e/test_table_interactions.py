@@ -394,8 +394,8 @@ def test_snapshot_page_advanced_filters_toggle(e2e_site_multi_species) -> None:
 
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
-    # Verify toggle button exists (snapshot page uses .btn-filters)
-    toggle_button = page.locator(".btn-filters")
+    # Verify toggle button exists (snapshot page uses .btn--filters)
+    toggle_button = page.locator(".btn--filters")
     assert toggle_button.is_visible(), "Toggle button should be visible on snapshot page"
     
     # Verify filter content container exists
@@ -446,8 +446,8 @@ def test_snapshot_filter_badge_updates_with_search(e2e_site_multi_species) -> No
     assert badge.count() == 1, "Badge element should exist on snapshot page"
     assert not badge.is_visible(), "Badge should be hidden when no filters active"
     
-    # Expand filters (snapshot page uses .btn-filters)
-    toggle_button = page.locator(".btn-filters")
+    # Expand filters (snapshot page uses .btn--filters)
+    toggle_button = page.locator(".btn--filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -497,7 +497,7 @@ def test_snapshot_stats_strip_updates_count_when_filtered(e2e_site_multi_species
     assert total_count > 1, "Should have multiple species for meaningful test"
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn-filters")
+    toggle_button = page.locator(".btn--filters")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -545,9 +545,9 @@ def test_analysis_pages_have_analysis_ui(e2e_site_multi_species) -> None:
         summary_stats = page.locator('.summary-stats')
         assert summary_stats.count() == 1, f"{page_name} should have .summary-stats container"
         assert page.locator('.stat-card').count() >= 3, f"{page_name} should have at least 3 stat cards"
-        assert page.locator('.stat-card.stat-hot').count() >= 1, f"{page_name} should have .stat-hot card"
-        assert page.locator('.stat-card.stat-watch').count() >= 1, f"{page_name} should have .stat-watch card"
-        assert page.locator('.stat-card.stat-avoid').count() >= 1, f"{page_name} should have .stat-avoid card"
+        assert page.locator('.stat-card.stat-card--hot').count() >= 1, f"{page_name} should have .stat-card--hot card"
+        assert page.locator('.stat-card.stat-card--watch').count() >= 1, f"{page_name} should have .stat-card--watch card"
+        assert page.locator('.stat-card.stat-card--avoid').count() >= 1, f"{page_name} should have .stat-card--avoid card"
 
         assert page.locator('.filter-buttons-container').count() >= 1, \
             f"{page_name} should have filter button containers"
@@ -644,26 +644,26 @@ def test_stat_cards_have_correct_border_colors(e2e_site_multi_species) -> None:
 
     page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
 
-    hot_card = page.locator('.stat-card.stat-hot').first
+    hot_card = page.locator('.stat-card.stat-card--hot').first
     if hot_card.count() > 0:
         border_color = hot_card.evaluate('el => window.getComputedStyle(el).borderLeftColor')
         # #e74c3c = rgb(231, 76, 60)
         assert 'rgb(231, 76, 60)' in border_color, \
             f"Hot card should have red border, got {border_color}"
 
-    watch_card = page.locator('.stat-card.stat-watch').first
+    watch_card = page.locator('.stat-card.stat-card--watch').first
     if watch_card.count() > 0:
         border_color = watch_card.evaluate('el => window.getComputedStyle(el).borderLeftColor')
-        # #f39c12 = rgb(243, 156, 18)
-        assert 'rgb(243, 156, 18)' in border_color, \
-            f"Watch card should have orange border, got {border_color}"
+        # --color-signal-watch: #f59e0b = rgb(245, 158, 11)
+        assert 'rgb(245, 158, 11)' in border_color, \
+            f"Watch card should have amber border, got {border_color}"
 
-    avoid_card = page.locator('.stat-card.stat-avoid').first
+    avoid_card = page.locator('.stat-card.stat-card--avoid').first
     if avoid_card.count() > 0:
         border_color = avoid_card.evaluate('el => window.getComputedStyle(el).borderLeftColor')
-        # #95a5a6 = rgb(149, 165, 166)
-        assert 'rgb(149, 165, 166)' in border_color, \
-            f"Avoid card should have gray border, got {border_color}"
+        # --color-signal-avoid: #94a3b8 = rgb(148, 163, 184)
+        assert 'rgb(148, 163, 184)' in border_color, \
+            f"Avoid card should have slate border, got {border_color}"
 
 
 @pytest.mark.e2e
@@ -730,9 +730,9 @@ def test_analysis_row_count_paragraph_styling(e2e_site_multi_species) -> None:
         color = paragraphs.first.evaluate(
             'el => window.getComputedStyle(el).color'
         )
-        # #666 = rgb(102, 102, 102)
-        assert 'rgb(102, 102, 102)' in color, \
-            f"{page_name} .table-row-count should be grey rgb(102,102,102), got {color}"
+        # --color-text-muted: #7f8c8d = rgb(127, 140, 141)
+        assert 'rgb(127, 140, 141)' in color, \
+            f"{page_name} .table-row-count should be grey rgb(127,140,141), got {color}"
 
 
 @pytest.mark.e2e

@@ -286,7 +286,7 @@ class TestGetBaseHtmlTemplate:
         html = get_base_html_template("Test", "home")
         soup = BeautifulSoup(html, 'html.parser')
         
-        active_links = soup.select('nav a.active')
+        active_links = soup.select('nav a.nav__link--active')
         assert len(active_links) == 1
         assert active_links[0]['href'] == 'index.html'
 
@@ -295,7 +295,7 @@ class TestGetBaseHtmlTemplate:
         html = get_base_html_template("Test", "snapshot")
         soup = BeautifulSoup(html, 'html.parser')
         
-        active_links = soup.select('nav a.active')
+        active_links = soup.select('nav a.nav__link--active')
         assert len(active_links) == 1
         assert active_links[0]['href'] == 'snapshot.html'
 

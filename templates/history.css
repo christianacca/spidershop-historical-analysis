@@ -2,20 +2,20 @@
 
 /* Summary info box above date filter section */
 .summary-info {
-    background: #f1f3f5;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
+    background: var(--color-surface-light);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
     padding: 10px 14px;
     margin-bottom: 12px;
     font-size: 0.95em;
-    color: #2c3e50;
+    color: var(--color-primary);
 }
 
 /* Date Filter Section */
 .date-filter-section {
-    background: #fff8e1;
-    border: 2px solid #ffc107;
-    border-radius: 8px;
+    background: var(--color-date-filter-bg);
+    border: 2px solid var(--color-date-filter);
+    border-radius: var(--radius-lg);
     padding: 16px 20px;
     margin-bottom: 15px;
 }
@@ -48,7 +48,7 @@
     display: none;
     margin-top: 12px;
     padding-top: 12px;
-    border-top: 1px solid #ffc107;
+    border-top: 1px solid var(--color-date-filter);
 }
 
 .date-picker-content.show {
@@ -68,11 +68,11 @@
 
 /* Amber expand/collapse button */
 .date-expand-btn {
-    background: #ffc107;
+    background: var(--color-date-filter);
     color: #856404;
     border: none;
     padding: 6px 14px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
@@ -81,7 +81,7 @@
 }
 
 .date-expand-btn:hover {
-    background: #e0a800;
+    background: var(--color-date-filter-hover);
 }
 
 .date-expand-btn .arrow {
@@ -114,7 +114,7 @@
 }
 
 .date-row:hover {
-    border-color: #3498db;
+    border-color: var(--color-accent);
 }
 
 .date-count {

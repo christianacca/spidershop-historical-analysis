@@ -473,28 +473,94 @@ export makes it Vitest-testable and clearly signals it is shared API.
 Apply BEM only to what permanently stays global. Extract design tokens so Svelte components
 can reference `var(--color-signal-hot)` without importing anything.
 
-- [ ] 29. **Audit all stylesheets** (`common.css`, `analysis.css`, `homepage.css`, `history.css`,
+- [x] 29. **Audit all stylesheets** (`common.css`, `analysis.css`, `homepage.css`, `history.css`,
           `species-detail.css`). For each rule, classify it as:
           - **Permanent global** — browser reset, page chrome, base HTML element styles.
           - **Static page HTML** — styles for Python-rendered HTML not inside a future Svelte island.
           - **Component-bound** — styles for elements that will become Svelte islands.
             Do not rename or BEM these — they are being deleted, not kept.
 
-- [ ] 30. **Extract CSS custom properties** into `:root` in `common.css`. Every repeated colour,
+- [x] 30. **Extract CSS custom properties** into `:root` in `common.css`. Every repeated colour,
           spacing, and type-scale value becomes a token. Replace every hard-coded usage across
           all stylesheets with the corresponding token.
           Naming: `--category-name` (e.g. `--color-*`, `--spacing-*`, `--font-*`).
 
-- [ ] 31. **Apply BEM to permanent global CSS only** — rules classified as "permanent global"
+          **Decision:** Two minor colour consolidations were accepted during tokenisation:
+          - `--color-signal-watch: #f59e0b` (was `#f39c12` in stat-cards) — harmonised to single token.
+          - `--color-signal-avoid: #94a3b8` (was `#95a5a6` in stat-cards) — harmonised to single token.
+          - `--color-surface-light: #f8f9fa` replaced `#f1f3f5` in `.summary-info` background.
+          - `--color-text-muted: #7f8c8d` replaced `#666` for `.table-row-count` text.
+          Affected E2E colour assertions were updated to match the new token values.
+
+- [x] 31. **Apply BEM to permanent global CSS only** — rules classified as "permanent global"
           and "static page HTML" in step 29. Update class attributes in Jinja2 templates and
           class-name constants in `shared/constants.ts` at the same time.
           Do not BEM component-bound rules — they are going away.
 
-- [ ] 32. Run `make test-e2e` to confirm no visual regressions.
+          **Renames applied:**
+          - `nav a.active` → `nav a.nav__link--active` (in `base.html`)
+          - `.btn-primary/secondary/success/download/filters` → `.btn--primary/secondary/success/download/filters`
+          - `.stat-card.stat-hot/watch/avoid` → `.stat-card.stat-card--hot/watch/avoid`
+          - `.badge.hot/watch/avoid` → `.badge--hot/watch/avoid`
+          - `.btn.secondary` (species detail) → `.btn--secondary`
+          - `client/src/shared/constants.ts` left unchanged — `CSS.ACTIVE` and `CSS.FILTER_BTN`
+            reference component-bound filter-button classes, not the renamed nav class.
 
-- [ ] Doc: Update copilot-instructions.md — document the 3-layer CSS architecture
+- [x] 32. Run `make test-e2e` to confirm no visual regressions.
+          Result: 106 passed (after updating colour assertions for the two consolidations above).
+
+- [x] Doc: Update copilot-instructions.md — document the 3-layer CSS architecture
          (`common.css` global BEM, page-level BEM, Svelte scoped). Note BEM naming
          conventions and design token prefix (`--category-name`).
+
+---
+
+## Pre-existing state at Phase 4b handoff
+
+- 3-layer CSS architecture is established (Phase 4a): `:root` design tokens in `common.css`;
+  BEM applied to permanent global and static page HTML only; component-bound CSS left untouched.
+- All BEM renames are done — templates and E2E tests already updated.
+- `make test` → 620 passed, 95.50% coverage. `make test-e2e` → 106 passed.
+
+### Current `rows` format in templates
+
+The template variable `rows` (passed from Python to Jinja2) is **not** a simple list of lists.
+It is `rows_enum = [list(enumerate(row)) for row in rows]`, so each row is
+`List[Tuple[int, Any]]`. Example for a 3-column table:
+```python
+rows = [
+    [(0, 'Aphonopelma'), (1, '1.5'), (2, '12.99')],
+    [(0, 'Brachypelma'), (1, '2.0'), (2, '14.50')],
+]
+```
+The serialiser in step 33 must work with the **pre-enumeration** form (`List[List[Any]]`
+parallel to `List[str]` headers), not with the Jinja-side `rows_enum`.
+
+### SVG sparkline cells
+
+`convert_sparklines_in_rows(...)` runs **before** `rows_enum` is built. It replaces Unicode
+sparkline strings with full SVG markup in the corresponding cells. These SVG strings are large
+(~1–2 KB each) and not appropriate to include verbatim in the JSON payload.
+
+The serialiser must skip sparkline cells (i.e. cells that are SVG strings or `None`/empty after
+sparkline conversion) and instead pass the **original Unicode sparkline string** (from the raw
+CSV) in the JSON payload. The Svelte `SortableTable` component will be responsible for
+converting unicode → SVG client-side.
+
+**Practical implication for step 33:** The serialiser should receive the raw `rows` list
+(before sparkline conversion) alongside the headers, or a separate column mapping identifying
+which column holds sparkline data.
+
+### Step 34 will blank tables until Phase 4c-ii
+
+Once `table.html` replaces the `{%- for row in rows %}` tbody with a mount div, all four
+tables (breeder, dealer, snapshot, history) will render empty until Phase 4c-ii wires the
+first Svelte component. This is intentional — the static website is not user-facing during
+the migration branch — but it means `make test-e2e` **will fail** after step 34 and must not
+be run until Phase 4c-ii is complete.
+
+The correct verification gate for steps 33–35 is `make test` only (Python snapshot tests confirm
+the mount div + script are present; E2E is deferred to Phase 4c-ii).
 
 ---
 
@@ -503,13 +569,33 @@ can reference `var(--color-signal-hot)` without importing anything.
 **Goal:** Prepare server-rendered HTML for Svelte takeover.
 
 - [ ] 33. In `src/website/` (likely `page_config.py` or a new `table_data_helpers.py`), add a
-          serialiser converting each page's table row data into a JSON-serialisable list of dicts
-          keyed by column name. Write Python unit tests for this serialiser.
+          serialiser `rows_to_json(headers, rows)` that converts the raw row data into a JSON-
+          serialisable `List[dict]` keyed by column name. Rows are `List[List[Any]]` (before
+          `enumerate`); any cell whose value starts with `'<svg'` should be omitted from its
+          dict entry (replaced with the original raw Unicode sparkline string — see Pre-existing
+          state note above). Write Python unit tests covering: basic conversion, SVG cell
+          exclusion, empty input, and multi-row output.
 
-- [ ] 34. Update `templates/table.html`: replace the `{%- for row in rows %}` tbody loop with
-          `<div id="{{ table_id }}-root"></div>`. Add
-          `<script>window.{{ table_id }}Data = {{ rows | tojson }};</script>`
-          before the slice script tag.
+          Make the serialiser available to each `generate_*` function in `generate_website.py`
+          and pass its output as a new template variable `json_rows` alongside the existing
+          `rows` (the enumerated form used by the remaining Jinja rendering).
+
+- [ ] 34. Update `templates/table.html`: replace the `{%- for row in rows %}` tbody loop (and
+          all the closing `{% endfor %}` and `</tbody>`) with:
+          ```html
+          <tbody>
+            <div id="{{ table_id }}-root"></div>
+          </tbody>
+          ```
+          Add the data script immediately before the slice `<script>` tag:
+          ```html
+          <script>window.{{ table_id }}Data = {{ json_rows | tojson }};</script>
+          ```
+          Note: `json_rows` is the new template variable from step 33, NOT the existing `rows`
+          variable (which holds enumerate-pairs and is not the correct format).
+
+          After this step `make test-e2e` will fail (tables are blank — expected). Do NOT run
+          E2E until Phase 4c-ii is complete.
 
 - [ ] 35. **Snapshot update:** run `make test`, review every snapshot diff — confirm each change
           is exactly the mount div + data script replacing row HTML. Update snapshots only after

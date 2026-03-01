@@ -48,16 +48,16 @@
                 {% endfor %}
             </div>
             <div class="quick-select-bar">
-                <button class="btn btn-secondary" data-action="select-last-n" data-n="1" data-table-id="{{ table_id }}">Last Run</button>
-                <button class="btn btn-secondary" data-action="select-last-n" data-n="2" data-table-id="{{ table_id }}">Last 2 Runs</button>
-                <button class="btn btn-secondary" data-action="select-last-n" data-n="4" data-table-id="{{ table_id }}">Last 4 Runs</button>
-                <button class="btn btn-secondary" data-action="select-last-n" data-n="8" data-table-id="{{ table_id }}">Last 8 Runs</button>
-                <button class="btn btn-secondary" data-action="show-all-dates" data-table-id="{{ table_id }}">Show All</button>
+                <button class="btn btn--secondary" data-action="select-last-n" data-n="1" data-table-id="{{ table_id }}">Last Run</button>
+                <button class="btn btn--secondary" data-action="select-last-n" data-n="2" data-table-id="{{ table_id }}">Last 2 Runs</button>
+                <button class="btn btn--secondary" data-action="select-last-n" data-n="4" data-table-id="{{ table_id }}">Last 4 Runs</button>
+                <button class="btn btn--secondary" data-action="select-last-n" data-n="8" data-table-id="{{ table_id }}">Last 8 Runs</button>
+                <button class="btn btn--secondary" data-action="show-all-dates" data-table-id="{{ table_id }}">Show All</button>
             </div>
         </div>
     </div>
 
-    <button class="btn btn-filters" data-action="toggle-filters"
+    <button class="btn btn--filters" data-action="toggle-filters"
             data-content-id="advanced-filters-{{ table_id }}">
         <span class="arrow">▶</span>
         <span>More Filters</span>
@@ -66,9 +66,9 @@
 
     {% else %}
     <div class="action-buttons">
-        <a href="{{ csv_filename }}" download class="btn btn-download">⬇️ Download CSV</a>
+        <a href="{{ csv_filename }}" download class="btn btn--download">⬇️ Download CSV</a>
         {% if search_filter %}
-        <button class="btn btn-filters" data-action="toggle-filters" data-content-id="advanced-filters-{{ table_id }}">
+        <button class="btn btn--filters" data-action="toggle-filters" data-content-id="advanced-filters-{{ table_id }}">
             <span class="arrow">▶</span>
             <span>More Filters</span>
             <span class="filter-badge hidden" id="filterBadge-{{ table_id }}">0</span>
@@ -90,7 +90,7 @@
     {% if search_filter and scrape_datetimes %}
     <div class="table-stats">
         <span><strong>Filtered Results:</strong> Showing <span id="visible-count-{{ table_id }}">{{ rows|length }}</span> of {{ rows|length }} rows</span>
-        <a href="{{ csv_filename }}" download class="btn btn-download"
+        <a href="{{ csv_filename }}" download class="btn btn--download"
            data-action="download-filtered-csv"
            data-table-id="{{ table_id }}">⬇️ Download Filtered CSV</a>
     </div>

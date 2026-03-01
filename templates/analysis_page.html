@@ -12,7 +12,7 @@
     <p>{{ description }}</p>
     
     <div class="download-links">
-        <a href="{{ csv_filename }}" download class="btn btn-download">⬇️ Download CSV</a>
+        <a href="{{ csv_filename }}" download class="btn btn--download">⬇️ Download CSV</a>
     </div>
     
     {% if summary_stats and stats_labels %}
@@ -21,7 +21,7 @@
             <div class="stat-value">{{ summary_stats.total }}</div>
             <div class="stat-label">Species Analyzed</div>
         </div>
-        <div class="stat-card stat-hot">
+        <div class="stat-card stat-card--hot">
             <div class="stat-value">{{ summary_stats.hot }}</div>
             <div class="stat-label">
                 {{ stats_labels.hot }}
@@ -30,7 +30,7 @@
                 </span>
             </div>
         </div>
-        <div class="stat-card stat-watch">
+        <div class="stat-card stat-card--watch">
             <div class="stat-value">{{ summary_stats.watch }}</div>
             <div class="stat-label">
                 {{ stats_labels.watch }}
@@ -39,7 +39,7 @@
                 </span>
             </div>
         </div>
-        <div class="stat-card stat-avoid">
+        <div class="stat-card stat-card--avoid">
             <div class="stat-value">{{ summary_stats.avoid }}</div>
             <div class="stat-label">
                 {{ stats_labels.avoid }}
