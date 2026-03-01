@@ -66,19 +66,19 @@ def sort_matrix_table(
 ) -> None:
     """Sort matrix rows by indicator, wishlist count and a tertiary metric (descending)."""
 
-    def wishlist_count_from_row(row: Dict[str, Any]) -> int:
-        parts = str(row.get("Wishlist", "")).split()
-        if not parts:
+    def extract_wishlist_count(row: Dict[str, Any]) -> int:
+        wishlist_value = str(row.get("Wishlist", "")).split()
+        if not wishlist_value:
             return 0
         try:
-            return int(parts[0])
-        except ValueError:
+            return int(wishlist_value[0])
+        except (ValueError, IndexError):
             return 0
 
     table.sort(
         key=lambda row: (
             SIGNAL_PRIORITY.get(str(row.get(indicator_field, "")), 99),
-            -wishlist_count_from_row(row),
+            -extract_wishlist_count(row),
             -tertiary_value_getter(row),
         )
     )
