@@ -21,8 +21,10 @@ jinja_env = Environment(
 
 try:
     from website.page_config import NAV_ITEMS
+    from website.table_data_helpers import rows_to_json
 except ModuleNotFoundError:
     from page_config import NAV_ITEMS  # type: ignore[no-redef]
+    from table_data_helpers import rows_to_json  # type: ignore[import]
 
 jinja_env.globals['nav_items'] = NAV_ITEMS
 
@@ -118,12 +120,16 @@ def generate_table_html(
     # Enumerate headers and rows for template
     headers_enum = list(enumerate(headers))
     rows_enum = [list(enumerate(row)) for row in rows]
-    
+
+    # Compute JSON payload for Svelte component
+    json_rows = rows_to_json(headers, rows)
+
     template = jinja_env.get_template('table.html')
     return template.render(
         table_id=table_id,
         headers=headers_enum,
         rows=rows_enum,
+        json_rows=json_rows,
         sortable=sortable,
         page_url_idx=page_url_idx,
         scientific_name_idx=scientific_name_idx,

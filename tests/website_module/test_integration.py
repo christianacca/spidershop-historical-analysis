@@ -169,8 +169,8 @@ Example content for dealers.
             assert "</html>" in html
 
     def test_html_escaping_prevents_injection(self):
-        """Should properly escape HTML to prevent injection attacks."""
-        # Deliberately malicious input to test HTML escaping
+        """Page title is HTML-escaped; CSV cell data is safely JSON-encoded in the payload."""
+        # Deliberately malicious input to test escaping
         csv_content = 'Name,Script\n<script>alert("xss")</script>,<img src=x onerror=alert(1)>\n'
         
         with temp_csv_file(csv_content) as csv_file:
@@ -181,10 +181,12 @@ Example content for dealers.
                 description="<b>Description</b>"
             ).build()
             html = generate_snapshot_page(config)
-            # Verify escaping
+            # Page title goes through Jinja2 HTML autoescape
             assert "&lt;script&gt;" in html
+            # Raw script tag from CSV data must not appear outside the JSON block
             assert "<script>alert" not in html
-            assert "&lt;img src=" in html
+            # CSV data is JSON-encoded with \\uXXXX escapes (not HTML entity escapes)
+            assert '\\u003cimg' in html, "< in CSV data should be JSON-encoded as \\u003c"
 
     def test_main_function_generates_website(self):
         """Should execute main() function and generate website files."""
@@ -306,9 +308,9 @@ class TestHtmlSnapshots:
             ["Brachypelma hamorii", "⚠️", "IN"],
         ]
         
-        html = generate_table_html("breeder-table", headers, rows, sortable=True)
+        html = generate_table_html(headers, rows, "breeder-table", sortable=True)
         
-        # Extract just the table element (not wrapper divs)
+        # Extract just the table element (not wrapper divs or script)
         soup = BeautifulSoup(html, "html.parser")
         table = soup.find("table")
         

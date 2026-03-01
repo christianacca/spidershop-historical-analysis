@@ -568,7 +568,7 @@ the mount div + script are present; E2E is deferred to Phase 4c-ii).
 
 **Goal:** Prepare server-rendered HTML for Svelte takeover.
 
-- [ ] 33. In `src/website/` (likely `page_config.py` or a new `table_data_helpers.py`), add a
+- [x] 33. In `src/website/` (likely `page_config.py` or a new `table_data_helpers.py`), add a
           serialiser `rows_to_json(headers, rows)` that converts the raw row data into a JSON-
           serialisable `List[dict]` keyed by column name. Rows are `List[List[Any]]` (before
           `enumerate`); any cell whose value starts with `'<svg'` should be omitted from its
@@ -580,7 +580,7 @@ the mount div + script are present; E2E is deferred to Phase 4c-ii).
           and pass its output as a new template variable `json_rows` alongside the existing
           `rows` (the enumerated form used by the remaining Jinja rendering).
 
-- [ ] 34. Update `templates/table.html`: replace the `{%- for row in rows %}` tbody loop (and
+- [x] 34. Update `templates/table.html`: replace the `{%- for row in rows %}` tbody loop (and
           all the closing `{% endfor %}` and `</tbody>`) with:
           ```html
           <tbody>
@@ -597,12 +597,25 @@ the mount div + script are present; E2E is deferred to Phase 4c-ii).
           After this step `make test-e2e` will fail (tables are blank — expected). Do NOT run
           E2E until Phase 4c-ii is complete.
 
-- [ ] 35. **Snapshot update:** run `make test`, review every snapshot diff — confirm each change
+- [x] 35. **Snapshot update:** run `make test`, review every snapshot diff — confirm each change
           is exactly the mount div + data script replacing row HTML. Update snapshots only after
           verifying this. Snapshots become minimal; expected and correct.
 
 ---
+## Pre-existing state at Phase 4c-i handoff
 
+- Phase 4b complete: `rows_to_json` serialiser lives in `src/website/table_data_helpers.py`,
+  exported from `src/website/__init__.py`, tested with 15 unit tests.
+- All three `generate_*` functions pass `json_rows` to their Jinja2 templates.
+- `templates/table.html` tbody now renders a `<div id="{{ table_id }}-root"></div>` mount
+  point; row data is injected as `window['{{ table_id }}Data'] = ...` (bracket notation
+  required for hyphenated IDs like `breeder-table`).
+- `html_utils.py` `generate_table_html()` also computes and passes `json_rows`.
+- `make test` → 635 passed, 0 failures, 95.40% coverage.
+- `make test-e2e` is **intentionally broken** (tables are blank — Svelte not yet mounted).
+  Do NOT run E2E until Phase 4c-ii is complete.
+
+---
 ## Phase 4c-i — Primitive Svelte components
 
 **Goal:** Build shared UI atoms that both `SortableTable` and `HistoryTable` compose from.
@@ -613,6 +626,13 @@ Tight Vitest feedback — tested in isolation before assembly.
           Calls `onchange({min, max})` after constraint enforcement.
           `<style>` block uses design tokens; class names are simple and semantic
           (`.track`, `.thumb`, `.label`).
+          Use `$props.id()` to generate a stable unique ID for each component instance:
+          ```svelte
+          const uid = $props.id();
+          ```
+          Bind `<label for="{uid}-min">` and `<input id="{uid}-min">` using this ID.
+          Without this, two sliders on the same page (price + wishlist) share duplicate IDs,
+          causing broken label associations and failing accessibility checks.
 
 - [ ] 37. Create `client/src/shared/components/SearchInput.svelte`.
           Props: `placeholder`, `tableId`, `oninput: (value: string) => void`.
@@ -623,6 +643,11 @@ Tight Vitest feedback — tested in isolation before assembly.
           Props: `label`, `value`, `active`, `onclick: () => void`.
           Passes `onclick` directly to the `<button>` element.
           Uses `.is-active` modifier class for active state.
+          Use Svelte 5 object syntax for conditional class binding:
+          ```svelte
+          <button class={{ 'is-active': active }} onclick={onclick}>{label}</button>
+          ```
+          Do **not** use a ternary string expression — the object form is idiomatic Svelte 5.
 
 - [ ] 39. For each primitive: write Vitest tests co-located with each component file.
           Run `make test-client && make coverage-client` after all three.
@@ -687,6 +712,41 @@ Tight Vitest feedback — tested in isolation before assembly.
           and `.is-sorted`, `.is-ascending`, `.is-hidden` modifiers.
           Remove equivalent rules from page-level CSS files.
 
+          **Key implementation notes:**
+
+          *Row data — use `$state.raw`, not `$state`:*
+          The `rows` prop is Python-injected static data — it is never mutated by the component.
+          Deep reactive proxies over hundreds of rows are wasteful and harmful to performance.
+          Assign incoming rows with `$state.raw`:
+          ```ts
+          let { rows, columns, filterConfig } = $props();
+          let allRows = $state.raw(rows);
+          ```
+          Reassign `allRows = rows` to trigger updates if the prop changes, but do not
+          mutate individual cells.
+
+          *Visible-rows derivation — use `$derived.by`:*
+          The filter chain (signal filter → search → price range → wishlist range → sort)
+          is multi-step and cannot fit in a single `$derived` expression. Use `$derived.by`:
+          ```ts
+          let visibleRows = $derived.by(() => {
+            let result = allRows;
+            if (activeSignal !== 'all') result = result.filter(...);
+            if (searchText) result = result.filter(...);
+            // ... price/wishlist range filters ...
+            return sortRows(result, sortCol, sortDir);
+          });
+          ```
+
+          *Sparkline cells — use column `type` config:*
+          Sparkline columns carry a Unicode sparkline string in the JSON payload (not SVG).
+          The `columns` prop should support an optional `type: 'sparkline'` flag on a column
+          descriptor. `SortableTable` renders those cells via a `unicodeToSvg` helper
+          (imported from `shared/`) rather than rendering their value as plain text.
+          Example column descriptor: `{ key: 'price_history', label: 'Price History', type: 'sparkline' }`.
+          This is simpler than a snippet prop — all callers use the same sparkline conversion
+          and there are no other custom cell-render requirements.
+
 - [ ] 43. Write `SortableTable.test.ts` co-located with the component.
           Run `make test-client && make coverage-client`.
 
@@ -726,6 +786,9 @@ Tight Vitest feedback — tested in isolation before assembly.
           `SearchInput`, and `DateFilter` in its own arrangement (not `SortableTable`).
           Accepts `rows` and `columns` props. Sort and filter state in `$state`.
           `<style>` block with semantic names; remove equivalent rules from `history.css`.
+          As with `SortableTable`, use `$state.raw(rows)` for the incoming row data (static
+          Python-injected payload — deep proxy overhead is unwarranted) and `$derived.by`
+          for the multi-step filter derivation (date selection → search → price → wishlist).
 
 - [ ] 49. Write `DateFilter.test.ts` and `HistoryTable.test.ts` co-located with each component.
           Run `make test-client && make coverage-client`.
@@ -878,6 +941,10 @@ before rewriting it as Svelte components. Run once, at the start of the Phase 5 
 | **Chart pure helpers exported in step 59a (Phase 4e→5 bridge), not earlier** | The helpers are private implementation details of `charts.ts` today. Exporting them before the Phase 5 rewrite adds churn if the API changes. Exporting them at the bridge step gives a safety net exactly when it's needed — just before the Svelte rewrite — without premature exposure. |
 | **E2E tests kept in full after Svelte migration** | Vitest and E2E test different layers. Vitest covers `$derived` filter/sort logic; E2E covers DOM contracts, real browser APIs (`pushState`, blob download), asset loading, Python data shape, and CSS computed styles. Trimming E2E to happy-path after Svelte migration would lose coverage of DOM-contract regressions. |
 | **DOM-contract audit (step 42a) before `SortableTable.svelte`** | The E2E suite depends on specific attributes (`data-sort-direction`, `.hidden`, `.active`, `data-original-index`). Resolving whether Svelte emits the same attribute names — or whether E2E tests update in sync — must be a deliberate decision, not an accidental breakage discovered mid-rollout. |
+| **`$state.raw` for Python-injected row data** | `$state()` wraps arrays and objects in deep reactive proxies. Hundreds of table rows injected from Python are static input — they are never mutated cell-by-cell. Using `$state.raw()` avoids the proxy overhead and makes the intent explicit: to trigger a re-render, reassign the whole array, don't mutate inside it. |
+| **`$derived.by` for multi-step filter chains** | The visible-rows computation in `SortableTable` and `HistoryTable` chains 4–5 filter passes before sorting. This cannot fit in a single `$derived(expr)` expression without sacrificing readability. `$derived.by(() => { ... })` is the Svelte 5 canonical form for multi-line derived logic — equivalent to a computed getter body. |
+| **Column `type: 'sparkline'` instead of a `{#snippet cell}` prop** | Svelte 5 snippets (`{#snippet cell(col, val)}{/snippet}`) are idiomatic for custom cell rendering but add complexity to the caller (`index.ts` must pass a snippet) and offer flexibility the codebase doesn't need. All three tables use the same sparkline conversion for the same column types — a simple `type` flag on the column descriptor keeps the rendering logic inside `SortableTable` without exposing a snippet API. Revisit if a genuinely different cell type is needed in a future phase. |
+| **`$props.id()` for `RangeSlider` label/input pairing** | Each `RangeSlider` instance renders two range inputs that must be paired with `<label for>` attributes. `$props.id()` returns a stable unique string per component instance, preventing duplicate IDs when two sliders (price + wishlist) are mounted on the same page. Hard-coded or sequential IDs would break accessibility and are fragile if component ordering changes. |
 | **Coverage threshold global, not per-file** | Per-file thresholds would block the build before any tests exist for a given module. Global thresholds ratchet upward as coverage accumulates across phases — they enforce the migration being tracked without becoming a blocker on the first day a new file is added. |
 | **`build.rollupOptions` + `preserveModules` instead of `build.lib`** (Phase 0) | `build.lib` bundles inter-entry dependencies together, which would break the `priceSlider`/`wishlistSlider` singletons shared between `table-interactions.js` and `table-setup.js` when both are loaded on the same page. `preserveModules: true` keeps each module as a separate file with relative imports intact — output is structurally identical to source. Required `preserveEntrySignatures: 'allow-extension'` to override Vite 6's default `false` (incompatible with `preserveModules`). |
 | **Copy files into `client/src/` instead of re-exports** (Phase 0) | Re-exporting from `../../templates/scripts/*.js` would create cross-directory relative paths in the dist output that would break deployment (only `dist/` files are copied to the website output — `templates/scripts/` is not). Copying makes `client/src/` the self-contained source. |

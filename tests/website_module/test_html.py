@@ -4,6 +4,8 @@ Tests for HTML utility functions including escaping, table generation, and templ
 """
 
 import pytest
+import json
+import re
 from pathlib import Path
 from bs4 import BeautifulSoup
 from website import (
@@ -12,6 +14,12 @@ from website import (
     get_base_html_template,
     get_html_footer,
 )
+
+
+def _table_json(html: str) -> list:
+    """Extract and parse the window['...Data'] JSON from a rendered page."""
+    m = re.search(r"window\['[^']+Data'\]\s*=\s*(\[.*?\])\s*;", html, re.DOTALL)
+    return json.loads(m.group(1)) if m else []
 
 
 class TestEscapeHtml:
@@ -69,16 +77,25 @@ class TestGenerateTableHtml:
         assert "No data available" in html
 
     def test_table_escapes_html_in_cells(self):
-        """Should escape HTML special characters in table cells."""
+        """HTML special characters in cell data should be safely JSON-encoded in the payload."""
         headers = ["Name", "Description"]
         rows = [["<script>", "Tom & Jerry"]]
         html = generate_table_html(headers, rows, "test-table")
-        
-        assert "&lt;script&gt;" in html
-        assert "Tom &amp; Jerry" in html
+        soup = BeautifulSoup(html, 'html.parser')
+
+        # Rows are now rendered by Svelte — table has a mount div
+        mount_div = soup.find('div', id='test-table-root')
+        assert mount_div is not None, "Mount div should be present"
+
+        # JSON payload encodes HTML-unsafe characters with \\uXXXX sequences
+        assert '\\u003cscript\\u003e' in html, "< and > should be JSON-encoded in payload"
+        assert 'Tom \\u0026 Jerry' in html, "& should be JSON-encoded in payload"
+
+        # Raw unescaped form must not appear in the page outside the JSON block
+        assert '<script>alert' not in html
 
     def test_table_renders_page_url_as_link(self):
-        """Should render page_url column as clickable link with scientific name as text."""
+        """URL and species name data should be present in JSON payload for Svelte link rendering."""
         headers = ["scientific_name", "common_name", "price_gbp", "page_url"]
         rows = [
             ["Brachypelma hamorii", "Mexican Red Knee", "25.00", "https://example.com/species1"],
@@ -86,32 +103,23 @@ class TestGenerateTableHtml:
         ]
         html = generate_table_html(headers, rows, "test-table")
         soup = BeautifulSoup(html, 'html.parser')
-        
-        # Find all data rows
-        data_rows = soup.select('tbody tr')
-        assert len(data_rows) == 2
-        
-        # Check first row link
-        first_row_cells = data_rows[0].find_all('td')
-        page_url_cell = first_row_cells[3]  # Fourth column
-        link = page_url_cell.find('a')
-        assert link is not None
-        assert link['href'] == 'https://example.com/species1'
-        assert link.text == 'Brachypelma hamorii'
-        assert link['target'] == '_blank'
-        assert 'noopener' in link['rel']
-        assert 'noreferrer' in link['rel']
-        
-        # Check second row link
-        second_row_cells = data_rows[1].find_all('td')
-        page_url_cell = second_row_cells[3]
-        link = page_url_cell.find('a')
-        assert link is not None
-        assert link['href'] == 'https://example.com/species2'
-        assert link.text == 'Grammostola rosea'
+
+        # Rows are rendered by Svelte; mount div is present
+        mount_div = soup.find('div', id='test-table-root')
+        assert mount_div is not None, "Mount div should be present"
+
+        # Data is available in the JSON payload for Svelte to render links
+        data = _table_json(html)
+        assert len(data) == 2
+        urls = {row.get('page_url') for row in data}
+        assert 'https://example.com/species1' in urls
+        assert 'https://example.com/species2' in urls
+        names = {row.get('scientific_name') for row in data}
+        assert 'Brachypelma hamorii' in names
+        assert 'Grammostola rosea' in names
 
     def test_table_handles_empty_page_url(self):
-        """Should handle empty page_url gracefully without creating a link."""
+        """All rows should be present in JSON payload regardless of whether page_url is empty."""
         headers = ["scientific_name", "common_name", "page_url"]
         rows = [
             ["Brachypelma hamorii", "Mexican Red Knee", "https://example.com/species1"],
@@ -120,30 +128,19 @@ class TestGenerateTableHtml:
         ]
         html = generate_table_html(headers, rows, "test-table")
         soup = BeautifulSoup(html, 'html.parser')
-        
-        # Find all data rows
-        data_rows = soup.select('tbody tr')
-        assert len(data_rows) == 3
-        
-        # First row should have link
-        first_row_url_cell = data_rows[0].find_all('td')[2]
-        first_link = first_row_url_cell.find('a')
-        assert first_link is not None
-        assert first_link['href'] == 'https://example.com/species1'
-        assert first_link.text == 'Brachypelma hamorii'
-        
-        # Second row should NOT have link (empty URL)
-        second_row_url_cell = data_rows[1].find_all('td')[2]
-        second_link = second_row_url_cell.find('a')
-        assert second_link is None
-        
-        # Third row should NOT have link (whitespace URL)
-        third_row_url_cell = data_rows[2].find_all('td')[2]
-        third_link = third_row_url_cell.find('a')
-        assert third_link is None
+
+        mount_div = soup.find('div', id='test-table-root')
+        assert mount_div is not None, "Mount div should be present"
+
+        data = _table_json(html)
+        assert len(data) == 3, "All three rows should be in the JSON payload"
+        names = {row.get('scientific_name') for row in data}
+        assert 'Brachypelma hamorii' in names
+        assert 'Grammostola rosea' in names
+        assert 'Aphonopelma seemanni' in names
 
     def test_table_without_page_url_column(self):
-        """Should render normally when page_url column doesn't exist."""
+        """Data should be present in JSON payload when page_url column is absent."""
         headers = ["scientific_name", "common_name", "price_gbp"]
         rows = [
             ["Brachypelma hamorii", "Mexican Red Knee", "25.00"],
@@ -151,17 +148,16 @@ class TestGenerateTableHtml:
         ]
         html = generate_table_html(headers, rows, "test-table")
         soup = BeautifulSoup(html, 'html.parser')
-        
-        # Should not create any links
-        links = soup.find_all('a')
-        assert len(links) == 0
-        
-        # Should render data normally
-        assert soup.find(string='Brachypelma hamorii') is not None
-        assert soup.find(string='Mexican Red Knee') is not None
+
+        mount_div = soup.find('div', id='test-table-root')
+        assert mount_div is not None, "Mount div should be present"
+
+        # Data is in the JSON payload
+        assert 'Brachypelma hamorii' in html
+        assert 'Mexican Red Knee' in html
 
     def test_table_with_page_url_but_no_scientific_name(self):
-        """Should render normally when scientific_name column is missing."""
+        """URLs should be present in JSON payload when scientific_name column is missing."""
         headers = ["common_name", "price_gbp", "page_url"]
         rows = [
             ["Mexican Red Knee", "25.00", "https://example.com/species1"],
@@ -169,17 +165,15 @@ class TestGenerateTableHtml:
         ]
         html = generate_table_html(headers, rows, "test-table")
         soup = BeautifulSoup(html, 'html.parser')
-        
-        # Should not create links without scientific_name column
-        links = soup.find_all('a')
-        assert len(links) == 0
-        
-        # Should render URLs as plain text
-        assert soup.find(string='https://example.com/species1') is not None
-        assert soup.find(string='https://example.com/species2') is not None
 
+        mount_div = soup.find('div', id='test-table-root')
+        assert mount_div is not None, "Mount div should be present"
+
+        # All data is in the JSON payload
+        assert 'https://example.com/species1' in html
+        assert 'https://example.com/species2' in html
     def test_signal_cells_with_drivers_column_use_custom_tooltips(self):
-        """Signal cells should use custom tooltip spans (not title attribute) when Drivers column present."""
+        """Signal and Drivers data should both be in JSON payload for Svelte tooltip rendering."""
         headers = ["Species", "Signal", "Drivers"]
         rows = [
             ["Test Spider", "🔥", "Stock: Sustained (OOS 5 runs; currently OUT); Demand: High; Price: Rising"],
@@ -187,54 +181,39 @@ class TestGenerateTableHtml:
         
         html = generate_table_html(headers, rows, "test-table")
         soup = BeautifulSoup(html, 'html.parser')
-        
-        # Find the Signal cell
-        signal_cell = soup.select('tbody tr td.signal-hot')[0]
-        
-        # Should contain info icon with custom tooltip span
-        info_icon = signal_cell.find('span', class_='info-icon')
-        assert info_icon is not None, "Should have info-icon span"
-        
-        # Should NOT use title attribute
-        assert 'title' not in info_icon.attrs, "Should not use native title attribute"
-        
-        # Should contain nested tooltip span with drivers text
-        tooltip_span = info_icon.find('span', class_='tooltip')
-        assert tooltip_span is not None, "Should have nested tooltip span"
-        assert "Stock: Sustained" in tooltip_span.text
-        assert "OOS 5 runs" in tooltip_span.text
-        
-        # Should have tabindex for keyboard accessibility
-        assert info_icon.get('tabindex') == '0', "Should be keyboard accessible"
-        
-        # Drivers column should be completely hidden (not rendered at all)
-        all_cells = soup.select('tbody tr td')
-        assert len(all_cells) == 2, f"Expected 2 cells (Species, Signal), Drivers column should be hidden, got {len(all_cells)}"
-        
-        # Verify Drivers column header is also hidden
+
+        # Rows are rendered by Svelte; verify mount div
+        mount_div = soup.find('div', id='test-table-root')
+        assert mount_div is not None, "Mount div should be present"
+
+        # Drivers column header is hidden from thead (column is present in JSON)
         headers_rendered = soup.select('thead tr th')
-        assert len(headers_rendered) == 2, "Drivers column header should also be hidden"
-        header_texts = [th.text.strip() for th in headers_rendered]
-        assert "Species" in header_texts[0]
-        assert "Signal" in header_texts[1]
-        assert "Drivers" not in str(soup), "Drivers column should not appear anywhere in rendered HTML"
+        assert len(headers_rendered) == 2, "Drivers column header should be hidden in thead"
+
+        # JSON payload has Signal and Drivers for Svelte to use
+        data = _table_json(html)
+        assert len(data) == 1
+        row = data[0]
+        assert row.get('Signal') == '🔥'
+        assert 'Stock: Sustained' in row.get('Drivers', '')
 
     def test_signal_cells_without_drivers_column_have_no_tooltips(self):
-        """Signal cells should not have info icons when Drivers column is absent."""
+        """Signal data should be in JSON payload when Drivers column is absent."""
         headers = ["Species", "Signal"]
         rows = [
             ["Test Spider", "🔥"],
         ]
         
-        html = generate_table_html(headers, rows, "test-table")  # No drivers_col_idx
+        html = generate_table_html(headers, rows, "test-table")
         soup = BeautifulSoup(html, 'html.parser')
-        
-        # Find the Signal cell
-        signal_cell = soup.select('tbody tr td.signal-hot')[0]
-        
-        # Should NOT contain info icon
-        info_icon = signal_cell.find('span', class_='info-icon')
-        assert info_icon is None, "Should not have info icon when Drivers column missing"
+
+        mount_div = soup.find('div', id='test-table-root')
+        assert mount_div is not None, "Mount div should be present"
+
+        # JSON payload has Signal field
+        data = _table_json(html)
+        assert len(data) == 1
+        assert data[0].get('Signal') == '🔥'
 
 
 class TestGetBaseHtmlTemplate:
@@ -394,7 +373,7 @@ class TestSpeciesPageLinking:
     """Test internal linking to species detail pages for breeder/dealer tables."""
 
     def test_breeder_table_links_to_species_pages_internally(self):
-        """Breeder tables should link to internal species pages, not external Spider Shop."""
+        """Species and size data should be in JSON payload for Svelte to build internal species links."""
         headers = ["Species", "Size (cm)", "Signal", "page_url"]
         rows = [
             ["Brachypelma hamorii", "2.0", "🔥", "https://example.com/external"],
@@ -402,26 +381,19 @@ class TestSpeciesPageLinking:
         
         html = generate_table_html(headers, rows, "breeder-table", link_to_species_page=True)
         soup = BeautifulSoup(html, 'html.parser')
-        
-        # Find the Species column link
-        data_rows = soup.select('tbody tr')
-        first_row = data_rows[0]
-        species_cell = first_row.find_all('td')[0]  # First column
-        link = species_cell.find('a')
-        
-        # Should link to internal species page
-        assert link is not None
-        assert 'species/' in link['href']
-        assert 'brachypelma-hamorii' in link['href']  # Slugified
-        assert '?view=breeder' in link['href'] or '&view=breeder' in link['href']  # Include view parameter
-        assert 'size=2.0' in link['href']  # Include size
-        assert link.text == 'Brachypelma hamorii'
-        
-        # Should NOT be external link (no target="_blank")
-        assert 'target' not in link.attrs or link.get('target') != '_blank'
+
+        mount_div = soup.find('div', id='breeder-table-root')
+        assert mount_div is not None, "Mount div should be present for Svelte to mount"
+
+        # JSON has Species and Size for Svelte to build internal links
+        data = _table_json(html)
+        assert len(data) == 1
+        row = data[0]
+        assert row.get('Species') == 'Brachypelma hamorii'
+        assert row.get('Size (cm)') == '2.0'
 
     def test_dealer_table_links_to_species_pages_internally(self):
-        """Dealer tables should link to internal species pages with dealer view."""
+        """Species and size data should be in JSON payload for Svelte to build dealer-view species links."""
         headers = ["Species", "Size (cm)", "Dealer Risk", "page_url"]
         rows = [
             ["Tliltocatl albopilosus", "1.5", "⚠️", "https://example.com/external"],
@@ -429,35 +401,31 @@ class TestSpeciesPageLinking:
         
         html = generate_table_html(headers, rows, "dealer-table", link_to_species_page=True, table_view="dealer")
         soup = BeautifulSoup(html, 'html.parser')
-        
-        data_rows = soup.select('tbody tr')
-        first_row = data_rows[0]
-        species_cell = first_row.find_all('td')[0]
-        link = species_cell.find('a')
-        
-        assert link is not None
-        assert 'species/' in link['href']
-        assert 'tliltocatl-albopilosus' in link['href']
-        assert '?view=dealer' in link['href'] or '&view=dealer' in link['href']  # Dealer view parameter
-        assert 'size=1.5' in link['href']
+
+        mount_div = soup.find('div', id='dealer-table-root')
+        assert mount_div is not None, "Mount div should be present"
+
+        data = _table_json(html)
+        assert len(data) == 1
+        row = data[0]
+        assert row.get('Species') == 'Tliltocatl albopilosus'
+        assert row.get('Size (cm)') == '1.5'
 
     def test_history_table_keeps_external_links(self):
-        """History tables should keep external Spider Shop links (no change)."""
+        """External URL and species name data should be in JSON payload for Svelte rendering."""
         headers = ["scientific_name", "common_name", "page_url"]
         rows = [
             ["Brachypelma hamorii", "Mexican Red Knee", "https://thespidershop.co.uk/product/123"],
         ]
         
-        # Default behavior (link_to_species_page=False or omitted)
         html = generate_table_html(headers, rows, "history-table")
         soup = BeautifulSoup(html, 'html.parser')
-        
-        data_rows = soup.select('tbody tr')
-        first_row = data_rows[0]
-        page_url_cell = first_row.find_all('td')[2]  # Third column
-        link = page_url_cell.find('a')
-        
-        # Should be external link
-        assert link is not None
-        assert link['href'] == 'https://thespidershop.co.uk/product/123'
-        assert link['target'] == '_blank'  # External link behavior
+
+        mount_div = soup.find('div', id='history-table-root')
+        assert mount_div is not None, "Mount div should be present"
+
+        data = _table_json(html)
+        assert len(data) == 1
+        row = data[0]
+        assert row.get('page_url') == 'https://thespidershop.co.uk/product/123'
+        assert row.get('scientific_name') == 'Brachypelma hamorii'

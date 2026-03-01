@@ -26,6 +26,7 @@ from website.html_utils import (
     get_html_footer,
 )
 from website.csv_utils import read_csv_file
+from website.table_data_helpers import rows_to_json
 
 __all__ = [
     # Configuration
@@ -47,4 +48,6 @@ __all__ = [
     'get_html_footer',
     # CSV utilities
     'read_csv_file',
+    # Table data helpers
+    'rows_to_json',
 ]

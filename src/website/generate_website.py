@@ -58,6 +58,7 @@ try:
         jinja_env,
     )
     from website.csv_utils import read_csv_file
+    from website.table_data_helpers import rows_to_json
     from website.species_detail import (
         get_species_list,
         slugify_species,
@@ -84,6 +85,7 @@ except ModuleNotFoundError:
         jinja_env,
     )
     from csv_utils import read_csv_file
+    from table_data_helpers import rows_to_json  # type: ignore[import]
     from shared.parsing import format_datetime_smart, snake_to_display_header
 
 # Output directory for the generated website
@@ -262,6 +264,9 @@ def generate_snapshot_page(config: BasePageConfig) -> str:
     # Rename raw CSV header names to proper English for display
     display_headers = _rename_raw_headers(headers)
 
+    # Serialise rows for Svelte data contract
+    json_rows = rows_to_json(display_headers or [], rows)
+
     # Enumerate headers and rows for template
     headers_enum = list(enumerate(display_headers)) if display_headers else []
     rows_enum = [list(enumerate(row)) for row in rows] if rows else []
@@ -278,6 +283,7 @@ def generate_snapshot_page(config: BasePageConfig) -> str:
         headers=headers_enum,
         raw_headers=headers,
         rows=rows_enum,
+        json_rows=json_rows,
         page_url_idx=page_url_idx,
         price_idx=price_idx,
         price_min=price_min,
@@ -350,6 +356,9 @@ def generate_history_page(config: BasePageConfig) -> str:
     # Rename raw CSV header names to proper English for display
     display_headers = _rename_raw_headers(headers)
 
+    # Serialise rows for Svelte data contract
+    json_rows = rows_to_json(display_headers or [], rows)
+
     # Enumerate headers and rows for template
     headers_enum = list(enumerate(display_headers)) if display_headers else []
     rows_enum = [list(enumerate(row)) for row in rows] if rows else []
@@ -366,6 +375,7 @@ def generate_history_page(config: BasePageConfig) -> str:
         headers=headers_enum,
         raw_headers=headers,
         rows=rows_enum,
+        json_rows=json_rows,
         page_url_idx=page_url_idx,
         price_idx=price_idx,
         price_min=price_min,
@@ -413,10 +423,14 @@ def generate_analysis_page(config: BasePageConfig) -> str:
     assert config.active_page in ("breeder", "dealer"), \
         f"generate_analysis_page only serves breeder/dealer pages, got: {config.active_page}"
     headers, rows = read_csv_file(config.csv_filename)
-    
+
+    # Serialise raw rows for Svelte data contract (must be before SVG sparkline conversion
+    # so JSON contains the original Unicode sparkline strings, not SVG markup)
+    json_rows = rows_to_json(headers or [], rows)
+
     # Load historical data if available to enrich sparklines with values
     historical_data = load_historical_sparkline_data()
-    
+
     # Convert Unicode sparklines to SVG in sparkline columns
     if headers and rows:
         rows = convert_sparklines_in_rows(headers, rows, historical_data, config.csv_filename)
@@ -544,6 +558,7 @@ def generate_analysis_page(config: BasePageConfig) -> str:
         examples_html=examples_html,
         headers=headers_enum,
         rows=rows_enum,
+        json_rows=json_rows,
         drivers_col_idx=drivers_col_idx,
         sortable=True,
         page_url_idx=page_url_idx,

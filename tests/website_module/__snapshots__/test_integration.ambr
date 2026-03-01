@@ -34,47 +34,16 @@
 # ---
 # name: TestHtmlSnapshots.test_table_structure_snapshot
   '''
-  <table class="data-table" id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">
+  <table class="data-table" id="breeder-table">
   <thead>
   <tr>
-  <th data-column-index="0" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">b <span class="sort-indicator">⇅</span></th>
-  <th data-column-index="1" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">r <span class="sort-indicator">⇅</span></th>
-  <th data-column-index="2" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">e <span class="sort-indicator">⇅</span></th>
-  <th data-column-index="3" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">e <span class="sort-indicator">⇅</span></th>
-  <th data-column-index="4" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">d <span class="sort-indicator">⇅</span></th>
-  <th data-column-index="5" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">e <span class="sort-indicator">⇅</span></th>
-  <th data-column-index="6" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">r <span class="sort-indicator">⇅</span></th>
-  <th data-column-index="7" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">- <span class="sort-indicator">⇅</span></th>
-  <th data-column-index="8" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">t <span class="sort-indicator">⇅</span></th>
-  <th data-column-index="9" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">a <span class="sort-indicator">⇅</span></th>
-  <th data-column-index="10" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">b <span class="sort-indicator">⇅</span></th>
-  <th data-column-index="11" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">l <span class="sort-indicator">⇅</span></th>
-  <th data-column-index="12" data-sortable="true" data-table-id="[['Aphonopelma seemanni', '🔥', 'OUT'], ['Brachypelma hamorii', '⚠️', 'IN']]">e <span class="sort-indicator">⇅</span></th>
+  <th data-column-index="0" data-sortable="true" data-table-id="breeder-table">Species <span class="sort-indicator">⇅</span></th>
+  <th data-column-index="1" data-sortable="true" data-table-id="breeder-table">Signal <span class="sort-indicator">⇅</span></th>
+  <th data-column-index="2" data-sortable="true" data-table-id="breeder-table">OOS <span class="sort-indicator">⇅</span></th>
   </tr>
   </thead>
   <tbody>
-  <tr>
-  <td data-label="b">S</td>
-  <td data-label="r">p</td>
-  <td data-label="e">e</td>
-  <td data-label="e">c</td>
-  <td data-label="d">i</td>
-  <td data-label="e">e</td>
-  <td data-label="r">s</td>
-  </tr>
-  <tr>
-  <td data-label="b">S</td>
-  <td data-label="r">i</td>
-  <td data-label="e">g</td>
-  <td data-label="e">n</td>
-  <td data-label="d">a</td>
-  <td data-label="e">l</td>
-  </tr>
-  <tr>
-  <td data-label="b">O</td>
-  <td data-label="r">O</td>
-  <td data-label="e">S</td>
-  </tr>
+  <div id="breeder-table-root"></div>
   </tbody>
   </table>
   '''

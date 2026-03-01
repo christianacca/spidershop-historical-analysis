@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
 """Tests for interactive table features."""
+import json
+import re
 import pytest
 import os
 from pathlib import Path
 from bs4 import BeautifulSoup
 from conftest import page_config
 from website.generate_website import generate_analysis_page, generate_snapshot_page
+
+
+def _table_json(html: str) -> list:
+    """Extract and parse the window['...Data'] JSON from a rendered page."""
+    m = re.search(r"window\['[^']+Data'\]\s*=\s*(\[.*?\])\s*;", html, re.DOTALL)
+    return json.loads(m.group(1)) if m else []
 
 
 class TestInteractiveFilterButtons:
@@ -170,15 +178,19 @@ class TestStockPatternFiltering:
         
         soup = BeautifulSoup(html, 'html.parser')
         table = soup.find('table', id='breeder-table')
-        rows = table.select('tbody tr')
-        
+        assert table is not None, "Should have a breeder table"
+        assert soup.find('div', id='breeder-table-root') is not None, "Should have mount div"
+
+        data = _table_json(html)
+        assert len(data) == 2, f"Expected 2 rows in JSON, got {len(data)}"
+
         # Check first row
-        assert rows[0].get('data-stock-pattern') == 'Sustained'
-        assert rows[0].get('data-signal') == '🔥'
-        
+        assert data[0].get('Stock Pattern') == 'Sustained'
+        assert data[0].get('Signal') == '🔥'
+
         # Check second row
-        assert rows[1].get('data-stock-pattern') == 'Emerging'
-        assert rows[1].get('data-signal') == '⚠️'
+        assert data[1].get('Stock Pattern') == 'Emerging'
+        assert data[1].get('Signal') == '⚠️'
     
     def test_top_10_filter_button_replaces_separate_table(self, tmp_path):
         """Verify the Top 10 section is a filter button, not a separate table.
@@ -219,17 +231,16 @@ class TestStockPatternFiltering:
         # The single table should be the full table with base ID
         full_table = soup.find('table', id='breeder-table')
         assert full_table is not None, "Full table should have base ID 'breeder-table'"
-        full_rows = full_table.select('tbody tr')
-        assert len(full_rows) == 15, f"Full table should have all 15 rows, found {len(full_rows)}"
-        
-        # CRITICAL: Full table rows MUST have data-signal and data-stock-pattern attributes
-        for i, row in enumerate(full_rows):
-            signal_attr = row.get('data-signal')
-            pattern_attr = row.get('data-stock-pattern')
-            assert signal_attr is not None, f"Row {i} missing data-signal attribute (filters won't work)"
-            assert pattern_attr is not None, f"Row {i} missing data-stock-pattern attribute (filters won't work)"
-            assert signal_attr in ['🔥', '⚠️', '❌'], f"Invalid signal value: {signal_attr}"
-        
+        assert soup.find('div', id='breeder-table-root') is not None, "Should have mount div"
+
+        # CRITICAL: JSON data must contain all 15 rows with Signal and Stock Pattern fields
+        data = _table_json(html)
+        assert len(data) == 15, f"JSON data should have all 15 rows, found {len(data)}"
+        for i, row in enumerate(data):
+            assert 'Signal' in row, f"Row {i} missing Signal field in JSON"
+            assert 'Stock Pattern' in row, f"Row {i} missing Stock Pattern field in JSON"
+            assert row['Signal'] in ['🔥', '⚠️', '❌'], f"Invalid signal value: {row['Signal']}"
+
         # There must be a '🔥 Hot (top 10)' filter button with the correct data attributes
         top10_btn = soup.find('button', attrs={
             'data-action': 'filter-signal',

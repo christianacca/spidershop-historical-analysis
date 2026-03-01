@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Tests for page generation functions."""
+import json
+import re
 import pytest
 import tempfile
 import os
@@ -7,6 +9,12 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 from conftest import page_config, temp_csv_file
 from website.generate_website import generate_homepage, generate_analysis_page, generate_snapshot_page, generate_history_page, main, OUTPUT_DIR
+
+
+def _table_json(html: str) -> list:
+    """Extract and parse the window['...Data'] JSON from a rendered page."""
+    m = re.search(r"window\['[^']+Data'\]\s*=\s*(\[.*?\])\s*;", html, re.DOTALL)
+    return json.loads(m.group(1)) if m else []
 
 
 class TestGenerateHomepage:
@@ -269,9 +277,9 @@ class TestGenerateSnapshotPage:
             table = soup.find('table', id='snapshot-table')
             assert table is not None
             
-            # Verify data content
-            assert soup.find(string='Species A') is not None
-            assert soup.find(string='25.00') is not None
+            # Verify data content appears in JSON payload
+            assert 'Species A' in html
+            assert '25.00' in html
 
     def test_action_buttons_container_with_download_and_filter_buttons(self):
         """Should have action-buttons container with download and filter buttons side by side."""
@@ -1232,21 +1240,17 @@ class TestGenerateHistoryPage:
                 assert slider.get('data-table-id') == config.table_id, f"{slider_id} should have data-table-id"
 
     def test_table_rows_have_data_price_attribute(self):
-        """Should set data-price on each table row so JS can filter by price."""
+        """Should include price data in the JSON payload for JS filtering."""
         csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
         csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
         csv_content += "2026-01-08 10:00:00,Species B,Common B,2.0,30.00,8,http://example.com\n"
         with temp_csv_file(csv_content) as filename:
             config = page_config.history(filename).with_title("Test").with_description("Desc").build()
             html = generate_history_page(config)
-            soup = BeautifulSoup(html, 'html.parser')
 
-            table = soup.find('table', id=config.table_id)
-            rows = table.select('tbody tr')
-            assert len(rows) == 2
-            for row in rows:
-                assert row.has_attr('data-price'), "Each row should have data-price attribute"
-            prices = {row['data-price'] for row in rows}
+            data = _table_json(html)
+            assert len(data) == 2, f"Expected 2 rows in JSON, got {len(data)}"
+            prices = {row.get('Price (GBP)') for row in data}
             assert '25.00' in prices
             assert '30.00' in prices
 
@@ -1278,21 +1282,17 @@ class TestGenerateHistoryPage:
                 assert slider.get('data-table-id') == config.table_id, f"{slider_id} should have data-table-id"
 
     def test_table_rows_have_data_wishlist_attribute(self):
-        """Should set data-wishlist on each table row so JS can filter by wishlist count."""
+        """Should include wishlist data in the JSON payload for JS filtering."""
         csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
         csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
         csv_content += "2026-01-08 10:00:00,Species B,Common B,2.0,30.00,10,http://example.com\n"
         with temp_csv_file(csv_content) as filename:
             config = page_config.history(filename).with_title("Test").with_description("Desc").build()
             html = generate_history_page(config)
-            soup = BeautifulSoup(html, 'html.parser')
 
-            table = soup.find('table', id=config.table_id)
-            rows = table.select('tbody tr')
-            assert len(rows) == 2
-            for row in rows:
-                assert row.has_attr('data-wishlist'), "Each row should have data-wishlist attribute"
-            wishlist_values = {row['data-wishlist'] for row in rows}
+            data = _table_json(html)
+            assert len(data) == 2, f"Expected 2 rows in JSON, got {len(data)}"
+            wishlist_values = {str(row.get('Wishlist Count')) for row in data}
             assert '5' in wishlist_values
             assert '10' in wishlist_values
 
@@ -1351,21 +1351,17 @@ class TestGenerateHistoryPage:
             assert counts_by_date.get('2026-01-08') == '(2 rows)', f"Expected '(2 rows)' for 2026-01-08, got '{counts_by_date.get('2026-01-08')}'"
 
     def test_rows_have_data_date_attribute(self):
-        """Each table row should have a data-date attribute matching its formatted scrape_datetime."""
+        """Each row in the JSON payload should include its formatted scrape_datetime."""
         csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
         csv_content += "2026-01-01,Species A,Common A,1.5,25.00,5,http://example.com\n"
         csv_content += "2026-01-08,Species B,Common B,2.0,30.00,8,http://example.com\n"
         with temp_csv_file(csv_content) as filename:
             config = page_config.history(filename).with_title("Test").with_description("Desc").build()
             html = generate_history_page(config)
-            soup = BeautifulSoup(html, 'html.parser')
 
-            table = soup.find('table', id=config.table_id)
-            rows = table.select('tbody tr')
-            assert len(rows) == 2
-            for row in rows:
-                assert row.has_attr('data-date'), "Each row should have data-date attribute"
-            date_values = {row['data-date'] for row in rows}
+            data = _table_json(html)
+            assert len(data) == 2, f"Expected 2 rows in JSON, got {len(data)}"
+            date_values = {str(row.get('Scrape Date')) for row in data}
             assert '2026-01-01' in date_values
             assert '2026-01-08' in date_values
 

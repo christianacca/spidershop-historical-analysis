@@ -32,59 +32,9 @@
     </tr>
   </thead>
   <tbody>
-    {% for row in rows %}
-    {% set row_idx = loop.index0 %}
-    {% set signal_value = row[signal_col_idx][1]|string|trim if signal_col_idx is not none and signal_col_idx < row|length else '' %}
-    {% set stock_pattern_value = row[stock_pattern_col_idx][1]|string|trim if stock_pattern_col_idx is not none and stock_pattern_col_idx < row|length else '' %}
-    {% set drivers_value = row[drivers_col_idx][1]|string|trim if drivers_col_idx is defined and drivers_col_idx is not none and drivers_col_idx < row|length else '' %}
-    {% set price_value = row[price_idx][1]|string|trim if price_idx is defined and price_idx is not none and price_idx < row|length else '' %}
-    {% set wishlist_value = row[wishlist_idx][1]|string|trim if wishlist_idx is defined and wishlist_idx is not none and wishlist_idx < row|length else '' %}
-    {% set date_value = row[date_col_idx][1]|string|trim if date_col_idx is defined and date_col_idx is not none and date_col_idx < row|length else '' %}
-    <tr{% if signal_value %} data-signal="{{ signal_value }}"{% endif %}{% if stock_pattern_value %} data-stock-pattern="{{ stock_pattern_value }}"{% endif %}{% if price_value %} data-price="{{ price_value }}"{% endif %}{% if wishlist_value %} data-wishlist="{{ wishlist_value }}"{% endif %}{% if date_value %} data-date="{{ date_value }}"{% endif %}>
-      {% for cell_idx, cell in row %}
-      {% set header_text = headers[cell_idx][1] if cell_idx < headers|length else '' %}
-      {% if hidden_col_indices is defined and cell_idx in hidden_col_indices %}
-        {# Hidden column - skip cell #}
-      {% elif drivers_col_idx is defined and cell_idx == drivers_col_idx and drivers_col_idx is not none %}
-        {# Hide Drivers column cell #}
-      {% elif link_to_species_page and cell_idx == species_idx and species_idx is not none and size_idx is not none %}
-        {# Breeder/Dealer table: link Species column to internal species page #}
-        {% set species_name = cell|trim %}
-        {% set size = row[size_idx][1] if size_idx < row|length else "" %}
-        {% set slug = species_name|lower|replace(' ', '-') %}
-      <td data-label="{{ header_text }}"><a href="species/{{ slug }}.html?view={{ table_view }}&size={{ size }}">{{ species_name }}</a></td>
-      {% elif cell_idx == page_url_idx and page_url_idx is not none and scientific_name_idx is not none %}
-        {% set url = cell|trim %}
-        {% set scientific_name = row[scientific_name_idx][1] if scientific_name_idx < row|length else "" %}
-        {% if url %}
-      <td data-label="{{ header_text }}"><a href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ scientific_name }}</a></td>
-        {% else %}
-      <td data-label="{{ header_text }}">{{ cell }}</td>
-        {% endif %}
-      {% elif cell_idx == signal_col_idx and signal_col_idx is not none %}
-        {# Signal/Risk column - add color-coded CSS class and info icon with drivers tooltip #}
-        {% set cell_value = cell[1] if cell is iterable and cell is not string else cell %}
-        {% set cell_str = cell_value|string|trim %}
-        {% if '🔥' in cell_str %}
-      <td class="signal-hot" data-label="{{ header_text }}">{{ cell_value }}{{ driver_tooltip(drivers_value) }}</td>
-        {% elif '⚠️' in cell_str %}
-      <td class="signal-watch" data-label="{{ header_text }}">{{ cell_value }}{{ driver_tooltip(drivers_value) }}</td>
-        {% elif '❌' in cell_str %}
-      <td class="signal-avoid" data-label="{{ header_text }}">{{ cell_value }}{{ driver_tooltip(drivers_value) }}</td>
-        {% else %}
-      <td data-label="{{ header_text }}">{{ cell_value }}{{ driver_tooltip(drivers_value) }}</td>
-        {% endif %}
-      {% elif cell_idx == date_col_idx and date_col_idx is defined and date_col_idx is not none and raw_datetimes is defined %}
-      <td data-label="{{ header_text }}" data-raw="{{ raw_datetimes[row_idx] }}">{{ cell }}</td>
-      {% elif cell|string|trim|truncate(5, True, '') == '<svg ' %}
-      {# Cell contains SVG sparkline - don't escape #}
-      <td data-label="{{ header_text }}">{{ cell|safe }}</td>
-      {% else %}
-      <td data-label="{{ header_text }}">{{ cell }}</td>
-      {% endif %}
-      {% endfor %}
-    </tr>
-    {% endfor %}
+    <div id="{{ table_id }}-root"></div>
   </tbody>
 </table>
 {% endif %}
+
+<script>window['{{ table_id }}Data'] = {{ json_rows | tojson }};</script>
