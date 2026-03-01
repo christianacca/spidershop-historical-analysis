@@ -1,0 +1,16 @@
+name: Build Client Assets
+description: Set up Node.js and build Vite client-side assets into templates/scripts/dist/
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+        cache-dependency-path: client/package-lock.json
+
+    - name: Build client assets
+      run: make build-client
+      shell: bash

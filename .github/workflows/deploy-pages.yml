@@ -125,15 +125,8 @@ jobs:
       # --------------------------------
       # Build client-side assets
       # --------------------------------
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: client/package-lock.json
-
       - name: Build client assets
-        run: make build-client
+        uses: ./.github/actions/build-client
 
       # --------------------------------
       # Generate static website

@@ -30,6 +30,9 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
+      - name: Build client assets
+        uses: ./.github/actions/build-client
+
       - name: Run tests with coverage
         run: |
           pytest tests/ \
@@ -157,6 +160,8 @@ jobs:
               - 'templates/**'
             e2e_tests:
               - 'tests/e2e/**'
+            client:
+              - 'client/**'
           # For PRs: compare entire PR branch against base (master)
           # For pushes to master: compare current commit against previous
           base_sha: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
@@ -174,7 +179,8 @@ jobs:
           # On PRs: only run if relevant files changed
           if [[ "${{ steps.changes.outputs.website_any_changed }}" == "true" ]] || \
              [[ "${{ steps.changes.outputs.templates_any_changed }}" == "true" ]] || \
-             [[ "${{ steps.changes.outputs.e2e_tests_any_changed }}" == "true" ]]; then
+             [[ "${{ steps.changes.outputs.e2e_tests_any_changed }}" == "true" ]] || \
+             [[ "${{ steps.changes.outputs.client_any_changed }}" == "true" ]]; then
             echo "should-run=true" >> $GITHUB_OUTPUT
             echo "✅ Running e2e tests (relevant files changed)"
           else
@@ -194,6 +200,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
+
+      - name: Build client assets
+        if: steps.should-run.outputs.should-run == 'true'
+        uses: ./.github/actions/build-client
 
       - name: Run E2E smoke tests
         if: steps.should-run.outputs.should-run == 'true'
