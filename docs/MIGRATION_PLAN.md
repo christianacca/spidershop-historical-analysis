@@ -621,56 +621,31 @@ the mount div + script are present; E2E is deferred to Phase 4c-ii).
 **Goal:** Build shared UI atoms that both `SortableTable` and `HistoryTable` compose from.
 Tight Vitest feedback — tested in isolation before assembly.
 
-- [ ] 36. Create `client/src/shared/components/RangeSlider.svelte`. Replaces `shared/range-slider.ts`.
+- [x] 36. Create `client/src/shared/components/RangeSlider.svelte`. Replaces `shared/range-slider.ts`.
           Props (via `$props()`): `min`, `max`, `label`, `onchange: (detail: {min: number, max: number}) => void`.
           Calls `onchange({min, max})` after constraint enforcement.
           `<style>` block uses design tokens; class names are simple and semantic
           (`.track`, `.thumb`, `.label`).
-          Use `$props.id()` to generate a stable unique ID for each component instance:
-          ```svelte
-          const uid = $props.id();
-          ```
-          Bind `<label for="{uid}-min">` and `<input id="{uid}-min">` using this ID.
-          Without this, two sliders on the same page (price + wishlist) share duplicate IDs,
-          causing broken label associations and failing accessibility checks.
+          Uses `$props.id()` to generate a stable unique ID for each component instance;
+          labels bound via `{uid}-min` / `{uid}-max`.
 
-- [ ] 37. Create `client/src/shared/components/SearchInput.svelte`.
+- [x] 37. Create `client/src/shared/components/SearchInput.svelte`.
           Props: `placeholder`, `tableId`, `oninput: (value: string) => void`.
           Calls `oninput(currentValue)` on the native `input` event.
           `<style>` block with semantic names.
 
-- [ ] 38. Create `client/src/shared/components/FilterButton.svelte`.
+- [x] 38. Create `client/src/shared/components/FilterButton.svelte`.
           Props: `label`, `value`, `active`, `onclick: () => void`.
           Passes `onclick` directly to the `<button>` element.
-          Uses `.is-active` modifier class for active state.
-          Use Svelte 5 object syntax for conditional class binding:
-          ```svelte
-          <button class={{ 'is-active': active }} onclick={onclick}>{label}</button>
-          ```
-          Do **not** use a ternary string expression — the object form is idiomatic Svelte 5.
+          Uses `.is-active` modifier class with Svelte 5 object syntax:
+          `class={{ 'filter-btn': true, 'is-active': active }}`.
 
-- [ ] 39. For each primitive: write Vitest tests co-located with each component file.
-          Run `make test-client && make coverage-client` after all three.
+- [x] 39. For each primitive: write Vitest tests co-located with each component file.
+          `make test-client && make coverage-client` → 19 passed, branches 89.65% ✓.
 
-          **`RangeSlider.svelte` — `RangeSlider.test.ts`:**
-          - Renders two range inputs with `min`/`max`/`value` attributes matching props
-          - Display text shows formatted `minProp – maxProp` initially
-          - Setting the min input above the current max → max auto-clamps up (assert DOM value)
-          - Setting the max input below the current min → min auto-clamps down (assert DOM value)
-          - After constraint is enforced, `onchange` spy is called with `{ min, max }` payload
-            (pass `onchange: vi.fn()` as a prop; assert `toHaveBeenCalledWith`)
-
-          **`FilterButton.svelte` — `FilterButton.test.ts`:**
-          - Renders a button with the correct `label` text
-          - `active: true` → element has `.is-active` class
-          - `active: false` → `.is-active` class absent
-          - `fireEvent.click(button)` triggers the `onclick` callback prop
-            (pass `onclick: vi.fn()`; assert `toHaveBeenCalled()`)
-
-          **`SearchInput.svelte` — `SearchInput.test.ts`:**
-          - Renders an `<input>` with the `placeholder` prop as its placeholder attribute
-          - `fireEvent.input(input, { target: { value: 'foo' } })` triggers `oninput` spy
-            (pass `oninput: vi.fn()`; assert `toHaveBeenCalledWith('foo')`)
+          **`RangeSlider.svelte` — `RangeSlider.test.ts`:** 5 tests.
+          **`FilterButton.svelte` — `FilterButton.test.ts`:** 4 tests.
+          **`SearchInput.svelte` — `SearchInput.test.ts`:** 2 tests.
 
 - [ ] 40. *(Deferred to Phase 4c-ii, step 45.)* `generate_website.py` already copies the
           entire `dist/` tree via `shutil.copytree` — no code change needed once CSS files
@@ -681,9 +656,97 @@ Tight Vitest feedback — tested in isolation before assembly.
           Adding link tags before CSS exists causes 404s that E2E tests will catch.
           Do both steps (40 + 41 verification + link tags) as part of the step 45 E2E run.
 
-- [ ] Doc: Update copilot-instructions.md — add Svelte 5 component authoring guidelines:
-         use runes (`$state`, `$derived`, `$props`), semantic class names in `<style>` blocks,
-         write Vitest tests for props/events, E2E for browser interactions.
+- [x] Doc: Update copilot-instructions.md — added Svelte 5 component authoring guidelines:
+         runes (`$state`, `$derived`, `$props`), `$props.id()` for unique IDs, semantic class
+         names in `<style>` blocks, `fireEvent` must be awaited in tests (v5 wraps in `act`).
+
+**Decision:** `toHaveValue()` for `input[type="range"]` fails in happy-dom because
+`valueAsNumber` is returned as a string, not a number. Tests check `.value` property directly
+(`(element as HTMLInputElement).value`) instead.
+
+**Decision:** Clamp-up tests require using `max=200` props (not 100) so the test values (80)
+don't get clamped by the HTML input's own `max` attribute before the event reaches the handler.
+The sequence is: reduce max to 60 first, then push min to 80 — happy-dom won't clamp 80 on a
+[0,200] input. The constraint logic (`if newMin > currentMax → clamp max up`) is confirmed.
+
+---
+
+## Pre-existing state at Phase 4c-ii handoff
+
+### Primitives available in `client/src/shared/components/`
+
+| Component | Props | Notes |
+|---|---|---|
+| `RangeSlider.svelte` | `min`, `max`, `label`, `onchange: ({min, max}) => void` | Uses `$props.id()` for unique label IDs |
+| `SearchInput.svelte` | `placeholder`, `tableId`, `oninput: (value: string) => void` | Fires `oninput(value)` on native input event |
+| `FilterButton.svelte` | `label`, `value`, `active`, `onclick: () => void` | Emits `.is-active` via Svelte 5 object class binding |
+
+19 Vitest tests, all passing. `make build-client` succeeds. `make test-e2e` is **intentionally
+broken** (tables blank — Svelte not yet mounted). Do NOT run E2E until step 45.
+
+### Window data shape
+
+Python injects table data as `window['<tableId>Data']` (bracket notation, not dot notation).
+Each payload is an `Array<Record<string, string|number>>` — one dict per row keyed by column
+header. **SVG cells are omitted** from the payload (stripped by `rows_to_json`). Unicode
+sparkline strings are preserved as a string cell value under the column header
+(e.g., `"Price History": "▁▂▃▄▅▆▇█"`).
+
+Example payload shape:
+```ts
+window['breeder-tableData'] = [
+  { "Species": "Brachypelma hamorii", "Size": "1.5", "Signal": "🔥", "Price History": "▁▂▆▄█" },
+  ...
+]
+```
+
+The TypeScript type to declare at the top of the page-slice `index.ts`:
+```ts
+declare global {
+  interface Window {
+    [key: string]: unknown;
+  }
+}
+```
+
+### Missing: `unicodeToSvg` helper — must be created in this phase
+
+Step 42 imports it from `shared/`, but it does not yet exist.
+
+Create `client/src/shared/sparklines.ts` with a single exported function:
+```ts
+export function unicodeToSvg(sparkline: string): string
+```
+
+It maps `▁▂▃▄▅▆▇█` (8-level block characters) to proportional SVG bar charts.
+The Python `SPARKLINE_CHARS` mapping is `{ '▁': 1, '▂': 2, '▃': 3, '▄': 4, '▅': 5, '▆': 6, '▇': 7, '█': 8 }`.
+Use the same 8-level height encoding. Return the Unicode string unchanged if it is empty, `"-"`,
+or contains no recognised sparkline characters.
+
+Write `client/src/shared/sparklines.test.ts` alongside it before implementing.
+
+### E2E DOM-contract resolution (step 42a pre-answered)
+
+The E2E tests in `tests/e2e/test_table_interactions.py` depend on:
+
+| DOM feature | Current value | Svelte approach |
+|---|---|---|
+| Row visibility | `tr:visible` (Playwright CSS) | Render only visible rows in `{#each}` — no `.hidden` class needed |
+| Sort direction | `data-sort-direction` attr on `<th>` | `SortableTable` **must** emit this attr |
+| Filter buttons — class | `"active"` asserted via `get_attribute("class")` | **Update E2E to check `"is-active"`** (consistent with `FilterButton.svelte`) |
+| Filter buttons — attrs | `data-action="filter-signal"`, `data-signal="🔥"` | `SortableTable` must set these on rendered `<FilterButton>` elements (add `data-action` and `data-signal`/`data-stock-pattern` props to `FilterButton.svelte`) |
+| Filter btn class | `.filter-btn[data-action="filter-signal"]` compound selector | `FilterButton.svelte` already emits `.filter-btn` |
+| Visible count | `#visible-count-<tableId>` span | `SortableTable` must emit `<span id="visible-count-{tableId}">` |
+| Original row index | `data-original-index` on `<tr>` | **Not needed in Svelte** — top-10 logic slices `allRows` in original order inside `$derived.by`; no DOM attribute required |
+| Advanced filter panel | `.show` class on content div | Svelte `{#if showAdvanced}` replaces class toggle |
+| Data row attributes | `data-signal`, `data-stock-pattern` on `<tr>` | **Not needed** — E2E counts `tr:visible` rows; signal/pattern filtering is pure Svelte state |
+
+**Key decisions to make in step 42a:**
+1. Update E2E assertions from `"active"` → `"is-active"` (aligns with `FilterButton.svelte`).
+   Alternatively, add a second class `.active` alongside `.is-active` in `FilterButton.svelte`,
+   but that is messy. Preferred: update E2E.
+2. Extend `FilterButton.svelte` with optional `data-action` and `data-value` passthrough props
+   so `SortableTable` can set the `data-action`/`data-signal` attributes the E2E tests query.
 
 ---
 
@@ -691,17 +754,28 @@ Tight Vitest feedback — tested in isolation before assembly.
 
 **Goal:** Svelte owns full table rendering for three pages.
 
-- [ ] 42a. **E2E DOM-contract audit.** Before any Svelte HTML is written, audit
-           `tests/e2e/test_table_interactions.py` for every DOM attribute and class name it
-           depends on. Produce an explicit mapping and resolve each as a Decisions entry:
-           - `data-sort-direction` attr on `<th>` — Svelte must emit this or 15+ E2E assertions break
-           - `.hidden` class on `<tr>` — E2E counts hidden rows via this class
-           - `.active` class on filter buttons — must remain `.active` (not `.is-active`) unless
-             the E2E tests are updated at the same time
-           - `data-original-index` on `<tr>` — required by the top-10 limit logic in `filterByAttribute`
-           Resolve each: either `SortableTable.svelte` emits the existing attribute/class, or
-           update the E2E tests alongside the component. Record the decision before writing any
-           Svelte HTML. This prevents silent E2E churn during rollout.
+- [ ] 41b. Create `client/src/shared/sparklines.ts` with a single exported function:
+           `unicodeToSvg(sparkline: string): string`.
+           Maps the 8-level block characters (`▁▂▃▄▅▆▇█`) to proportional SVG bar charts.
+           Returns the input unchanged for empty strings, `"-"`, or unrecognised characters.
+           Write `sparklines.test.ts` co-located with the module **before** implementing.
+
+           Test cases for `sparklines.test.ts`:
+           - Empty string → returns `""`
+           - `"-"` → returns `"-"` unchanged
+           - Single `"█"` → returns an SVG string containing `<svg`
+           - `"▁▂▃▄▅▆▇█"` → SVG contains 8 bar elements
+           - Tallest bar (`█`) is taller than shortest bar (`▁`) in the SVG output
+           - Unrecognised character string → returned unchanged
+
+           Run `make test-client` after. This helper is a prerequisite for step 42.
+
+- [ ] 42a. **E2E DOM-contract audit.** The "Pre-existing state at Phase 4c-ii handoff" section
+           above already maps every DOM attribute and class name the E2E tests depend on and
+           provides recommended resolutions. Review that table, confirm the two key decisions:
+           1. Update E2E from `"active"` → `"is-active"` on filter buttons.
+           2. Extend `FilterButton.svelte` with optional `data-action` / `data-value` props.
+           Record both as Decisions entries here before writing any Svelte HTML.
 
 - [ ] 42. Create `client/src/shared/components/SortableTable.svelte`. Svelte 5 runes
           (`$props()`, `$state()`, `$derived()`). Accepts `rows`, `columns`, `filterConfig`

@@ -74,6 +74,49 @@ Svelte component `<style>` blocks should reference these tokens directly (e.g.
 - **Element** (child owned by a block): double underscore — `.nav__link--active`
 - Component-bound CSS (Layer 3) does **not** use BEM — it will be deleted when Svelte islands are introduced.
 
+### Svelte 5 component authoring (Phase 4c+)
+
+All Svelte components live in `client/src/shared/components/` or in a feature-slice folder.
+
+**Runes**
+- Declare props with `let { propA, propB, onEvent }: Props = $props()`.
+- Reactive local state: `let x = $state(initialValue)`.
+- Derived values: `let y = $derived(expression)`.
+- Use `$props.id()` to generate a stable per-instance ID for `<label>` / `<input id>` pairs
+  (required when Multiple instances on one page would otherwise share duplicate IDs).
+
+**Class bindings — always use the object form (Svelte 5 idiomatic):**
+```svelte
+<button class={{ 'filter-btn': true, 'is-active': active }}>…</button>
+```
+Do **not** use ternary string expressions.
+
+**`<style>` blocks**
+- Use simple semantic names (`.track`, `.thumb`, `.label`, `.search-input`).
+- Reference design tokens directly: `color: var(--color-signal-hot)`.
+  No imports needed — tokens are global from `templates/common.css`.
+- No BEM inside a Svelte component (Svelte scopes styles automatically).
+
+**Callback props (Svelte 5 replaces `createEventDispatcher`)**
+Parent-to-child communication uses callback props:
+```svelte
+<!-- Child -->
+let { onclick }: { onclick: () => void } = $props();
+<button {onclick}>…</button>
+```
+Assign a `vi.fn()` spy as the callback prop in tests; assert `toHaveBeenCalled()`.
+
+**Vitest — writing component tests**
+- Co-locate tests: `MyComponent.test.ts` beside `MyComponent.svelte`.
+- Import pattern: `import { render, fireEvent } from '@testing-library/svelte'`
+- `render(Component, propsObject)` — no `{ props: … }` wrapper.
+- `fireEvent.*` **must be awaited** — `@testing-library/svelte` v5 wraps them in `act()`.
+- `@testing-library/jest-dom` matchers are available globally (imported in `test-setup.ts`).
+  Do **not** re-import it per test file.
+- For `input[type="range"]`, check `.value` property directly
+  (`(el as HTMLInputElement).value`) — `toHaveValue()` will fail because happy-dom returns
+  `valueAsNumber` as a string instead of a number.
+
 ---
 
 ## Python Code Hygiene Guidelines
