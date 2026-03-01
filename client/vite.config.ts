@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { resolve } from 'path';
 
 // Phase 2: reorganised into feature-slice folders.
@@ -6,6 +7,29 @@ import { resolve } from 'path';
 // preserveModules keeps each module as its own file in dist/,
 // maintaining relative imports — output is structurally identical to source.
 export default defineConfig({
+  plugins: [svelte()],
+  // Ensure Svelte resolves its browser (DOM) entry conditions for both
+  // the build output and the Vitest test environment.
+  resolve: {
+    conditions: ['browser'],
+  },
+  test: {
+    globals: true,
+    environment: 'happy-dom',
+    setupFiles: ['src/test-setup.ts'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{ts,svelte}'],
+      exclude: ['src/test-setup.ts', 'src/global.d.ts', 'src/**/*.test.ts'],
+      // Thresholds start at 0 and are ratcheted upward phase-by-phase as
+      // Svelte components are added and tested (plan phase 4c onwards).
+      // Target: 80% across all four metrics once all modules have tests.
+      thresholds: { branches: 80, functions: 80, lines: 0, statements: 0 },
+      // Apply thresholds globally (not per-file) so early phases don't fail
+      // before all modules have tests.
+      perFile: false,
+    },
+  },
   build: {
     outDir: resolve(__dirname, '../templates/scripts/dist'),
     emptyOutDir: true,

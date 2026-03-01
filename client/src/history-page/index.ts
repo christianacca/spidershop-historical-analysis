@@ -9,6 +9,7 @@
 import { sortTable } from '../shared/sort.js';
 import { filterRows, toggleAdvancedFilters } from '../shared/filter.js';
 import { RangeSlider } from '../shared/range-slider.js';
+import { escapeCsvRow } from '../shared/csv-utils.js';
 
 // Page-local slider singletons
 let priceSlider: RangeSlider | null = null;
@@ -188,7 +189,7 @@ function downloadFilteredCsv(tableId: string): void {
   const CSS_HIDDEN = 'hidden';
   const visibleRows = Array.from(table.querySelectorAll(`tbody tr:not(.${CSS_HIDDEN})`));
 
-  const csvLines = [_escapeCsvRow(headers)];
+  const csvLines = [escapeCsvRow(headers)];
   visibleRows.forEach(row => {
     const values = Array.from(row.querySelectorAll('td')).map(td => {
       if (td.hasAttribute('data-raw')) {
@@ -200,7 +201,7 @@ function downloadFilteredCsv(tableId: string): void {
       }
       return td.textContent?.trim() ?? '';
     });
-    csvLines.push(_escapeCsvRow(values));
+    csvLines.push(escapeCsvRow(values));
   });
 
   const csvContent = csvLines.join('\r\n');
@@ -214,16 +215,6 @@ function downloadFilteredCsv(tableId: string): void {
   tempLink.click();
   document.body.removeChild(tempLink);
   URL.revokeObjectURL(url);
-}
-
-function _escapeCsvRow(values: string[]): string {
-  return values.map(value => {
-    const str = String(value ?? '');
-    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
-      return '"' + str.replace(/"/g, '""') + '"';
-    }
-    return str;
-  }).join(',');
 }
 
 /**

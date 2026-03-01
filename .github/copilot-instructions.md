@@ -66,6 +66,20 @@ The dist output mirrors the source tree (`shared/`, `species-page/` subdirectori
 1. `make test` (all tests with coverage)
 2. `.venv/bin/python scripts/check_coverage.py --module=<edited_file>.py`
 
+**For ANY edit in `client/src/`:**
+1. `make test-client` (Vitest unit tests — fast, no Python required)
+2. `make coverage-client` (enforces 80% branches/functions; lines/statements threshold
+   ratchets upward phase-by-phase as Svelte components are added and tested)
+
+**Vitest vs E2E — use the right tool:**
+- **Vitest** covers Svelte component logic (props, events, `$state` / `$derived`), pure utility
+  functions in `client/src/shared/`, and render output. Sub-100ms, optimal for iteration.
+- **E2E (Playwright)** covers browser interactions, URL state, CSS computed styles, Blob downloads,
+  and real data shape from the Python generator. These cannot be replicated in Vitest.
+- Coverage is a **migration confidence gate**, not a substitute for thinking about edge cases.
+  A green coverage number means logic paths were exercised; it does not mean all edge cases
+  are handled. Always think about what the code could do wrong.
+
 ### Playwright E2E Tests (Essential for Website Validation)
 
 **CRITICAL:** E2E tests are the ONLY way to validate client-side JavaScript behavior. Unit tests cannot test browser interactions, DOM mutations, or JavaScript execution.
@@ -278,6 +292,12 @@ def test_parse_price(input, expected):
 ```bash
 # Run all unit tests (fast, ~1 second)
 make test
+
+# Run client-side Vitest tests (required for any edit in client/src/)
+make test-client
+
+# Run Vitest with coverage for client/src/
+make coverage-client
 
 # Run individual test file (REQUIRED when testing specific functionality)
 make test-file FILE=tests/website_module/test_csv.py

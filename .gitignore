@@ -50,5 +50,8 @@ templates/scripts/dist/
 # Node.js
 client/node_modules/
 
+# Vitest coverage output
+client/coverage/
+
 # Temporary files and local testing (includes coverage, local-testing, etc.)
 tmp/

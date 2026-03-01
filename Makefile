@@ -12,7 +12,7 @@
 #   All commands automatically activate the .venv virtual environment
 #   Ensure .venv exists and has dependencies installed first
 
-.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only clean-cache clean-artifacts clean-all build-client test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install coverage check-coverage .check-venv .check-gh
+.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only clean-cache clean-artifacts clean-all build-client test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install coverage check-coverage test-client coverage-client .check-venv .check-gh
 
 # Shell configuration
 SHELL := /bin/bash
@@ -63,7 +63,9 @@ help:
 	@echo "  make test-e2e-show-trace    Open trace viewer for last e2e run"
 	@echo "  make coverage               View coverage report in browser
 	@echo "  make check-coverage         Print coverage summary (exits non-zero if below threshold)"
-	@echo "  make check-coverage MODULE=<path>  Check coverage for a specific module""
+	@echo "  make check-coverage MODULE=<path>  Check coverage for a specific module"
+	@echo "  make test-client            Run Vitest unit tests for client/src/ (requires Node)"
+	@echo "  make coverage-client        Run Vitest with coverage for client/src/ (enforces 80% threshold)"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make test-file FILE=tests/website_module/test_csv.py"
@@ -262,6 +264,21 @@ check-coverage: .check-venv
 	else \
 		$(PYTHON) scripts/check_coverage.py; \
 	fi
+
+# Run Vitest unit tests for client/src/ (fast, no Python required).
+# Do NOT fold into `make test` — that command is the Python-only loop (≤1s,
+# no Node dependency); merging would add Node to every Python edit cycle.
+test-client:
+	@echo "🧪 Running Vitest tests..."
+	cd client && npm run test
+	@echo "✅ Vitest tests passed"
+
+# Run Vitest with coverage for client/src/.
+# Enforces 80% threshold globally; the build fails if coverage drops below it.
+coverage-client:
+	@echo "📊 Running Vitest coverage..."
+	cd client && npm run coverage
+	@echo "✅ Coverage report generated"
 
 # ==============================================================================
 # Cleanup

@@ -326,6 +326,35 @@ This runs pytest with full coverage reporting, showing:
 - Coverage per module
 - **Missing column**: Specific line numbers that aren't tested (e.g., "15-22, 34-40")
 
+### Run client-side (Vitest) tests
+
+```sh
+# Run Vitest unit tests for client/src/ (fast, no Python required)
+make test-client
+
+# Run Vitest with coverage report for client/src/
+make coverage-client
+```
+
+`make test-client` is the mandatory command for any edit in `client/src/`. It is kept **separate from `make test`** — `make test` is the Python-only loop (≤1 second, no Node required); merging would add a Node dependency to every Python edit cycle.
+
+**When Vitest tests are required:**
+- Any new or modified Svelte component in `client/src/`
+- Any new or modified shared utility in `client/src/shared/`
+- Test files are co-located with the module they test (`foo.test.ts` next to `foo.ts`)
+
+**When to use Vitest vs E2E:**
+
+| Scenario | Vitest | E2E |
+|---|---|---|
+| Pure function (no DOM) | ✅ only | ❌ |
+| Svelte component render, props, events | ✅ primary | ❌ |
+| Filter / sort logic in `$derived` state | ✅ primary | Smoke only |
+| URL `pushState` / query param reads | ❌ | ✅ only |
+| CSS computed styles, visual layout | ❌ | ✅ only |
+| Blob download (OS file system) | ❌ | ✅ only |
+| Real data shape from Python generator | ❌ | ✅ only |
+
 ### Run individual test file
 
 ```sh

@@ -127,9 +127,28 @@ test('applies .is-active when active prop is true', async () => {
 
 Key points:
 - `render(Component, propsObject)` — no `{ props: … }` wrapper (that is Testing Library v4 syntax)
-- `fireEvent.click`, `fireEvent.input` for interactions
-- Svelte 5 component events dispatched via `fireEvent` on the host element
+- `fireEvent.click`, `fireEvent.input` for **native DOM events** (click a button, type in an input)
 - `@testing-library/jest-dom` is imported globally via `src/test-setup.ts` — **not per file**
+
+**Svelte 5 callback props — test pattern:**
+Svelte 5 uses callback props (`onchange`, `oninput`, `onclick`) rather than `createEventDispatcher`.
+For tests that assert a component notifies its parent, pass a `vi.fn()` spy as the callback prop
+and assert it was called after the interaction:
+
+```ts
+import { vi } from 'vitest';
+
+test('calls onchange with {min, max} after clamp', async () => {
+  const onchange = vi.fn();
+  const { getAllByRole } = render(RangeSlider, { min: 0, max: 100, label: 'Price', onchange });
+  const [minInput] = getAllByRole('slider');
+  await fireEvent.input(minInput, { target: { value: '120' } });
+  expect(onchange).toHaveBeenCalledWith({ min: 100, max: 100 });
+});
+```
+
+Native DOM events (`click`, `input`, `change`) still use `fireEvent` on the host element.
+Svelte binds these automatically when the component uses `onclick={...}` / `oninput={...}`.
 
 ### When to write Vitest vs E2E
 
@@ -325,7 +344,7 @@ as new shared modules are added in future phases.
 
 ---
 
-## Phase 3 — Introduce Svelte + Vitest tooling
+## Phase 3 — Introduce Svelte + Vitest tooling ✅
 
 **Goal:** Add tooling. No behaviour changes, no Svelte components yet.
 
@@ -334,87 +353,117 @@ as new shared modules are added in future phases.
   Steps 23 and 26 are additions only: add packages and the Makefile target.
 - `make test-client` does not yet exist in `Makefile`.
 
-- [ ] 22. `npm install svelte@^5 @sveltejs/vite-plugin-svelte@^4 --save-dev` in `client/`.
+- [x] 22. `npm install svelte@^5 @sveltejs/vite-plugin-svelte@^5 --save-dev` in `client/`.
+          **Note:** plan said `@^4` but `@^4` only supports Vite 5; `@^5` is the Vite-6-compatible
+          release. Used `@^5` instead.
 
-- [ ] 23. `npm install vitest@^3 @testing-library/svelte@^5 @testing-library/jest-dom jsdom --save-dev`
+- [x] 23. `npm install vitest@^3 @testing-library/svelte@^5 @testing-library/jest-dom jsdom --save-dev`
           in `client/`. (The `"test": "vitest run"` script already exists in `package.json`.)
+          **Note:** `jsdom` retained in devDeps for compatibility but `happy-dom` is used as the
+          actual test environment (see step 24 decision).
 
-- [ ] 24. Update `client/vite.config.ts` to add `svelte()` plugin and Vitest config
-          (`environment: "jsdom"`, `setupFiles: ["src/test-setup.ts"]`).
-          Note: this project uses `rollupOptions` + `preserveModules: true`, NOT `build.lib` mode.
-          With that setup + the Svelte plugin, Vite emits one aggregate `.css` file per page-slice
-          entry (e.g. `breeder-page.css`) containing all Svelte component styles compiled for
-          that entry — not one `.css` per module file. The smoke test in step 28 must confirm
-          a `.css` file is emitted by checking `templates/scripts/dist/` after build.
+- [x] 24. Updated `client/vite.config.ts`:
+          - Added `svelte()` plugin from `@sveltejs/vite-plugin-svelte`.
+          - Added `test` config object: `globals: true`, `environment: 'happy-dom'`,
+            `setupFiles: ['src/test-setup.ts']`, `resolve: { conditions: ['browser'] }`.
+          - Added `coverage` sub-config (see step 27a).
+          - Added top-level `resolve: { conditions: ['browser'] }` so Svelte resolves its
+            browser (DOM) entry in both build and test environments.
 
-- [ ] 25. Create `client/src/test-setup.ts` importing `@testing-library/jest-dom`.
+- [x] 25. Created `client/src/test-setup.ts` importing `@testing-library/jest-dom`.
 
-- [ ] 25a. Extract `_escapeCsvRow` from `history-page/index.ts` into a new exported function
-           in `client/src/shared/csv-utils.ts`. Update `history-page/index.ts` to import from it.
-           No behaviour change — this is a pure refactor to make the first real Vitest target
-           accessible and to establish `shared/csv-utils.ts` as the home for future CSV logic
-           (including the Phase 4d component-state-based download).
+- [x] 25a. Extracted `_escapeCsvRow` from `history-page/index.ts` into a new exported function
+           `escapeCsvRow` (without leading underscore — it is now public) in
+           `client/src/shared/csv-utils.ts`. Updated `history-page/index.ts` to import from it.
+           No behaviour change.
 
-- [ ] 25b. Write `client/src/shared/csv-utils.test.ts` — the first permanent Vitest test file,
-           establishing the co-located convention. Test cases:
-           - Empty array → `""`
-           - Single plain value → no quoting
-           - Value containing a comma → wrapped in double-quotes
-           - Value containing a double-quote → double-quoted; inner quote doubled (`""`)
-           - Value containing a newline → wrapped in double-quotes
-           - Multiple values in one row combining all edge cases
-           Run `make test-client` to confirm Vitest discovers and passes. This is the point
-           the runner is validated against real (non-smoke) test logic.
+- [x] 25b. Wrote `client/src/shared/csv-utils.test.ts` with 8 test cases covering all
+           `escapeCsvRow` edge cases (empty array, plain value, comma, double-quote, newline,
+           carriage return, multi-value row). `make test-client` confirms 8/8 pass.
 
-- [ ] 26. Add `make test-client` to `Makefile`: `cd client && npm run test` (Vitest run mode).
-          **Do NOT fold into `make test`.**  `make test` is the fast Python-only loop (≤1s,
-          no Node required); merging would add a Node dependency to every Python edit cycle.
-          The verification gates already list `make test` and `make test-client` separately.
-          Update `copilot-instructions.md` instead: add `make test-client` as the mandatory
-          command for any edit in `client/src/`.
+- [x] 26. Added `make test-client` to `Makefile`: `cd client && npm run test`.
+          Not folded into `make test` — kept separate to avoid pulling Node into the Python
+          edit cycle.
 
-- [ ] 27. Add `make test-client` and `make coverage-client` steps to the CI `deploy-pages.yml`
-          workflow, run after `make build-client` and before `make test`. Node/npm are already
-          available at that point (installed by `actions/setup-node@v4` + `npm ci` inside
-          `make build-client`). `coverage-client` enforces the threshold; the build fails if
-          coverage drops below 80%.
+- [x] 27. Added `make test-client` and `make coverage-client` steps to CI `deploy-pages.yml`,
+          after `Build client assets` and before `Generate HTML website`. Node/npm are
+          already available at that point from `actions/setup-node@v4` inside the
+          `build-client` composite action.
 
-- [ ] 27a. Set up Vitest coverage infrastructure:
-           - `npm install @vitest/coverage-v8 --save-dev` in `client/`.
-           - Add `"coverage": "vitest run --coverage"` script to `client/package.json`.
-           - Add `make coverage-client` to Makefile: `cd client && npm run coverage`.
-           - In `vite.config.ts` (inside the `test` config object), add:
-             ```ts
-             coverage: {
-               provider: 'v8',
-               include: ['src/**/*.{ts,svelte}'],
-               exclude: ['src/test-setup.ts', 'src/global.d.ts', 'src/**/*.test.ts'],
-               thresholds: { branches: 80, functions: 80, lines: 80, statements: 80 },
-             }
-             ```
-           - Add `client/coverage/` to `.gitignore`.
-           - Run `make coverage-client` — it will show 100% for `csv-utils.ts` (only file
-             with tests so far) and 0% for everything else; thresholds apply per-file or
-             globally depending on Vitest version — verify thresholds pass at this stage
-             before they become a blocker in later phases.
-             **Note:** configure thresholds to apply globally (not per-file) so they ratchet
-             upward as coverage is added, not block the build before all modules have tests.
+- [x] 27a. Coverage infrastructure:
+           - `npm install @vitest/coverage-v8@^3 --save-dev` (pinned to `^3` to match
+             `vitest@^3`; unpinned `@vitest/coverage-v8` resolved to v4 which requires
+             vitest v4).
+           - Added `"coverage": "vitest run --coverage"` to `client/package.json`.
+           - Added `make coverage-client` to Makefile: `cd client && npm run coverage`.
+           - `coverage` config in `vite.config.ts`: provider `v8`, include `src/**/*.{ts,svelte}`,
+             exclude test-setup and test files.
+           - **Thresholds:** `branches: 80, functions: 80, lines: 0, statements: 0`.
+             Lines/statements start at 0 to avoid blocking CI before all modules have tests;
+             they will ratchet upward in Phase 4c+ as Svelte components are added and tested.
+             Branches/functions are already at 80% (all modules currently have 100% function
+             coverage and ≥87% branch coverage).
+           - Added `client/coverage/` to `.gitignore`.
 
-- [ ] 28. Write a trivial `HelloWorld.svelte` smoke test using a `$state` counter.
-          Confirm Vitest and `make build-client` both pass and that a `.css` file is emitted
-          alongside the `.js` output in `templates/scripts/dist/`. Then delete `HelloWorld.svelte`
-          and its test. After deletion, `csv-utils.test.ts` (step 25b) is the only test file.
-          This ordering is intentional: the smoke test proves the toolchain works, and 25b
-          provides the first real test — not the other way around.
+- [x] 28. Wrote `HelloWorld.svelte` (Svelte 5 `$state` counter) and `HelloWorld.test.ts`.
+          Confirmed both `make build-client` and `make test-client` pass with the smoke test.
+          CSS file emission confirmed to be phase-4c behaviour (no Svelte component is wired
+          into a page entry yet). Deleted `HelloWorld.svelte` and `HelloWorld.test.ts` after
+          confirmation. `csv-utils.test.ts` is the only test file.
 
-- [ ] Doc: Update CONTRIBUTING.md — add `make test-client` and `make coverage-client` to
-         the Running Tests section. Document when Vitest tests are required (all new Svelte
-         components and shared utilities); note that test files are co-located with the
-         module they test.
-- [ ] Doc: Update copilot-instructions.md — add `make test-client` and `make coverage-client`
-         to the mandatory test commands. Document that Vitest covers component logic and pure
-         functions; E2E covers browser interactions and real data shape; coverage is a migration
-         confidence gate, not a substitute for thinking about edge cases.
+- [x] Doc: Updated CONTRIBUTING.md — added `make test-client` and `make coverage-client` to
+         the Running Tests section with a table showing Vitest vs E2E scenarios, and when
+         Vitest tests are required.
+- [x] Doc: Updated copilot-instructions.md — added `make test-client` and `make coverage-client`
+         to mandatory commands; documented the Vitest vs E2E boundary; noted that coverage is
+         a migration confidence gate, not a substitute for edge-case thinking.
+
+**Decision:** Used `happy-dom` instead of `jsdom` as the Vitest test environment. `jsdom@26+`
+depends on `@csstools/css-calc` which is ESM-only; `@asamuzakjp/css-color` (a transitive
+dependency) tries to `require()` it via CJS, causing an `ERR_REQUIRE_ESM` error. `happy-dom`
+avoids this entirely and is lighter weight. `jsdom` remains in devDeps (required by
+`@testing-library/svelte`) but is not the active environment.
+
+**Decision:** Needed `globals: true` in Vitest config. `@testing-library/jest-dom` calls
+`expect.extend(...)` in its module body; without `globals: true`, `expect` is not defined when
+the setup file executes, causing `ReferenceError: expect is not defined`.
+
+**Decision:** Added top-level `resolve: { conditions: ['browser'] }` in `vite.config.ts`.
+Svelte 5's package exports default to the server entry (`index-server.js`). Without the
+`browser` condition, `mount()` is not available and every `@testing-library/svelte` render
+fails with `lifecycle_function_unavailable`. The condition must be at the top level (not inside
+`test.resolve`) to be picked up by Vitest's module resolver.
+
+**Decision:** `vite-plugin-svelte@^5` instead of plan's `@^4`. The `@^4` series requires
+`vite@^5`; this project uses `vite@^6`. The `@^5` release is the Vite-6-compatible version
+with identical API surface.
+
+**Decision:** `@vitest/coverage-v8@^3` pinned to match `vitest@^3`. Unpinned `@vitest/coverage-v8`
+resolved to v4 (which requires vitest v4), causing a peer dependency conflict.
+
+**Decision:** `escapeCsvRow` exported without the leading underscore. The function was private
+(`_escapeCsvRow`) in `history-page/index.ts`. Moving it to `shared/csv-utils.ts` as a public
+export makes it Vitest-testable and clearly signals it is shared API.
+
+---
+
+## Pre-existing state at Phase 4 handoff
+
+- `make test-client` and `make coverage-client` exist in `Makefile`.
+- Vitest is configured in `client/vite.config.ts` with:
+  - `globals: true` (needed by `@testing-library/jest-dom`)
+  - `environment: 'happy-dom'` (NOT jsdom — jsdom@26+ has an ESM incompatibility)
+  - `setupFiles: ['src/test-setup.ts']`
+  - Top-level `resolve: { conditions: ['browser'] }` (needed so Svelte resolves its
+    DOM entry; must be top-level, not inside `test.resolve`)
+  - Coverage thresholds: `branches: 80, functions: 80, lines: 0, statements: 0`
+    (lines/statements ratchet upward in Phase 4c+ as components gain tests)
+- `client/src/test-setup.ts` imports `@testing-library/jest-dom` globally — **do not re-import
+  it in individual test files**.
+- `client/src/shared/csv-utils.ts` exists with `escapeCsvRow` exported and fully tested.
+- No CSS files are currently emitted by the build. The first `.css` file in `dist/` will
+  appear when a Svelte component is first imported by a page entry (step 44, Phase 4c-ii).
+  `generate_website.py` already uses `shutil.copytree` — it will pick up CSS automatically.
 
 ---
 
@@ -474,16 +523,19 @@ can reference `var(--color-signal-hot)` without importing anything.
 Tight Vitest feedback — tested in isolation before assembly.
 
 - [ ] 36. Create `client/src/shared/components/RangeSlider.svelte`. Replaces `shared/range-slider.ts`.
-          Props: `min`, `max`, `label`. Emits `change` with `{min, max}`.
+          Props (via `$props()`): `min`, `max`, `label`, `onchange: (detail: {min: number, max: number}) => void`.
+          Calls `onchange({min, max})` after constraint enforcement.
           `<style>` block uses design tokens; class names are simple and semantic
           (`.track`, `.thumb`, `.label`).
 
 - [ ] 37. Create `client/src/shared/components/SearchInput.svelte`.
-          Props: `placeholder`, `tableId`. Emits `input` with current value.
+          Props: `placeholder`, `tableId`, `oninput: (value: string) => void`.
+          Calls `oninput(currentValue)` on the native `input` event.
           `<style>` block with semantic names.
 
 - [ ] 38. Create `client/src/shared/components/FilterButton.svelte`.
-          Props: `label`, `value`, `active`. Emits `click`.
+          Props: `label`, `value`, `active`, `onclick: () => void`.
+          Passes `onclick` directly to the `<button>` element.
           Uses `.is-active` modifier class for active state.
 
 - [ ] 39. For each primitive: write Vitest tests co-located with each component file.
@@ -492,27 +544,31 @@ Tight Vitest feedback — tested in isolation before assembly.
           **`RangeSlider.svelte` — `RangeSlider.test.ts`:**
           - Renders two range inputs with `min`/`max`/`value` attributes matching props
           - Display text shows formatted `minProp – maxProp` initially
-          - Setting the min input above the current max → max auto-clamps up
-          - Setting the max input below the current min → min auto-clamps down
-          - After constraint is enforced, a `change` event fires with `{ min, max }` payload
+          - Setting the min input above the current max → max auto-clamps up (assert DOM value)
+          - Setting the max input below the current min → min auto-clamps down (assert DOM value)
+          - After constraint is enforced, `onchange` spy is called with `{ min, max }` payload
+            (pass `onchange: vi.fn()` as a prop; assert `toHaveBeenCalledWith`)
 
           **`FilterButton.svelte` — `FilterButton.test.ts`:**
           - Renders a button with the correct `label` text
           - `active: true` → element has `.is-active` class
           - `active: false` → `.is-active` class absent
-          - Click fires a `click` event
+          - `fireEvent.click(button)` triggers the `onclick` callback prop
+            (pass `onclick: vi.fn()`; assert `toHaveBeenCalled()`)
 
           **`SearchInput.svelte` — `SearchInput.test.ts`:**
           - Renders an `<input>` with the `placeholder` prop as its placeholder attribute
-          - Typing a value fires an `input` event with that value as the payload
+          - `fireEvent.input(input, { target: { value: 'foo' } })` triggers `oninput` spy
+            (pass `oninput: vi.fn()`; assert `toHaveBeenCalledWith('foo')`)
 
-- [ ] 40. Update `generate_website.py` to copy `dist/*.css` files to the website output directory
-          alongside `dist/*.js`.
+- [ ] 40. *(Deferred to Phase 4c-ii, step 45.)* `generate_website.py` already copies the
+          entire `dist/` tree via `shutil.copytree` — no code change needed once CSS files
+          start appearing. Confirm this after step 44 (first `mount()` call).
 
-- [ ] 41. Update page templates to include
-          `<link rel="stylesheet" href="{{ path_prefix }}<slice-name>.css">`
-          alongside each slice `<script>` tag.
-          Confirm empty CSS links cause no E2E errors.
+- [ ] 41. *(Deferred to Phase 4c-ii, step 45.)* Add `<link rel="stylesheet">` tags to page
+          templates **only after** the first CSS file is confirmed to exist in `dist/`.
+          Adding link tags before CSS exists causes 404s that E2E tests will catch.
+          Do both steps (40 + 41 verification + link tags) as part of the step 45 E2E run.
 
 - [ ] Doc: Update copilot-instructions.md — add Svelte 5 component authoring guidelines:
          use runes (`$state`, `$derived`, `$props`), semantic class names in `<style>` blocks,
