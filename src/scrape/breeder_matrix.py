@@ -36,17 +36,15 @@ def _generate_breeder_drivers_text(oos_status: str, oos_runs: int, pattern: str,
     Example:
         "Stock: Emerging (OOS 2 runs; currently OUT); Demand: Wishlist 🔥 + rising; Price: Stable"
     """
-    # Stock section
-    parts = []
+    stock_details = []
     if oos_runs > 0:
         plural = "s" if oos_runs != 1 else ""
-        parts.append(f"OOS {oos_runs} run{plural}")
+        stock_details.append(f"OOS {oos_runs} run{plural}")
     if oos_status:
-        parts.append(f"currently {oos_status}")
+        stock_details.append(f"currently {oos_status}")
     
-    if parts:
-        stock_detail = "; ".join(parts)
-        stock_section = f"Stock: {pattern} ({stock_detail})"
+    if stock_details:
+        stock_section = f"Stock: {pattern} ({'; '.join(stock_details)})"
     else:
         stock_section = f"Stock: {pattern}"
     
