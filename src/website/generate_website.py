@@ -818,7 +818,7 @@ def main() -> None:
         print(f"    WARNING: dist directory not found at {scripts_dir}")
     
     templates_dir = Path(__file__).parent.parent.parent / "templates"
-    css_files = ["common.css", "analysis.css", "species-detail.css", "homepage.css", "history.css"]
+    css_files = ["common.css", "analysis.css", "species-detail.css", "homepage.css"]
     _copy_files(css_files, templates_dir, OUTPUT_DIR, "CSS")
     
     print(f"\n✅ Website generated successfully in '{OUTPUT_DIR}' directory")

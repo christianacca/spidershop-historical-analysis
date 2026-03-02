@@ -42,7 +42,7 @@ writing or editing any CSS.
 | Layer | Files | Scope | Class naming |
 |---|---|---|---|
 | **1 — Global chrome** | `templates/common.css` | Browser reset, `:root` tokens, page chrome (header, nav, footer, buttons) | BEM (`btn--primary`, `nav__link--active`) |
-| **2 — Page-level static** | `templates/analysis.css`, `homepage.css`, `history.css`, `species-detail.css` | Python-rendered HTML that is not inside a Svelte island | BEM (`stat-card--hot`, `badge--watch`) |
+| **2 — Page-level static** | `templates/analysis.css`, `homepage.css`, `species-detail.css` | Python-rendered HTML that is not inside a Svelte island | BEM (`stat-card--hot`, `badge--watch`) |
 | **3 — Svelte component** | `client/src/**/*.svelte` `<style>` blocks | Elements owned by a Svelte component | Simple semantic names (`.track`, `.thumb`, `.label`) — Svelte scopes them automatically |
 
 #### Design tokens
