@@ -1060,8 +1060,13 @@ class TestGenerateHistoryPage:
             assert "</html>" in html
             assert BeautifulSoup(html, 'html.parser').find('html') is not None
 
-    def test_includes_action_buttons_with_download_and_filter_toggle(self):
-        """Should have download link in stats bar and standalone More Filters button when scrape_datetimes present."""
+    def test_svelte_mount_target_and_json_data_injected(self):
+        """Should inject a Svelte mount-target div and table JSON data script.
+
+        The download link, More Filters button, stats strip, and table structure are
+        Svelte-rendered client-side and covered by E2E tests; this unit test verifies
+        the server-side contract: mount target exists and JSON payload is present.
+        """
         csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
         csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
         with temp_csv_file(csv_content) as filename:
@@ -1069,20 +1074,13 @@ class TestGenerateHistoryPage:
             html = generate_history_page(config)
             soup = BeautifulSoup(html, 'html.parser')
 
-            # Download link should be in the stats bar
-            stats_strip = soup.find('div', class_='table-stats')
-            assert stats_strip is not None, "Should have table-stats strip"
-            download_link = stats_strip.find('a', class_='btn--download')
-            assert download_link is not None, "Download link should be inside the stats bar"
-            assert download_link.has_attr('download'), "Download link should have download attribute"
-            assert 'Download' in download_link.text
+            # Svelte mount target must be present
+            mount_div = soup.find('div', id=f'{config.table_id}-root')
+            assert mount_div is not None, "Should have Svelte mount-target div"
 
-            # More Filters button should exist as a standalone button (not inside action-buttons)
-            filter_button = soup.find('button', class_='btn--filters')
-            assert filter_button is not None, "Should have More Filters toggle button"
-            assert filter_button['data-action'] == 'toggle-filters'
-            assert filter_button.has_attr('data-content-id')
-            assert filter_button.find('span', class_='arrow') is not None
+            # JSON data payload must be injected
+            data = _table_json(html)
+            assert len(data) == 1, "JSON data should contain one row"
 
     _ALL_CSV_COLUMNS = [
         "scrape_datetime", "scientific_name", "common_name",
@@ -1094,58 +1092,65 @@ class TestGenerateHistoryPage:
     ]
 
     def test_table_headers_use_proper_english_display_names(self):
-        """All raw CSV column names must be replaced with proper English in <th> elements."""
+        """JSON row keys must use proper English display names (not raw CSV column names).
+
+        The <th> elements are Svelte-rendered and covered by E2E; this unit test verifies
+        that generate_history_page injects JSON whose keys are the correct display labels.
+        """
         row = ",".join(["2026-01-15T06:10+00:00", "Species A", "Common A",
                         "1.5", "25.00", "5", "http://example.com"])
         csv_content = ",".join(self._ALL_CSV_COLUMNS) + "\n" + row + "\n"
         with temp_csv_file(csv_content) as filename:
             config = page_config.history(filename).with_title("T").with_description("D").build()
             html = generate_history_page(config)
-            soup = BeautifulSoup(html, "html.parser")
 
-            th_texts = [
-                th.get_text(separator=" ", strip=True).replace("\u21c5", "").strip()
-                for th in soup.select("table th")
-            ]
+            data = _table_json(html)
+            assert len(data) == 1, "Expected one row in JSON"
+            keys = set(data[0].keys()) - {'_raw_scrape_datetime'}  # exclude internal key
 
             for raw in self._ALL_CSV_COLUMNS:
-                assert raw not in th_texts, (
-                    f"Raw CSV column name '{raw}' should not appear as a table header"
+                assert raw not in keys, (
+                    f"Raw CSV column name '{raw}' should not appear as a JSON key"
                 )
             for display in self._ALL_DISPLAY_HEADERS:
-                assert display in th_texts, (
-                    f"Expected display header '{display}' not found in table headers: {th_texts}"
+                assert display in keys, (
+                    f"Expected display header '{display}' not found in JSON keys: {keys}"
                 )
 
-    def test_includes_filter_badge_on_toggle_button(self):
-        """Should include hidden filter badge span on the toggle button."""
+    def test_json_data_injected_for_svelte_filter_rendering(self):
+        """JSON payload must be present so Svelte can render the filter badge and toggle.
+
+        The filter badge / More Filters button are Svelte-rendered; coverage is in E2E.
+        This unit test verifies the server injects non-empty JSON when data is present.
+        """
         csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
         csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
         with temp_csv_file(csv_content) as filename:
             config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
             html = generate_history_page(config)
+
+            data = _table_json(html)
+            assert len(data) == 1, "JSON payload should contain one row for Svelte rendering"
+            # Confirm table-id is used for the mount target so Svelte can find it
             soup = BeautifulSoup(html, 'html.parser')
+            assert soup.find('div', id=f'{config.table_id}-root') is not None, "Mount target must exist"
 
-            filter_button = soup.find('button', class_='btn--filters')
-            badge = filter_button.find('span', class_='filter-badge')
-            assert badge is not None, "Toggle button should contain filter-badge span"
-            assert 'hidden' in badge.get('class', []), "Badge should be hidden initially"
-            assert badge['id'].startswith('filterBadge-'), "Badge ID should start with 'filterBadge-'"
+    def test_json_data_present_so_svelte_can_render_search_panel(self):
+        """JSON data must be injected when search_filter=True so Svelte renders the panel.
 
-    def test_search_filter_inside_advanced_filters_panel(self):
-        """Should place search input inside the advanced-filters-content panel."""
+        The advanced-filters-content div and search input are Svelte-rendered (E2E coverage);
+        this unit test verifies the Python side injects the JSON required by Svelte.
+        """
         csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
         csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
         with temp_csv_file(csv_content) as filename:
             config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
             html = generate_history_page(config)
-            soup = BeautifulSoup(html, 'html.parser')
 
-            panel = soup.find('div', class_='advanced-filters-content')
-            assert panel is not None, "Should have advanced-filters-content panel"
-            search_input = panel.find('input', attrs={'data-action': 'search'})
-            assert search_input is not None, "Search input should be inside the filter panel"
-            assert search_input.get('data-table-id') is not None
+            data = _table_json(html)
+            assert len(data) == 1, "JSON payload must be non-empty for Svelte to render filters"
+            assert 'Price (GBP)' in data[0], "JSON row should include Price column for slider"
+            assert 'Wishlist Count' in data[0], "JSON row should include Wishlist column for slider"
 
     def test_omits_filter_toggle_when_search_disabled(self):
         """Should omit More Filters button when search_filter=False."""
@@ -1159,8 +1164,12 @@ class TestGenerateHistoryPage:
             assert soup.find('button', class_='btn--filters') is None, "Should not have filter toggle when search disabled"
             assert soup.find('input', type='text') is None, "Should not have search input when search disabled"
 
-    def test_table_stats_strip_shows_row_count(self):
-        """Should show 'Filtered Results: Showing x of x rows' strip (with scrape_datetimes present)."""
+    def test_json_data_contains_all_rows_for_svelte_stats_strip(self):
+        """JSON payload must include all rows so Svelte can display 'Showing N of N rows'.
+
+        The table-stats strip is Svelte-rendered and covered by E2E; this unit test
+        verifies the Python side injects the correct number of rows into the JSON.
+        """
         csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
         csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,25.00,5,http://example.com\n"
         csv_content += "2026-01-08 10:00:00,Species B,Common B,2.0,30.00,8,http://example.com\n"
@@ -1168,17 +1177,9 @@ class TestGenerateHistoryPage:
         with temp_csv_file(csv_content) as filename:
             config = page_config.history(filename).with_title("Test").with_description("Desc").build()
             html = generate_history_page(config)
-            soup = BeautifulSoup(html, 'html.parser')
 
-            stats_strip = soup.find('div', class_='table-stats')
-            assert stats_strip is not None, "Should have table-stats strip"
-            assert 'Filtered Results:' in stats_strip.text
-
-            table_id = config.table_id
-            visible_count_span = stats_strip.find('span', id=f'visible-count-{table_id}')
-            assert visible_count_span is not None, "Should have visible-count span"
-            assert visible_count_span.text == '3', "Visible count should equal total rows initially"
-            assert 'of 3 rows' in stats_strip.text, "Should show total row count"
+            data = _table_json(html)
+            assert len(data) == 3, f"JSON should contain all 3 rows, got {len(data)}"
 
     def test_omits_total_rows_paragraph(self):
         """Should NOT have the old 'Total rows: N' paragraph."""
@@ -1198,20 +1199,24 @@ class TestGenerateHistoryPage:
         assert 'No data available' in html
         assert BeautifulSoup(html, 'html.parser').find('table') is None
 
-    def test_price_sliders_have_correct_data_attributes(self):
-        """Should have data-filter='price' and data-table-id on slider inputs."""
+    def test_json_data_contains_price_values_for_svelte_slider(self):
+        """JSON rows must include Price (GBP) values so Svelte can compute range slider bounds.
+
+        The priceMin/priceMax slider inputs are Svelte-rendered and covered by E2E;
+        this unit test verifies the Python side injects price data into the JSON.
+        """
         csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
         csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,20.00,5,http://example.com\n"
+        csv_content += "2026-01-08 10:00:00,Species B,Common B,2.0,35.00,8,http://example.com\n"
         with temp_csv_file(csv_content) as filename:
             config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
             html = generate_history_page(config)
-            soup = BeautifulSoup(html, 'html.parser')
 
-            for slider_id in ('priceMin', 'priceMax'):
-                slider = soup.find('input', id=slider_id)
-                assert slider is not None
-                assert slider.get('data-filter') == 'price', f"{slider_id} should have data-filter='price'"
-                assert slider.get('data-table-id') == config.table_id, f"{slider_id} should have data-table-id"
+            data = _table_json(html)
+            assert len(data) == 2
+            prices = {row.get('Price (GBP)') for row in data}
+            assert '20.00' in prices, "JSON should include the min price value"
+            assert '35.00' in prices, "JSON should include the max price value"
 
     def test_table_rows_have_data_price_attribute(self):
         """Should include price data in the JSON payload for JS filtering."""
@@ -1240,20 +1245,24 @@ class TestGenerateHistoryPage:
             assert soup.find('input', id='priceMin') is None, "priceMin should not exist when search disabled"
             assert soup.find('input', id='priceMax') is None, "priceMax should not exist when search disabled"
 
-    def test_wishlist_sliders_have_correct_data_attributes(self):
-        """Should have data-filter='wishlist' and data-table-id on wishlist slider inputs."""
+    def test_json_data_contains_wishlist_values_for_svelte_slider(self):
+        """JSON rows must include Wishlist Count values so Svelte can compute range slider bounds.
+
+        The wishlistMin/wishlistMax slider inputs are Svelte-rendered and covered by E2E;
+        this unit test verifies the Python side injects wishlist data into the JSON.
+        """
         csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
-        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,20.00,5,http://example.com\n"
+        csv_content += "2026-01-01 10:00:00,Species A,Common A,1.5,20.00,3,http://example.com\n"
+        csv_content += "2026-01-08 10:00:00,Species B,Common B,2.0,35.00,12,http://example.com\n"
         with temp_csv_file(csv_content) as filename:
             config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
             html = generate_history_page(config)
-            soup = BeautifulSoup(html, 'html.parser')
 
-            for slider_id in ('wishlistMin', 'wishlistMax'):
-                slider = soup.find('input', id=slider_id)
-                assert slider is not None, f"Should have {slider_id} slider"
-                assert slider.get('data-filter') == 'wishlist', f"{slider_id} should have data-filter='wishlist'"
-                assert slider.get('data-table-id') == config.table_id, f"{slider_id} should have data-table-id"
+            data = _table_json(html)
+            assert len(data) == 2
+            wishlist_values = {str(row.get('Wishlist Count')) for row in data}
+            assert '3' in wishlist_values, "JSON should include the min wishlist value"
+            assert '12' in wishlist_values, "JSON should include the max wishlist value"
 
     def test_table_rows_have_data_wishlist_attribute(self):
         """Should include wishlist data in the JSON payload for JS filtering."""
@@ -1282,8 +1291,12 @@ class TestGenerateHistoryPage:
             assert soup.find('input', id='wishlistMin') is None, "wishlistMin should not exist when search disabled"
             assert soup.find('input', id='wishlistMax') is None, "wishlistMax should not exist when search disabled"
 
-    def test_date_checkboxes_rendered_one_per_unique_scrape_datetime(self):
-        """Should render one checkbox per unique scrape_datetime value."""
+    def test_json_data_contains_all_unique_dates_for_svelte_date_filter(self):
+        """JSON rows must contain Scrape Date values for all unique dates.
+
+        The date checkboxes are Svelte-rendered (DateFilter.svelte) and covered by E2E;
+        this unit test verifies the Python side injects correct Scrape Date values.
+        """
         csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
         csv_content += "2026-01-01,Species A,Common A,1.5,25.00,5,http://example.com\n"
         csv_content += "2026-01-08,Species A,Common A,1.5,26.00,5,http://example.com\n"
@@ -1292,17 +1305,23 @@ class TestGenerateHistoryPage:
         with temp_csv_file(csv_content) as filename:
             config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
             html = generate_history_page(config)
-            soup = BeautifulSoup(html, 'html.parser')
 
-            checkboxes = soup.find_all('input', attrs={'data-date-value': True})
-            assert len(checkboxes) == 3, f"Expected 3 date checkboxes (one per unique date), got {len(checkboxes)}"
-            date_values = {cb['data-date-value'] for cb in checkboxes}
-            assert '2026-01-01' in date_values
-            assert '2026-01-08' in date_values
-            assert '2026-01-15' in date_values
+            data = _table_json(html)
+            assert len(data) == 4, f"Expected 4 rows in JSON, got {len(data)}"
+            date_values = {str(row.get('Scrape Date')) for row in data}
+            unique_dates = {d for d in date_values if d != 'None'}
+            assert '2026-01-01' in unique_dates
+            assert '2026-01-08' in unique_dates
+            assert '2026-01-15' in unique_dates
+            assert len(unique_dates) == 3, f"Expected 3 unique dates, got {unique_dates}"
 
-    def test_date_checkbox_row_counts_are_correct(self):
-        """Each date checkbox label should show the correct (N rows) count."""
+    def test_json_data_row_counts_per_date_are_correct(self):
+        """JSON rows per date must match the CSV row counts per unique scrape_datetime.
+
+        The date checkbox row counts are Svelte-rendered (DateFilter.svelte) from this
+        JSON data; E2E tests verify the UI display. This test verifies the server injects
+        the correct number of rows per date.
+        """
         csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
         csv_content += "2026-01-01,Species A,Common A,1.5,25.00,5,http://example.com\n"
         csv_content += "2026-01-08,Species A,Common A,1.5,26.00,5,http://example.com\n"
@@ -1310,19 +1329,12 @@ class TestGenerateHistoryPage:
         with temp_csv_file(csv_content) as filename:
             config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
             html = generate_history_page(config)
-            soup = BeautifulSoup(html, 'html.parser')
 
-            # Find count labels by locating each date-row label
-            date_rows = soup.find_all('label', class_='date-row')
-            counts_by_date = {}
-            for label in date_rows:
-                cb = label.find('input', attrs={'data-date-value': True})
-                count_span = label.find('span', class_='date-count')
-                if cb and count_span:
-                    counts_by_date[cb['data-date-value']] = count_span.text.strip()
-
-            assert counts_by_date.get('2026-01-01') == '(1 rows)', f"Expected '(1 rows)' for 2026-01-01, got '{counts_by_date.get('2026-01-01')}'"
-            assert counts_by_date.get('2026-01-08') == '(2 rows)', f"Expected '(2 rows)' for 2026-01-08, got '{counts_by_date.get('2026-01-08')}'"
+            data = _table_json(html)
+            from collections import Counter
+            date_counts = Counter(str(row.get('Scrape Date')) for row in data)
+            assert date_counts['2026-01-01'] == 1, f"Expected 1 row for 2026-01-01, got {date_counts['2026-01-01']}"
+            assert date_counts['2026-01-08'] == 2, f"Expected 2 rows for 2026-01-08, got {date_counts['2026-01-08']}"
 
     def test_rows_have_data_date_attribute(self):
         """Each row in the JSON payload should include its formatted scrape_datetime."""
@@ -1339,8 +1351,13 @@ class TestGenerateHistoryPage:
             assert '2026-01-01' in date_values
             assert '2026-01-08' in date_values
 
-    def test_date_checkboxes_ordered_most_recent_first(self):
-        """Date checkboxes should be rendered most-recent-first."""
+    def test_json_data_dates_in_csv_order_for_svelte_to_reverse(self):
+        """JSON rows must preserve CSV (oldest-first) Scrape Date order for all rows.
+
+        Svelte's DateFilter component reverses the unique dates to show most-recent-first;
+        the JSON rows contain per-row dates in CSV order. E2E covers the rendered order;
+        this unit test confirms the per-row Scrape Date values in the JSON are correct.
+        """
         csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
         csv_content += "2026-01-01,Species A,Common A,1.5,25.00,5,http://example.com\n"
         csv_content += "2026-01-08,Species B,Common B,2.0,30.00,8,http://example.com\n"
@@ -1348,25 +1365,33 @@ class TestGenerateHistoryPage:
         with temp_csv_file(csv_content) as filename:
             config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
             html = generate_history_page(config)
-            soup = BeautifulSoup(html, 'html.parser')
 
-            checkboxes = soup.find_all('input', attrs={'data-date-value': True})
-            date_order = [cb['data-date-value'] for cb in checkboxes]
-            assert date_order[0] == '2026-01-15', f"First (most recent) date should be 2026-01-15, got '{date_order[0]}'"
-            assert date_order[-1] == '2026-01-01', f"Last (oldest) date should be 2026-01-01, got '{date_order[-1]}'"
+            data = _table_json(html)
+            assert len(data) == 3, f"Expected 3 rows, got {len(data)}"
+            row_dates = [str(row.get('Scrape Date')) for row in data]
+            assert row_dates[0] == '2026-01-01', f"First CSV row date should be 2026-01-01, got {row_dates[0]}"
+            assert row_dates[-1] == '2026-01-15', f"Last CSV row date should be 2026-01-15, got {row_dates[-1]}"
 
-    def test_all_dates_master_checkbox_rendered(self):
-        """Should render 'All Dates' master checkbox, checked by default."""
+    def test_json_rows_include_raw_scrape_datetime_for_svelte_date_filter(self):
+        """Every JSON row must include _raw_scrape_datetime so Svelte's DateFilter can work.
+
+        The 'All Dates' master checkbox is Svelte-rendered (DateFilter.svelte) and uses
+        the _raw_scrape_datetime key; this unit test verifies the Python side injects it.
+        """
         csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
         csv_content += "2026-01-01,Species A,Common A,1.5,25.00,5,http://example.com\n"
+        csv_content += "2026-01-08,Species B,Common B,2.0,30.00,8,http://example.com\n"
         with temp_csv_file(csv_content) as filename:
             config = page_config.history(filename).with_title("Test").with_description("Desc").with_search(True).build()
             html = generate_history_page(config)
-            soup = BeautifulSoup(html, 'html.parser')
 
-            all_dates_cb = soup.find('input', id=f'allDates-{config.table_id}')
-            assert all_dates_cb is not None, "Should have allDates master checkbox"
-            assert all_dates_cb.has_attr('checked'), "allDates checkbox should be checked by default"
+            data = _table_json(html)
+            assert len(data) == 2, f"Expected 2 rows, got {len(data)}"
+            for row in data:
+                assert '_raw_scrape_datetime' in row, "Every JSON row must have _raw_scrape_datetime for DateFilter"
+            raw_dates = {row['_raw_scrape_datetime'] for row in data}
+            assert '2026-01-01' in raw_dates
+            assert '2026-01-08' in raw_dates
 
     def test_date_filter_absent_when_search_disabled(self):
         """Should not render date filter section when search_filter=False."""

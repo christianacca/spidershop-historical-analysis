@@ -63,11 +63,9 @@ def test_search_input_filters_history_rows(e2e_site_multi_species) -> None:
     page.wait_for_timeout(200)
 
     visible_rows = page.locator("#history-table tbody tr:visible").count()
-    hidden_rows = page.locator("#history-table tbody tr.hidden").count()
 
     assert visible_rows >= 1, "At least one row should remain visible after search"
-    assert hidden_rows > 0, "Some rows should be hidden after search"
-    assert visible_rows + hidden_rows == total_rows
+    assert visible_rows < total_rows, "Search should reduce visible rows"
 
 
 @pytest.mark.e2e
@@ -171,9 +169,9 @@ def test_price_sliders_exist_and_initialise_correctly(e2e_site_multi_species) ->
     assert data_min is not None and data_min.replace(".", "", 1).lstrip("-").isdigit()
     assert data_max is not None and data_max.replace(".", "", 1).lstrip("-").isdigit()
 
-    # Sliders start at their respective extremes
-    assert price_min_slider.get_attribute("value") == data_min
-    assert price_max_slider.get_attribute("value") == data_max
+    # Sliders start at their respective extremes (use input_value — Svelte sets via JS property, not HTML attr)
+    assert price_min_slider.input_value() == data_min
+    assert price_max_slider.input_value() == data_max
 
     # Display text reflects initial range
     display = page.locator("#priceDisplay")
@@ -199,10 +197,8 @@ def test_price_max_slider_hides_rows_above_threshold(e2e_site_multi_species) -> 
     page.wait_for_timeout(200)
 
     visible = page.locator("#history-table tbody tr:visible").count()
-    hidden = page.locator("#history-table tbody tr.hidden").count()
     assert visible > 0, "Some rows should remain visible"
-    assert hidden > 0, "Some rows should be hidden above the threshold"
-    assert visible + hidden == total_rows
+    assert visible < total_rows, "Some rows should be filtered out above the price threshold"
 
     # Every visible row should have data-price <= 28
     for row in page.locator("#history-table tbody tr:visible").all():
@@ -275,9 +271,9 @@ def test_wishlist_sliders_exist_and_initialise_correctly(e2e_site_multi_species)
     assert data_min is not None and data_min.lstrip("-").isdigit()
     assert data_max is not None and data_max.lstrip("-").isdigit()
 
-    # Sliders start at their respective extremes
-    assert wishlist_min_slider.get_attribute("value") == data_min
-    assert wishlist_max_slider.get_attribute("value") == data_max
+    # Sliders start at their respective extremes (use input_value — Svelte sets via JS property, not HTML attr)
+    assert wishlist_min_slider.input_value() == data_min
+    assert wishlist_max_slider.input_value() == data_max
 
     # Display text reflects initial range (no currency symbol)
     display = page.locator("#wishlistDisplay")
@@ -303,10 +299,8 @@ def test_wishlist_min_slider_hides_rows_below_threshold(e2e_site_multi_species) 
     page.wait_for_timeout(200)
 
     visible = page.locator("#history-table tbody tr:visible").count()
-    hidden = page.locator("#history-table tbody tr.hidden").count()
     assert visible > 0, "Some rows should remain visible"
-    assert hidden > 0, "Some rows should be hidden below the threshold"
-    assert visible + hidden == total_rows
+    assert visible < total_rows, "Some rows should be filtered out below the wishlist threshold"
 
     # Every visible row must have data-wishlist >= 9
     for row in page.locator("#history-table tbody tr:visible").all():

@@ -16,6 +16,7 @@
   id="search-{tableId}"
   type="text"
   class="search-input"
+  data-action="search"
   {placeholder}
   data-table-id={tableId}
   oninput={handleInput}

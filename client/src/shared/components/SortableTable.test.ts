@@ -75,6 +75,28 @@ test('clicking a header sorts rows ascending on first click', async () => {
   expect(speciesHeader.getAttribute('data-sort-direction')).toBe('asc');
 });
 
+// ── Rows with missing price/wishlist cells (covers ?? '0' fallback) ───────────
+
+test('rows with undefined price cell do not throw during range computation', () => {
+  // Some rows are missing the Price cell — exercises r[col] ?? '0' fallback
+  const sparseRows = [
+    { Species: 'Alpha Spider', Signal: '🔥', 'Stock Pattern': 'Sustained', 'Wishlist Count': '3' },
+    { Species: 'Beta Spider', Signal: '⚠️', 'Stock Pattern': 'Emerging', Price: '25.00', 'Wishlist Count': '7' },
+  ];
+  const { container } = render(SortableTable, {
+    tableId: 'test-table',
+    rows: sparseRows,
+    columns: COLUMNS,
+    filterConfig: {
+      signalFilter: { column: 'Signal', top10: true },
+      priceColumn: 'Price',
+      wishlistColumn: 'Wishlist Count',
+    },
+  });
+  // Both rows rendered without error
+  expect(tbody(container)).toHaveLength(2);
+});
+
 test('clicking the same header twice sorts descending', async () => {
   const { container } = renderTable();
   const speciesHeader = container.querySelector('thead th') as HTMLElement;
@@ -309,4 +331,58 @@ test('renders without filterConfig with all rows visible', () => {
   expect(container.querySelector('[data-action="filter-signal"]')).toBeNull();
   // No advanced filter toggle
   expect(container.querySelector('.advanced-filters-toggle')).toBeNull();
+});
+
+// ── Column type: species-link ─────────────────────────────────────────────────
+
+const SPECIES_LINK_ROWS = [
+  { Name: 'Aphonopelma seemanni', Signal: '🔥' },
+  { Name: '', Signal: '⚠️' }, // empty name → slug is falsy
+];
+
+test('species-link column renders non-empty name as anchor link', () => {
+  const columns = [
+    { key: 'Name', label: 'Name', type: 'species-link' as const },
+    { key: 'Signal', label: 'Signal' },
+  ];
+  const { container } = render(SortableTable, {
+    tableId: 'species-table',
+    rows: SPECIES_LINK_ROWS,
+    columns,
+  });
+
+  const links = container.querySelectorAll<HTMLAnchorElement>('tbody td a');
+  expect(links.length).toBeGreaterThan(0);
+  expect(links[0].href).toContain('species/aphonopelma-seemanni.html');
+});
+
+test('species-link column with empty name renders text fallback (slug falsy)', () => {
+  const columns = [
+    { key: 'Name', label: 'Name', type: 'species-link' as const },
+    { key: 'Signal', label: 'Signal' },
+  ];
+  const { container } = render(SortableTable, {
+    tableId: 'species-table',
+    rows: SPECIES_LINK_ROWS,
+    columns,
+  });
+
+  // Row with empty Name: td should have no <a> tag, just empty text
+  const nameCells = container.querySelectorAll<HTMLElement>('tbody tr td:first-child');
+  const emptyCell = Array.from(nameCells).find((td) => !td.querySelector('a'));
+  expect(emptyCell).not.toBeNull();
+});
+
+test('species-link with linkViewParam appends ?view= suffix to href', () => {
+  const columns = [
+    { key: 'Name', label: 'Name', type: 'species-link' as const, linkViewParam: 'breeder' },
+  ];
+  const { container } = render(SortableTable, {
+    tableId: 'species-table2',
+    rows: [{ Name: 'Aphonopelma seemanni' }],
+    columns,
+  });
+
+  const link = container.querySelector<HTMLAnchorElement>('tbody td a')!;
+  expect(link.href).toContain('?view=breeder');
 });

@@ -9,8 +9,12 @@
   export interface ColumnConfig {
     key: string;
     label: string;
-    type?: 'sparkline' | 'species-link';
+    type?: 'sparkline' | 'species-link' | 'page-url';
     linkViewParam?: string;
+    /** Raw CSV column header used when building a downloadable CSV (defaults to `key`). */
+    csvHeader?: string;
+    /** Key in the row object that holds the raw (unformatted) value for CSV export. */
+    rawValueKey?: string;
   }
 
   export interface SignalFilterConfig {

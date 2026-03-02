@@ -796,7 +796,16 @@ The E2E tests in `tests/e2e/test_table_interactions.py` depend on:
 - Phase 4c-ii complete: `SortableTable.svelte` mounts on breeder, dealer, snapshot pages.
 - `make test` → 635 passed, 95.40% coverage. `make test-e2e` → 106 passed.
 - `make test-client` → 55 passed (6 shared utils, 49 component tests).
-- Step 46 (`analysis.css` audit) was deferred — carry it into Phase 4c-iii or a cleanup pass.
+- Step 46 (`analysis.css` audit) was deferred — carry it into Phase 4e cleanup.
+
+## State at Phase 4c-iii completion
+
+- Steps 47–50 complete: `DateFilter.svelte` + `HistoryTable.svelte` mounted on history page.
+- `make test` → 635 passed, 95.40% Python coverage.
+- `make test-client` → 96 passed (DateFilter: 16 tests, HistoryTable: 21 tests).
+- `make coverage-client` → 81.49% branches ≥ 80% threshold.
+- `make test-e2e` → 106 passed.
+- Step 51 (`history.css` audit) deferred to Phase 4e alongside step 46 (`analysis.css` audit).
 
 ### History page current state — server-rendered rows
 
@@ -834,29 +843,32 @@ filtering and `data-price`/`data-wishlist` for slider filtering.
 
 **Goal:** Svelte owns history table with its own distinct filter composition.
 
-- [ ] 47. Create `client/src/history-page/DateFilter.svelte`. Svelte 5 runes.
+- [x] 47. Created `client/src/history-page/DateFilter.svelte`. Svelte 5 runes.
           Owns checkbox date picker, "Last N Runs" quick-select, "Show All".
-          Emits `change` with selected dates array.
-          `<style>` block with semantic names (`.date-list`, `.date-item`, `.quick-select`).
+          Emits `change` with selected dates array via callback prop `onchange`.
+          `<style>` block with semantic names (`.date-list`, `.date-item`, `.quick-select`,
+          `.date-controls`, `.search-hint`).
 
-- [ ] 48. Create `client/src/history-page/HistoryTable.svelte`. Composes `RangeSlider`,
+- [x] 48. Created `client/src/history-page/HistoryTable.svelte`. Composes `RangeSlider`,
           `SearchInput`, and `DateFilter` in its own arrangement (not `SortableTable`).
           Accepts `rows` and `columns` props. Sort and filter state in `$state`.
-          `<style>` block with semantic names; remove equivalent rules from `history.css`.
-          As with `SortableTable`, use `$state.raw(rows)` for the incoming row data (static
-          Python-injected payload — deep proxy overhead is unwarranted) and `$derived.by`
-          for the multi-step filter derivation (date selection → search → price → wishlist).
+          `<style>` block with semantic names; equivalent rules removed from `history.css`.
+          Uses `$state.raw(rows)` for the incoming row data and `$derived.by` for the
+          multi-step filter derivation (date selection → search → price → wishlist).
+          Advanced-filters panel toggled with `showAdvanced: boolean` state;
+          filter badge shows active filter count.
 
-- [ ] 49. Write `DateFilter.test.ts` and `HistoryTable.test.ts` co-located with each component.
-          Run `make test-client && make coverage-client`.
+- [x] 49. Wrote `DateFilter.test.ts` (16 tests) and `HistoryTable.test.ts` (21 tests)
+          co-located with each component.
+          `make test-client && make coverage-client` → 96 passed, 81.49% branches ✓.
 
-          **`DateFilter.svelte` — `DateFilter.test.ts`:**
+          **`DateFilter.svelte` — `DateFilter.test.ts` (16 tests):**
           - Renders one checkbox per unique date in the `dates` prop
           - Unchecking a date fires a `change` event with that date excluded from the payload
           - "Last N Runs" quick-select fires `change` with exactly the N most recent dates
           - "Show All" fires `change` with all dates checked
 
-          **`HistoryTable.svelte` — `HistoryTable.test.ts`:**
+          **`HistoryTable.svelte` — `HistoryTable.test.ts` (21 tests):**
           - Deselecting a date → rows for that date hidden
           - Search text → only matching rows visible
           - Date + search AND logic: only rows matching both date selection and search text
@@ -864,10 +876,64 @@ filtering and `data-price`/`data-wishlist` for slider filtering.
           - Wishlist slider above a row's count → that row hidden
           - Combined: date + search + price → intersection of all three filters applied
 
-- [ ] 50. Update `history-page/index.ts` to mount `HistoryTable`.
-          Run `make build-client && make test-client && make test-e2e`.
+- [x] 50. Updated `history-page/index.ts` to mount `HistoryTable`. Removed
+          `render_server_rows=True` from `history_page.html` call; removed server-rendered
+          `<tbody>` rows from `table.html` (dead code path deleted).
+          Injected `_raw_scrape_datetime` key into each JSON row from Python so Svelte
+          `DateFilter` can group rows by date.
+          Added 5 CSS `<link>` tags to `history_page.html` for Svelte-emitted scoped CSS
+          (`HistoryTable.css`, `DateFilter.css`, `SearchInput.css`, `SortableTable.css`,
+          `RangeSlider.css`) — required because Vite does not auto-inject component CSS.
+          Rewrote 11 Python unit tests in `TestGenerateHistoryPage` to assert JSON data
+          payload structure instead of server-rendered DOM elements.
+          `make build-client && make test-client && make test-e2e`:
+          96 client tests pass, 106 E2E tests pass ✓.
+          `make test` → 635 passed, 95.40% Python coverage ✓.
 
 - [ ] 51. Audit `history.css` — remove rules now covered by scoped component styles.
+          (Not yet done — carry into Phase 4e cleanup.)
+
+---
+
+## Pre-existing state at Phase 4d handoff
+
+### `HistoryTable.svelte` — download already implemented (Phase 4c-iii)
+
+`HistoryTable.svelte` has full download logic:
+- Imports `escapeCsvRow` from `shared/csv-utils.js`
+- `buildCsv(): string` — iterates `visibleRows` (the `$derived.by` result), maps each row
+  through `col.csvHeader ?? col.key` for headers and `col.rawValueKey ?? col.key` for values
+- `downloadCsv(): void` — calls `buildCsv()`, creates a `Blob`, programmatically clicks a
+  temporary `<a download>` link
+- Download button: `<a data-action="download-filtered-csv" class="btn btn--download">` rendered
+  in the toolbar
+- `HistoryTable.test.ts` has **one** smoke test: clicking the download link calls
+  `URL.createObjectURL`. Detailed CSV content tests are absent — add them in step 53.
+
+### `SortableTable.svelte` — download NOT implemented
+
+`ColumnConfig` already has `csvHeader?: string` (added for `HistoryTable` parity) but `SortableTable`
+has no `buildCsv()`, no `downloadCsv()`, no download button, and no `escapeCsvRow` import.
+Full download implementation is required in step 52.
+
+### Test pattern for CSV content assertions
+
+`buildCsv()` is a plain function (not `$derived`) — test it via mock interception:
+```ts
+const mockBlob = vi.fn();
+global.Blob = mockBlob as unknown as typeof Blob;
+// ... render, apply filter, click download link ...
+const csvText: string = mockBlob.mock.calls[0][0][0];
+expect(csvText).toContain('header,row\n');
+```
+Or mock `URL.createObjectURL` and inspect the `Blob` argument:
+```ts
+const createObjectURL = vi.spyOn(URL, 'createObjectURL');
+// ... click download ...
+const blob: Blob = createObjectURL.mock.calls[0][0] as Blob;
+const text = await blob.text();
+expect(text.split('\n')).toHaveLength(4); // header + 3 data rows
+```
 
 ---
 
@@ -875,23 +941,32 @@ filtering and `data-price`/`data-wishlist` for slider filtering.
 
 **Goal:** Replace DOM-scraping `downloadFilteredCsv` with component-state-based export.
 
-- [ ] 52. Add download logic to `SortableTable.svelte` and `HistoryTable.svelte`. Both components
-          already hold all visible row data in `$derived` state — build CSV from that directly.
-          No `data-raw` attribute scraping needed.
+- [ ] 52. `HistoryTable.svelte` download is already implemented (see pre-phase state above).
+          Add download logic to `SortableTable.svelte` only:
+          - Import `escapeCsvRow` from `../shared/csv-utils.js`
+          - Add `buildCsv(): string` that iterates `visibleRows` using `col.csvHeader ?? col.key`
+            for headers and raw string values for cells
+          - Add `downloadCsv(): void` — same blob+link pattern as `HistoryTable`
+          - Add download button to the toolbar markup: `<a data-action="download-filtered-csv"
+            class="btn btn--download">` alongside the existing stats strip
+          No `data-raw` attribute scraping needed — `visibleRows` is already the filtered
+          `$derived.by` state.
 
-- [ ] 53. Write Vitest tests for the download logic in `SortableTable.test.ts` and
-          `HistoryTable.test.ts`. Import the exported `escapeCsvRow` from
-          `shared/csv-utils.ts` to build expected strings independently.
+- [ ] 53. Write Vitest tests for CSV download in `SortableTable.test.ts` (new) and augment
+          `HistoryTable.test.ts` (existing smoke test is insufficient).
+          Import `escapeCsvRow` from `shared/csv-utils.ts` to build expected strings
+          independently. Use `vi.spyOn(URL, 'createObjectURL')` and `blob.text()` to inspect
+          CSV content (see pre-phase state for the test pattern).
           Run `make test-client && make coverage-client`.
 
           Test cases (apply to both `SortableTable` and `HistoryTable`):
-          - Render with 5 rows, apply a filter leaving 3 visible; assert the `$derived` CSV
-            value has a header row + exactly 3 data rows
+          - Render with 5 rows, apply a filter leaving 3 visible; click download and assert
+            the blob text has a header row + exactly 3 data rows
           - Assert no hidden row's data appears in the CSV string
-          - Assert the URL column maps to the raw href value, not anchor HTML
+          - Assert the URL column uses the raw href value (the `csvHeader`/`rawValueKey` value),
+            not anchor HTML
           - Assert CSV is RFC-4180 compliant: values containing commas or quotes are quoted;
             reuse the `escapeCsvRow` unit tests in `csv-utils.test.ts` as a reference
-          No browser interaction needed — assert the derived state string directly.
 
 - [ ] 54. Run `make test-client && make test-e2e`.
 
@@ -1004,7 +1079,13 @@ before rewriting it as Svelte components. Run once, at the start of the Phase 5 
 | **E2E slider fix: `input_value()` not `get_attribute("value")`** (Phase 4c-ii) | Svelte sets `<input>` value via the DOM `.value` property, not the HTML `value` attribute. `page.get_attribute("value")` reads the HTML attribute (returns `null`). The correct Playwright method is `locator.input_value()`. |
 | **Combined filter: signal "Show All" does not clear stock pattern** (Phase 4c-ii) | `handleSignalFilter('all')` only resets the signal and top-10 limit. Stock pattern is independent state. E2E combined-filter test was updated to click signal Show All then stock-pattern Show All separately before asserting all rows visible. |
 | **Top10 Species desc-sort: "Watch" > "Hot" alphabetically** (Phase 4c-ii) | `localeCompare` sorts `Avoid < Hot < Watch`. Descending alpha order puts `Watch Species 03` first, not `Hot Species 15`. E2E parametrize corrected accordingly. Header locator uses `:text-is("Price")` (exact match) to avoid matching the "Price History" column. |
+| **Svelte scoped CSS must be explicitly linked in page templates** (Phase 4c-iii) | Vite emits per-component CSS files (e.g. `assets/history-page/HistoryTable.css`) but does NOT auto-inject them into HTML. Each page template must have explicit `<link rel="stylesheet">` tags for every component CSS file used on that page. Missing links cause scoped rules to be absent, which manifested as `height: 0px` on the advanced-filters panel (Playwright reported `visible=False` despite `display: block`). `analysis_page.html` already had the correct links; `history_page.html` was missing all five. |
+| **Python unit tests for history page should assert JSON data, not DOM** (Phase 4c-iii) | After migrating `history_page.html` to Svelte mode, `generate_history_page()` only server-renders the Svelte mount div (`<div id="history-table-root">`) and the JSON data `<script>` block. All table/filter UI is Svelte client-rendered. Unit tests were rewritten to assert the JSON payload (via `_table_json(html)`) and the mount target's presence, not `<th>`, `<button>`, `<input>` elements that no longer exist in the server-rendered HTML. |
+| **`DateFilter` uses callback prop `onchange`, not `createEventDispatcher`** (Phase 4c-iii) | Svelte 5 replaces `createEventDispatcher` with callback props. `DateFilter` declares `let { onchange }: { onchange: (dates: string[]) => void } = $props()` and calls `onchange(selectedDates)` directly. `HistoryTable` passes a function reference as `onchange={handleDateChange}`. Tests spy on the callback with `vi.fn()`. |
+| **`_raw_scrape_datetime` injected into JSON rows** (Phase 4c-iii) | `DateFilter.svelte` groups rows by date for its checkbox list. The display-formatted "Scrape Date" column value is ambiguous (two scrapes on the same calendar day would collide). Injecting `_raw_scrape_datetime` (the ISO string directly from the CSV) as a private key gives `DateFilter` a stable, collision-free grouping key without polluting the visible table columns. |
 | **`$state.raw` for Python-injected row data** | `$state()` wraps arrays and objects in deep reactive proxies. Hundreds of table rows injected from Python are static input — they are never mutated cell-by-cell. Using `$state.raw()` avoids the proxy overhead and makes the intent explicit: to trigger a re-render, reassign the whole array, don't mutate inside it. |
+| **`HistoryTable` CSV download implemented in Phase 4c-iii, not 4d** | `buildCsv()` + `downloadCsv()` were implemented alongside `HistoryTable.svelte` since download is an integral part of the history table's action bar. Rather than shipping a disabled/placeholder button, the full implementation was included. Phase 4d therefore only needs to add the same logic to `SortableTable.svelte` and augment the test coverage for both. |
+| **`csvHeader` added to `SortableTable.ColumnConfig` in Phase 4c-iii** | For consistency and to avoid a breaking interface change in Phase 4d, `csvHeader?: string` was added to `ColumnConfig` when `HistoryTable` first used it. `SortableTable` does not yet read this field (no download button), but the property is already declared so no interface churn is needed in Phase 4d. |
 | **`$derived.by` for multi-step filter chains** | The visible-rows computation in `SortableTable` and `HistoryTable` chains 4–5 filter passes before sorting. This cannot fit in a single `$derived(expr)` expression without sacrificing readability. `$derived.by(() => { ... })` is the Svelte 5 canonical form for multi-line derived logic — equivalent to a computed getter body. |
 | **Column `type: 'sparkline'` instead of a `{#snippet cell}` prop** | Svelte 5 snippets (`{#snippet cell(col, val)}{/snippet}`) are idiomatic for custom cell rendering but add complexity to the caller (`index.ts` must pass a snippet) and offer flexibility the codebase doesn't need. All three tables use the same sparkline conversion for the same column types — a simple `type` flag on the column descriptor keeps the rendering logic inside `SortableTable` without exposing a snippet API. Revisit if a genuinely different cell type is needed in a future phase. |
 | **`$props.id()` for `RangeSlider` label/input pairing** | Each `RangeSlider` instance renders two range inputs that must be paired with `<label for>` attributes. `$props.id()` returns a stable unique string per component instance, preventing duplicate IDs when two sliders (price + wishlist) are mounted on the same page. Hard-coded or sequential IDs would break accessibility and are fragile if component ordering changes. |

@@ -359,6 +359,12 @@ def generate_history_page(config: BasePageConfig) -> str:
     # Serialise rows for Svelte data contract
     json_rows = rows_to_json(display_headers or [], rows)
 
+    # Inject raw ISO datetimes into each JSON row so the Svelte component can
+    # restore the original timestamp when building a downloadable CSV export.
+    if date_col_idx is not None and raw_datetimes:
+        for i, json_row in enumerate(json_rows):
+            json_row['_raw_scrape_datetime'] = raw_datetimes[i]
+
     # Enumerate headers and rows for template
     headers_enum = list(enumerate(display_headers)) if display_headers else []
     rows_enum = [list(enumerate(row)) for row in rows] if rows else []
