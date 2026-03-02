@@ -205,9 +205,9 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 6px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-md);
     padding: 6px 10px;
     cursor: pointer;
     font-size: 0.9rem;
@@ -219,7 +219,7 @@
   }
 
   .date-count {
-    color: #888;
+    color: var(--color-text-muted);
     font-size: 0.85rem;
   }
 
@@ -227,7 +227,7 @@
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
-    border-top: 1px solid #e8c400;
+    border-top: 2px solid var(--color-date-filter);
     padding-top: 12px;
     margin-top: 12px;
   }

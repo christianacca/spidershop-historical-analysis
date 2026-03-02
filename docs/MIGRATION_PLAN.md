@@ -1161,6 +1161,274 @@ before rewriting it as Svelte components. Run once, at the start of the Phase 5 
 
 ---
 
+## Phase 4f — Post-migration cleanup (dead code, duplication, simplification)
+
+**Goal:** Remove all code made dead by the Svelte migration, eliminate copy-paste duplication
+between `SortableTable` and `HistoryTable`, and fix two consistency issues in `DateFilter`.
+This phase is independent of Phase 5 (it does not touch `charts.ts`, `dom-utils.getElement`,
+or `constants.CHART` — those are left for Phase 5 to delete).
+
+**Suggested session split** (open a new conversation per session, feed it only the relevant section):
+
+| Session | Sections | Focus |
+|---|---|---|
+| 1 | A + C | Pure deletions + token swap — trivial, fast, zero logic change |
+| 2 | B | Extract `table-utils.ts` — TDD cycle, deserves full focus |
+| 3 | D | Python dead code — variable tracing across 3 functions + `html_utils.py` |
+| 4 | E + F | CSS/template removal + full gate verification |
+
+---
+
+## Pre-existing state at Phase 4f handoff
+
+- Phase 4e complete (steps 55–59): dead TS modules removed, `analysis.css` trimmed,
+  `history.css` deleted.
+- Sections A and C complete (A1–A4, C1–C2).
+- `make test` → 635 passed, 95.40% Python coverage.
+- `make test-client` → 109 passed.
+- `make coverage-client` → branches ≥ 80% threshold.
+- `make test-e2e` → 106 passed.
+
+### Dead TypeScript (Section A)
+
+| File | What is dead | Why |
+|---|---|---|
+| `shared/dom-utils.ts` | `setActiveButton()`, `toggleRowVisibility()`, `import { CSS }` | Replaced by Svelte reactive state; no importer exists |
+| `shared/constants.ts` | `CSS` object, `CONFIG` object, `CssClasses` and `AppConfig` interfaces | Only consumed by the two dead functions above |
+| `SortableTable.svelte` | `SignalFilterConfig.summaryStats` field + its `{#if}` template block | Never populated by any page slice entry point |
+| `SortableTable.svelte` | `StockPatternFilterConfig.counts` field | Defined but never populated; no template rendering for it |
+| `SortableTable.svelte` | `data-price` and `data-wishlist` on `<tr>` | Filtering is pure Svelte state; these DOM attrs are not read by anything |
+
+### Duplication (Section B)
+
+The following are byte-for-byte identical in both `SortableTable.svelte` and `HistoryTable.svelte`:
+- `priceRange` and `wishlistRange` IIFEs (range computation)
+- Sort comparator block inside `$derived.by`
+- `handleSort()` function
+- `buildCsv()` function
+- `downloadCsv()` / `triggerDownload` logic
+- `handlePriceChange()`, `handleWishlistChange()`, `formatPrice` constant
+
+Also duplicated across entry files:
+- `wireOpenDetailsLinks()` — byte-for-byte identical in `breeder-page/index.ts` and `dealer-page/index.ts`
+- `if (document.readyState === 'loading') { ... } else { init(); }` boilerplate — all five slice entry points
+
+### `HistoryTable` `$effect` timing issue (Section B, step B4)
+
+`selectedDates` is initialised as an empty `Set` then filled by a `$effect` on first run.
+Between mount and the first effect tick, `visibleRows` filters against an empty set (the
+`selectedDates.size < allDates.length` guard evaluates `0 < n = true` on the first render,
+applying the date filter with no dates selected → zero visible rows briefly).
+Fix: compute `allDates` synchronously from `$state.raw(rows)` at module level and initialise
+`selectedDates` inline: `let selectedDates = $state(new Set(allDates))`.
+Since `allDates` is derived iteratively in the current implementation, extract it as a plain
+function `computeAllDates(rows, dateColumn)` (pure, no reactivity), call it once during
+initialisation, and keep the `$derived` for reactive re-computation. Or simply call the
+same loop body inline.
+
+### `DateFilter.svelte` hardcoded colours (Section C)
+
+The `<style>` block uses literals instead of design tokens:
+- `background: white` → `var(--color-surface)`
+- `border: 1px solid #ddd` → `var(--color-border-light)`
+- `color: #888` → `var(--color-text-muted)`
+- `border-top: 1px solid #e8c400` → `var(--color-date-filter)` (already used by E2E test token)
+- `border-radius: 6px` → `var(--radius-md)`
+
+### Dead Python code (Section D)
+
+| Code | Location | Why dead |
+|---|---|---|
+| `_parse_price_value()` | `generate_website.py` | Only called by `_calculate_column_range` |
+| `_calculate_column_range()` | `generate_website.py` | Only called by `_build_slider_ranges` |
+| `_build_slider_ranges()` | `generate_website.py` | Return values (`price_min/max`, `wishlist_min/max`) passed to templates that don't consume them — Svelte computes its own ranges client-side |
+| ~40 template vars in `generate_analysis_page()` | `generate_website.py` | `page_url_idx`, `scientific_name_idx`, `species_idx`, `size_idx`, `signal_col_idx`, `stock_pattern_col_idx`, `drivers_col_idx`, `link_to_species_page`, `table_view`, `search_filter`, `stock_pattern_counts`, `sortable` — all passed to `template.render()` but not referenced by any template |
+| Same class of vars in `generate_snapshot_page()` | `generate_website.py` | `page_url_idx`, `scientific_name_idx`, `price_idx`, `wishlist_idx`, range vars, `hidden_col_indices`, `sortable`, `search_filter`, `raw_headers` |
+| Same class of vars in `generate_history_page()` | `generate_website.py` | Same as above plus `scrape_datetimes`, `row_date_counts`, `total_rows`, `num_runs`, `min_date`, `max_date` — verify each against `history_page.html` before deleting |
+| `analysis_html = None` + `{% if analysis_html %}` block | `generate_website.py` + `analysis_page.html` | Unconditionally `None`; the conditional block in the template never renders |
+| Local `from collections import Counter` inside `generate_analysis_page()` | `generate_website.py` | `Counter` already imported at module level (~line 42) |
+| `generate_table_html()` | `html_utils.py` | Imported but never called from `generate_website.py` |
+| `get_base_html_template()`, `get_html_footer()` | `html_utils.py` | "Kept for backward compatibility with tests" — `get_html_footer()` still references `table-interactions.js` which no longer exists in `dist/` |
+| `escape_html()` | `html_utils.py` | "Kept for backward compatibility with tests"; not called from any production code path |
+
+Before deleting functions from `html_utils.py`, check `tests/website_module/` for any tests
+that call them directly - those tests must be removed or rewritten first.
+
+### Dead CSS (Section E)
+
+All in `templates/common.css`:
+- Old imperative dual-range slider (~90 lines): `.dual-range-slider`, `.slider-container`,
+  `.slider`, `.slider-min`, `.slider-max`, `.slider-values`, `.slider-current`,
+  `-webkit-slider-*` / `-moz-range-*` pseudo-elements
+- `.table-controls` and its child `input` / `label` rules
+- `.advanced-filters-content.show { display: block }` and the `.filter-row` block
+- `.advanced-filters-toggle .when-expanded` / `.when-collapsed` / `.expanded` class variants
+- Second `.search-input` block at the bottom (hardcoded `#ddd`; overridden by Svelte scoped version)
+- Global `.table-stats` rule — assess whether it conflicts with Svelte-scoped versions;
+  remove if the scoped version is the sole intended style
+
+In `templates/macros.html`:
+- `search_filter`, `signal_filter_buttons`, `stock_pattern_filter_buttons` macro definitions —
+  never called from any template
+
+---
+
+## Phase 4f steps
+
+### Section A — TypeScript dead code
+
+- [x] A1. In `client/src/shared/dom-utils.ts`: delete `setActiveButton()` and
+          `toggleRowVisibility()`. Remove the `import { CSS }` line (only those two functions
+          used it). Keep `getElement`.
+
+- [x] A2. In `client/src/shared/constants.ts`: delete the `CSS` constant, `CONFIG` constant,
+          and their interfaces `CssClasses` and `AppConfig`. Keep `CHART` and `ChartConfig`.
+
+- [x] A3. In `client/src/shared/components/SortableTable.svelte`:
+          - Remove `summaryStats` from `SignalFilterConfig` interface and its
+            `{#if filterConfig.signalFilter.summaryStats}` template block.
+          - Remove `counts` from `StockPatternFilterConfig` interface.
+          - Remove `data-price` and `data-wishlist` attributes from the `<tr>` in the table body.
+          - Remove the now-empty `.summary-stats` scoped CSS rule.
+
+- [x] A4. `make build-client && make test-client` — zero errors; then run `make test-e2e`.
+
+---
+
+### Section B — Extract shared table utilities + fix `HistoryTable` init
+
+- [ ] B1. Create `client/src/shared/table-utils.ts` with four exported pure functions:
+          - `computeRange(rows, col, mode: 'float' | 'int'): { min: number; max: number }` —
+            replaces the identical `priceRange` and `wishlistRange` IIFEs in both components.
+            `mode: 'float'` uses `parseFloat` + `Math.floor/ceil`; `mode: 'int'` uses `parseInt`.
+            Returns `{ min: 0, max: 0 }` when col is falsy or no valid values found.
+          - `sortRows(rows, key, dir: 'asc' | 'desc'): Record<string, unknown>[]` —
+            extracts the identical sort comparator (numeric detection via `parseFloat`,
+            string `localeCompare`, direction toggle).
+          - `buildCsv(columns: ColumnConfig[], visibleRows, escapeFn): string` —
+            identical in both components; headers from `col.csvHeader ?? col.key`,
+            values from `col.rawValueKey ?? col.key`.
+          - `triggerDownload(content: string, filename: string): void` —
+            blob + temporary anchor click pattern; filename varies per caller.
+
+- [ ] B2. Write `client/src/shared/table-utils.test.ts` co-located. Cover:
+          - `computeRange`: empty rows → `{0,0}`, float mode (floor/ceil), int mode,
+            single-value, col undefined → `{0,0}`
+          - `sortRows`: numeric asc, numeric desc, string asc, string desc,
+            mixed (one numeric one string) → string comparison
+          - `buildCsv`: headers use `csvHeader ?? key`, values use `rawValueKey ?? key`,
+            RFC-4180 comma quoting, empty rows → header line only
+          - `triggerDownload`: calls `URL.createObjectURL` once; `revokeObjectURL` called after
+          `make test-client` — confirm red (functions don't exist yet) then green after B1.
+
+- [ ] B3. Update `SortableTable.svelte`: import and use `computeRange`, `sortRows`, `buildCsv`,
+          `triggerDownload` from `'../table-utils.js'`. Remove the now-inlined IIFE duplicates,
+          the sort block inside `$derived.by`, `buildCsv`, and `downloadCsv`.
+          `formatPrice` stays local (display-specific, not shared logic).
+
+- [ ] B4. Update `HistoryTable.svelte`:
+          - Same imports as B3; replace the same duplicated blocks.
+          - Fix the `$effect` initialisation: extract a plain (non-reactive) helper function
+            `collectAllDates(rows, dateColumn): string[]` that does the reverse-iteration
+            dedup loop. Call it once to initialise `selectedDates`:
+            `let selectedDates = $state(new Set(collectAllDates(rows, dateColumn)))`.
+            Keep the `$derived` `allDates` for `DateFilter`'s reactive input.
+            Remove the `$effect` block entirely.
+
+- [ ] B5. Move `wireOpenDetailsLinks()` into `client/src/shared/dom-utils.ts` as a named export.
+          Update `breeder-page/index.ts` and `dealer-page/index.ts` to import it.
+
+- [ ] B6. `make build-client && make test-client && make coverage-client` — all green.
+          `make test-e2e` — 106 passed.
+
+---
+
+### Section C — `DateFilter.svelte` token consistency
+
+- [x] C1. In `client/src/history-page/DateFilter.svelte` `<style>` block, replace hardcoded
+          colour/spacing literals with design tokens:
+          - `background: white` → `background: var(--color-surface)`
+          - `border: 1px solid #ddd` → `border: 1px solid var(--color-border-light)`
+          - `color: #888` → `color: var(--color-text-muted)`
+          - `border-top: 1px solid #e8c400` → `border-top: 2px solid var(--color-date-filter)`
+          - `border-radius: 6px` → `border-radius: var(--radius-md)`
+
+- [x] C2. `make test-e2e` — `test_history_date_filter_section_styling` and
+          `test_history_date_grid_styling` will catch any token value mismatch.
+
+---
+
+### Section D — Python dead code
+
+- [ ] D1. In `src/website/generate_website.py`: delete `_parse_price_value()`,
+          `_calculate_column_range()`, and `_build_slider_ranges()`. These three functions
+          form a call chain whose final output is only passed to templates that don't consume it.
+
+- [ ] D2. In `generate_analysis_page()`:
+          - Remove the `stock_pattern_counts` Counter block.
+          - Remove the duplicate local `from collections import Counter` import.
+          - Remove all dead template variables and their computation:
+            `page_url_idx`, `scientific_name_idx`, `species_idx`, `size_idx`, `signal_col_idx`,
+            `stock_pattern_col_idx`, `drivers_col_idx`, `link_to_species_page`, `table_view`,
+            `search_filter`, `sortable`.
+          - Remove `analysis_html = None` and the corresponding
+            `{% if analysis_html %}` block from `templates/analysis_page.html`.
+          - Remove all dead kwargs from the `template.render()` call.
+
+- [ ] D3. In `generate_snapshot_page()`: remove the `_find_column_indices()` call +
+          resulting dead index variables, the `_build_slider_ranges()` call + range variables,
+          and `hidden_col_indices`, `sortable`, `search_filter`, `raw_headers`.
+          Remove all dead kwargs from `template.render()`.
+
+- [ ] D4. In `generate_history_page()`: same pattern. Before deleting `scrape_datetimes`,
+          `row_date_counts`, `total_rows`, `num_runs`, `min_date`, `max_date` — verify
+          each against `templates/history_page.html` to confirm none are still referenced.
+          Remove all confirmed-dead kwargs from `template.render()`.
+
+- [ ] D5. In `src/website/html_utils.py`:
+          - Search `tests/website_module/` for any tests that call `generate_table_html`,
+            `get_base_html_template`, `get_html_footer`, or `escape_html` directly.
+            Remove or rewrite those tests (they test the pre-Svelte HTML path).
+          - Delete `generate_table_html()`, `get_base_html_template()`, `get_html_footer()`,
+            `escape_html()` from `html_utils.py`.
+          - Remove the `generate_table_html` import from `generate_website.py`.
+
+- [ ] D6. `make test` — confirm Python tests pass and coverage holds (≥ 95.40%).
+
+---
+
+### Section E — CSS and template dead code
+
+- [ ] E1. In `templates/common.css`, remove (verify each selector is absent from all `templates/`
+          and `client/src/` files before deleting):
+          - Old imperative slider block (~90 lines): `.dual-range-slider`, `.slider-container`,
+            `.slider`, `.slider-min`, `.slider-max`, `.slider-values`, `.slider-current`
+            and all `-webkit-slider-*` / `-moz-range-*` pseudo-element variants.
+          - `.table-controls` block and its child `input` / `label` rules.
+          - `.advanced-filters-content.show { display: block }` and the `.filter-row` block.
+          - `.advanced-filters-toggle .when-expanded` / `.when-collapsed` / `.expanded` class
+            variant rules.
+          - The second `.search-input` block at the bottom (hardcoded `#ddd`).
+          - The global `.table-stats` rule — confirm it does not affect any server-rendered
+            element before removing (the Svelte-scoped version is authoritative).
+
+- [ ] E2. In `templates/macros.html`: delete the `search_filter`, `signal_filter_buttons`,
+          and `stock_pattern_filter_buttons` macro definitions. Keep `instruction_box`
+          and `driver_tooltip`.
+
+---
+
+### Section F — Final verification gate
+
+- [ ] F1. `make test` → ≥ 635 passed, ≥ 95.40% Python coverage.
+- [ ] F2. `make test-client` — all passing (including new `table-utils.test.ts`).
+- [ ] F3. `make coverage-client` → branches ≥ 80%.
+- [ ] F4. `make test-e2e` → 106 passed.
+- [ ] Doc: Update `copilot-instructions.md` if any CSS architecture table entries changed.
+          Update this file — tick all A–F steps, record any decisions that deviated from plan.
+
+---
+
 ## Phase 5 — Species-page charts (future)
 
 **Goal:** Migrate imperative SVG chart rendering into Svelte components.

@@ -21,19 +21,11 @@
   export interface SignalFilterConfig {
     column: string;
     label?: string;
-    summaryStats?: { total: number; hot: number; watch: number; avoid: number } | null;
     top10?: boolean;
   }
 
   export interface StockPatternFilterConfig {
     column: string;
-    counts?: {
-      total: number;
-      sustained: number;
-      emerging: number;
-      cyclical: number;
-      always: number;
-    } | null;
   }
 
   export interface FilterConfig {
@@ -301,12 +293,6 @@
         />
       {/if}
     </div>
-    {#if filterConfig.signalFilter.summaryStats}
-      {@const stats = filterConfig.signalFilter.summaryStats}
-      <span class="summary-stats">
-        Total: {stats.total} | 🔥 {stats.hot} | ⚠️ {stats.watch} | ❌ {stats.avoid}
-      </span>
-    {/if}
   </div>
 {/if}
 
@@ -417,10 +403,7 @@
     </thead>
     <tbody>
       {#each visibleRows as row}
-        <tr
-          data-price={filterConfig.priceColumn ? String(row[filterConfig.priceColumn] ?? '') : undefined}
-          data-wishlist={filterConfig.wishlistColumn ? String(row[filterConfig.wishlistColumn] ?? '') : undefined}
-        >
+        <tr>
           {#each columns as col}
             <td>
               {#if col.type === 'sparkline'}
@@ -462,12 +445,6 @@
     gap: 10px;
     flex-wrap: wrap;
     align-items: center;
-  }
-
-  .summary-stats {
-    font-size: var(--font-sm);
-    color: var(--color-text-muted);
-    margin-left: var(--spacing-sm);
   }
 
   .controls-row {
