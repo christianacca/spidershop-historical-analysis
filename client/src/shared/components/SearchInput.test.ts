@@ -13,6 +13,16 @@ test('renders an input with the placeholder prop as its placeholder attribute', 
   expect(input).toHaveAttribute('placeholder', 'Search species…');
 });
 
+test('input has id="search-{tableId}" for external selector compatibility', () => {
+  const { getByRole } = render(SearchInput, {
+    placeholder: 'Search…',
+    tableId: 'breeder-table',
+    oninput: vi.fn(),
+  });
+
+  expect(getByRole('textbox')).toHaveAttribute('id', 'search-breeder-table');
+});
+
 test('triggers oninput callback with current value on native input event', async () => {
   const oninput = vi.fn();
   const { getByRole } = render(SearchInput, {

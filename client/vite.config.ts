@@ -49,6 +49,10 @@ export default defineConfig({
         preserveModulesRoot: resolve(__dirname, 'src'),
         entryFileNames: '[name].js',
         chunkFileNames: '[name].js',
+        // Use stable (hash-free) CSS file names so templates can link them with
+        // fixed paths. The Python build always regenerates the website, so stale
+        // CSS is not a concern.
+        assetFileNames: 'assets/[name][extname]',
       },
     },
   },

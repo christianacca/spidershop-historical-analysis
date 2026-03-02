@@ -44,26 +44,26 @@ def test_table_sorting_numeric_columns(e2e_site_multi_species, column_index, par
 
     # Verify sort direction attribute
     sort_direction = column_header.get_attribute('data-sort-direction')
-    assert sort_direction == 'desc', "Expected descending sort after first click"
-
-    column_cells = page.locator('#breeder-table tbody tr:visible td').nth(column_index).all_text_contents()
-    column_values = [parse_cell(cell) for cell in column_cells if cell.strip()]
-
-    # Verify descending order
-    assert column_values == sorted(column_values, reverse=True), f"Expected descending order, got {column_values}"
-
-    # Second click: sort ascending
-    column_header.click()
-    page.wait_for_timeout(100)
-
-    sort_direction = column_header.get_attribute('data-sort-direction')
-    assert sort_direction == 'asc', "Expected ascending sort after second click"
+    assert sort_direction == 'asc', "Expected ascending sort after first click"
 
     column_cells = page.locator('#breeder-table tbody tr:visible td').nth(column_index).all_text_contents()
     column_values = [parse_cell(cell) for cell in column_cells if cell.strip()]
 
     # Verify ascending order
     assert column_values == sorted(column_values), f"Expected ascending order, got {column_values}"
+
+    # Second click: sort descending
+    column_header.click()
+    page.wait_for_timeout(100)
+
+    sort_direction = column_header.get_attribute('data-sort-direction')
+    assert sort_direction == 'desc', "Expected descending sort after second click"
+
+    column_cells = page.locator('#breeder-table tbody tr:visible td').nth(column_index).all_text_contents()
+    column_values = [parse_cell(cell) for cell in column_cells if cell.strip()]
+
+    # Verify descending order
+    assert column_values == sorted(column_values, reverse=True), f"Expected descending order, got {column_values}"
 
 
 @pytest.mark.e2e
@@ -155,7 +155,7 @@ def test_signal_filtering_on_breeder_table(e2e_site_multi_species) -> None:
     assert visible_rows == 2, "Expected 2 species with 🔥 signal"
     
     # Verify button has active class
-    assert "active" in hot_button.get_attribute("class"), "Expected active class on clicked button"
+    assert "is-active" in hot_button.get_attribute("class"), "Expected is-active class on clicked button"
     
     # Click "Show All" to reset (use specific selector for signal filter)
     show_all = page.locator('button[data-action="filter-signal"][data-signal="all"]')
@@ -192,7 +192,7 @@ def test_stock_pattern_filtering_on_breeder_table(e2e_site_multi_species) -> Non
     assert visible_rows == 2, "Expected 2 species with Emerging pattern"
     
     # Verify button has active class
-    assert "active" in emerging_button.get_attribute("class"), "Expected active class"
+    assert "is-active" in emerging_button.get_attribute("class"), "Expected is-active class"
 
 
 @pytest.mark.e2e
@@ -275,10 +275,11 @@ def test_search_filter_on_breeder_and_dealer_tables(e2e_site_multi_species) -> N
 
 @pytest.mark.e2e
 def test_combined_signal_and_stock_pattern_filters(e2e_site_multi_species) -> None:
-    """Verify applying multiple filter types (signal then stock pattern).
+    """Verify applying multiple filter types (signal then stock pattern) uses AND logic.
     
-    NOTE: Current implementation replaces filters rather than combining them (no AND logic yet).
-    This test verifies the actual behavior: stock pattern filter replaces signal filter.
+    NOTE: SortableTable applies AND logic: both signal and stock pattern filters are
+    combined. This test verifies: ⚠️ signal (2 rows) AND Emerging pattern (2 rows)
+    = 2 rows (Brachypelma ⚠️ Emerging + Pterinochilus ⚠️ Emerging).
     """
     page, base_url, errors = e2e_site_multi_species
 
@@ -290,34 +291,38 @@ def test_combined_signal_and_stock_pattern_filters(e2e_site_multi_species) -> No
         advanced_toggle.click()
         page.wait_for_timeout(200)
     
-    # Apply signal filter: 🔥 Hot (use specific selector to avoid matching Hot (top 10))
-    hot_button = page.locator('button[data-action="filter-signal"][data-signal="🔥"]:not([data-limit])')
-    hot_button.click()
+    # Apply signal filter: ⚠️ Watch (use specific selector to avoid matching top10)
+    watch_button = page.locator('button[data-action="filter-signal"][data-signal="⚠️"]:not([data-limit])')
+    watch_button.click()
     page.wait_for_timeout(100)
     
-    # Should show 2 rows with 🔥 signal
+    # Should show 2 rows with ⚠️ signal (Brachypelma + Pterinochilus)
     visible_after_signal = page.locator('#breeder-table tbody tr:visible').count()
-    assert visible_after_signal == 2, "Expected 2 rows after signal filter"
+    assert visible_after_signal == 2, "Expected 2 rows after ⚠️ signal filter"
     
-    # Now apply stock pattern filter: Emerging
-    # NOTE: Current implementation replaces the signal filter (doesn't combine via AND)
+    # Now apply stock pattern filter: Emerging (both ⚠️ species are Emerging)
+    # SortableTable applies AND logic: shows rows matching BOTH filters
     emerging_button = page.locator("button[data-action='filter-stock-pattern'][data-stock-pattern='Emerging']")
     emerging_button.click()
     page.wait_for_timeout(100)
     
-    # Should show 2 rows (Emerging pattern species: Brachypelma, Pterinochilus)
-    # Signal filter is replaced, not combined (filters don't AND together currently)
+    # Should show 2 rows (Brachypelma ⚠️ Emerging + Pterinochilus ⚠️ Emerging)
     visible_after_both = page.locator('#breeder-table tbody tr:visible').count()
-    assert visible_after_both == 2, "Expected 2 rows with Emerging pattern (signal filter replaced)"
+    assert visible_after_both == 2, "Expected 2 rows matching both ⚠️ signal AND Emerging pattern"
     
-    # Click signal filter's "Show All" to clear filters
-    show_all = page.locator('button[data-action="filter-signal"][data-signal="all"]')
+    # Click signal filter's "Show All" to clear the signal filter
+    show_all = page.locator('button[data-action="filter-signal"][data-signal="all"]:not([data-limit])')
     show_all.click()
     page.wait_for_timeout(100)
-    
-    # All rows should be visible
+
+    # Also clear the stock pattern filter (filters are independent — each must be reset separately)
+    show_all_stock = page.locator("button[data-action='filter-stock-pattern'][data-stock-pattern='all']")
+    show_all_stock.click()
+    page.wait_for_timeout(100)
+
+    # All rows should now be visible
     visible_after_clear = page.locator('#breeder-table tbody tr:visible').count()
-    assert visible_after_clear == 5, "Expected all 5 rows after Show All"
+    assert visible_after_clear == 5, "Expected all 5 rows after clearing all filters"
 
 
 @pytest.mark.e2e
@@ -356,69 +361,63 @@ def test_search_filter_combined_with_signal_filter(e2e_site_multi_species) -> No
 
 @pytest.mark.e2e
 def test_advanced_filters_toggle_expand_collapse(e2e_site_multi_species) -> None:
-    """Verify clicking 'More Filters' toggle expands/collapses advanced filters section."""
+    """Verify clicking 'Advanced Filters' toggle expands/collapses the advanced filters panel.
+    
+    Navigates to snapshot page (which has price/wishlist sliders requiring the toggle).
+    SortableTable uses conditional rendering ({#if showAdvanced}) — expanded state is
+    indicated by DOM presence of .advanced-filters-content, not a CSS .show class.
+    """
     page, base_url, errors = e2e_site_multi_species
 
-    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+    page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     toggle_button = page.locator(".advanced-filters-toggle")
+    assert toggle_button.count() > 0, "snapshot.html should have an advanced-filters-toggle button"
     content_div = page.locator(".advanced-filters-content")
     
-    # Initially expanded or collapsed (depends on implementation)
-    initial_classes = content_div.get_attribute("class").split()
-    initially_expanded = "show" in initial_classes
+    # Initially collapsed (content not in DOM)
+    initially_expanded = content_div.count() > 0
     
     # Click to toggle
     toggle_button.click()
     page.wait_for_timeout(200)
     
-    # Verify class changed
-    after_click_classes = content_div.get_attribute("class").split()
-    has_show_after_click = "show" in after_click_classes
-    
-    assert has_show_after_click != initially_expanded, "Expected toggle to change expanded state"
+    # Verify DOM presence changed
+    has_content_after_click = content_div.count() > 0
+    assert has_content_after_click != initially_expanded, "Expected toggle to change expanded state"
     
     # Click again to toggle back
     toggle_button.click()
     page.wait_for_timeout(200)
     
-    final_classes = content_div.get_attribute("class").split()
-    has_show_finally = "show" in final_classes
-    
-    assert has_show_finally == initially_expanded, "Expected toggle to return to initial state"
+    has_content_finally = content_div.count() > 0
+    assert has_content_finally == initially_expanded, "Expected toggle to return to initial state"
 
 @pytest.mark.e2e
 def test_snapshot_page_advanced_filters_toggle(e2e_site_multi_species) -> None:
-    """Verify 'More Filters' toggle works on snapshot page."""
+    """Verify 'Advanced Filters' toggle works on snapshot page."""
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
-    # Verify toggle button exists (snapshot page uses .btn--filters)
-    toggle_button = page.locator(".btn--filters")
+    # Verify toggle button exists (snapshot page has price/wishlist sliders)
+    toggle_button = page.locator(".advanced-filters-toggle")
     assert toggle_button.is_visible(), "Toggle button should be visible on snapshot page"
     
-    # Verify filter content container exists
+    # Verify filter content container is initially not in DOM (collapsed by default)
     content_div = page.locator(".advanced-filters-content")
-    assert content_div.count() > 0, "Advanced filters content container should exist"
-    
-    # Initially should be collapsed (no 'show' class)
-    initial_classes = content_div.get_attribute("class").split()
-    initially_expanded = "show" in initial_classes
+    assert content_div.count() == 0, "Advanced filters content should not be in DOM when collapsed"
     
     # Click to expand
     toggle_button.click()
     page.wait_for_timeout(200)
     
-    # Verify expanded
-    after_click_classes = content_div.get_attribute("class").split()
-    has_show_after_click = "show" in after_click_classes
-    assert has_show_after_click != initially_expanded, "Expected toggle to change expanded state"
+    # Content should now be in DOM
+    assert content_div.count() > 0, "Advanced filters content should be in DOM when expanded"
     
-    # Verify arrow rotation (button should have 'expanded' class)
+    # Verify button has 'is-expanded' class when open
     toggle_classes = toggle_button.get_attribute("class").split()
-    button_expanded = "expanded" in toggle_classes
-    assert button_expanded == has_show_after_click, "Toggle button should have 'expanded' class when content is shown"
+    assert "is-expanded" in toggle_classes, "Toggle button should have 'is-expanded' class when expanded"
     
     # Verify search input is now accessible
     search_input = page.locator("input[type='text']")
@@ -428,10 +427,10 @@ def test_snapshot_page_advanced_filters_toggle(e2e_site_multi_species) -> None:
     toggle_button.click()
     page.wait_for_timeout(200)
     
-    # Verify collapsed
-    final_classes = content_div.get_attribute("class").split()
-    has_show_finally = "show" in final_classes
-    assert has_show_finally == initially_expanded, "Expected toggle to return to initial state"
+    # Content should be removed from DOM again
+    assert content_div.count() == 0, "Advanced filters content should be removed from DOM when collapsed"
+    toggle_classes = toggle_button.get_attribute("class").split()
+    assert "is-expanded" not in toggle_classes, "Toggle button should not have 'is-expanded' class when collapsed"
 
 
 @pytest.mark.e2e
@@ -446,8 +445,8 @@ def test_snapshot_filter_badge_updates_with_search(e2e_site_multi_species) -> No
     assert badge.count() == 1, "Badge element should exist on snapshot page"
     assert not badge.is_visible(), "Badge should be hidden when no filters active"
     
-    # Expand filters (snapshot page uses .btn--filters)
-    toggle_button = page.locator(".btn--filters")
+    # Expand filters (snapshot page uses .advanced-filters-toggle)
+    toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -497,7 +496,7 @@ def test_snapshot_stats_strip_updates_count_when_filtered(e2e_site_multi_species
     assert total_count > 1, "Should have multiple species for meaningful test"
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn--filters")
+    toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -677,13 +676,13 @@ def test_active_filter_button_has_correct_styling(e2e_site_multi_species) -> Non
     hot_button.click()
     page.wait_for_timeout(100)
 
-    assert hot_button.evaluate('el => el.classList.contains("active")'), \
-        "Clicked filter button should have 'active' class"
+    assert hot_button.evaluate('el => el.classList.contains("is-active")'), \
+        "Clicked filter button should have 'is-active' class"
 
     bg_color = hot_button.evaluate('el => window.getComputedStyle(el).backgroundColor')
-    # #3498db = rgb(52, 152, 219)
-    assert 'rgb(52, 152, 219)' in bg_color, \
-        f"Active button should have blue background, got {bg_color}"
+    # FilterButton.svelte .filter-btn.is-active uses --color-primary: #2c3e50 = rgb(44, 62, 80)
+    assert 'rgb(44, 62, 80)' in bg_color, \
+        f"Active button should have dark-navy background (--color-primary), got {bg_color}"
 
     text_color = hot_button.evaluate('el => window.getComputedStyle(el).color')
     assert 'rgb(255, 255, 255)' in text_color or 'white' in text_color.lower(), \

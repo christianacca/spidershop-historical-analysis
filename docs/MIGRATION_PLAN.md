@@ -754,96 +754,79 @@ The E2E tests in `tests/e2e/test_table_interactions.py` depend on:
 
 **Goal:** Svelte owns full table rendering for three pages.
 
-- [ ] 41b. Create `client/src/shared/sparklines.ts` with a single exported function:
+- [x] 41b. Create `client/src/shared/sparklines.ts` with a single exported function:
            `unicodeToSvg(sparkline: string): string`.
            Maps the 8-level block characters (`▁▂▃▄▅▆▇█`) to proportional SVG bar charts.
            Returns the input unchanged for empty strings, `"-"`, or unrecognised characters.
            Write `sparklines.test.ts` co-located with the module **before** implementing.
+           Result: 6 tests passing.
 
-           Test cases for `sparklines.test.ts`:
-           - Empty string → returns `""`
-           - `"-"` → returns `"-"` unchanged
-           - Single `"█"` → returns an SVG string containing `<svg`
-           - `"▁▂▃▄▅▆▇█"` → SVG contains 8 bar elements
-           - Tallest bar (`█`) is taller than shortest bar (`▁`) in the SVG output
-           - Unrecognised character string → returned unchanged
+- [x] 42a. **E2E DOM-contract audit** completed. Decisions:
+           1. Updated E2E assertions from `"active"` → `"is-active"` on filter buttons.
+           2. Extended `FilterButton.svelte` with `...rest` spread props (not just `data-action`/
+              `data-value` — any HTML attribute passthrough). `SortableTable` sets
+              `data-action`, `data-signal`, `data-stock-pattern`, `data-limit` via spread.
 
-           Run `make test-client` after. This helper is a prerequisite for step 42.
+- [x] 42. Created `client/src/shared/components/SortableTable.svelte`. Svelte 5 runes.
+          Composes `RangeSlider`, `SearchInput`, `FilterButton` primitives.
+          `ColumnConfig` interface includes `type?: 'sparkline' | 'species-link'` and
+          `linkViewParam?: string` (for `?view=breeder/dealer` on species links).
+          Supports `FilterConfig` with `signalFilter`, `stockPatternFilter`, `priceColumn`,
+          `wishlistColumn`, `showSearch`, `statsLabel`.
+          `StockPatternFilterConfig` supports separate stock-pattern filter buttons.
+          `$state.raw` for row data; `$derived.by` for multi-step filter chain.
 
-- [ ] 42a. **E2E DOM-contract audit.** The "Pre-existing state at Phase 4c-ii handoff" section
-           above already maps every DOM attribute and class name the E2E tests depend on and
-           provides recommended resolutions. Review that table, confirm the two key decisions:
-           1. Update E2E from `"active"` → `"is-active"` on filter buttons.
-           2. Extend `FilterButton.svelte` with optional `data-action` / `data-value` props.
-           Record both as Decisions entries here before writing any Svelte HTML.
+- [x] 43. Wrote `SortableTable.test.ts` co-located. 25 tests passing.
+          `make test-client && make coverage-client` ✓.
 
-- [ ] 42. Create `client/src/shared/components/SortableTable.svelte`. Svelte 5 runes
-          (`$props()`, `$state()`, `$derived()`). Accepts `rows`, `columns`, `filterConfig`
-          as props. Composes `RangeSlider`, `SearchInput`, `FilterButton` primitives.
-          Renders sortable `<th>` headers + filtered tbody rows.
-          Sort state and active filters in `$state`. Visible rows in `$derived`.
-          `<style>` block uses semantic names (`.table`, `.header`, `.row`, `.filter-bar`)
-          and `.is-sorted`, `.is-ascending`, `.is-hidden` modifiers.
-          Remove equivalent rules from page-level CSS files.
+- [x] 44. Updated `breeder-page/index.ts`, `dealer-page/index.ts`, `snapshot-page/index.ts`
+          to `mount()` `SortableTable`. Old DOM-wiring removed from each `index.ts`.
+          Added `linkViewParam: 'breeder'` / `linkViewParam: 'dealer'` to Species column config.
 
-          **Key implementation notes:**
-
-          *Row data — use `$state.raw`, not `$state`:*
-          The `rows` prop is Python-injected static data — it is never mutated by the component.
-          Deep reactive proxies over hundreds of rows are wasteful and harmful to performance.
-          Assign incoming rows with `$state.raw`:
-          ```ts
-          let { rows, columns, filterConfig } = $props();
-          let allRows = $state.raw(rows);
-          ```
-          Reassign `allRows = rows` to trigger updates if the prop changes, but do not
-          mutate individual cells.
-
-          *Visible-rows derivation — use `$derived.by`:*
-          The filter chain (signal filter → search → price range → wishlist range → sort)
-          is multi-step and cannot fit in a single `$derived` expression. Use `$derived.by`:
-          ```ts
-          let visibleRows = $derived.by(() => {
-            let result = allRows;
-            if (activeSignal !== 'all') result = result.filter(...);
-            if (searchText) result = result.filter(...);
-            // ... price/wishlist range filters ...
-            return sortRows(result, sortCol, sortDir);
-          });
-          ```
-
-          *Sparkline cells — use column `type` config:*
-          Sparkline columns carry a Unicode sparkline string in the JSON payload (not SVG).
-          The `columns` prop should support an optional `type: 'sparkline'` flag on a column
-          descriptor. `SortableTable` renders those cells via a `unicodeToSvg` helper
-          (imported from `shared/`) rather than rendering their value as plain text.
-          Example column descriptor: `{ key: 'price_history', label: 'Price History', type: 'sparkline' }`.
-          This is simpler than a snippet prop — all callers use the same sparkline conversion
-          and there are no other custom cell-render requirements.
-
-- [ ] 43. Write `SortableTable.test.ts` co-located with the component.
-          Run `make test-client && make coverage-client`.
-
-          Test cases:
-          - Initial render: all `rows` prop items visible, correct column headers present
-          - Click column 0 header → rows reorder ascending; target `<th>` has `data-sort-direction="asc"`
-          - Click same header again → `data-sort-direction="desc"`, rows reversed
-          - Numeric column detected correctly (numbers sort numerically, not lexicographically)
-          - Signal filter button click → only rows with matching signal visible; others hidden
-          - Search input text → only rows whose text contains the search string visible
-          - Signal filter + search simultaneously → AND logic: only rows matching both
-          - Visible row count element reflects correct number after each filter change
-          - "Show All" resets to all rows visible and deactivates the filter button
-          - "Top 10" limit → at most 10 rows visible in original CSV order regardless of current sort
-
-- [ ] 44. Update `breeder-page/index.ts`, `dealer-page/index.ts`, `snapshot-page/index.ts`
-          to `mount()` `SortableTable` with the correct column/filter config.
-          Remove the old DOM-wiring event handler code from each `index.ts`.
-
-- [ ] 45. Run `make build-client && make generate-website && make test-e2e`.
-          Fix any DOM-contract breakages following the snapshot update protocol.
+- [x] 45. `make build-client && make test-e2e` → 106/106 passed.
+          E2E fixes applied (see Decisions log).
 
 - [ ] 46. Audit `analysis.css` — remove rules now covered by `SortableTable`'s scoped styles.
+          (Not yet done — `analysis.css` still 312 lines.)
+
+---
+
+## Pre-existing state at Phase 4c-iii handoff
+
+- Phase 4c-ii complete: `SortableTable.svelte` mounts on breeder, dealer, snapshot pages.
+- `make test` → 635 passed, 95.40% coverage. `make test-e2e` → 106 passed.
+- `make test-client` → 55 passed (6 shared utils, 49 component tests).
+- Step 46 (`analysis.css` audit) was deferred — carry it into Phase 4c-iii or a cleanup pass.
+
+### History page current state — server-rendered rows
+
+The history page does **not** use Svelte yet. `table.html` has a two-mode render system:
+
+- **Svelte mode** (default, all other pages): emits only `<div id="{tableId}-root"></div>` +
+  `<script>window['...Data'] = [...];</script>`. No `<table>` element.
+- **Server-rendered mode** (`render_server_rows=True`): emits a full `<table>` with `<thead>` and
+  `<tbody>` rows carrying `data-date`, `data-price`, `data-wishlist`, `data-raw` attributes.
+  Used by `history_page.html` only.
+
+`history-page.js` (plain TypeScript, no Svelte) manipulates the server-rendered `<tbody> <tr>`
+elements directly via `filterRows()` from `shared/filter.ts`. The JS reads `data-date` for date
+filtering and `data-price`/`data-wishlist` for slider filtering.
+
+**Consequence for Phase 4c-iii:** Once `HistoryTable.svelte` is mounted:
+1. `history_page.html` should switch to the Svelte mount-div mode (remove `render_server_rows=True`).
+2. The `render_server_rows` branch in `table.html` becomes dead code and can be removed.
+3. `data-date`, `data-raw`, `data-price`, `data-wishlist` server-side attribute generation goes away.
+4. `filterRows()` in `shared/filter.ts` is no longer needed for history — defer deletion to Phase 4e.
+
+### DOM attributes the history E2E tests depend on
+
+| DOM feature | Current (server-rendered) | Svelte approach |
+|---|---|---|
+| Row visibility | `.hidden` class toggled by JS | `{#each}` over filtered rows — no class toggle |
+| Date filter | `data-date` on `<tr>` | `HistoryTable` holds selected dates in `$state` |
+| Price/wishlist filter | `data-price`, `data-wishlist` on `<tr>` | Slider state in `$derived.by` filter chain |
+| CSV export | `data-raw` on date `<td>` | Build CSV from `visibleRows` `$derived` state |
+| Date checkboxes | Python-rendered `<input type="checkbox">` | `DateFilter.svelte` renders its own checkboxes |
 
 ---
 
@@ -1015,6 +998,12 @@ before rewriting it as Svelte components. Run once, at the start of the Phase 5 
 | **Chart pure helpers exported in step 59a (Phase 4e→5 bridge), not earlier** | The helpers are private implementation details of `charts.ts` today. Exporting them before the Phase 5 rewrite adds churn if the API changes. Exporting them at the bridge step gives a safety net exactly when it's needed — just before the Svelte rewrite — without premature exposure. |
 | **E2E tests kept in full after Svelte migration** | Vitest and E2E test different layers. Vitest covers `$derived` filter/sort logic; E2E covers DOM contracts, real browser APIs (`pushState`, blob download), asset loading, Python data shape, and CSS computed styles. Trimming E2E to happy-path after Svelte migration would lose coverage of DOM-contract regressions. |
 | **DOM-contract audit (step 42a) before `SortableTable.svelte`** | The E2E suite depends on specific attributes (`data-sort-direction`, `.hidden`, `.active`, `data-original-index`). Resolving whether Svelte emits the same attribute names — or whether E2E tests update in sync — must be a deliberate decision, not an accidental breakage discovered mid-rollout. |
+| **`FilterButton.svelte` uses `...rest` spread props** (Phase 4c-ii) | Rather than naming every possible data attribute (`data-action`, `data-signal`, `data-limit`, `data-stock-pattern`), `FilterButton` spreads `rest` onto the `<button>`. This is more flexible — `SortableTable` sets whichever data attributes it needs without requiring `FilterButton` to enumerate them. |
+| **`table.html` two-mode rendering** (Phase 4c-ii) | History page JS (`history-page.js`) reads server-rendered `<tbody> <tr>` DOM rows with `data-date`/`data-price`/`data-wishlist` attributes. Adding a `render_server_rows=True` flag preserves this working approach while all other pages use the Svelte mount-div mode. The server-rendered branch becomes dead code once `HistoryTable.svelte` is mounted in Phase 4c-iii. |
+| **`linkViewParam` on `ColumnConfig`** (Phase 4c-ii) | Species detail links (`species/{slug}.html`) need `?view=breeder` or `?view=dealer` appended so the species page initialises the correct tab when navigated to from a context page. Added `linkViewParam?: string` to `ColumnConfig`; `species-link` cells append `?view={param}` when present. Breeder and dealer index.ts pass `'breeder'` / `'dealer'` respectively. |
+| **E2E slider fix: `input_value()` not `get_attribute("value")`** (Phase 4c-ii) | Svelte sets `<input>` value via the DOM `.value` property, not the HTML `value` attribute. `page.get_attribute("value")` reads the HTML attribute (returns `null`). The correct Playwright method is `locator.input_value()`. |
+| **Combined filter: signal "Show All" does not clear stock pattern** (Phase 4c-ii) | `handleSignalFilter('all')` only resets the signal and top-10 limit. Stock pattern is independent state. E2E combined-filter test was updated to click signal Show All then stock-pattern Show All separately before asserting all rows visible. |
+| **Top10 Species desc-sort: "Watch" > "Hot" alphabetically** (Phase 4c-ii) | `localeCompare` sorts `Avoid < Hot < Watch`. Descending alpha order puts `Watch Species 03` first, not `Hot Species 15`. E2E parametrize corrected accordingly. Header locator uses `:text-is("Price")` (exact match) to avoid matching the "Price History" column. |
 | **`$state.raw` for Python-injected row data** | `$state()` wraps arrays and objects in deep reactive proxies. Hundreds of table rows injected from Python are static input — they are never mutated cell-by-cell. Using `$state.raw()` avoids the proxy overhead and makes the intent explicit: to trigger a re-render, reassign the whole array, don't mutate inside it. |
 | **`$derived.by` for multi-step filter chains** | The visible-rows computation in `SortableTable` and `HistoryTable` chains 4–5 filter passes before sorting. This cannot fit in a single `$derived(expr)` expression without sacrificing readability. `$derived.by(() => { ... })` is the Svelte 5 canonical form for multi-line derived logic — equivalent to a computed getter body. |
 | **Column `type: 'sparkline'` instead of a `{#snippet cell}` prop** | Svelte 5 snippets (`{#snippet cell(col, val)}{/snippet}`) are idiomatic for custom cell rendering but add complexity to the caller (`index.ts` must pass a snippet) and offer flexibility the codebase doesn't need. All three tables use the same sparkline conversion for the same column types — a simple `type` flag on the column descriptor keeps the rendering logic inside `SortableTable` without exposing a snippet API. Revisit if a genuinely different cell type is needed in a future phase. |

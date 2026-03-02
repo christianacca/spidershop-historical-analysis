@@ -121,8 +121,8 @@ class TestSummaryStatsInHtml:
             assert 'Summary: 3 species analyzed' not in html
             assert '<strong>Summary:</strong>' not in html
             
-            # Verify the table IS still present
-            assert '<table' in html
+            # Verify the Svelte mount div and JSON data are present
+            assert 'breeder-table-root' in html
             assert 'Species A' in html
         finally:
             os.unlink(csv_filename)

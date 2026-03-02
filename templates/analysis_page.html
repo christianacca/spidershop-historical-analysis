@@ -3,7 +3,10 @@
 
 {% block title %}{{ page_title }}{% endblock %}
 
-{% block extra_css %}<link rel="stylesheet" href="{{ path_prefix }}analysis.css">{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{{ path_prefix }}analysis.css">
+<link rel="stylesheet" href="{{ path_prefix }}assets/shared/components/FilterButton.css">
+<link rel="stylesheet" href="{{ path_prefix }}assets/shared/components/SearchInput.css">
+<link rel="stylesheet" href="{{ path_prefix }}assets/shared/components/SortableTable.css">{% endblock %}
 {% block extra_js %}<script type="module" src="{{ path_prefix }}{{ page_script }}"></script>{% endblock %}
 
 {% block content %}
@@ -59,35 +62,9 @@
     </div>
     {% endif %}
     
-    {% if headers and rows %}
+    {% if json_rows %}
     <h3>Full Data Table</h3>
-    {% if signal_col_idx is not none %}
-    {{ macros.signal_filter_buttons(
-        table_id=table_id,
-        signal_label="Risk Level" if active_page == "dealer" else "Signal",
-        summary_stats=summary_stats,
-        has_advanced_filters=(stock_pattern_col_idx is not none or search_filter)
-    ) }}
-    {% endif %}
-    {% if stock_pattern_col_idx is not none or search_filter %}
-    <div class="advanced-filters">
-        <div id="advanced-filters-{{ table_id }}" class="advanced-filters-content">
-            {% if stock_pattern_col_idx is not none %}
-            {{ macros.stock_pattern_filter_buttons(table_id=table_id, stock_pattern_counts=stock_pattern_counts) }}
-            {% endif %}
-            {% if search_filter %}
-            {{ macros.search_filter(table_id=table_id) }}
-            {% endif %}
-        </div>
-    </div>
-    {% endif %}
-    
-    <div class="table-scroll">
-        {% with headers=headers, rows=rows, signal_col_idx=signal_col_idx, stock_pattern_col_idx=stock_pattern_col_idx, page_url_idx=page_url_idx, scientific_name_idx=scientific_name_idx, sortable=sortable, table_id=table_id %}
-        {% include 'table.html' %}
-        {% endwith %}
-    </div>
-    <p class="table-row-count"><strong>Total rows:</strong> {{ rows|length }}</p>
+    {% include 'table.html' %}
     {% else %}
     <div class="info-box">
         <p>No data available yet. Please check back after the next scrape run.</p>

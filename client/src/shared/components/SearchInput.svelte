@@ -13,6 +13,7 @@
 </script>
 
 <input
+  id="search-{tableId}"
   type="text"
   class="search-input"
   {placeholder}

@@ -48,3 +48,18 @@ test('clicking the button triggers the onclick callback', async () => {
 
   expect(onclick).toHaveBeenCalled();
 });
+
+test('extra attributes (data-action, data-signal) are spread onto the button', () => {
+  const { getByRole } = render(FilterButton, {
+    label: 'Hot',
+    value: '🔥',
+    active: false,
+    onclick: vi.fn(),
+    'data-action': 'filter-signal',
+    'data-signal': '🔥',
+  });
+
+  const button = getByRole('button');
+  expect(button).toHaveAttribute('data-action', 'filter-signal');
+  expect(button).toHaveAttribute('data-signal', '🔥');
+});

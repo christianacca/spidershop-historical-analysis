@@ -98,3 +98,41 @@ test('onchange is called with {min, max} payload after constraint enforcement', 
 
   expect(onchange).toHaveBeenCalledWith({ min: 80, max: 80 });
 });
+
+test('explicit minInputId and maxInputId override auto-generated ids', () => {
+  const { container } = render(RangeSlider, {
+    min: 0,
+    max: 100,
+    label: 'Price',
+    onchange: vi.fn(),
+    minInputId: 'priceMin',
+    maxInputId: 'priceMax',
+  });
+
+  expect(container.querySelector('#priceMin')).toBeTruthy();
+  expect(container.querySelector('#priceMax')).toBeTruthy();
+});
+
+test('displayId is applied to the display span', () => {
+  const { container } = render(RangeSlider, {
+    min: 0,
+    max: 100,
+    label: 'Price',
+    onchange: vi.fn(),
+    displayId: 'priceDisplay',
+  });
+
+  expect(container.querySelector('#priceDisplay')).toBeTruthy();
+});
+
+test('formatValue is applied to display span text', () => {
+  const { getByText } = render(RangeSlider, {
+    min: 10,
+    max: 50,
+    label: 'Price',
+    onchange: vi.fn(),
+    formatValue: (v) => `£${v}`,
+  });
+
+  expect(getByText('£10 – £50')).toBeTruthy();
+});

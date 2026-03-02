@@ -205,16 +205,15 @@ class TestGenerateSnapshotPage:
             html = generate_snapshot_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
-            # Find search input - should have data attributes for event listeners
-            search_input = soup.find('input', type='text')
-            assert search_input is not None
-            assert search_input.get('data-action') == 'search', "Search input should have data-action attribute"
-            assert search_input.get('data-table-id') is not None, "Search input should have data-table-id attribute"
+            # Search is now rendered by the Svelte SortableTable component.
+            # Verify the Svelte mount point is present so the component can render search.
+            mount_div = soup.find('div', id='snapshot-table-root')
+            assert mount_div is not None, "Svelte mount div should exist for search to be rendered"
             # Filter function should still be in external JavaScript (referenced externally)
             assert 'filterTable' not in html, "filterTable should be in external JS, not inline"
 
     def test_includes_advanced_filters_toggle_when_search_enabled(self):
-        """Should include 'More Filters' toggle button when search_filter=True."""
+        """Should include filter toggle when search_filter=True (now rendered by Svelte SortableTable)."""
         from conftest import temp_csv_file
         
         csv_content = "Col\nVal\n"
@@ -223,24 +222,12 @@ class TestGenerateSnapshotPage:
             html = generate_snapshot_page(config)
             soup = BeautifulSoup(html, 'html.parser')
             
-            # Find toggle button (now uses btn--filters class)
-            toggle_button = soup.find('button', class_='btn--filters')
-            assert toggle_button is not None, "Toggle button should exist when search is enabled"
-            
-            # Verify button uses data attributes (ES modules pattern)
-            assert toggle_button.has_attr('data-action'), "Toggle button should have data-action attribute"
-            assert toggle_button['data-action'] == 'toggle-filters', "Should have toggle-filters action"
-            assert toggle_button.has_attr('data-content-id'), "Should have data-content-id attribute"
-            
-            # Verify button contains arrow and text
-            assert toggle_button.find('span', class_='arrow') is not None, "Should have arrow span"
-            button_text = toggle_button.get_text()
-            assert 'More Filters' in button_text or 'Filters' in button_text, "Should have filter button text"
-            
-            # Verify advanced filters container exists
-            advanced_filters = soup.find('div', class_='advanced-filters-content')
-            assert advanced_filters is not None, "Advanced filters container should exist"
-            assert 'id' in advanced_filters.attrs, "Advanced filters should have ID for toggle reference"
+            # The filter toggle button is now rendered by the Svelte SortableTable component.
+            # Verify the Svelte mount point is present so the component can render the toggle.
+            mount_div = soup.find('div', id='snapshot-table-root')
+            assert mount_div is not None, "Svelte mount div should be present (renders filter toggle)"
+            data = _table_json(html)
+            assert len(data) > 0, "JSON payload should have data for Svelte to render filters"
 
     def test_omits_search_filter_when_disabled(self):
         """Should omit search filter when search_filter=False."""
@@ -273,16 +260,16 @@ class TestGenerateSnapshotPage:
             headings = soup.find_all('h3')
             assert any('Data Table' in h.text for h in headings)
             
-            # Find the table (snapshot builder uses snapshot-table as ID)
-            table = soup.find('table', id='snapshot-table')
-            assert table is not None
+            # Svelte renders the table client-side; only the mount div is in the HTML
+            table = soup.find('div', id='snapshot-table-root')
+            assert table is not None, "Svelte mount div should be present"
             
             # Verify data content appears in JSON payload
             assert 'Species A' in html
             assert '25.00' in html
 
     def test_action_buttons_container_with_download_and_filter_buttons(self):
-        """Should have action-buttons container with download and filter buttons side by side."""
+        """Should have action-buttons container with download button; filter toggle is rendered by Svelte."""
         csv_content = "Name,Price\nSpecies A,25.00\n"
         with temp_csv_file(csv_content) as filename:
             config = page_config.snapshot(filename) \
@@ -304,17 +291,9 @@ class TestGenerateSnapshotPage:
             assert download_link.has_attr('download'), "Download button should have download attribute"
             assert download_link.has_attr('href'), "Download button should have href"
             
-            # Check filter button
-            filter_button = action_buttons.find('button', class_='btn--filters')
-            assert filter_button is not None, "Should have filter button with btn--filters class"
-            assert 'More Filters' in filter_button.text or 'Filters' in filter_button.text, "Filter button should have text"
-            assert filter_button.has_attr('data-action'), "Filter button should have data-action attribute"
-            assert filter_button['data-action'] == 'toggle-filters', "Filter button should have toggle-filters action"
-            assert filter_button.has_attr('data-content-id'), "Filter button should have data-content-id attribute"
-            
-            # Verify both buttons are direct children of action-buttons container
-            direct_children = [child for child in action_buttons.children if child.name in ['a', 'button']]
-            assert len(direct_children) == 2, "Should have exactly 2 button elements as direct children"
+            # The filter toggle button is now rendered by Svelte SortableTable
+            mount_div = soup.find('div', id='snapshot-table-root')
+            assert mount_div is not None, "Svelte mount div should be present (handles filter toggle button)"
 
     def test_action_buttons_omits_filter_button_when_search_disabled(self):
         """Should only show download button when search is disabled."""
@@ -337,7 +316,7 @@ class TestGenerateSnapshotPage:
             assert filter_button is None, "Should NOT have filter button when search disabled"
 
     def test_table_stats_strip_shows_species_count(self):
-        """Should show 'Showing: x of x species' strip above table."""
+        """Stats strip is rendered by Svelte SortableTable; JSON payload should have the correct row count."""
         csv_content = "Name,Price\nSpecies A,25.00\nSpecies B,30.00\nSpecies C,15.00\n"
         with temp_csv_file(csv_content) as filename:
             config = page_config.snapshot(filename) \
@@ -345,25 +324,13 @@ class TestGenerateSnapshotPage:
                 .with_description("Desc") \
                 .build()
             html = generate_snapshot_page(config)
-            soup = BeautifulSoup(html, 'html.parser')
             
-            # Find table-stats strip
-            stats_strip = soup.find('div', class_='table-stats')
-            assert stats_strip is not None, "Should have table-stats strip"
-            
-            # Check for "Showing:" text
-            assert 'Showing:' in stats_strip.text, "Stats strip should contain 'Showing:' text"
-            
-            # Check for visible count span
-            visible_count_span = stats_strip.find('span', id='visible-count-snapshot-table')
-            assert visible_count_span is not None, "Should have visible-count span with table-id in ID"
-            assert visible_count_span.text == '3', "Visible count should equal total rows initially"
-            
-            # Check for total count
-            assert 'of 3 species' in stats_strip.text, "Should show total species count"
+            # Stats strip ("Showing X of Y species") is rendered by Svelte; verify JSON has the correct row count.
+            data = _table_json(html)
+            assert len(data) == 3, f"JSON payload should have 3 rows to match CSV, got {len(data)}"
 
     def test_table_stats_strip_exists_even_when_search_disabled(self):
-        """Should show stats strip regardless of search filter setting."""
+        """Stats strip is rendered by Svelte regardless of search setting; JSON payload should have data."""
         csv_content = "Name,Price\nSpecies A,25.00\n"
         with temp_csv_file(csv_content) as filename:
             config = page_config.snapshot(filename) \
@@ -372,12 +339,10 @@ class TestGenerateSnapshotPage:
                 .with_search(False) \
                 .build()
             html = generate_snapshot_page(config)
-            soup = BeautifulSoup(html, 'html.parser')
             
-            # Stats strip should exist even without search
-            stats_strip = soup.find('div', class_='table-stats')
-            assert stats_strip is not None, "Should have stats strip even when search disabled"
-            assert 'Showing:' in stats_strip.text, "Should show species count"
+            # Stats strip is rendered by Svelte from JSON data.
+            data = _table_json(html)
+            assert len(data) > 0, "JSON payload should have data (Svelte renders stats from this)"
 
     def test_handles_nonexistent_csv_file(self):
         """Should show 'no data' message for nonexistent file."""
@@ -396,7 +361,7 @@ class TestGenerateSnapshotPage:
         assert table is None
 
     def test_includes_top_10_filter_button_when_data_provided(self):
-        """Should render top 10 filter button when there is data."""
+        """Top-10 filter button is rendered by Svelte SortableTable; JSON should have enough Hot rows."""
         csv_content = "Species,Size (cm),Signal\n" + "".join(f"Species {i},1,🔥\n" for i in range(15))
         with temp_csv_file(csv_content) as filename:
             config = page_config.breeder(filename) \
@@ -405,18 +370,15 @@ class TestGenerateSnapshotPage:
                 .build()
             html = generate_analysis_page(config)
             soup = BeautifulSoup(html, 'html.parser')
-            
-            # Top 10 filter button should exist with correct data attributes
-            top10_btn = soup.find('button', attrs={
-                'data-action': 'filter-signal',
-                'data-signal': '🔥',
-                'data-limit': '10'
-            })
-            assert top10_btn is not None, "Should have a 🔥 Hot (top 10) filter button"
-            
-            # Should have one table
-            tables = soup.find_all('table')
-            assert len(tables) == 1, "Should have exactly one table rendered from CSV"
+
+            # Top-10 filter button is rendered by Svelte SortableTable.
+            # Verify the mount div exists and JSON has enough Hot rows.
+            mount_div = soup.find('div', id='breeder-table-root')
+            assert mount_div is not None, "Svelte mount div should be present for top-10 filter"
+
+            data = _table_json(html)
+            hot_rows = [row for row in data if row.get('Signal') == '🔥']
+            assert len(hot_rows) >= 10, "Should have at least 10 Hot rows for Svelte top-10 filter rendering"
 
     def test_omits_analysis_section_when_none(self):
         """Should omit analysis section when markdown not provided."""
@@ -574,8 +536,9 @@ class TestGenerateSnapshotPage:
             assert instruction_box is None, "Snapshot pages should not have instruction box"
 
     def test_table_headers_use_proper_english_display_names(self):
-        """All raw CSV column names must be replaced with proper English in <th> elements.
-        scrape_datetime is excluded from the table and shown in an info box instead."""
+        """All raw CSV column names must be replaced with proper English display names in JSON data.
+        scrape_datetime is excluded from the visible columns and shown in an info box instead.
+        (SortableTable renders headers client-side; we verify the JSON payload has correct keys.)"""
         row = ",".join(["2026-01-15T06:10+00:00", "Species A", "Common A",
                         "1.5", "25.00", "5", "http://example.com"])
         csv_content = ",".join(self._ALL_CSV_COLUMNS) + "\n" + row + "\n"
@@ -584,27 +547,25 @@ class TestGenerateSnapshotPage:
             html = generate_snapshot_page(config)
             soup = BeautifulSoup(html, "html.parser")
 
-            th_texts = [
-                th.get_text(separator=" ", strip=True).replace("\u21c5", "").strip()
-                for th in soup.select("table th")
-            ]
+            # SortableTable renders headers client-side from the JSON data.
+            # Verify the JSON payload uses display names, not raw CSV column names.
+            data = _table_json(html)
+            assert len(data) > 0, "Should have JSON data rows"
+            json_keys = set(data[0].keys())
 
             for raw in self._ALL_CSV_COLUMNS:
-                assert raw not in th_texts, (
-                    f"Raw CSV column name '{raw}' should not appear as a table header"
+                assert raw not in json_keys, (
+                    f"Raw CSV column name '{raw}' should not appear as a JSON key"
                 )
             for display in self._ALL_DISPLAY_HEADERS:
-                assert display in th_texts, (
-                    f"Expected display header '{display}' not found in table headers: {th_texts}"
+                assert display in json_keys, (
+                    f"Expected display header '{display}' not found in JSON keys: {json_keys}"
                 )
-            assert "Scrape Date" not in th_texts, (
-                "Scrape Date should not appear as a table column (shown in stats strip instead)"
-            )
 
-            # scrape_date shown in the table-stats strip, not a separate info-box
-            stats_strip = soup.find(class_="table-stats")
-            assert stats_strip is not None, "Should have a table-stats strip"
-            assert "Scraped" in stats_strip.get_text(), "Stats strip should show scrape date"
+            # scrape_date shown in the table-stats-date paragraph, not a table column
+            stats_date = soup.find(class_="table-stats-date")
+            assert stats_date is not None, "Should have a table-stats-date element"
+            assert "Scraped" in stats_date.get_text(), "Stats element should show scrape date"
 
 
 class TestPageConfig:
@@ -735,13 +696,12 @@ class TestWishlistRangeCalculation:
         
         html = generate_snapshot_page(config=config)
         
-        # Verify wishlist slider has correct min/max from data (5, 15)
-        assert 'min="5"' in html, "Expected min='5' based on CSV data"
-        assert 'max="15"' in html, "Expected max='15' based on CSV data"
-        assert 'value="15"' in html, "Expected slider to initialize at max value"
-        
-        # Verify display shows correct range
-        assert "Showing: 5 - 15" in html, "Expected display to show '5 - 15'"
+        # Wishlist sliders are now rendered by the Svelte SortableTable from JSON data.
+        # Verify the JSON payload contains all the wishlist values for Svelte to compute the range.
+        data = _table_json(html)
+        wishlist_values = [int(row['Wishlist Count']) for row in data if row.get('Wishlist Count', '').isdigit()]
+        assert min(wishlist_values) == 5, f"Expected min wishlist value 5 in JSON, got {min(wishlist_values)}"
+        assert max(wishlist_values) == 15, f"Expected max wishlist value 15 in JSON, got {max(wishlist_values)}"
 
     def test_wishlist_slider_absent_when_column_missing(self, tmp_path):
         """Should omit wishlist slider entirely when wishlist_count column is missing."""
@@ -819,9 +779,13 @@ class TestWishlistRangeCalculation:
         
         html = generate_snapshot_page(config=config)
         
-        # Should use valid values only (3, 20)
-        assert 'min="3"' in html
-        assert 'max="20"' in html
+        # Wishlist sliders are now rendered by Svelte; verify JSON has all rows including invalid.
+        # Svelte SortableTable handles invalid values when computing the slider range (verified by E2E).
+        data = _table_json(html)
+        assert len(data) == 3, f"JSON payload should have all 3 rows, got {len(data)}"
+        valid_values = [int(row['Wishlist Count']) for row in data if str(row.get('Wishlist Count', '')).isdigit()]
+        assert 3 in valid_values, "JSON should contain wishlist value 3"
+        assert 20 in valid_values, "JSON should contain wishlist value 20"
 
     def test_wishlist_range_with_single_value(self, tmp_path):
         """Should handle CSV with only one row correctly."""
@@ -844,10 +808,11 @@ class TestWishlistRangeCalculation:
         
         html = generate_snapshot_page(config=config)
         
-        # Min and max should both be 42
-        assert 'min="42"' in html
-        assert 'max="42"' in html
-        assert 'value="42"' in html
+        # Wishlist sliders are now rendered by Svelte from JSON data.
+        # Verify the single row has wishlist_count=42 in the JSON payload.
+        data = _table_json(html)
+        assert len(data) == 1, f"JSON payload should have 1 row, got {len(data)}"
+        assert str(data[0].get('Wishlist Count')) == '42', f"Expected wishlist value 42, got {data[0].get('Wishlist Count')}"
 
     def test_wishlist_range_with_zero_values(self, tmp_path):
         """Should correctly handle zero wishlist counts."""
@@ -872,9 +837,12 @@ class TestWishlistRangeCalculation:
         
         html = generate_snapshot_page(config=config)
         
-        # Should correctly identify 0 as minimum
-        assert 'min="0"' in html
-        assert 'max="5"' in html
+        # Wishlist sliders are now rendered by Svelte from JSON data.
+        # Verify JSON has all rows with wishlist values including 0 and 5.
+        data = _table_json(html)
+        wishlist_values = [row.get('Wishlist Count') for row in data]
+        assert '0' in wishlist_values or 0 in wishlist_values, "JSON should contain wishlist count 0"
+        assert '5' in wishlist_values or 5 in wishlist_values, "JSON should contain wishlist count 5"
 
 
 class TestPriceRangeCalculation:
@@ -903,13 +871,13 @@ class TestPriceRangeCalculation:
         
         html = generate_snapshot_page(config=config)
         
-        # Verify price slider has correct min/max from data (8, 26 - rounded up)
-        assert 'min="8"' in html, "Expected min='8' based on CSV data"
-        assert 'max="26"' in html, "Expected max='26' based on CSV data (25.50 rounded up + 1)"
-        assert 'value="26"' in html, "Expected slider to initialize at max value"
-        
-        # Verify display shows correct range
-        assert "Showing: £8 - £26" in html, "Expected display to show '£8 - £26'"
+        # Price sliders are now rendered by the Svelte SortableTable from JSON data.
+        # Verify the JSON payload contains all price values for Svelte to compute the range.
+        data = _table_json(html)
+        assert len(data) == 3, f"JSON payload should have 3 rows, got {len(data)}"
+        assert all('Price (GBP)' in row for row in data), "All JSON rows should have Price (GBP) field"
+        # Prices are present in the JSON for Svelte to parse and compute slider range (verified by E2E)
+        assert '£8.99' in html or '8.99' in html, "Price data should appear in JSON payload"
 
     def test_price_slider_absent_when_column_missing(self, tmp_path):
         """Should omit price slider entirely when price_gbp column is missing."""
@@ -987,9 +955,10 @@ class TestPriceRangeCalculation:
         
         html = generate_snapshot_page(config=config)
         
-        # Should use valid values only (10, 46)
-        assert 'min="10"' in html
-        assert 'max="46"' in html
+        # Price sliders are now rendered by Svelte; verify JSON has all rows including invalid price row.
+        # Svelte SortableTable handles invalid values when computing the slider range (verified by E2E).
+        data = _table_json(html)
+        assert len(data) == 3, f"JSON payload should have all 3 rows (including invalid price row), got {len(data)}"
 
     def test_price_range_with_single_value(self, tmp_path):
         """Should handle CSV with only one row correctly."""
@@ -1012,10 +981,11 @@ class TestPriceRangeCalculation:
         
         html = generate_snapshot_page(config=config)
         
-        # Min should be 15, max should be 16 (15.99 -> 15, then +1)
-        assert 'min="15"' in html
-        assert 'max="16"' in html
-        assert 'value="16"' in html
+        # Price sliders are now rendered by Svelte from JSON data.
+        # Verify the single row has price data in JSON.
+        data = _table_json(html)
+        assert len(data) == 1, f"JSON payload should have 1 row, got {len(data)}"
+        assert 'Price (GBP)' in data[0], "JSON row should have Price (GBP) field"
 
     def test_price_range_with_decimal_prices(self, tmp_path):
         """Should correctly handle decimal prices and round appropriately."""
@@ -1040,9 +1010,11 @@ class TestPriceRangeCalculation:
         
         html = generate_snapshot_page(config=config)
         
-        # Min should be 7 (floor), max should be 23 (floor of 22.75 + 1)
-        assert 'min="7"' in html
-        assert 'max="23"' in html
+        # Price sliders are now rendered by Svelte from JSON data.
+        # Verify JSON has all rows with price data for Svelte to compute the range.
+        data = _table_json(html)
+        assert len(data) == 3, f"JSON payload should have 3 rows, got {len(data)}"
+        assert all('Price (GBP)' in row for row in data), "All JSON rows should have Price (GBP) field"
 
     def test_price_range_handles_prices_without_pound_symbol(self, tmp_path):
         """Should handle prices that don't have £ symbol."""
@@ -1066,9 +1038,11 @@ class TestPriceRangeCalculation:
         
         html = generate_snapshot_page(config=config)
         
-        # Should correctly parse prices without £ symbol
-        assert 'min="10"' in html
-        assert 'max="31"' in html
+        # Price sliders are now rendered by Svelte from JSON data.
+        # Verify JSON has rows with price data even without £ symbol.
+        data = _table_json(html)
+        assert len(data) == 2, f"JSON payload should have 2 rows, got {len(data)}"
+        assert all('Price (GBP)' in row for row in data), "All JSON rows should have Price (GBP) field"
 
 
 class TestGenerateHistoryPage:

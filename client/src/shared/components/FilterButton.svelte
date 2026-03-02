@@ -4,12 +4,15 @@
     value: string;
     active: boolean;
     onclick: () => void;
+    /** Any additional HTML attributes (e.g. data-action, data-signal, data-limit)
+     *  are spread directly onto the <button> element. */
+    [key: string]: unknown;
   }
 
-  let { label, value, active, onclick }: Props = $props();
+  let { label, value, active, onclick, ...rest }: Props = $props();
 </script>
 
-<button class={{ 'filter-btn': true, 'is-active': active }} data-value={value} {onclick}>
+<button class={{ 'filter-btn': true, 'is-active': active }} data-value={value} {onclick} {...rest}>
   {label}
 </button>
 

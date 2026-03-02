@@ -4,22 +4,30 @@
    - headers: list of (index, column_header) tuples from enumerate
    - rows: list of rows, each row is a list of (index, cell_value) tuples from enumerate
    - sortable: whether to make headers sortable (default True)
+   - render_server_rows: when True, render actual <tr> rows (history page plain-JS mode)
+     when False/absent, render only the Svelte mount div (breeder/dealer/snapshot)
    - page_url_idx: index of page_url column (optional)
    - scientific_name_idx: index of scientific_name column (optional)
    - signal_col_idx: index of Signal or Dealer Risk column (optional)
    - drivers_col_idx: index of Drivers column (optional, hidden if present)
+   - date_col_idx: index of scrape_datetime column (optional, adds data-date on tr)
+   - price_idx: index of price column (optional, adds data-price on tr)
+   - wishlist_idx: index of wishlist column (optional, adds data-wishlist on tr)
+   - raw_datetimes: list of original ISO datetime strings, one per row (optional)
 #}
 {% from 'macros.html' import driver_tooltip %}
 
 {% if not headers or not rows %}
 <p>No data available.</p>
-{% else %}
+{% elif render_server_rows is defined and render_server_rows %}
+{# ── Server-rendered mode (history page) ─────────────────────────────────── #}
+{# Plain JS works directly with DOM <tr> elements; no Svelte component used.  #}
 <table id="{{ table_id }}" class="data-table">
   <thead>
     <tr>
       {% for i, header in headers %}
       {% if hidden_col_indices is defined and i in hidden_col_indices %}
-        {# Hidden column - skip header #}
+        {# Hidden column – skip header #}
       {% elif drivers_col_idx is defined and i == drivers_col_idx and drivers_col_idx is not none %}
         {# Hide Drivers column header #}
       {% elif sortable %}
@@ -32,9 +40,31 @@
     </tr>
   </thead>
   <tbody>
-    <div id="{{ table_id }}-root"></div>
+    {% for row_cells in rows %}
+    {% set row_loop = loop %}
+    <tr{% if date_col_idx is defined and date_col_idx is not none %} data-date="{{ row_cells[date_col_idx][1] }}"{% endif %}{% if price_idx is defined and price_idx is not none %} data-price="{{ row_cells[price_idx][1] }}"{% endif %}{% if wishlist_idx is defined and wishlist_idx is not none %} data-wishlist="{{ row_cells[wishlist_idx][1] }}"{% endif %}>
+      {% for i, cell in row_cells %}
+      {% if hidden_col_indices is defined and i in hidden_col_indices %}
+        {# Hidden column – skip #}
+      {% elif drivers_col_idx is defined and i == drivers_col_idx and drivers_col_idx is not none %}
+        {# Hide Drivers column #}
+      {% elif date_col_idx is defined and date_col_idx is not none and i == date_col_idx %}
+      <td{% if raw_datetimes is defined and raw_datetimes %} data-raw="{{ raw_datetimes[row_loop.index0] }}"{% endif %}>{{ cell }}</td>
+      {% elif page_url_idx is defined and page_url_idx is not none and i == page_url_idx %}
+      <td><a href="{{ cell }}">{{ cell }}</a></td>
+      {% else %}
+      <td>{{ cell }}</td>
+      {% endif %}
+      {% endfor %}
+    </tr>
+    {% endfor %}
   </tbody>
 </table>
+{% else %}
+{# ── Svelte-mounted mode (breeder / dealer / snapshot) ───────────────────── #}
+{# SortableTable component renders the complete table; we only need the mount #}
+{# div.  The component reads its data from the window[…Data] JSON below.      #}
+<div id="{{ table_id }}-root"></div>
 {% endif %}
 
 <script>window['{{ table_id }}Data'] = {{ json_rows | tojson }};</script>

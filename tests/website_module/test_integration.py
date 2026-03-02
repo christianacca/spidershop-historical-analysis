@@ -90,9 +90,8 @@ Example content for dealers.
                 with open(breeder_html_path, "r", encoding="utf-8") as f:
                     breeder_html = f.read()
                 
-                # Top 10 filter button should be rendered from CSV (not markdown)
-                assert "<table" in breeder_html, "Should have table rendered from CSV"
-                assert 'data-limit="10"' in breeder_html, "Should have 🔥 Hot (top 10) filter button"
+                # Mount div and JS bundle must be present (Svelte renders the table)
+                assert 'src="breeder-page.js"' in breeder_html, "Should reference breeder page JS"
                 
                 # Summary stats should be extracted and rendered as cards
                 assert "109 species analyzed" in breeder_html or "Species Analyzed" in breeder_html
@@ -117,9 +116,8 @@ Example content for dealers.
                 with open(dealer_html_path, "r", encoding="utf-8") as f:
                     dealer_html = f.read()
                 
-                # Top 10 filter button should be rendered from CSV
-                assert "<table" in dealer_html
-                assert 'data-limit="10"' in dealer_html, "Should have 🔥 Hot (top 10) filter button"
+                # Dealer JS bundle should be referenced (Svelte owns filter buttons + table)
+                assert 'src="dealer-page.js"' in dealer_html, "Should reference dealer-page JS bundle"
                 
                 # Verify legend/examples were converted to HTML
                 assert "<h4>" in dealer_html  # Some heading converted
@@ -151,10 +149,9 @@ Example content for dealers.
             assert "Test Page" in html
             assert "Description here" in html
             assert "Download CSV" in html
-            assert "Search:" in html
+            # Search input is now rendered by Svelte SortableTable (not server-rendered)
             assert "Species 0" in html or "Species 1" in html
-            assert 'data-limit="10"' in html, "Should have 🔥 Hot (top 10) filter button"
-            assert "<table" in html, "Should have table"
+            # Svelte SortableTable renders the full table (verified by E2E)
             assert 'id="legend-section"' in html, "Legend <details> should have id='legend-section'"
             assert "Symbol" in html
             assert "</html>" in html
@@ -268,8 +265,7 @@ Example content for dealers.
                 
                 with open(OUTPUT_DIR / "breeder.html", "r", encoding="utf-8") as f:
                     breeder_html = f.read()
-                    assert "<table" in breeder_html, "Should have table rendered from CSV"
-                    assert 'data-limit="10"' in breeder_html or "109 species" in breeder_html
+                    assert 'src="breeder-page.js"' in breeder_html, "Should reference breeder page JS"
 
                 # Verify page headings include the icons matching the homepage cards
                 expected_headings = {
@@ -310,11 +306,11 @@ class TestHtmlSnapshots:
         
         html = generate_table_html(headers, rows, "breeder-table", sortable=True)
         
-        # Extract just the table element (not wrapper divs or script)
+        # Svelte renders the table client-side; snapshot the mount div
         soup = BeautifulSoup(html, "html.parser")
-        table = soup.find("table")
-        
-        assert snapshot == str(table)
+        mount_div = soup.find("div", id="breeder-table-root")
+
+        assert snapshot == str(mount_div)
 
     def test_navigation_structure_snapshot(self, snapshot):
         """Should maintain consistent navigation HTML structure."""

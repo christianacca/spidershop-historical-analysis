@@ -6,9 +6,21 @@
     max: number;
     label: string;
     onchange: (detail: { min: number; max: number }) => void;
+    /** Override the auto-generated id for the min range input. */
+    minInputId?: string;
+    /** Override the auto-generated id for the max range input. */
+    maxInputId?: string;
+    /** Add an id to the display span (e.g. for E2E targeting). */
+    displayId?: string;
+    /** Format an individual value for the display span (default: String). */
+    formatValue?: (v: number) => string;
   }
 
-  let { min, max, label, onchange }: Props = $props();
+  let { min, max, label, onchange, minInputId, maxInputId, displayId, formatValue }: Props = $props();
+
+  const resolvedMinId = $derived(minInputId ?? `${uid}-min`);
+  const resolvedMaxId = $derived(maxInputId ?? `${uid}-max`);
+  const fmt = $derived(formatValue ?? String);
 
   let currentMin = $state(min);
   let currentMax = $state(max);
@@ -36,11 +48,11 @@
 
 <div class="range-slider">
   <span class="label">{label}</span>
-  <span class="display">{currentMin} – {currentMax}</span>
+  <span class="display" id={displayId}>{fmt(currentMin)} – {fmt(currentMax)}</span>
   <div class="track">
-    <label for="{uid}-min">Min</label>
+    <label for={resolvedMinId}>Min</label>
     <input
-      id="{uid}-min"
+      id={resolvedMinId}
       type="range"
       class="thumb"
       min={min}
@@ -48,9 +60,9 @@
       value={currentMin}
       oninput={handleMinInput}
     />
-    <label for="{uid}-max">Max</label>
+    <label for={resolvedMaxId}>Max</label>
     <input
-      id="{uid}-max"
+      id={resolvedMaxId}
       type="range"
       class="thumb"
       min={min}

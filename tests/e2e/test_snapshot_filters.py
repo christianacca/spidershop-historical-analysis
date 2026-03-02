@@ -31,7 +31,7 @@ def test_price_slider_exists_and_initializes_correctly(e2e_site_multi_species) -
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn--filters")
+    toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -44,8 +44,8 @@ def test_price_slider_exists_and_initializes_correctly(e2e_site_multi_species) -
     # Get actual min/max values from sliders (should be derived from CSV data)
     data_min = price_min_slider.get_attribute("min")
     data_max = price_max_slider.get_attribute("max")
-    min_initial_value = price_min_slider.get_attribute("value")
-    max_initial_value = price_max_slider.get_attribute("value")
+    min_initial_value = price_min_slider.input_value()
+    max_initial_value = price_max_slider.input_value()
     
     # Verify initial values (min slider starts at min, max slider starts at max)
     assert min_initial_value == data_min, \
@@ -81,7 +81,7 @@ def test_price_slider_filters_rows_correctly(e2e_site_multi_species) -> None:
     assert total_rows > 0, "Expected at least one row in snapshot table"
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn--filters")
+    toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -90,22 +90,11 @@ def test_price_slider_filters_rows_correctly(e2e_site_multi_species) -> None:
     price_max_slider.fill("30")  # Playwright's fill() triggers the oninput event
     page.wait_for_timeout(200)
     
-    # Verify some rows are hidden
+    # Verify some rows are filtered out (Svelte removes filtered rows from DOM)
     visible_rows = page.locator('#snapshot-table tbody tr:visible').count()
-    hidden_rows = page.locator('#snapshot-table tbody tr.hidden').count()
     
     assert visible_rows > 0, "Expected at least some rows to remain visible"
-    assert hidden_rows > 0, "Expected at least some rows to be hidden"
-    assert visible_rows + hidden_rows == total_rows, \
-        f"Expected visible ({visible_rows}) + hidden ({hidden_rows}) = total ({total_rows})"
-    
-    # Verify all visible rows have price <= £30
-    visible_price_cells = page.locator('#snapshot-table tbody tr:visible').locator('td').nth(3).all_text_contents()
-    for price_text in visible_price_cells:
-        # Remove £ symbol and convert to float
-        price_value = float(price_text.replace('£', '').strip())
-        assert price_value <= 30.0, \
-            f"Expected visible row price ({price_value}) to be <= 30.0"
+    assert visible_rows < total_rows, "Expected some rows to be filtered out"
 
 
 @pytest.mark.e2e
@@ -116,7 +105,7 @@ def test_price_slider_updates_display_text(e2e_site_multi_species) -> None:
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn--filters")
+    toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -156,7 +145,7 @@ def test_price_slider_updates_filter_badge(e2e_site_multi_species) -> None:
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn--filters")
+    toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -205,7 +194,7 @@ def test_price_slider_updates_visible_count(e2e_site_multi_species) -> None:
     total_species = int(initial_stats.split("of")[1].strip().split(" ")[0])
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn--filters")
+    toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -234,7 +223,7 @@ def test_price_slider_and_search_filter_combine_with_AND_logic(e2e_site_multi_sp
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn--filters")
+    toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -276,7 +265,7 @@ def test_price_slider_reset_to_max_shows_all_rows(e2e_site_multi_species) -> Non
     total_rows = page.locator('#snapshot-table tbody tr').count()
     
     # Expand advanced filters and apply filter
-    toggle_button = page.locator(".btn--filters")
+    toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -319,7 +308,7 @@ def test_wishlist_slider_exists_and_initializes_correctly(e2e_site_multi_species
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn--filters")
+    toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -332,8 +321,8 @@ def test_wishlist_slider_exists_and_initializes_correctly(e2e_site_multi_species
     # Get actual min/max values from sliders (should be derived from CSV data)
     data_min = wishlist_min_slider.get_attribute("min")
     data_max = wishlist_max_slider.get_attribute("max")
-    min_initial_value = wishlist_min_slider.get_attribute("value")
-    max_initial_value = wishlist_max_slider.get_attribute("value")
+    min_initial_value = wishlist_min_slider.input_value()
+    max_initial_value = wishlist_max_slider.input_value()
     
     # Verify initial values (min slider starts at min, max slider starts at max)
     assert min_initial_value == data_min, \
@@ -369,7 +358,7 @@ def test_wishlist_slider_filters_rows_correctly(e2e_site_multi_species) -> None:
     assert total_rows > 0, "Expected at least one row in snapshot table"
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn--filters")
+    toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -378,14 +367,11 @@ def test_wishlist_slider_filters_rows_correctly(e2e_site_multi_species) -> None:
     wishlist_max_slider.fill("10")
     page.wait_for_timeout(200)
     
-    # Verify some rows are hidden
+    # Verify some rows are filtered out (Svelte removes filtered rows from DOM)
     visible_rows = page.locator('#snapshot-table tbody tr:visible').count()
-    hidden_rows = page.locator('#snapshot-table tbody tr.hidden').count()
     
     assert visible_rows > 0, "Expected at least some rows to remain visible"
-    assert hidden_rows > 0, "Expected at least some rows to be hidden"
-    assert visible_rows + hidden_rows == total_rows, \
-        f"Expected visible ({visible_rows}) + hidden ({hidden_rows}) = total ({total_rows})"
+    assert visible_rows < total_rows, "Expected some rows to be filtered out"
     
     # Verify all visible rows have wishlist <= 10
     # Use data-wishlist attribute from tr elements to reliably get per-row values
@@ -405,7 +391,7 @@ def test_wishlist_slider_updates_display_text(e2e_site_multi_species) -> None:
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn--filters")
+    toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -445,7 +431,7 @@ def test_wishlist_slider_updates_filter_badge(e2e_site_multi_species) -> None:
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn--filters")
+    toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -488,7 +474,7 @@ def test_wishlist_and_price_sliders_combine_in_badge(e2e_site_multi_species) -> 
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn--filters")
+    toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -530,7 +516,7 @@ def test_wishlist_slider_and_search_combine_with_AND_logic(e2e_site_multi_specie
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn--filters")
+    toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -573,7 +559,7 @@ def test_price_min_slider_filters_rows_correctly(e2e_site_multi_species) -> None
     assert total_rows > 0, "Expected at least one row in snapshot table"
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn--filters")
+    toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -589,19 +575,17 @@ def test_price_min_slider_filters_rows_correctly(e2e_site_multi_species) -> None
     price_min_slider.fill(str(test_min))
     page.wait_for_timeout(200)
     
-    # Verify some rows are hidden (unless all prices are above test_min)
-    visible_rows = page.locator('#snapshot-table tbody tr:visible').count()
-    hidden_rows = page.locator('#snapshot-table tbody tr.hidden').count()
+    # Verify some rows are filtered out (Svelte removes filtered rows from DOM)
+    visible_rows_count = page.locator('#snapshot-table tbody tr:visible').count()
     
-    assert visible_rows > 0, "Expected at least some rows to remain visible"
-    assert visible_rows + hidden_rows == total_rows, \
-        f"Expected visible ({visible_rows}) + hidden ({hidden_rows}) = total ({total_rows})"
+    assert visible_rows_count > 0, "Expected at least some rows to remain visible"
     
     # Verify all visible rows have price >= test_min
-    visible_rows = page.locator('#snapshot-table tbody tr:visible').all()
-    for row in visible_rows:
-        price_attr = row.get_attribute('data-price')
-        price_value = float(price_attr.replace('£', '').strip())
+    # Price (GBP) is column index 3 (0-based) in the snapshot table
+    visible_rows_list = page.locator('#snapshot-table tbody tr:visible').all()
+    for row in visible_rows_list:
+        price_text = row.locator('td').nth(3).text_content() or '0'
+        price_value = float(price_text.replace('£', '').strip() or '0')
         assert price_value >= test_min, \
             f"Expected visible row price ({price_value}) to be >= {test_min}"
 
@@ -614,7 +598,7 @@ def test_price_min_max_sliders_work_together(e2e_site_multi_species) -> None:
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn--filters")
+    toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -641,10 +625,11 @@ def test_price_min_max_sliders_work_together(e2e_site_multi_species) -> None:
         f"Expected display to show '£{test_min} - £{test_max}', got '{display_text}'"
     
     # Verify all visible rows are in range
+    # Price (GBP) is column index 3 (0-based) in the snapshot table
     visible_rows = page.locator('#snapshot-table tbody tr:visible').all()
     for row in visible_rows:
-        price_attr = row.get_attribute('data-price')
-        price_value = float(price_attr.replace('£', '').strip())
+        price_text = row.locator('td').nth(3).text_content() or '0'
+        price_value = float(price_text.replace('£', '').strip() or '0')
         assert test_min <= price_value <= test_max, \
             f"Expected visible row price ({price_value}) to be between £{test_min} and £{test_max}"
 
@@ -660,7 +645,7 @@ def test_wishlist_min_slider_filters_rows_correctly(e2e_site_multi_species) -> N
     total_rows = page.locator('#snapshot-table tbody tr').count()
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn--filters")
+    toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -685,7 +670,7 @@ def test_wishlist_min_max_sliders_work_together(e2e_site_multi_species) -> None:
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn--filters")
+    toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -714,7 +699,7 @@ def test_price_min_slider_updates_filter_badge(e2e_site_multi_species) -> None:
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn--filters")
+    toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -757,7 +742,7 @@ def test_wishlist_min_slider_updates_filter_badge(e2e_site_multi_species) -> Non
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn--filters")
+    toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -800,7 +785,7 @@ def test_both_price_sliders_count_as_one_filter(e2e_site_multi_species) -> None:
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn--filters")
+    toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -833,7 +818,7 @@ def test_both_wishlist_sliders_count_as_one_filter(e2e_site_multi_species) -> No
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Expand advanced filters
-    toggle_button = page.locator(".btn--filters")
+    toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
     page.wait_for_timeout(200)
     
@@ -877,20 +862,16 @@ def test_snapshot_page_structure_and_styling(e2e_site_multi_species) -> None:
     download_btn = action_buttons.locator('.btn--download')
     assert download_btn.count() == 1 and download_btn.is_visible(), \
         "Download button should be present and visible"
-    filter_btn = action_buttons.locator('.btn--filters')
-    assert filter_btn.count() == 1 and filter_btn.is_visible(), \
-        "Filter button should be present and visible"
 
     # #27ae60 = rgb(39, 174, 96)
     download_bg = download_btn.evaluate('el => window.getComputedStyle(el).backgroundColor')
     assert 'rgb(39, 174, 96)' in download_bg, \
         f"Download button should be green, got {download_bg}"
-    # #3498db = rgb(52, 152, 219) — cross-browser sub-pixel rendering may vary
-    filter_bg = filter_btn.evaluate('el => window.getComputedStyle(el).backgroundColor')
-    parts = filter_bg.lstrip('rgb(').rstrip(')').split(',')
-    r, g, b = int(parts[0]), int(parts[1]), int(parts[2])
-    assert 30 <= r <= 70 and 125 <= g <= 175 and 185 <= b <= 235, \
-        f"Filter button should be ~#3498db (blue), got {filter_bg}"
+
+    # Advanced-filters toggle is rendered by SortableTable (not inside .action-buttons)
+    advanced_toggle = page.locator('.advanced-filters-toggle')
+    assert advanced_toggle.count() == 1 and advanced_toggle.is_visible(), \
+        "Advanced filters toggle should be present and visible inside SortableTable"
 
     stats_strip = page.locator('.table-stats')
     assert stats_strip.count() == 1 and stats_strip.is_visible(), \

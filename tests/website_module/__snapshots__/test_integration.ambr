@@ -33,18 +33,5 @@
   'None'
 # ---
 # name: TestHtmlSnapshots.test_table_structure_snapshot
-  '''
-  <table class="data-table" id="breeder-table">
-  <thead>
-  <tr>
-  <th data-column-index="0" data-sortable="true" data-table-id="breeder-table">Species <span class="sort-indicator">⇅</span></th>
-  <th data-column-index="1" data-sortable="true" data-table-id="breeder-table">Signal <span class="sort-indicator">⇅</span></th>
-  <th data-column-index="2" data-sortable="true" data-table-id="breeder-table">OOS <span class="sort-indicator">⇅</span></th>
-  </tr>
-  </thead>
-  <tbody>
-  <div id="breeder-table-root"></div>
-  </tbody>
-  </table>
-  '''
+  '<div id="breeder-table-root"></div>'
 # ---

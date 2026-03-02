@@ -186,11 +186,8 @@ class TestGenerateTableHtml:
         mount_div = soup.find('div', id='test-table-root')
         assert mount_div is not None, "Mount div should be present"
 
-        # Drivers column header is hidden from thead (column is present in JSON)
-        headers_rendered = soup.select('thead tr th')
-        assert len(headers_rendered) == 2, "Drivers column header should be hidden in thead"
-
-        # JSON payload has Signal and Drivers for Svelte to use
+        # In Svelte mode there is no server-rendered thead; all data comes via JSON.
+        # The JSON payload has Species, Signal, and Drivers for Svelte to use
         data = _table_json(html)
         assert len(data) == 1
         row = data[0]
