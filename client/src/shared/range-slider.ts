@@ -30,6 +30,32 @@ export class RangeSlider {
   }
 
   /**
+   * Create a price slider with standard configuration
+   */
+  static createPriceSlider(): RangeSlider {
+    return new RangeSlider({
+      minId: 'priceMin',
+      maxId: 'priceMax',
+      displayId: 'priceDisplay',
+      parse: parseFloat,
+      format: (min, max) => `Showing: £${Math.round(min)} - £${Math.round(max)}`
+    });
+  }
+
+  /**
+   * Create a wishlist slider with standard configuration
+   */
+  static createWishlistSlider(): RangeSlider {
+    return new RangeSlider({
+      minId: 'wishlistMin',
+      maxId: 'wishlistMax',
+      displayId: 'wishlistDisplay',
+      parse: parseInt,
+      format: (min, max) => `Showing: ${min} - ${max}`
+    });
+  }
+
+  /**
    * Enforce min <= max constraint when sliders change
    */
   enforceConstraints(event?: Event): void {
