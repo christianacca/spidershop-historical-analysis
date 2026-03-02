@@ -12,3 +12,19 @@ export function getElement(id: string): HTMLElement | null {
   if (!el) console.warn(`Element not found: ${id}`);
   return el;
 }
+
+/**
+ * Wire click listeners on `<a data-action="open-details">` elements so that
+ * clicking them opens the `<details>` element referenced by `data-target`.
+ */
+export function wireOpenDetailsLinks(): void {
+  document.querySelectorAll<HTMLAnchorElement>('a[data-action="open-details"]').forEach((link) => {
+    link.addEventListener('click', () => {
+      const targetId = link.dataset.target;
+      if (targetId) {
+        const target = document.getElementById(targetId) as HTMLDetailsElement | null;
+        if (target) target.open = true;
+      }
+    });
+  });
+}

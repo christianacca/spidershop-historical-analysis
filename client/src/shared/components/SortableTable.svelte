@@ -1,6 +1,7 @@
 <script lang="ts">
   import { unicodeToSvg } from '../sparklines.js';
   import { escapeCsvRow } from '../csv-utils.js';
+  import { computeRange, sortRows, buildCsv, triggerDownload } from '../table-utils.js';
   import FilterButton from './FilterButton.svelte';
   import SearchInput from './SearchInput.svelte';
   import RangeSlider from './RangeSlider.svelte';
@@ -48,25 +49,8 @@
 
   // ── One-time range computation (data is static after mount) ────────────────
 
-  const priceRange = (() => {
-    const col = filterConfig.priceColumn;
-    if (!col) return { min: 0, max: 0 };
-    const vals = rows
-      .map((r) => parseFloat(String(r[col] ?? '0')))
-      .filter((v) => !isNaN(v));
-    return vals.length
-      ? { min: Math.floor(Math.min(...vals)), max: Math.ceil(Math.max(...vals)) }
-      : { min: 0, max: 0 };
-  })();
-
-  const wishlistRange = (() => {
-    const col = filterConfig.wishlistColumn;
-    if (!col) return { min: 0, max: 0 };
-    const vals = rows
-      .map((r) => parseInt(String(r[col] ?? '0'), 10))
-      .filter((v) => !isNaN(v));
-    return vals.length ? { min: Math.min(...vals), max: Math.max(...vals) } : { min: 0, max: 0 };
-  })();
+  const priceRange = computeRange(rows, filterConfig.priceColumn, 'float');
+  const wishlistRange = computeRange(rows, filterConfig.wishlistColumn, 'int');
 
   // ── Data (raw — rows never change after mount) ─────────────────────────────
   const allRows = $state.raw(rows);
@@ -140,19 +124,7 @@
 
     // 7. Sort
     if (sortKey !== null) {
-      const key = sortKey;
-      const dir = sortDir;
-      result = [...result].sort((a, b) => {
-        const aRaw = a[key] ?? '';
-        const bRaw = b[key] ?? '';
-        const aNum = parseFloat(String(aRaw));
-        const bNum = parseFloat(String(bRaw));
-        const isNumeric = !isNaN(aNum) && !isNaN(bNum);
-        const cmp = isNumeric
-          ? aNum - bNum
-          : String(aRaw).localeCompare(String(bRaw));
-        return dir === 'asc' ? cmp : -cmp;
-      });
+      result = sortRows(result, sortKey, sortDir);
     }
 
     return result;
@@ -216,33 +188,8 @@
   }
 
   // ── CSV download ───────────────────────────────────────────────────────────
-  function buildCsv(): string {
-    const csvHeaders = columns.map((col) => col.csvHeader ?? col.key);
-    const lines: string[] = [escapeCsvRow(csvHeaders)];
-    for (const row of visibleRows) {
-      const values = columns.map((col) => {
-        if (col.rawValueKey) {
-          return String(row[col.rawValueKey] ?? row[col.key] ?? '');
-        }
-        return String(row[col.key] ?? '');
-      });
-      lines.push(escapeCsvRow(values));
-    }
-    return lines.join('\r\n');
-  }
-
   function downloadCsv(): void {
-    const content = buildCsv();
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${tableId}_filtered.csv`;
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    triggerDownload(buildCsv(columns, visibleRows, escapeCsvRow), `${tableId}_filtered.csv`);
   }
 
   // ── Static button configs ──────────────────────────────────────────────────

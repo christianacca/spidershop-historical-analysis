@@ -1,6 +1,7 @@
 <script lang="ts">
   import { unicodeToSvg } from '../shared/sparklines.js';
   import { escapeCsvRow } from '../shared/csv-utils.js';
+  import { computeRange, sortRows, buildCsv, triggerDownload } from '../shared/table-utils.js';
   import type { ColumnConfig } from '../shared/components/SortableTable.svelte';
   import DateFilter from './DateFilter.svelte';
   import RangeSlider from '../shared/components/RangeSlider.svelte';
@@ -24,44 +25,33 @@
 
   // ── One-time range computation ─────────────────────────────────────────────
 
-  const priceRange = (() => {
-    const col = priceColumn;
-    if (!col) return { min: 0, max: 0 };
-    const vals = rows
-      .map((r) => parseFloat(String(r[col] ?? '0')))
-      .filter((v) => !isNaN(v));
-    return vals.length
-      ? { min: Math.floor(Math.min(...vals)), max: Math.ceil(Math.max(...vals)) }
-      : { min: 0, max: 0 };
-  })();
+  const priceRange = computeRange(rows, priceColumn, 'float');
+  const wishlistRange = computeRange(rows, wishlistColumn, 'int');
 
-  const wishlistRange = (() => {
-    const col = wishlistColumn;
-    if (!col) return { min: 0, max: 0 };
-    const vals = rows
-      .map((r) => parseInt(String(r[col] ?? '0'), 10))
-      .filter((v) => !isNaN(v));
-    return vals.length ? { min: Math.min(...vals), max: Math.max(...vals) } : { min: 0, max: 0 };
-  })();
+  // ── Helper: collect unique dates from rows (oldest-to-newest reversed) ─────
 
-  // ── Data (raw — rows never change after mount) ─────────────────────────────
-  const allRows = $state.raw(rows);
-
-  // ── Derived: unique dates and row counts (from the date column) ────────────
-  const allDates = $derived.by(() => {
-    if (!dateColumn) return [] as string[];
+  function collectAllDates(
+    sourceRows: Record<string, unknown>[],
+    dateCol: string | undefined,
+  ): string[] {
+    if (!dateCol) return [];
     const seen = new Set<string>();
     const ordered: string[] = [];
-    // rows come in CSV order (oldest first); we want most-recent first so reverse
-    for (let i = allRows.length - 1; i >= 0; i--) {
-      const d = String(allRows[i][dateColumn] ?? '');
+    for (let i = sourceRows.length - 1; i >= 0; i--) {
+      const d = String(sourceRows[i][dateCol] ?? '');
       if (d && !seen.has(d)) {
         seen.add(d);
         ordered.push(d);
       }
     }
     return ordered;
-  });
+  }
+
+  // ── Data (raw — rows never change after mount) ─────────────────────────────
+  const allRows = $state.raw(rows);
+
+  // ── Derived: unique dates and row counts (from the date column) ────────────
+  const allDates = $derived.by(() => collectAllDates(allRows, dateColumn));
 
   const rowCountsPerDate = $derived.by(() => {
     if (!dateColumn) return {} as Record<string, number>;
@@ -74,7 +64,9 @@
   });
 
   // ── UI state ────────────────────────────────────────────────────────────────
-  let selectedDates = $state<Set<string>>(new Set());
+  // selectedDates is initialised synchronously from the static rows data so
+  // visibleRows never filters against an empty set on first render.
+  let selectedDates = $state(new Set(collectAllDates(rows, dateColumn)));
   let searchText = $state('');
   let showAdvanced = $state(false);
   let sortKey = $state<string | null>(null);
@@ -83,13 +75,6 @@
   let sliderPriceMax = $state(priceRange.max);
   let sliderWishlistMin = $state(wishlistRange.min);
   let sliderWishlistMax = $state(wishlistRange.max);
-
-  // Initialise selectedDates once allDates is derived (on first reactive run)
-  $effect(() => {
-    if (selectedDates.size === 0 && allDates.length > 0) {
-      selectedDates = new Set(allDates);
-    }
-  });
 
   // ── Derived: filtered + sorted rows ───────────────────────────────────────
   const visibleRows = $derived.by(() => {
@@ -126,19 +111,7 @@
 
     // 5. Sort
     if (sortKey !== null) {
-      const key = sortKey;
-      const dir = sortDir;
-      result = [...result].sort((a, b) => {
-        const aRaw = a[key] ?? '';
-        const bRaw = b[key] ?? '';
-        const aNum = parseFloat(String(aRaw));
-        const bNum = parseFloat(String(bRaw));
-        const isNumeric = !isNaN(aNum) && !isNaN(bNum);
-        const cmp = isNumeric
-          ? aNum - bNum
-          : String(aRaw).localeCompare(String(bRaw));
-        return dir === 'asc' ? cmp : -cmp;
-      });
+      result = sortRows(result, sortKey, sortDir);
     }
 
     return result;
@@ -202,33 +175,11 @@
   }
 
   // ── CSV download ───────────────────────────────────────────────────────────
-  function buildCsv(): string {
-    const csvHeaders = columns.map((col) => col.csvHeader ?? col.key);
-    const lines: string[] = [escapeCsvRow(csvHeaders)];
-    for (const row of visibleRows) {
-      const values = columns.map((col) => {
-        if (col.rawValueKey) {
-          return String(row[col.rawValueKey] ?? row[col.key] ?? '');
-        }
-        return String(row[col.key] ?? '');
-      });
-      lines.push(escapeCsvRow(values));
-    }
-    return lines.join('\r\n');
-  }
-
   function downloadCsv(): void {
-    const content = buildCsv();
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'spidershop_spiderlings_history_filtered.csv';
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    triggerDownload(
+      buildCsv(columns, visibleRows, escapeCsvRow),
+      'spidershop_spiderlings_history_filtered.csv',
+    );
   }
 
   const formatPrice = (v: number): string => `£${v}`;

@@ -8,6 +8,7 @@
 import { mount } from 'svelte';
 import SortableTable from '../shared/components/SortableTable.svelte';
 import type { ColumnConfig, FilterConfig } from '../shared/components/SortableTable.svelte';
+import { wireOpenDetailsLinks } from '../shared/dom-utils.js';
 
 const TABLE_ID = 'dealer-table';
 
@@ -31,18 +32,6 @@ const FILTER_CONFIG: FilterConfig = {
   showSearch: true,
   statsLabel: 'species',
 };
-
-function wireOpenDetailsLinks(): void {
-  document.querySelectorAll<HTMLAnchorElement>('a[data-action="open-details"]').forEach((link) => {
-    link.addEventListener('click', () => {
-      const targetId = link.dataset.target;
-      if (targetId) {
-        const target = document.getElementById(targetId) as HTMLDetailsElement | null;
-        if (target) target.open = true;
-      }
-    });
-  });
-}
 
 function init(): void {
   const target = document.getElementById(`${TABLE_ID}-root`);

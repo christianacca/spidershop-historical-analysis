@@ -1297,7 +1297,7 @@ In `templates/macros.html`:
 
 ### Section B — Extract shared table utilities + fix `HistoryTable` init
 
-- [ ] B1. Create `client/src/shared/table-utils.ts` with four exported pure functions:
+- [x] B1. Create `client/src/shared/table-utils.ts` with four exported pure functions:
           - `computeRange(rows, col, mode: 'float' | 'int'): { min: number; max: number }` —
             replaces the identical `priceRange` and `wishlistRange` IIFEs in both components.
             `mode: 'float'` uses `parseFloat` + `Math.floor/ceil`; `mode: 'int'` uses `parseInt`.
@@ -1305,41 +1305,48 @@ In `templates/macros.html`:
           - `sortRows(rows, key, dir: 'asc' | 'desc'): Record<string, unknown>[]` —
             extracts the identical sort comparator (numeric detection via `parseFloat`,
             string `localeCompare`, direction toggle).
-          - `buildCsv(columns: ColumnConfig[], visibleRows, escapeFn): string` —
+          - `buildCsv(columns: CsvColumn[], visibleRows, escapeFn): string` —
             identical in both components; headers from `col.csvHeader ?? col.key`,
-            values from `col.rawValueKey ?? col.key`.
+            values from `col.rawValueKey ?? col.key`. Accepts a minimal `CsvColumn`
+            interface (key, csvHeader?, rawValueKey?) — `ColumnConfig` is structurally
+            compatible and TypeScript accepts it without casting.
           - `triggerDownload(content: string, filename: string): void` —
             blob + temporary anchor click pattern; filename varies per caller.
 
-- [ ] B2. Write `client/src/shared/table-utils.test.ts` co-located. Cover:
+- [x] B2. Write `client/src/shared/table-utils.test.ts` co-located. Cover:
           - `computeRange`: empty rows → `{0,0}`, float mode (floor/ceil), int mode,
-            single-value, col undefined → `{0,0}`
+            single-value, col undefined → `{0,0}`, skips NaN values
           - `sortRows`: numeric asc, numeric desc, string asc, string desc,
-            mixed (one numeric one string) → string comparison
+            mixed (one numeric one string) → string comparison, does not mutate original
           - `buildCsv`: headers use `csvHeader ?? key`, values use `rawValueKey ?? key`,
-            RFC-4180 comma quoting, empty rows → header line only
-          - `triggerDownload`: calls `URL.createObjectURL` once; `revokeObjectURL` called after
-          `make test-client` — confirm red (functions don't exist yet) then green after B1.
+            RFC-4180 comma quoting, empty rows → header line only, CRLF endings
+          - `triggerDownload`: calls `URL.createObjectURL` once; `revokeObjectURL` called after;
+            Blob has `text/csv` mime type
+          TDD: confirmed RED (module missing) then GREEN after B1.
+          Result: 25 new tests in `table-utils.test.ts`; total 134 passed.
 
-- [ ] B3. Update `SortableTable.svelte`: import and use `computeRange`, `sortRows`, `buildCsv`,
-          `triggerDownload` from `'../table-utils.js'`. Remove the now-inlined IIFE duplicates,
-          the sort block inside `$derived.by`, `buildCsv`, and `downloadCsv`.
+- [x] B3. Updated `SortableTable.svelte`: imported `computeRange`, `sortRows`, `buildCsv`,
+          `triggerDownload` from `'../table-utils.js'`. Removed the two IIFE blocks,
+          the sort comparator inside `$derived.by`, local `buildCsv()`, and `downloadCsv()`.
+          `downloadCsv()` replaced with a single-line wrapper calling
+          `triggerDownload(buildCsv(columns, visibleRows, escapeCsvRow), ...)`.
           `formatPrice` stays local (display-specific, not shared logic).
 
-- [ ] B4. Update `HistoryTable.svelte`:
-          - Same imports as B3; replace the same duplicated blocks.
-          - Fix the `$effect` initialisation: extract a plain (non-reactive) helper function
-            `collectAllDates(rows, dateColumn): string[]` that does the reverse-iteration
-            dedup loop. Call it once to initialise `selectedDates`:
+- [x] B4. Updated `HistoryTable.svelte`:
+          - Same imports as B3; replaced the same duplicated blocks.
+          - Fixed `$effect` initialisation: extracted `collectAllDates(sourceRows, dateCol)`
+            as a local non-reactive function at module level. Calls it once to initialise
+            `selectedDates` synchronously:
             `let selectedDates = $state(new Set(collectAllDates(rows, dateColumn)))`.
-            Keep the `$derived` `allDates` for `DateFilter`'s reactive input.
-            Remove the `$effect` block entirely.
+            `$derived allDates` kept for `DateFilter`'s reactive input (re-derives from
+            `allRows` on any future rows change).
+            `$effect` block removed entirely.
 
-- [ ] B5. Move `wireOpenDetailsLinks()` into `client/src/shared/dom-utils.ts` as a named export.
-          Update `breeder-page/index.ts` and `dealer-page/index.ts` to import it.
+- [x] B5. Moved `wireOpenDetailsLinks()` into `client/src/shared/dom-utils.ts` as a named
+          export. Updated `breeder-page/index.ts` and `dealer-page/index.ts` to import it.
 
-- [ ] B6. `make build-client && make test-client && make coverage-client` — all green.
-          `make test-e2e` — 106 passed.
+- [x] B6. `make build-client` → zero errors. `make test-client` → 134 passed.
+          `make coverage-client` → branches ≥ 80% ✓. `make test-e2e` → 106 passed.
 
 ---
 
