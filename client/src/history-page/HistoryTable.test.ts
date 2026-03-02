@@ -1,5 +1,5 @@
 import { render, fireEvent } from '@testing-library/svelte';
-import { vi, beforeAll, afterAll } from 'vitest';
+import { vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import HistoryTable from './HistoryTable.svelte';
 
 // Mock URL.createObjectURL / revokeObjectURL — not available in happy-dom
@@ -9,6 +9,9 @@ beforeAll(() => {
     createObjectURL: vi.fn(() => 'blob:mock-url'),
     revokeObjectURL: vi.fn(),
   });
+});
+beforeEach(() => {
+  (URL.createObjectURL as ReturnType<typeof vi.fn>).mockClear();
 });
 afterAll(() => vi.unstubAllGlobals());
 
@@ -321,13 +324,90 @@ test('omitting dateColumn hides summary strip and date filter section', () => {
 
 // ── CSV download ──────────────────────────────────────────────────────────────
 
-test('clicking download link invokes URL.createObjectURL (buildCsv + downloadCsv)', async () => {
-  const { container } = renderTable();
+async function clickDownloadAndGetBlob(container: HTMLElement): Promise<Blob> {
   const link = container.querySelector<HTMLAnchorElement>(
     "a[data-action='download-filtered-csv']",
   )!;
   await fireEvent.click(link);
+  return (URL.createObjectURL as ReturnType<typeof vi.fn>).mock.calls[0][0] as Blob;
+}
+
+test('clicking download link invokes URL.createObjectURL (buildCsv + downloadCsv)', async () => {
+  const { container } = renderTable();
+  await clickDownloadAndGetBlob(container);
   expect(URL.createObjectURL).toHaveBeenCalled();
+});
+
+test('CSV header uses csvHeader values from column config', async () => {
+  const { container } = renderTable();
+  const blob = await clickDownloadAndGetBlob(container);
+  const text = await blob.text();
+  const headerLine = text.split('\r\n')[0];
+  expect(headerLine).toBe('scrape_datetime,scientific_name,price_gbp,wishlist_count');
+});
+
+test('CSV data uses rawValueKey for date column (not display value)', async () => {
+  const { container } = renderTable();
+  const blob = await clickDownloadAndGetBlob(container);
+  const text = await blob.text();
+  // rawValueKey is _raw_scrape_datetime which holds the ISO datetime string
+  expect(text).toContain('2026-01-15T06:10:00');
+  expect(text).toContain('2026-01-08T06:10:00');
+  // Display value '2026-01-15' should NOT appear as a standalone cell
+  // (it only appears as part of the longer ISO string)
+  const lines = text.split('\r\n').slice(1).filter(Boolean);
+  lines.forEach((line) => {
+    const firstCell = line.split(',')[0];
+    expect(firstCell).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+});
+
+test('CSV has header + all rows when no filter applied', async () => {
+  const { container } = renderTable();
+  const blob = await clickDownloadAndGetBlob(container);
+  const text = await blob.text();
+  const lines = text.trim().split('\r\n');
+  // 1 header + 4 data rows
+  expect(lines).toHaveLength(5);
+});
+
+test('filtered CSV excludes date-deselected rows', async () => {
+  const { container } = renderTable();
+  await openDatePicker(container);
+
+  // Deselect 2026-01-08 → only 2 rows left
+  const checkbox8 = container.querySelector<HTMLInputElement>(
+    "input[data-date-value='2026-01-08'][data-table-id='history-table']",
+  )!;
+  await fireEvent.click(checkbox8);
+
+  const blob = await clickDownloadAndGetBlob(container);
+  const text = await blob.text();
+  const lines = text.trim().split('\r\n');
+  // 1 header + 2 data rows (only 2026-01-15 rows)
+  expect(lines).toHaveLength(3);
+  expect(text).not.toContain('2026-01-08T06:10:00');
+});
+
+test('CSV quotes values that contain a comma (RFC-4180)', async () => {
+  const commaRows = [
+    {
+      'Scrape Date': '2026-01-15',
+      'Scientific Name': 'Spider, with comma',
+      'Price (GBP)': '25',
+      'Wishlist Count': '5',
+      _raw_scrape_datetime: '2026-01-15T06:10:00',
+    },
+  ];
+  const { container } = render(HistoryTable, {
+    tableId: 'history-table',
+    rows: commaRows,
+    columns: COLUMNS,
+    dateColumn: 'Scrape Date',
+  });
+  const blob = await clickDownloadAndGetBlob(container);
+  const text = await blob.text();
+  expect(text).toContain('"Spider, with comma"');
 });
 
 // ── Sparkline column type ─────────────────────────────────────────────────────

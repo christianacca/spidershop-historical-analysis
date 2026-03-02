@@ -941,34 +941,58 @@ expect(text.split('\n')).toHaveLength(4); // header + 3 data rows
 
 **Goal:** Replace DOM-scraping `downloadFilteredCsv` with component-state-based export.
 
-- [ ] 52. `HistoryTable.svelte` download is already implemented (see pre-phase state above).
-          Add download logic to `SortableTable.svelte` only:
-          - Import `escapeCsvRow` from `../shared/csv-utils.js`
-          - Add `buildCsv(): string` that iterates `visibleRows` using `col.csvHeader ?? col.key`
-            for headers and raw string values for cells
-          - Add `downloadCsv(): void` — same blob+link pattern as `HistoryTable`
-          - Add download button to the toolbar markup: `<a data-action="download-filtered-csv"
-            class="btn btn--download">` alongside the existing stats strip
-          No `data-raw` attribute scraping needed — `visibleRows` is already the filtered
-          `$derived.by` state.
+- [x] 52. `HistoryTable.svelte` download is already implemented (see pre-phase state above).
+          Added download logic to `SortableTable.svelte`:
+          - Imported `escapeCsvRow` from `../csv-utils.js`
+          - Added `buildCsv(): string` iterating `visibleRows` using `col.csvHeader ?? col.key`
+            for headers and `col.rawValueKey ?? col.key` for cell values
+          - Added `downloadCsv(): void` — same blob+link pattern as `HistoryTable`
+          - Added download button to the `table-stats` strip:
+            `<a data-action="download-filtered-csv" class="btn btn--download">`
+          - Updated `.table-stats` CSS to `display: flex; justify-content: space-between`
+            so the stats label and download button sit on opposite sides.
+          Download filename: `${tableId}_filtered.csv`.
 
-- [ ] 53. Write Vitest tests for CSV download in `SortableTable.test.ts` (new) and augment
-          `HistoryTable.test.ts` (existing smoke test is insufficient).
-          Import `escapeCsvRow` from `shared/csv-utils.ts` to build expected strings
-          independently. Use `vi.spyOn(URL, 'createObjectURL')` and `blob.text()` to inspect
-          CSV content (see pre-phase state for the test pattern).
-          Run `make test-client && make coverage-client`.
+- [x] 53. Written Vitest tests for CSV download in `SortableTable.test.ts` (8 new tests)
+          and augmented `HistoryTable.test.ts` (5 new tests, existing smoke test kept).
+          Used `vi.stubGlobal` (consistent with `HistoryTable`) rather than `vi.spyOn`
+          to mock `URL.createObjectURL` — avoids `TypeError: URL is not a constructor`
+          from happy-dom's internal navigation on anchor click.
+          Added `beforeEach` to clear mock call history between tests.
+          `make test-client && make coverage-client` → 109 passed, 81.25% branches ✓.
 
-          Test cases (apply to both `SortableTable` and `HistoryTable`):
-          - Render with 5 rows, apply a filter leaving 3 visible; click download and assert
-            the blob text has a header row + exactly 3 data rows
-          - Assert no hidden row's data appears in the CSV string
-          - Assert the URL column uses the raw href value (the `csvHeader`/`rawValueKey` value),
-            not anchor HTML
-          - Assert CSV is RFC-4180 compliant: values containing commas or quotes are quoted;
-            reuse the `escapeCsvRow` unit tests in `csv-utils.test.ts` as a reference
+          Test cases in `SortableTable.test.ts`:
+          - Download link is rendered
+          - Clicking download calls `URL.createObjectURL`
+          - CSV has header + all rows when unfiltered
+          - CSV uses `col.key` as header when `csvHeader` not set
+          - Filtered CSV excludes hidden rows (signal filter to 🔥)
+          - CSV uses `csvHeader` for column headers when provided
+          - CSV uses `rawValueKey` for cell values when provided
+          - RFC-4180: values with commas are double-quoted
 
-- [ ] 54. Run `make test-client && make test-e2e`.
+          Additional test cases in `HistoryTable.test.ts`:
+          - CSV header uses `csvHeader` values (e.g. `scrape_datetime`)
+          - CSV data uses `rawValueKey` for date column (ISO datetime, not display date)
+          - CSV has header + all rows when unfiltered
+          - Filtered CSV (date-deselected) excludes hidden rows
+          - RFC-4180: values with commas are double-quoted
+
+- [x] 54. `make test-client` → 109 passed. `make test-e2e` → 106 passed.
+
+## State at Phase 4d completion
+
+- Steps 52–54 complete: `SortableTable.svelte` has full CSV download parity with `HistoryTable`.
+- `make test-client` → 109 passed (8 new `SortableTable` CSV tests + 5 new `HistoryTable` CSV tests).
+- `make coverage-client` → 81.25% branches ≥ 80% threshold ✓.
+- `make test-e2e` → 106 passed.
+- `vi.stubGlobal` used for `URL.createObjectURL` mock (consistent with `HistoryTable.test.ts`);
+  `beforeEach` clears mock call history so each CSV test starts clean.
+
+**Decision:** Download filename for `SortableTable` is `${tableId}_filtered.csv` (dynamic),
+giving breeder, dealer, and snapshot pages their own distinct filenames
+(`breeder-table_filtered.csv`, etc.). `HistoryTable` keeps its fixed filename
+`spidershop_spiderlings_history_filtered.csv`.
 
 ---
 
@@ -976,18 +1000,105 @@ expect(text.split('\n')).toHaveLength(4); // header + 3 data rows
 
 **Goal:** Remove all replaced TypeScript, stale CSS, and stale script tags.
 
-- [ ] 55. Delete `shared/range-slider.ts`, `shared/filter.ts`, `shared/sort.ts` — replaced by
-          Svelte components and primitives. Remove remaining DOM-wiring code from page
-          `index.ts` files.
+---
 
-- [ ] 56. Confirm `vite.config.ts` entry map has no stale entries. Verify `dist/` emits exactly
-          five page entry points (`.js` + `.css`) and nothing else.
+## Pre-existing state at Phase 4e handoff
 
-- [ ] 57. Confirm `templates/base.html` and page templates reference only current slice scripts
-          and CSS.
+### Dead TypeScript modules (safe to delete)
 
-- [ ] 58. Review `analysis.css`, `homepage.css`, `history.css`, `species-detail.css` — delete
-          any file that is now empty or contains only rules already in `common.css`.
+These three shared modules are completely unreferenced — no `import` of any of them exists
+anywhere in `client/src/`:
+
+| File | Was used for | Replaced by |
+|---|---|---|
+| `client/src/shared/filter.ts` | DOM row filtering via `filterRows()` | `$derived.by` chains in `SortableTable` / `HistoryTable` |
+| `client/src/shared/sort.ts` | DOM sort helpers | `$derived.by` sort in `SortableTable` / `HistoryTable` |
+| `client/src/shared/range-slider.ts` | Imperative `RangeSlider` class | `RangeSlider.svelte` primitive |
+
+### Shared modules that are still alive — do NOT delete
+
+| File | Still used by |
+|---|---|
+| `client/src/shared/constants.ts` | `species-page/charts.ts` |
+| `client/src/shared/dom-utils.ts` | `species-page/charts.ts` |
+| `client/src/shared/csv-utils.ts` | `SortableTable.svelte`, `HistoryTable.svelte` |
+| `client/src/shared/sparklines.ts` | `SortableTable.svelte`, `HistoryTable.svelte` |
+
+### Page index.ts files — already clean
+
+All four page `index.ts` files (`breeder-page`, `dealer-page`, `snapshot-page`, `history-page`)
+contain only Svelte `mount()` calls and, for breeder/dealer, a `wireOpenDetailsLinks()` helper
+that wires the `<details>` accordion elements. This function is **live app code**, not a
+migration artefact — do NOT remove it.
+
+There is no remaining DOM-wiring code from the pre-migration era in any page `index.ts`.
+
+### dist/ output shape — expected
+
+`preserveModules: true` causes Vite to emit many files beyond the five entry points.
+The full `dist/` tree includes:
+- Five entry point `.js` files: `breeder-page.js`, `dealer-page.js`, `snapshot-page.js`,
+  `history-page.js`, `species-page.js`
+- Sub-module JS files: `shared/components/*.svelte.js`, `shared/csv-utils.js`,
+  `shared/sparklines.js`, `shared/constants.js`, `shared/dom-utils.js`,
+  `history-page/DateFilter.svelte.js`, `history-page/HistoryTable.svelte.js`,
+  `species-page/charts.js`, etc.
+- Bundled node_modules: `node_modules/svelte/src/...` (Svelte runtime), `node_modules/clsx/...`
+- Scoped CSS: `assets/history-page/DateFilter.css`, `assets/shared/components/*.css`, etc.
+
+This is **correct and expected** — `generate_website.py` copies the entire tree with
+`shutil.copytree`. There is no "exactly 5 files" goal; the goal is that each page loads
+only its own slice entry script and no stale entry points remain.
+
+### vite.config.ts — already clean
+
+All five entries in `rollupOptions.input` map to live source files. No stale entries.
+
+### Template script references — already clean
+
+| Template | slice loaded |
+|---|---|
+| `analysis_page.html` | `{{ page_script }}` (dynamic, set per page) |
+| `history_page.html` | `history-page.js` (explicit) |
+| `snapshot_page.html` | `snapshot-page.js` (explicit) |
+| `species_detail.html` | `species-page.js` (direct `<script>` tag, not `extra_js` block) |
+
+No stale script references exist. Step 57 is a quick verification pass only.
+
+### CSS deferred audits (steps 46 and 51)
+
+Two CSS audits were deferred into Phase 4e:
+- **`analysis.css` (312 lines)** — step 46, deferred from Phase 4c-ii
+- **`history.css` (132 lines)** — step 51, deferred from Phase 4c-iii
+
+`homepage.css` (70 lines) and `species-detail.css` (311 lines) are out of scope for Svelte
+migration at this phase — `homepage.css` has no Svelte island and `species-detail.css`
+is targeted in Phase 5.
+
+---
+
+- [ ] 55. Delete `client/src/shared/filter.ts`, `client/src/shared/sort.ts`,
+          `client/src/shared/range-slider.ts` — confirmed unreferenced (see pre-phase state).
+          Do NOT delete `constants.ts` or `dom-utils.ts` — both are still used by
+          `species-page/charts.ts`.
+          Run `make build-client` to confirm zero compile errors after deletion.
+
+- [ ] 56. Verify that `vite.config.ts` `rollupOptions.input` has exactly five live entries
+          (all already correct — see pre-phase state; this is a quick sanity check only).
+          Note: `dist/` will contain many more files than five — this is correct `preserveModules`
+          behaviour and expected by `generate_website.py`.
+
+- [ ] 57. Verify page templates reference only current slice scripts (already clean per
+          pre-phase state — quick read-through only).
+
+- [ ] 58. Audit and trim `analysis.css` (312 lines) and `history.css` (132 lines):
+          - For each rule, check whether the styled element now lives inside a Svelte
+            component. If yes, the equivalent scoped rule already exists in the component's
+            `<style>` block — delete the global rule.
+          - Keep rules that target Python-rendered static HTML outside any Svelte island.
+          - Keep any rule that is still referenced by non-island HTML.
+          - `homepage.css` and `species-detail.css` are out of scope for this phase.
+          After editing: `make build-client && make test-e2e` must stay green.
 
 - [ ] 59. Run `make test && make test-client && make coverage-client && make test-e2e`.
           Full green required. Coverage must meet ≥ 80% threshold — if not, add tests for

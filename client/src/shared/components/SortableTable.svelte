@@ -1,5 +1,6 @@
 <script lang="ts">
   import { unicodeToSvg } from '../sparklines.js';
+  import { escapeCsvRow } from '../csv-utils.js';
   import FilterButton from './FilterButton.svelte';
   import SearchInput from './SearchInput.svelte';
   import RangeSlider from './RangeSlider.svelte';
@@ -222,6 +223,36 @@
     sliderWishlistMax = wishlistRange.max;
   }
 
+  // ── CSV download ───────────────────────────────────────────────────────────
+  function buildCsv(): string {
+    const csvHeaders = columns.map((col) => col.csvHeader ?? col.key);
+    const lines: string[] = [escapeCsvRow(csvHeaders)];
+    for (const row of visibleRows) {
+      const values = columns.map((col) => {
+        if (col.rawValueKey) {
+          return String(row[col.rawValueKey] ?? row[col.key] ?? '');
+        }
+        return String(row[col.key] ?? '');
+      });
+      lines.push(escapeCsvRow(values));
+    }
+    return lines.join('\r\n');
+  }
+
+  function downloadCsv(): void {
+    const content = buildCsv();
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${tableId}_filtered.csv`;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
   // ── Static button configs ──────────────────────────────────────────────────
   const SIGNAL_BUTTONS: { value: string; label: string }[] = [
     { value: 'all', label: 'Show All' },
@@ -358,6 +389,14 @@
     <strong>Showing:</strong>
     <span id="visible-count-{tableId}">{visibleCount}</span> of {totalRows} {statsLabel}
   </span>
+  <a
+    href="#download"
+    download
+    class="btn btn--download"
+    data-action="download-filtered-csv"
+    data-table-id={tableId}
+    onclick={(e) => { e.preventDefault(); downloadCsv(); }}
+  >⬇️ Download Filtered CSV</a>
 </div>
 
 <!-- ── Table ─────────────────────────────────────────────────────────────── -->
@@ -474,6 +513,11 @@
   }
 
   .table-stats {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
     font-size: var(--font-sm);
     color: var(--color-text-muted);
     margin-bottom: var(--spacing-xs);

@@ -1,8 +1,21 @@
 import { render, fireEvent } from '@testing-library/svelte';
-import { vi } from 'vitest';
+import { vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import SortableTable from './SortableTable.svelte';
 
 // ── Shared fixtures ───────────────────────────────────────────────────────────
+
+// Mock URL.createObjectURL / revokeObjectURL — not available in happy-dom
+beforeAll(() => {
+  vi.stubGlobal('URL', {
+    ...URL,
+    createObjectURL: vi.fn(() => 'blob:mock-url'),
+    revokeObjectURL: vi.fn(),
+  });
+});
+beforeEach(() => {
+  (URL.createObjectURL as ReturnType<typeof vi.fn>).mockClear();
+});
+afterAll(() => vi.unstubAllGlobals());
 
 const ROWS = [
   { Species: 'Alpha Spider', Signal: '🔥', 'Stock Pattern': 'Sustained', Price: '15.00', 'Wishlist Count': '3' },
@@ -385,4 +398,114 @@ test('species-link with linkViewParam appends ?view= suffix to href', () => {
 
   const link = container.querySelector<HTMLAnchorElement>('tbody td a')!;
   expect(link.href).toContain('?view=breeder');
+});
+
+// ── CSV download ──────────────────────────────────────────────────────────────
+
+async function clickDownloadAndGetBlob(container: HTMLElement): Promise<Blob> {
+  const link = container.querySelector<HTMLAnchorElement>(
+    "a[data-action='download-filtered-csv']",
+  )!;
+  await fireEvent.click(link);
+  return (URL.createObjectURL as ReturnType<typeof vi.fn>).mock.calls[0][0] as Blob;
+}
+
+test('download link is rendered', () => {
+  const { container } = renderTable();
+  expect(container.querySelector("[data-action='download-filtered-csv']")).not.toBeNull();
+});
+
+test('clicking download link calls URL.createObjectURL', async () => {
+  const { container } = renderTable();
+  await clickDownloadAndGetBlob(container);
+  expect(URL.createObjectURL).toHaveBeenCalled();
+});
+
+test('CSV has header row + all data rows when no filter active', async () => {
+  const { container } = renderTable();
+  const blob = await clickDownloadAndGetBlob(container);
+  const text = await blob.text();
+  const lines = text.trim().split('\r\n');
+  // 1 header + 3 data rows
+  expect(lines).toHaveLength(4);
+});
+
+test('CSV uses col.key as header when csvHeader not set', async () => {
+  const { container } = renderTable();
+  const blob = await clickDownloadAndGetBlob(container);
+  const text = await blob.text();
+  const headerLine = text.split('\r\n')[0];
+  expect(headerLine).toBe('Species,Signal,Stock Pattern,Price');
+});
+
+test('filtered CSV excludes hidden rows', async () => {
+  const { container } = renderTable();
+  // Filter to 🔥 signal only → only Alpha Spider remains
+  const hotBtn = container.querySelector(
+    '[data-action="filter-signal"][data-signal="🔥"]',
+  ) as HTMLElement;
+  await fireEvent.click(hotBtn);
+
+  const blob = await clickDownloadAndGetBlob(container);
+  const text = await blob.text();
+  const lines = text.trim().split('\r\n');
+  // 1 header + 1 data row
+  expect(lines).toHaveLength(2);
+  expect(text).toContain('Alpha Spider');
+  expect(text).not.toContain('Beta Spider');
+  expect(text).not.toContain('Gamma Spider');
+});
+
+test('CSV uses csvHeader for column headers when provided', async () => {
+  const columnsWithCsvHeader = [
+    { key: 'Species', label: 'Species', csvHeader: 'scientific_name' },
+    { key: 'Signal', label: 'Signal', csvHeader: 'signal' },
+  ];
+  const { container } = render(SortableTable, {
+    tableId: 'csv-header-table',
+    rows: ROWS,
+    columns: columnsWithCsvHeader,
+  });
+  const blob = await clickDownloadAndGetBlob(container);
+  const text = await blob.text();
+  const headerLine = text.split('\r\n')[0];
+  expect(headerLine).toBe('scientific_name,signal');
+});
+
+test('CSV uses rawValueKey for cell values when provided', async () => {
+  const rowsWithRaw = [
+    { Species: 'Aphonopelma seemanni', _raw_species: 'aphonopelma_seemanni', Signal: '🔥' },
+  ];
+  const columnsWithRaw = [
+    { key: 'Species', label: 'Species', rawValueKey: '_raw_species' },
+    { key: 'Signal', label: 'Signal' },
+  ];
+  const { container } = render(SortableTable, {
+    tableId: 'raw-table',
+    rows: rowsWithRaw,
+    columns: columnsWithRaw,
+  });
+  const blob = await clickDownloadAndGetBlob(container);
+  const text = await blob.text();
+  // Raw value used, not display key
+  expect(text).toContain('aphonopelma_seemanni');
+  expect(text).not.toContain('Aphonopelma seemanni');
+});
+
+test('CSV quotes values that contain a comma (RFC-4180)', async () => {
+  const rowsWithComma = [
+    { Species: 'Spider, tarantula', Signal: '🔥' },
+  ];
+  const simpleColumns = [
+    { key: 'Species', label: 'Species' },
+    { key: 'Signal', label: 'Signal' },
+  ];
+  const { container } = render(SortableTable, {
+    tableId: 'comma-table',
+    rows: rowsWithComma,
+    columns: simpleColumns,
+  });
+  const blob = await clickDownloadAndGetBlob(container);
+  const text = await blob.text();
+  expect(text).toContain('"Spider, tarantula"');
 });
