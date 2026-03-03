@@ -331,10 +331,11 @@ def write_multi_species_test_data(cwd: Path) -> None:
                 oos_runs="4",
                 stock_pattern="Sustained",
                 price="£25.00 ↑",
+                price_history="▁▄▇",
+                wishlist="5 🔥 ↑",
                 wishlist_pressure="🔥",
                 wishlist_delta="↑",
                 drivers="Stock: Sustained OOS (4 runs); Demand: Wishlist 🔥",
-                price_history="▁▄▇",
             ),
             BreederEntry(
                 species="Brachypelma hamorii",
@@ -343,10 +344,11 @@ def write_multi_species_test_data(cwd: Path) -> None:
                 oos_runs="2",
                 stock_pattern="Emerging",
                 price="£28.00 →",
+                price_history="▇▄▁",
+                wishlist="8 ⚠️ →",
                 wishlist_pressure="⚠️",
                 wishlist_delta="→",
                 drivers="Stock: Emerging OOS (2 runs); Demand: Wishlist ⚠️",
-                price_history="▇▄▁",
             ),
             BreederEntry(
                 species="Grammostola pulchra",
@@ -355,6 +357,7 @@ def write_multi_species_test_data(cwd: Path) -> None:
                 oos_runs="0",
                 stock_pattern="Always",
                 price="£30.00 ↓",
+                wishlist="12 ❌ →",
                 wishlist_pressure="❌",
                 wishlist_delta="→",
                 drivers="",
@@ -366,6 +369,7 @@ def write_multi_species_test_data(cwd: Path) -> None:
                 oos_runs="6",
                 stock_pattern="Cyclical",
                 price="£20.00 ↑",
+                wishlist="3 🔥 ↑",
                 wishlist_pressure="🔥",
                 wishlist_delta="↑",
                 drivers="Stock: Cyclical OOS (6 runs); Price: Rising",
@@ -377,6 +381,7 @@ def write_multi_species_test_data(cwd: Path) -> None:
                 oos_runs="3",
                 stock_pattern="Emerging",
                 price="£15.00 →",
+                wishlist="10 ⚠️ →",
                 wishlist_pressure="⚠️",
                 wishlist_delta="→",
                 drivers="Stock: Emerging OOS (3 runs)",
@@ -501,6 +506,8 @@ def write_large_table_test_data(cwd: Path) -> None:
                 signal="🔥",
                 oos_runs="4",
                 stock_pattern="Sustained",
+                price="£25.00 ↑",
+                wishlist="5 🔥 ↑",
             )
             for name in hot_species
         ]
@@ -511,6 +518,8 @@ def write_large_table_test_data(cwd: Path) -> None:
                 signal="⚠️",
                 oos_runs="2",
                 stock_pattern="Emerging",
+                price="£20.00 →",
+                wishlist="2 ⚠️ →",
             )
             for name in watch_species
         ]
@@ -521,6 +530,8 @@ def write_large_table_test_data(cwd: Path) -> None:
                 signal="❌",
                 oos_runs="0",
                 stock_pattern="Always",
+                price="£15.00 ↓",
+                wishlist="1 ❌ →",
             )
             for name in avoid_species
         ]

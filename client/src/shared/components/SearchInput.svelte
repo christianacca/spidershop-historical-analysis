@@ -24,7 +24,8 @@
 
 <style>
   .search-input {
-    width: 100%;
+    flex: 1;
+    min-width: 150px;
     padding: var(--spacing-xs) var(--spacing-sm);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
@@ -35,7 +36,7 @@
 
   .search-input:focus {
     outline: none;
-    border-color: var(--color-primary);
+    border-color: var(--color-accent);
   }
 
   .search-input::placeholder {

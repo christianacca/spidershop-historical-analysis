@@ -196,15 +196,6 @@
     triggerDownload(buildCsv(columns.filter(col => !col.hidden), visibleRows, escapeCsvRow), `${tableId}_filtered.csv`);
   }
 
-  // ── Static button configs ──────────────────────────────────────────────────
-  const STOCK_PATTERN_BUTTONS: { value: string; label: string }[] = [
-    { value: 'all', label: 'Show All' },
-    { value: 'Sustained', label: 'Sustained' },
-    { value: 'Emerging', label: 'Emerging' },
-    { value: 'Cyclical', label: 'Cyclical' },
-    { value: 'Always Available', label: 'Always Available' },
-  ];
-
   // ── Derived: per-signal row counts (from all rows, not filtered) ──────────
   const signalCounts = $derived.by(() => {
     if (!filterConfig.signalFilter) return { all: 0, hot: 0, watch: 0, avoid: 0 };
@@ -225,6 +216,35 @@
     { value: '❌', label: `❌ Avoid (${signalCounts.avoid})` },
   ]);
 
+  // ── Derived: per-stock-pattern row counts (from all rows, not filtered) ───
+  const stockPatternCounts = $derived.by(() => {
+    if (!filterConfig.stockPatternFilter) return {} as Record<string, number>;
+    const key = filterConfig.stockPatternFilter.column;
+    const counts: Record<string, number> = { all: allRows.length };
+    for (const row of allRows) {
+      const val = String(row[key] ?? '');
+      counts[val] = (counts[val] ?? 0) + 1;
+    }
+    return counts;
+  });
+
+  // ── Derived: stock pattern buttons with row counts in labels ─────────────
+  const stockPatternButtons = $derived([
+    { value: 'all',              label: `Show All (${stockPatternCounts.all ?? 0})` },
+    { value: 'Sustained',        label: `Sustained (${stockPatternCounts['Sustained'] ?? 0})` },
+    { value: 'Emerging',         label: `Emerging (${stockPatternCounts['Emerging'] ?? 0})` },
+    { value: 'Cyclical',         label: `Cyclical (${stockPatternCounts['Cyclical'] ?? 0})` },
+    { value: 'Always Available', label: `Always (${stockPatternCounts['Always Available'] ?? 0})` },
+  ]);
+
+  // ── Derived: whether there is any collapsible content to show ────────────
+  const hasAdvancedContent = $derived(
+    !!filterConfig.stockPatternFilter ||
+    filterConfig.showSearch === true ||
+    !!filterConfig.priceColumn ||
+    !!filterConfig.wishlistColumn,
+  );
+
   const formatPrice = (v: number): string => `£${v}`;
 
   const slugify = (s: string): string => s.toLowerCase().replace(/\s+/g, '-');
@@ -233,9 +253,9 @@
 <!-- ── Signal filter row ─────────────────────────────────────────────────── -->
 {#if filterConfig.signalFilter}
   <div class="signal-filter-row">
-    <span class="filter-label">Signal:</span>
+    <span class="filter-label">🎯 Signal:</span>
     <div class="filter-buttons-container">
-      {#each signalButtons as btn}
+      {#each signalButtons as btn, i}
         <FilterButton
           label={btn.label}
           value={btn.value}
@@ -244,51 +264,39 @@
           data-action="filter-signal"
           data-signal={btn.value}
         />
+        {#if i === 0 && filterConfig.signalFilter.top10}
+          <FilterButton
+            label="🔥 Hot (top 10)"
+            value="top10"
+            active={top10Limit === 10}
+            onclick={() => handleSignalFilter('all', top10Limit === 10 ? null : 10)}
+            data-action="filter-signal"
+            data-signal="top10"
+            data-limit="10"
+          />
+        {/if}
       {/each}
-      {#if filterConfig.signalFilter.top10}
-        <FilterButton
-          label="Top 10"
-          value="top10"
-          active={top10Limit === 10}
-          onclick={() => handleSignalFilter('all', top10Limit === 10 ? null : 10)}
-          data-action="filter-signal"
-          data-signal="top10"
-          data-limit="10"
-        />
+      {#if hasAdvancedContent}
+        <button
+          class={{ btn: true, 'advanced-filters-toggle': true, 'is-expanded': showAdvanced }}
+          onclick={() => (showAdvanced = !showAdvanced)}
+        >
+          {showAdvanced ? '▼ More Filters' : '▶ More Filters'}
+          <span
+            class={{ 'filter-badge': true, hidden: activeFilterCount === 0 }}
+            id="filterBadge-{tableId}"
+          >
+            {activeFilterCount}
+          </span>
+        </button>
       {/if}
     </div>
   </div>
 {/if}
 
-<!-- ── Stock pattern filter row ─────────────────────────────────────────── -->
-{#if filterConfig.stockPatternFilter}
-  <div class="signal-filter-row">
-    <span class="filter-label">Stock Pattern:</span>
-    <div class="filter-buttons-container">
-      {#each STOCK_PATTERN_BUTTONS as btn}
-        <FilterButton
-          label={btn.label}
-          value={btn.value}
-          active={activeStockPattern === btn.value}
-          onclick={() => handleStockPatternFilter(btn.value)}
-          data-action="filter-stock-pattern"
-          data-stock-pattern={btn.value}
-        />
-      {/each}
-    </div>
-  </div>
-{/if}
-
-<!-- ── Search + advanced-filters toggle ─────────────────────────────────── -->
-<div class="controls-row">
-  {#if filterConfig.showSearch !== false}
-    <SearchInput
-      {tableId}
-      placeholder="Search {statsLabel}…"
-      oninput={(v) => (searchText = v)}
-    />
-  {/if}
-  {#if filterConfig.priceColumn || filterConfig.wishlistColumn}
+<!-- ── Fallback controls row (for pages without a signal filter) ─────────── -->
+{#if !filterConfig.signalFilter && hasAdvancedContent}
+  <div class="controls-row">
     <button
       class={{ btn: true, 'advanced-filters-toggle': true, 'is-expanded': showAdvanced }}
       onclick={() => (showAdvanced = !showAdvanced)}
@@ -301,15 +309,42 @@
         {activeFilterCount}
       </span>
     </button>
-  {/if}
-</div>
+  </div>
+{/if}
 
 <!-- ── Advanced filters panel ───────────────────────────────────────────── -->
 {#if showAdvanced}
   <div class="advanced-filters-content">
+    {#if filterConfig.stockPatternFilter}
+      <div class="signal-filter-row">
+        <span class="filter-label">📊 Stock Pattern:</span>
+        <div class="filter-buttons-container">
+          {#each stockPatternButtons as btn}
+            <FilterButton
+              label={btn.label}
+              value={btn.value}
+              active={activeStockPattern === btn.value}
+              onclick={() => handleStockPatternFilter(btn.value)}
+              data-action="filter-stock-pattern"
+              data-stock-pattern={btn.value}
+            />
+          {/each}
+        </div>
+      </div>
+    {/if}
+    {#if filterConfig.showSearch !== false}
+      <div class="search-filter-row">
+        <span class="filter-label">🔍 Search:</span>
+        <SearchInput
+          {tableId}
+          placeholder="Search {statsLabel}…"
+          oninput={(v) => (searchText = v)}
+        />
+      </div>
+    {/if}
     {#if filterConfig.priceColumn}
       <RangeSlider
-        label="Price (£)"
+        label="💷 Price Range:"
         min={priceRange.min}
         max={priceRange.max}
         onchange={handlePriceChange}
@@ -321,7 +356,7 @@
     {/if}
     {#if filterConfig.wishlistColumn}
       <RangeSlider
-        label="Wishlist Count"
+        label="💚 Wishlist Count:"
         min={wishlistRange.min}
         max={wishlistRange.max}
         onchange={handleWishlistChange}
@@ -430,6 +465,14 @@
     margin-bottom: var(--spacing-sm);
   }
 
+  .search-filter-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
   .advanced-filters-toggle {
     cursor: pointer;
     display: inline-flex;
@@ -456,11 +499,12 @@
 
   .advanced-filters-content {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: var(--spacing-md);
-    padding: var(--spacing-md) 0;
-    border-top: 1px solid var(--color-border-light);
-    border-bottom: 1px solid var(--color-border-light);
+    padding: var(--spacing-md);
+    background: var(--color-surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border-light);
     margin-bottom: var(--spacing-sm);
   }
 

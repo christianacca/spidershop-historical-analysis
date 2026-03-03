@@ -680,9 +680,9 @@ def test_active_filter_button_has_correct_styling(e2e_site_multi_species) -> Non
         "Clicked filter button should have 'is-active' class"
 
     bg_color = hot_button.evaluate('el => window.getComputedStyle(el).backgroundColor')
-    # FilterButton.svelte .filter-btn.is-active uses --color-primary: #2c3e50 = rgb(44, 62, 80)
-    assert 'rgb(44, 62, 80)' in bg_color, \
-        f"Active button should have dark-navy background (--color-primary), got {bg_color}"
+    # FilterButton.svelte .filter-btn.is-active uses --color-accent: #3498db = rgb(52, 152, 219)
+    assert 'rgb(52, 152, 219)' in bg_color, \
+        f"Active button should have blue (--color-accent) background, got {bg_color}"
 
     text_color = hot_button.evaluate('el => window.getComputedStyle(el).color')
     assert 'rgb(255, 255, 255)' in text_color or 'white' in text_color.lower(), \
@@ -802,18 +802,39 @@ def test_search_input_styling(e2e_site_multi_species) -> None:
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+    # Wait for Svelte to mount the table before interacting with filters
+    page.locator("#breeder-table tbody tr").first.wait_for(timeout=5000)
+
+    # Search is inside the More Filters panel — expand it first
+    advanced_toggle = page.locator(".advanced-filters-toggle")
+    assert advanced_toggle.count() > 0, "Expected .advanced-filters-toggle button to be present"
+    advanced_toggle.first.click()
+    page.locator(".advanced-filters-content").wait_for(timeout=2000)
 
     search_input = page.locator('.search-input')
     assert search_input.count() >= 1, "Breeder page should have .search-input element"
 
-    container_width = search_input.first.evaluate(
-        'el => el.parentElement.getBoundingClientRect().width'
+    # The search input sits in a flex row alongside a label — compare against available space
+    available_width = search_input.first.evaluate(
+        '''el => {
+            const row = el.parentElement;
+            const rowWidth = row.getBoundingClientRect().width;
+            const rowStyle = window.getComputedStyle(row);
+            const gap = parseFloat(rowStyle.gap || rowStyle.columnGap || "0");
+            const siblings = Array.from(row.children).filter(c => c !== el);
+            const siblingsWidth = siblings.reduce((s, c) => {
+                const r = c.getBoundingClientRect();
+                const mr = parseFloat(window.getComputedStyle(c).marginRight || "0");
+                return s + r.width + mr;
+            }, 0);
+            return rowWidth - siblingsWidth - (siblings.length > 0 ? gap : 0);
+        }'''
     )
     input_width = search_input.first.evaluate(
         'el => el.getBoundingClientRect().width'
     )
-    assert abs(container_width - input_width) < 5, \
-        f".search-input should fill its container (container={container_width}, input={input_width})"
+    assert abs(available_width - input_width) < 5, \
+        f".search-input should fill available flex space (available={available_width:.1f}, input={input_width:.1f})"
 
     border_radius = search_input.first.evaluate(
         'el => window.getComputedStyle(el).borderRadius'

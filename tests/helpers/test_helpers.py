@@ -46,6 +46,7 @@ class BreederEntry:
     stock_pattern: str = ""
     price: str = ""
     price_history: str = ""
+    wishlist: str = ""
     wishlist_pressure: str = ""
     wishlist_delta: str = ""
     wishlist_history: str = ""

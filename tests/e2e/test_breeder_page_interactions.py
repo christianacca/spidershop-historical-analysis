@@ -48,8 +48,8 @@ def _clean_headers(raw_headers: list[str]) -> list[str]:
 
 
 @pytest.mark.e2e
-def test_wishlist_pressure_column_not_empty(e2e_site_multi_species) -> None:
-    """Wishlist column uses correct JSON key (Wishlist Pressure); cells are non-empty."""
+def test_wishlist_column_not_empty(e2e_site_multi_species) -> None:
+    """Wishlist column uses correct JSON key ('Wishlist'); cells are non-empty."""
     page, base_url, errors = e2e_site_multi_species
     _wait_for_breeder_table(page, base_url)
 

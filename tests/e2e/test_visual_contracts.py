@@ -6,12 +6,13 @@ contract that CSS depends on.  They exist to prevent a future migration step
 from silently dropping a feature that the stylesheet expects.
 
 Guarded contracts (one per fix):
-- G1: Wishlist Pressure column non-empty (correct JSON key used)
+- G1: Wishlist column non-empty (correct JSON key 'Wishlist' used)
 - G2: Signal <td> cells carry .signal-hot / .signal-watch / .signal-avoid
 - G3: Sparkline SVG bars use explicit hex fill, not "currentColor"
 - G4: Info icon (ℹ️) present inside signal cells that have Drivers data
 - G5: Column headers show ⇅ / ↑ / ↓ sort-indicator glyphs
 - G6: Signal filter buttons include a parenthesised row count
+- H2: Price Trend column renders a non-empty value (key 'Price' in JSON)
 """
 
 from __future__ import annotations
@@ -35,13 +36,13 @@ def _go_breeder(page, base_url: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# G1 — Wishlist Pressure column non-empty
+# G1 — Wishlist column non-empty
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.e2e
-def test_wishlist_pressure_column_not_empty(e2e_site_multi_species) -> None:
-    """Wishlist column uses the correct JSON key so cells render non-empty values."""
+def test_wishlist_column_not_empty(e2e_site_multi_species) -> None:
+    """Wishlist column uses the correct JSON key ('Wishlist') so cells render non-empty values."""
     page, base_url, _errors = e2e_site_multi_species
     _go_breeder(page, base_url)
 
@@ -55,7 +56,33 @@ def test_wishlist_pressure_column_not_empty(e2e_site_multi_species) -> None:
     first_row_cells = page.locator("#breeder-table tbody tr").first.locator("td").all_text_contents()
     cell_text = first_row_cells[wishlist_idx].strip() if wishlist_idx < len(first_row_cells) else ""
     assert cell_text not in ("", "—"), (
-        f"Wishlist Pressure cell is empty or placeholder; got: {cell_text!r}"
+        f"Wishlist cell is empty or placeholder; got: {cell_text!r}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# H2 — Price Trend column non-empty
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.e2e
+def test_price_trend_column_not_empty(e2e_site_multi_species) -> None:
+    """Price Trend column renders a non-empty value (JSON key 'Price')."""
+    page, base_url, _errors = e2e_site_multi_species
+    _go_breeder(page, base_url)
+
+    headers = page.locator("#breeder-table thead th").all_text_contents()
+    # Strip sort-indicator glyphs (⇅/↑/↓) from header text before matching
+    price_idx = next(
+        (i for i, h in enumerate(headers) if h.replace("⇅", "").replace("↑", "").replace("↓", "").strip() == "Price Trend"),
+        None,
+    )
+    assert price_idx is not None, "No 'Price Trend' column found in breeder table headers"
+
+    first_row_cells = page.locator("#breeder-table tbody tr").first.locator("td").all_text_contents()
+    cell_text = first_row_cells[price_idx].strip() if price_idx < len(first_row_cells) else ""
+    assert cell_text not in ("", "—"), (
+        f"Price Trend cell is empty or placeholder; got: {cell_text!r}"
     )
 
 
@@ -185,3 +212,103 @@ def test_filter_button_shows_row_count(e2e_site_multi_species) -> None:
         "No signal filter button includes a parenthesised row count. "
         f"Button texts: {[b.text_content() for b in filter_buttons]}"
     )
+
+
+# ---------------------------------------------------------------------------
+# H3 — Stock Pattern and Search are inside the "More Filters" panel
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.e2e
+def test_stock_pattern_not_visible_initially(e2e_site_multi_species) -> None:
+    """Stock Pattern filter buttons are hidden until "More Filters" is expanded."""
+    page, base_url, _errors = e2e_site_multi_species
+    _go_breeder(page, base_url)
+
+    stock_btns = page.locator('button[data-action="filter-stock-pattern"]')
+    assert stock_btns.count() == 0, (
+        "Stock Pattern filter buttons should not be in the DOM before expanding More Filters"
+    )
+
+
+@pytest.mark.e2e
+def test_search_not_visible_initially(e2e_site_multi_species) -> None:
+    """Search input is hidden until 'More Filters' is expanded."""
+    page, base_url, _errors = e2e_site_multi_species
+    _go_breeder(page, base_url)
+
+    search = page.locator(f"#search-breeder-table")
+    assert search.count() == 0, (
+        "Search input should not be in the DOM before expanding More Filters"
+    )
+
+
+@pytest.mark.e2e
+def test_stock_pattern_visible_after_more_filters(e2e_site_multi_species) -> None:
+    """Stock Pattern filter buttons appear after expanding 'More Filters'."""
+    page, base_url, _errors = e2e_site_multi_species
+    _go_breeder(page, base_url)
+
+    page.locator(".advanced-filters-toggle").click()
+    page.locator(".advanced-filters-content").wait_for(timeout=3000)
+
+    stock_btns = page.locator('button[data-action="filter-stock-pattern"]')
+    assert stock_btns.count() > 0, "Stock Pattern filter buttons should be visible after expanding More Filters"
+
+
+@pytest.mark.e2e
+def test_search_visible_after_more_filters(e2e_site_multi_species) -> None:
+    """Search input appears after expanding 'More Filters'."""
+    page, base_url, _errors = e2e_site_multi_species
+    _go_breeder(page, base_url)
+
+    page.locator(".advanced-filters-toggle").click()
+    page.locator(".advanced-filters-content").wait_for(timeout=3000)
+
+    search = page.locator("#search-breeder-table")
+    assert search.count() > 0, "Search input should be visible after expanding More Filters"
+
+
+@pytest.mark.e2e
+def test_more_filters_button_in_signal_row(e2e_site_multi_species) -> None:
+    """'More Filters' toggle button is located inside the signal filter row."""
+    page, base_url, _errors = e2e_site_multi_species
+    _go_breeder(page, base_url)
+
+    # The toggle button must be a descendant of .signal-filter-row
+    toggle_in_signal_row = page.locator(".signal-filter-row .advanced-filters-toggle")
+    assert toggle_in_signal_row.count() > 0, (
+        "'.advanced-filters-toggle' should be inside '.signal-filter-row' on breeder page"
+    )
+
+
+# ---------------------------------------------------------------------------
+# H6 — Emoji prefix labels on filter rows
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.e2e
+def test_signal_filter_row_has_emoji_label(e2e_site_multi_species) -> None:
+    """Signal filter row displays '🎯 Signal:' prefix label."""
+    page, base_url, _errors = e2e_site_multi_species
+    _go_breeder(page, base_url)
+
+    signal_row = page.locator(".signal-filter-row").first
+    row_text = signal_row.text_content() or ""
+    assert "🎯" in row_text, f"Expected '🎯' emoji in signal filter row, got: {row_text[:80]!r}"
+
+
+@pytest.mark.e2e
+def test_advanced_panel_has_stock_pattern_and_search_emoji_labels(e2e_site_multi_species) -> None:
+    """After expanding More Filters, '📊 Stock Pattern:' and '🔍 Search:' labels are visible."""
+    page, base_url, _errors = e2e_site_multi_species
+    _go_breeder(page, base_url)
+
+    page.locator(".advanced-filters-toggle").click()
+    panel = page.locator(".advanced-filters-content")
+    panel.wait_for(timeout=3000)
+
+    panel_text = panel.text_content() or ""
+    assert "📊" in panel_text, f"Expected '📊' emoji in advanced filters panel, got: {panel_text[:120]!r}"
+    assert "🔍" in panel_text, f"Expected '🔍' emoji in advanced filters panel, got: {panel_text[:120]!r}"
+

@@ -18,7 +18,7 @@ const COLUMNS: ColumnConfig[] = [
   { key: 'Stock Reliability', label: 'Stock Reliability' },
   { key: 'Avg OOS Duration', label: 'Avg OOS Duration' },
   { key: 'Restock Speed', label: 'Restock Speed' },
-  { key: 'Price', label: 'Price' },
+  { key: 'Price', label: 'Price Trend' },
   { key: 'Price History', label: 'Price History', type: 'sparkline' },
   { key: 'Wishlist', label: 'Wishlist' },
   { key: 'Wishlist History', label: 'Wishlist History', type: 'sparkline' },

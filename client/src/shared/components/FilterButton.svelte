@@ -20,25 +20,24 @@
   .filter-btn {
     display: inline-flex;
     align-items: center;
-    gap: var(--spacing-xs);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
+    gap: 6px;
+    padding: 8px 16px;
+    border: 2px solid var(--color-border-light);
     background-color: var(--color-surface);
-    color: var(--color-text);
-    font-size: var(--font-sm);
+    border-radius: var(--radius-md);
     cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
+    font-size: var(--font-base);
+    transition: all 0.2s;
   }
 
   .filter-btn:hover {
-    background-color: var(--color-surface-light);
-    border-color: var(--color-border-alt);
+    border-color: var(--color-accent);
+    background-color: var(--color-surface-alt);
   }
 
   .filter-btn.is-active {
-    background-color: var(--color-primary);
-    border-color: var(--color-primary);
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
     color: #fff;
   }
 </style>

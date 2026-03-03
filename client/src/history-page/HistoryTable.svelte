@@ -228,7 +228,7 @@
     <div class="advanced-filters-content">
       {#if priceColumn}
         <RangeSlider
-          label="Price (£)"
+          label="💷 Price Range:"
           min={priceRange.min}
           max={priceRange.max}
           onchange={handlePriceChange}
@@ -240,7 +240,7 @@
       {/if}
       {#if wishlistColumn}
         <RangeSlider
-          label="Wishlist Count"
+          label="💚 Wishlist Count:"
           min={wishlistRange.min}
           max={wishlistRange.max}
           onchange={handleWishlistChange}
@@ -249,11 +249,14 @@
           displayId="wishlistDisplay"
         />
       {/if}
-      <SearchInput
-        {tableId}
-        placeholder="Search history…"
-        oninput={(v) => (searchText = v)}
-      />
+      <div class="search-filter-row">
+        <span class="filter-label">🔍 Search:</span>
+        <SearchInput
+          {tableId}
+          placeholder="Search history…"
+          oninput={(v) => (searchText = v)}
+        />
+      </div>
     </div>
   </div>
 {/if}
@@ -345,11 +348,25 @@
 
   .advanced-filters-content {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: var(--spacing-md);
-    padding: var(--spacing-md) 0;
-    border-top: 1px solid var(--color-border-light);
-    border-bottom: 1px solid var(--color-border-light);
+    padding: var(--spacing-md);
+    background: var(--color-surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border-light);
+  }
+
+  .search-filter-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .filter-label {
+    color: var(--color-primary-light);
+    white-space: nowrap;
   }
 
   .filter-badge {

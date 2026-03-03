@@ -20,8 +20,8 @@ const SPARKLINE_LEVELS: Record<string, number> = {
 };
 
 const MAX_LEVEL = 8;
-const BAR_WIDTH = 4;
-const BAR_GAP = 1;
+const BAR_WIDTH = 8;
+const BAR_GAP = 2;
 const SVG_HEIGHT = 20;
 const SVG_PADDING_TOP = 2;  // small gap at top so full-height bars don't clip
 

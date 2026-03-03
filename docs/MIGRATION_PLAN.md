@@ -2132,21 +2132,23 @@ placeholder).
 
 ### Phase 4h checklist
 
-- [ ] H1. Revert `key` + `wishlistColumn` to `'Wishlist'` in `breeder-page/index.ts`.
+- [x] H1. Revert `key` + `wishlistColumn` to `'Wishlist'` in `breeder-page/index.ts`.
           Update `test_wishlist_pressure_column_not_empty` → `test_wishlist_column_not_empty`.
           `make test-client && make test-e2e` green.
-- [ ] H2. Update Price column label to `'Price Trend'`; add E2E non-empty assertion.
-          Regenerate local test CSV via `make run-scrape` + `make generate-website`.
+- [x] H2. Update Price column label to `'Price Trend'`; add E2E non-empty assertion.
+          E2E fixture data updated with `price="£nn.nn ↑/→/↓"` values to match current Python output.
           `make test-client && make test-e2e` green.
-- [ ] H3. Move Stock Pattern + Search into `showAdvanced` panel; move toggle button inline
+- [x] H3. Move Stock Pattern + Search into `showAdvanced` panel; move toggle button inline
           into Signal row. Add E2E tests. `make test-client && make test-e2e` green.
-- [ ] H4. Rename "Top 10" → "🔥 Hot (top 10)"; reorder before "🔥 Hot (n)".
+- [x] H4. Rename "Top 10" → "🔥 Hot (top 10)"; reorder before "🔥 Hot (n)".
+          Add Vitest test. Updated `test_top10_filter.py` param `"Price"` → `"Price Trend"`.
+          `make test-client && make test-e2e` green.
+- [x] H5. Add `stockPatternCounts` derived; replace static `STOCK_PATTERN_BUTTONS` with derived array.
           Add Vitest test. Update existing E2E assertions. `make test-client && make test-e2e` green.
-- [ ] H5. Add `stockPatternCounts` derived; replace static `STOCK_PATTERN_BUTTONS` with derived array.
-          Add Vitest test. Update existing E2E assertions. `make test-client && make test-e2e` green.
-- [ ] H6. Add emoji labels `"🎯 Signal:"`, `"📊 Stock Pattern:"`, `"🔍 Search:"`.
+- [x] H6. Add emoji labels `"🎯 Signal:"`, `"📊 Stock Pattern:"`, `"🔍 Search:"`.
           Add E2E assertions. `make test-e2e` green.
-- [ ] Final: `make test && make test-client && make coverage-client && make test-e2e` all green.
+- [x] Final: `make test && make test-client && make coverage-client && make test-e2e` all green.
+          597 Python unit tests passed. 160 Vitest tests passed. 134 E2E tests passed.
 
 ---
 

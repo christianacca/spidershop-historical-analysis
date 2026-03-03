@@ -235,6 +235,9 @@ test('Top 10 button gets is-active class when enabled', async () => {
 
 test('clicking a stock pattern filter button filters rows', async () => {
   const { container } = renderTable();
+  // Stock pattern buttons are inside the More Filters panel — expand it first
+  const toggle = container.querySelector('.advanced-filters-toggle') as HTMLElement;
+  await fireEvent.click(toggle);
   const emergingBtn = container.querySelector(
     '[data-action="filter-stock-pattern"][data-stock-pattern="Emerging"]',
   ) as HTMLElement;
@@ -249,6 +252,9 @@ test('clicking a stock pattern filter button filters rows', async () => {
 
 test('search input filters rows by text', async () => {
   const { container } = renderTable();
+  // Search input is inside the More Filters panel — expand it first
+  const toggle = container.querySelector('.advanced-filters-toggle') as HTMLElement;
+  await fireEvent.click(toggle);
   const searchInput = container.querySelector('#search-test-table') as HTMLInputElement;
 
   await fireEvent.input(searchInput, { target: { value: 'Alpha' } });
@@ -261,6 +267,10 @@ test('signal filter AND search are combined', async () => {
   // All three rows have different signals; only 'hot' rows match signal filter.
   // Search further narrows to species containing 'Alpha'.
   const { container } = renderTable();
+
+  // Search is inside the More Filters panel — expand it first
+  const toggle = container.querySelector('.advanced-filters-toggle') as HTMLElement;
+  await fireEvent.click(toggle);
 
   const hotBtn = container.querySelector(
     '[data-action="filter-signal"][data-signal="🔥"]',
@@ -276,6 +286,9 @@ test('signal filter AND search are combined', async () => {
 
 test('search that matches no rows shows zero visible count', async () => {
   const { container } = renderTable();
+  // Search is inside the More Filters panel — expand it first
+  const toggle = container.querySelector('.advanced-filters-toggle') as HTMLElement;
+  await fireEvent.click(toggle);
   const searchInput = container.querySelector('#search-test-table') as HTMLInputElement;
 
   await fireEvent.input(searchInput, { target: { value: 'xyzzy' } });
@@ -726,5 +739,59 @@ test('advanced filters toggle shows "▼ More Filters" when expanded', async () 
   expect(btn.textContent).not.toContain('▶ More Filters');
 });
 
+// ── H3: Stock Pattern and Search inside More Filters panel ──────────────────
 
+test('stock pattern buttons are not rendered before expanding More Filters', () => {
+  const { container } = renderTable();
+  // Before expanding: stock pattern buttons should not be in the DOM
+  const stockBtns = container.querySelectorAll('[data-action="filter-stock-pattern"]');
+  expect(stockBtns).toHaveLength(0);
+});
 
+test('stock pattern buttons are rendered after expanding More Filters', async () => {
+  const { container } = renderTable();
+  const toggle = container.querySelector('.advanced-filters-toggle') as HTMLElement;
+  await fireEvent.click(toggle);
+  const stockBtns = container.querySelectorAll('[data-action="filter-stock-pattern"]');
+  expect(stockBtns.length).toBeGreaterThan(0);
+});
+
+// ── H4: Top-10 button label and DOM position ────────────────────────────────
+
+test('"🔥 Hot (top 10)" button label and appears before "🔥 Hot (n)" in the DOM', () => {
+  const { container } = renderTable(); // renderTable has top10: true
+  const signalBtns = Array.from(container.querySelectorAll('[data-action="filter-signal"]'));
+  const top10Idx = signalBtns.findIndex(b => b.textContent?.includes('top 10'));
+  const hotIdx = signalBtns.findIndex(b => b.textContent?.includes('🔥 Hot (') && !b.textContent?.includes('top 10'));
+  expect(top10Idx).toBeGreaterThan(-1);
+  expect(hotIdx).toBeGreaterThan(-1);
+  expect(top10Idx).toBeLessThan(hotIdx);
+});
+
+// ── H5: Stock pattern buttons include per-pattern row counts ────────────────
+
+test('stock pattern buttons include per-pattern row counts', async () => {
+  const rows = [
+    { Species: 'A', Signal: '🔥', 'Stock Pattern': 'Sustained', Price: '10.00' },
+    { Species: 'B', Signal: '🔥', 'Stock Pattern': 'Sustained', Price: '20.00' },
+    { Species: 'C', Signal: '⚠️', 'Stock Pattern': 'Emerging', Price: '30.00' },
+  ];
+  const { container } = render(SortableTable, {
+    tableId: 'test-stock-count',
+    rows,
+    columns: COLUMNS,
+    filterConfig: {
+      signalFilter: { column: 'Signal' },
+      stockPatternFilter: { column: 'Stock Pattern' },
+    },
+  });
+  // Expand More Filters to see stock pattern buttons
+  const toggle = container.querySelector('.advanced-filters-toggle') as HTMLElement;
+  await fireEvent.click(toggle);
+
+  const labels = Array.from(container.querySelectorAll('[data-action="filter-stock-pattern"]'))
+    .map(b => b.textContent?.trim() ?? '');
+  expect(labels.some(l => l.includes('Show All (3)'))).toBe(true);
+  expect(labels.some(l => l.includes('Sustained (2)'))).toBe(true);
+  expect(labels.some(l => l.includes('Emerging (1)'))).toBe(true);
+});

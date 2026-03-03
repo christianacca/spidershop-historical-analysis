@@ -101,7 +101,7 @@ def test_show_all_resets_after_hot_top_10_filter(e2e_site_large_table) -> None:
     "header_key,first_visible_after_sort",
     [
         ("Species", "Watch Species 03"),  # desc alpha sort: Watch > Hot > Avoid
-        ("Price", "Hot Species 01"),
+        ("Price Trend", "Hot Species 01"),
     ],
 )
 def test_hot_top_10_shows_same_entries_regardless_of_sort_order(
