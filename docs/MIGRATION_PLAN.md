@@ -1448,6 +1448,458 @@ In `templates/macros.html`:
 
 ---
 
+## Visual Regression Postmortem
+
+**Scope:** Regressions introduced during the Phase 4 Svelte migration, discovered by comparing
+the master-branch (server-rendered) website against the current svelte-migration HEAD.
+
+**Affected pages:** Breeder, Dealer, Snapshot, History.
+**Unaffected pages:** Index (homepage), Species detail — both are still server-rendered Python/Jinja.
+
+---
+
+### Screenshot Comparison Summary
+
+Screenshots were taken of 6 pages × 2 states (before / after). Pixel-diff comparison (threshold >10):
+
+| Page | Changed pixels | % diff | Notes |
+|---|---|---|---|
+| index | 0 px | 0% | No regression — server-rendered, no Svelte |
+| breeder | 110,257 px | 8.8% | Diffs concentrated in y=742–900 (bottom of viewport) |
+| dealer | 110,908 px | 8.8% | Same pattern as breeder |
+| snapshot | 265,932 px | 21.1% | Diffs span y=521–900 — larger layout change |
+| history | 90,477 px | 7.2% | Diffs at y=760–900 plus a small band at y=658–685 |
+| species | 0 px | 0% | No regression — server-rendered, no Svelte |
+
+**Screenshot analysis caveat:** Both before and after screenshots used the same 5-row test CSV data
+with empty sparkline columns. The "before" master site was also missing compiled JavaScript files
+(the old `breeder-page.js`, `dealer-page.js` etc. were not present in the worktree at screenshot
+time), so the before screenshots show server-rendered HTML without JavaScript interactivity. The
+pixel differences represent layout/rendering differences between Jinja-rendered and Svelte-rendered
+output, but do **not** capture the full delta of removed JavaScript-driven features.
+
+---
+
+### Confirmed Regressions (Code Analysis)
+
+The following regressions were confirmed by comparing the master server-rendered HTML against
+the Svelte component source.
+
+#### CRITICAL — Data / feature broken
+
+| # | Regression | Pages | Root cause |
+|---|---|---|---|
+| R1 | Wishlist column renders empty | Breeder | `breeder-page/index.ts` uses `key: 'Wishlist'`; the JSON key is `'Wishlist Pressure'` |
+
+#### HIGH — Visual feature missing
+
+| # | Regression | Pages | Root cause |
+|---|---|---|---|
+| R2 | Signal cell CSS class absent | Breeder, Dealer | `SortableTable` never adds `.signal-hot` / `.signal-watch` / `.signal-avoid` to `<td>`. CSS rules in `common.css` rely on these classes. |
+| R3 | Sparkline trend colours lost | Breeder, Dealer, Snapshot, History | Server-side: `sparkline_conversion.py` generates coloured SVGs (`#22c55e` green, `#3b82f6` blue, `#ef4444` red). Client-side: `unicodeToSvg()` uses `fill="currentColor"` only — inherits text colour (dark) regardless of trend. |
+| R4 | ℹ️ info icons / Drivers tooltips absent | Breeder, Dealer | `Drivers` column exists in JSON but is not in the `COLUMNS` config for either page. `SortableTable` has no tooltip-rendering capability. |
+| R5 | Sort arrow indicator missing | Breeder, Dealer, Snapshot, History | `SortableTable` sets `data-sort-direction` on `<th>` but renders no visible `⇅ / ↑ / ↓` glyph. The `sort-indicator` CSS in `common.css` is never triggered. |
+
+#### MEDIUM — UI feature changed or removed
+
+| # | Regression | Pages | Root cause |
+|---|---|---|---|
+| R6 | Row-count summary line removed | Breeder, Dealer | Phase 4c-ii added a `summaryStats` line ("Total: 5 \| 🔥 2 \| ⚠️ 2 \| ❌ 1") below the signal filter row. Phase 4f A+C (commit `55d24c1`) removed `summaryStats` from `SignalFilterConfig` entirely with no replacement. |
+| R7 | Price / wishlist sliders absent from Breeder and Dealer | Breeder, Dealer | `FILTER_CONFIG` for `breeder-page/index.ts` and `dealer-page/index.ts` does not set `priceColumn` or `wishlistColumn`. The "Advanced Filters" toggle is rendered but the panel is empty. |
+| R8 | "More Filters" label changed to "Advanced Filters" | Breeder, Dealer | Master used `▶ More Filters`; Svelte uses `Advanced Filters`. Purely a label change introduced in Phase 4c-ii. |
+
+---
+
+### Commit Attribution
+
+| Regression | Commit | Phase |
+|---|---|---|
+| R1 (`key: 'Wishlist'` mismatch) | `abdde9a` | Phase 4c-ii |
+| R2 (signal cell CSS class) | `abdde9a` | Phase 4c-ii |
+| R3 (sparkline colours) | `abdde9a` | Phase 4c-ii — `sparklines.ts` created with `fill="currentColor"` |
+| R4 (info icons / Drivers) | `abdde9a` | Phase 4c-ii — Drivers not included in COLUMNS |
+| R5 (sort arrow indicator) | `abdde9a` | Phase 4c-ii — no visual indicator in SortableTable |
+| R6 (row-count summary removed) | `55d24c1` | Phase 4f A+C |
+| R7 (no sliders for breeder/dealer) | `abdde9a` | Phase 4c-ii — no priceColumn/wishlistColumn in FILTER_CONFIG |
+| R8 ("Advanced Filters" label) | `abdde9a` | Phase 4c-ii |
+
+All regressions except R6 originated in **Phase 4c-ii** — the single commit that introduced
+`SortableTable.svelte`.
+
+---
+
+### Why Tests Did Not Catch These
+
+The E2E suite passed at 106/106 after each migration phase because the tests were written to
+assert **functional behaviour** (filtering works, sorting works, search works) rather than
+**visual fidelity** (CSS classes are present, sparkline colours match, info icon present).
+
+Specific gaps:
+
+| Gap | Regression(s) missed |
+|---|---|
+| No E2E assertion on `.signal-hot/.signal-watch/.signal-avoid` CSS class | R2 |
+| No E2E assertion on sparkline SVG `fill` attribute value | R3 |
+| No E2E assertion on `.info-icon` element presence in signal cells | R4 |
+| No E2E assertion on sort-indicator glyph (`⇅`, `↑`, `↓`) text in `<th>` | R5 |
+| No E2E assertion on Wishlist column cell values (empty vs. populated) | R1 |
+| No E2E assertion on row-count summary or per-button counts | R6 |
+| Vitest tests cover component props/events but not rendered cell class logic | R2 |
+| Python snapshot tests cover server-rendered scaffold only (JSON + mount-div) — Svelte output is not snapshotted | R2, R3, R4, R5 |
+
+The root cause: **the E2E DOM-contract audit (step 42a) verified that data-attribute contracts
+were preserved, but did not audit visual-class contracts** (`signal-hot`, `sort-indicator`, etc.)
+that CSS in `common.css` depends on.
+
+---
+
+## Phase 4g — Visual Regression Fixes
+
+**Goal:** Restore all features that were present in the master server-rendered site but are
+currently absent from the Svelte-rendered pages. Work in priority order: data correctness first,
+then high-visibility visual features, then medium-priority UX parity.
+
+**Prerequisite:** `make test && make test-client && make coverage-client && make test-e2e`
+all green before starting. Do not start this phase with a red baseline.
+
+**After each step:** run affected test suites and confirm all pass before proceeding.
+
+---
+
+### G1 — Fix Wishlist column key mismatch on Breeder page ✅ CRITICAL
+
+**File:** `client/src/breeder-page/index.ts`
+
+Change `key: 'Wishlist'` → `key: 'Wishlist Pressure'` in the COLUMNS array.
+
+```typescript
+// before
+{ key: 'Wishlist', label: 'Wishlist' },
+
+// after
+{ key: 'Wishlist Pressure', label: 'Wishlist' },
+```
+
+> The JSON injected by Python uses the CSV column header verbatim. The breeder CSV column is
+> "Wishlist Pressure". The dealer CSV column is "Wishlist" — dealer is correct and unchanged.
+
+**New E2E regression test** (`tests/e2e/test_breeder_page_interactions.py`):
+- Load breeder page, wait for Svelte mount, grep first data row's Wishlist cell.
+  Assert it is non-empty (i.e. not `—` or blank) when the CSV has non-empty wishlist values.
+
+**Verify:** `make test-client && make test-e2e`
+
+---
+
+### G2 — Add signal CSS class to Signal cell in SortableTable
+
+**File:** `client/src/shared/components/SortableTable.svelte`
+
+When rendering a cell in the signal column (detect via `col.key === filterConfig.signalFilter?.signalKey`
+or a new optional `isSignalColumn?: boolean` flag on `ColumnConfig`), derive the CSS class from
+the cell value:
+
+```typescript
+// in SortableTable.svelte script block
+function signalClass(value: string): string {
+  if (value.includes('🔥')) return 'signal-hot';
+  if (value.includes('⚠️')) return 'signal-watch';
+  if (value.includes('❌')) return 'signal-avoid';
+  return '';
+}
+```
+
+Apply it in the `{#each}` cell render:
+
+```svelte
+<td
+  class:signal-hot={isSignalCol && row[col.key]?.includes('🔥')}
+  class:signal-watch={isSignalCol && row[col.key]?.includes('⚠️')}
+  class:signal-avoid={isSignalCol && row[col.key]?.includes('❌')}
+  ...
+```
+
+Where `isSignalCol` is `$derived(col.key === (filterConfig.signalFilter?.signalKey ?? ''))`.
+
+Mark the signal column in each page config — add `isSignalColumn: true` to `ColumnConfig` and
+set it on the Signal column in `breeder-page/index.ts` and `dealer-page/index.ts`.
+
+**New Vitest tests** (`SortableTable.test.ts`):
+- Render with a 🔥 row; assert the signal `<td>` has class `signal-hot`.
+- Render with a ⚠️ row; assert the signal `<td>` has class `signal-watch`.
+- Render with a ❌ row; assert the signal `<td>` has class `signal-avoid`.
+
+**New E2E test**:
+- Breeder page: assert first 🔥 row's signal cell has CSS class `signal-hot`.
+- Dealer page: same for Dealer Risk column.
+
+**Verify:** `make test-client && make test-e2e`
+
+---
+
+### G3 — Restore sparkline trend colours
+
+**Problem:** `unicodeToSvg()` uses `fill="currentColor"` which inherits CSS text colour.
+The server-side `sparkline_conversion.py` generated coloured SVGs using per-bar computed
+trend colours (`#22c55e` green, `#3b82f6` blue, `#ef4444` red).
+
+**Chosen approach — pass per-column colour data alongside the Unicode string in JSON:**
+
+In `src/website/sparkline_helpers.py` (or wherever `rows_to_json` is called), add a parallel
+`<col>_color` key for each sparkline column. The value is a list of hex colour codes — one per
+bar segment — computed by the same trend logic already in `sparkline_conversion.py`.
+
+```python
+# rows_to_json() addition (pseudocode)
+for row in rows:
+    for col in sparkline_columns:
+        row[f'{col}_color'] = compute_bar_colours(row[col])
+```
+
+In `unicodeToSvg(sparkline: string, colors?: string[]): string`:
+- Accept an optional `colors` parameter.
+- If provided, use `colors[i]` as the `fill` for bar `i` instead of `currentColor`.
+
+In `SortableTable.svelte`:
+- For `type: 'sparkline'` columns, look up `row[col.key + '_color']` and pass it to `unicodeToSvg()`.
+
+> **Alternative (simpler if colour extraction is complex):** Generate the full coloured SVG in
+> Python as before and store it in a `<col>_svg` key; Svelte renders `{@html row[col.key + '_svg']}`.
+> Choose whichever is simpler after examining `sparkline_conversion.py`'s colour logic.
+
+**New Vitest test** (`sparklines.test.ts`):
+- `unicodeToSvg('▁▄▇', ['#ef4444','#3b82f6','#22c55e'])` — assert each bar's `fill` matches.
+
+**New E2E test**:
+- Breeder page: find a row with a non-empty Price History sparkline; assert the SVG contains
+  a `fill` attribute that is NOT `currentColor` (i.e. a coloured trend bar).
+
+**Verify:** `make test-client && make test-e2e`
+
+---
+
+### G4 — Restore ℹ️ info icons and Drivers tooltips
+
+**Files:** `SortableTable.svelte`, `breeder-page/index.ts`, `dealer-page/index.ts`
+
+**Step 1 — Add Drivers to COLUMNS config** (hidden column, data only):
+
+```typescript
+// breeder-page/index.ts
+{ key: 'Drivers', label: 'Drivers', hidden: true },
+```
+
+Add `hidden?: boolean` to `ColumnConfig`. Hidden columns are included in `allRows` data for
+look-up but have no `<th>` or `<td>` rendered.
+
+**Step 2 — Render info icon in Signal column cell:**
+
+In `SortableTable.svelte`, for signal-column cells where `row['Drivers']` is non-empty, render:
+
+```svelte
+{row[col.key]}
+{#if row['Drivers']}
+  <span class="info-icon" title={row['Drivers']}>ℹ️</span>
+{/if}
+```
+
+Or use the existing `tooltip` CSS with a `<div class="tooltip">` pattern matching `common.css`.
+
+> The Drivers key name should come from the column config (e.g. `filterConfig.driversKey?: string`)
+> rather than being hard-coded as `'Drivers'` in `SortableTable`.
+
+**New Vitest test** (`SortableTable.test.ts`):
+- Render with a row that has a non-empty Drivers value; assert `.info-icon` is present in the signal cell.
+- Render with a row that has an empty Drivers value; assert `.info-icon` is absent.
+
+**New E2E test**:
+- Breeder page: assert signal cells with 🔥 signal have an `.info-icon` child element.
+
+**Verify:** `make test-client && make test-e2e`
+
+---
+
+### G5 — Restore sort arrow visual indicator in column headers
+
+**File:** `client/src/shared/components/SortableTable.svelte`
+
+`<th>` elements already set `data-sort-direction` to `"asc"`, `"desc"`, or `"none"`. Add a
+`<span class="sort-indicator">` inside each sortable `<th>` that shows the appropriate glyph:
+
+```svelte
+{#if col.sortable !== false}
+  <span class="sort-indicator">
+    {sortColumn === col.key ? (sortDirection === 'asc' ? '↑' : '↓') : '⇅'}
+  </span>
+{/if}
+```
+
+The `.sort-indicator` style already exists in `common.css` — no CSS change needed.
+
+**New Vitest test** (`SortableTable.test.ts`):
+- Default (unsorted): each sortable `<th>` contains `⇅`.
+- After clicking a header: that `<th>` contains `↑`; others still show `⇅`.
+- After clicking same header again: that `<th>` contains `↓`.
+
+**New E2E test**:
+- Breeder page: assert Species column `<th>` contains `⇅` by default.
+- After clicking Species `<th>`: assert it contains `↑`.
+
+**Verify:** `make test-client && make test-e2e`
+
+---
+
+### G6 — Restore per-filter row counts on signal buttons
+
+**Background:** The original JS dynamically updated filter button labels to include counts
+("Show All → Show All (5)", "🔥 Hot → 🔥 Hot (2)"). Phase 4c-ii added a `summaryStats` line
+instead ("Total: 5 | 🔥 2 | ⚠️ 2 | ❌ 1"). Phase 4f removed that too.
+
+**Implementation:** Derive counts from `allRows` using `$derived.by` and pass them to
+`FilterButton` as part of the label:
+
+```typescript
+// in SortableTable.svelte
+const signalCounts = $derived.by(() => {
+  if (!filterConfig.signalFilter) return {};
+  const key = filterConfig.signalFilter.signalKey;
+  return {
+    hot: allRows.filter(r => r[key]?.includes('🔥')).length,
+    watch: allRows.filter(r => r[key]?.includes('⚠️')).length,
+    avoid: allRows.filter(r => r[key]?.includes('❌')).length,
+    all: allRows.length,
+  };
+});
+```
+
+Pass counts to the "Show All" and per-signal `FilterButton` labels:
+`label={\`Show All (${signalCounts.all})\`}` etc.
+
+> The `FilterButton` label prop is already a `string` — no interface change needed.
+
+**New Vitest test** (`SortableTable.test.ts`):
+- Render with 3 🔥 rows and 2 ⚠️ rows; assert "Show All (5)", "🔥 Hot (3)", "⚠️ Watch (2)" button labels.
+
+**New E2E test**:
+- Breeder page: assert the "Show All" button label contains a number in parentheses matching
+  the total row count in the table.
+
+**Verify:** `make test-client && make test-e2e`
+
+---
+
+### G7 — Enable price / wishlist sliders for Breeder and Dealer pages
+
+**Files:** `client/src/breeder-page/index.ts`, `client/src/dealer-page/index.ts`
+
+Add `priceColumn` and `wishlistColumn` to `FILTER_CONFIG`:
+
+```typescript
+// breeder-page
+const FILTER_CONFIG: FilterConfig = {
+  ...
+  priceColumn: 'Price',
+  wishlistColumn: 'Wishlist Pressure',
+};
+
+// dealer-page
+const FILTER_CONFIG: FilterConfig = {
+  ...
+  priceColumn: 'Price',
+  wishlistColumn: 'Wishlist',
+};
+```
+
+This causes `SortableTable` to render the price/wishlist `RangeSlider` components inside the
+"Advanced Filters" panel. The "Advanced Filters" toggle button will now be non-empty.
+
+> **Price column format note:** The Price cell values in breeder/dealer contain the trend arrow
+> (e.g. `"£25.00 ↑"`). The `RangeSlider` filter logic must strip the non-numeric suffix before
+> comparing. Confirm the existing `filterByPrice` logic in `filter.ts` handles this, or fix it.
+
+**New E2E tests**:
+- Breeder page: click "Advanced Filters", assert price slider and wishlist slider are visible.
+- Drag price slider min to a value; assert rows below that price are hidden.
+
+**Verify:** `make test-client && make test-e2e`
+
+---
+
+### G8 — Restore "More Filters" button label
+
+**File:** `client/src/shared/components/SortableTable.svelte`
+
+Change the Advanced Filters toggle button label from `"Advanced Filters"` to `"▶ More Filters"`,
+matching the original server-rendered label. Update the CSS expanded state `"▼ More Filters"`.
+
+> This is a label-only change. No behaviour change.
+
+**Verify:** `make test-e2e` (assert button text contains "More Filters")
+
+---
+
+### G9 — Add regression E2E tests to prevent recurrence
+
+After all G1–G8 steps pass, add the following *regression guard* E2E tests so that any future
+migration step that silently drops a visual feature will be caught immediately:
+
+**File:** `tests/e2e/test_visual_contracts.py` (new file)
+
+```python
+# Assertions that guard visual-class contracts which CSS depends on
+def test_signal_cells_have_css_class(breeder_page):
+    """Signal td cells carry signal-hot/watch/avoid class for CSS styling."""
+    ...assert .signal-hot on 🔥 rows...
+
+def test_sparkline_fill_is_not_currentColor(breeder_page):
+    """Sparkline SVG bars use explicit hex colours, not currentColor."""
+    ...assert fill != "currentColor"...
+
+def test_info_icon_present_for_signal_cells(breeder_page):
+    """ℹ️ info icon is rendered inside signal cells that have Drivers data."""
+    ...assert .info-icon child exists...
+
+def test_sort_indicator_glyph_in_headers(breeder_page):
+    """Column headers show ⇅/↑/↓ glyph for sortable columns."""
+    ...assert '⇅' in th.text_content()...
+
+def test_filter_button_shows_row_count(breeder_page):
+    """Signal filter buttons include a parenthesised row count."""
+    ...assert re.search(r'\(\d+\)', button.text_content())...
+
+def test_wishlist_pressure_column_not_empty(breeder_page):
+    """Wishlist column uses correct JSON key (Wishlist Pressure)."""
+    ...assert first_wishlist_cell != '' and != '—'...
+```
+
+**Verify:** `make test-e2e` → all 6 new tests pass.
+
+---
+
+### Phase 4g checklist
+
+- [ ] G1. Fix `key: 'Wishlist'` → `key: 'Wishlist Pressure'` in `breeder-page/index.ts`
+          Add E2E regression test. `make test-client && make test-e2e` green.
+- [ ] G2. Add signal CSS class (`.signal-hot` etc.) to Signal `<td>` in `SortableTable`.
+          Add Vitest tests. Add E2E test. `make test-client && make test-e2e` green.
+- [ ] G3. Restore sparkline trend colours (`unicodeToSvg` + `_color` JSON keys).
+          Add Vitest test. Add E2E test. `make test-client && make test-e2e` green.
+- [ ] G4. Restore ℹ️ info icon / Drivers tooltip in `SortableTable` signal cell.
+          Add Vitest tests. Add E2E test. `make test-client && make test-e2e` green.
+- [ ] G5. Add sort arrow glyph (`⇅/↑/↓`) to sortable `<th>` in `SortableTable`.
+          Add Vitest tests. Add E2E test. `make test-client && make test-e2e` green.
+- [ ] G6. Restore per-signal-button row counts using `$derived.by`.
+          Add Vitest tests. Add E2E test. `make test-client && make test-e2e` green.
+- [ ] G7. Enable price/wishlist sliders for Breeder and Dealer (`priceColumn`/`wishlistColumn`).
+          Add E2E tests. `make test-client && make test-e2e` green.
+- [ ] G8. Restore "▶ More Filters" button label. `make test-e2e` green.
+- [ ] G9. Add `tests/e2e/test_visual_contracts.py` with 6 regression guard tests.
+          `make test-e2e` → all new tests pass.
+- [ ] Final: `make test && make test-client && make coverage-client && make test-e2e` all green.
+         Update this file — tick all G steps, record any decisions.
+
+---
+
 ## Phase 5 — Species-page charts (future)
 
 **Goal:** Migrate imperative SVG chart rendering into Svelte components.
