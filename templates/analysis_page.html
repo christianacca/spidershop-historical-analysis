@@ -56,12 +56,6 @@
     
     {{ macros.instruction_box(active_page) }}
     
-    {% if analysis_html %}
-    <div class="analysis-section">
-        {{ analysis_html|safe }}
-    </div>
-    {% endif %}
-    
     {% if json_rows %}
     <h3>Full Data Table</h3>
     {% include 'table.html' %}

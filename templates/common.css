@@ -293,29 +293,6 @@ footer a:hover {
     text-decoration: underline;
 }
 
-/* Table Controls (Search Filter) */
-.table-controls {
-    margin: 20px 0;
-    display: flex;
-    gap: 15px;
-    flex-wrap: wrap;
-    align-items: center;
-}
-
-.table-controls input {
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 0.95rem;
-    flex: 1;
-    min-width: 200px;
-}
-
-.table-controls label {
-    font-weight: 600;
-    color: #555;
-}
-
 /* Advanced Filters Container (used for search filter on all pages) */
 .advanced-filters {
     margin-top: 0;
@@ -399,49 +376,10 @@ footer a:hover {
     transform: rotate(90deg);
 }
 
-/* Table stats strip */
-.table-stats {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: var(--color-info-bg);
-    padding: 12px 15px;
-    margin-bottom: 15px;
-    border-radius: var(--radius-sm);
-    color: var(--color-primary);
-    font-size: var(--font-base);
-}
-
+/* Snapshot page date display */
 .table-stats-date {
     font-size: 0.85rem;
     color: #666;
-}
-
-/* Advanced Filters Toggle Button - uses secondary button style with specific enhancements */
-.advanced-filters-toggle:hover {
-    background: #e9ecef;
-    border-color: var(--color-accent);
-}
-
-.advanced-filters-toggle .arrow {
-    transition: transform 0.2s;
-    font-size: 0.8rem;
-}
-
-.advanced-filters-toggle.expanded .arrow {
-    transform: rotate(90deg);
-}
-
-.advanced-filters-toggle .when-expanded {
-    display: none;
-}
-
-.advanced-filters-toggle.expanded .when-collapsed {
-    display: none;
-}
-
-.advanced-filters-toggle.expanded .when-expanded {
-    display: inline;
 }
 
 /* Filter badge indicator */
@@ -471,162 +409,6 @@ footer a:hover {
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     margin-top: 10px;
-}
-
-.advanced-filters-content.show {
-    display: block;
-}
-
-.filter-row {
-    margin-bottom: 15px;
-}
-
-.filter-row:last-child {
-    margin-bottom: 0;
-}
-
-.filter-row strong {
-    color: var(--color-primary-light);
-    margin-right: 10px;
-    display: block;
-    margin-bottom: 8px;
-}
-
-/* Slider Styles */
-.slider-container {
-    padding: 10px 0;
-}
-
-/* Dual Range Slider - Two handles on same track */
-.dual-range-slider {
-    position: relative;
-    height: 20px;
-    margin: var(--spacing-sm) 0;
-}
-
-.dual-range-slider .slider {
-    -webkit-appearance: none;
-    position: absolute;
-    width: 100%;
-    height: 20px;
-    top: 0;
-    left: 0;
-    background: transparent;
-    outline: none;
-    pointer-events: none;
-    margin: 0;
-    padding: 0;
-}
-
-/* Style the track for the min slider (bottom layer) */
-.dual-range-slider .slider-min::-webkit-slider-runnable-track {
-    height: 8px;
-    background: #d3d3d3;
-    border-radius: 5px;
-    margin-top: 6px;
-}
-
-.dual-range-slider .slider-min::-moz-range-track {
-    height: 8px;
-    background: #d3d3d3;
-    border-radius: 5px;
-}
-
-/* Hide track for max slider (only show thumb) */
-.dual-range-slider .slider-max::-webkit-slider-runnable-track {
-    height: 8px;
-    background: transparent;
-    border-radius: 5px;
-    margin-top: 6px;
-}
-
-.dual-range-slider .slider-max::-moz-range-track {
-    height: 8px;
-    background: transparent;
-    border-radius: 5px;
-}
-
-/* Enable pointer events on thumbs only */
-.dual-range-slider .slider::-webkit-slider-thumb {
-    pointer-events: auto;
-    -webkit-appearance: none;
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--color-accent);
-    cursor: pointer;
-    position: relative;
-    margin-top: -6px;
-}
-
-.dual-range-slider .slider::-moz-range-thumb {
-    pointer-events: auto;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--color-accent);
-    cursor: pointer;
-    border: none;
-    position: relative;
-}
-
-/* Differentiate min handle with darker color */
-.dual-range-slider .slider-min::-webkit-slider-thumb {
-    background: var(--color-accent-hover);
-}
-
-.dual-range-slider .slider-min::-moz-range-thumb {
-    background: var(--color-accent-hover);
-}
-
-/* Single slider style (for non-dual sliders if any) */
-.slider {
-    -webkit-appearance: none;
-    width: 100%;
-    height: 8px;
-    border-radius: 5px;
-    background: #d3d3d3;
-    outline: none;
-    opacity: 0.7;
-    transition: opacity 0.2s;
-}
-
-.slider:hover {
-    opacity: 1;
-}
-
-.slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--color-accent);
-    cursor: pointer;
-}
-
-.slider::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--color-accent);
-    cursor: pointer;
-    border: none;
-}
-
-.slider-values {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 5px;
-    color: var(--color-text-muted);
-    font-size: var(--font-sm);
-}
-
-.slider-current {
-    margin-top: 8px;
-    color: var(--color-primary);
-    font-weight: 600;
 }
 
 /* Markdown Tables */
@@ -784,15 +566,6 @@ details hr {
     nav ul {
         flex-direction: column;
     }
-    
-    .table-controls {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .table-controls input {
-        min-width: 100%;
-    }
 }
 
 /* Tablet breakpoint - keep table layout but optimize spacing */
@@ -812,11 +585,3 @@ details hr {
     overflow-x: auto;
 }
 
-/* Search Input */
-.search-input {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 0.95rem;
-}

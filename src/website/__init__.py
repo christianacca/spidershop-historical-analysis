@@ -19,12 +19,6 @@ from website.markdown_utils import (
     extract_summary_stats,
     extract_analysis_sections,
 )
-from website.html_utils import (
-    escape_html,
-    generate_table_html,
-    get_base_html_template,
-    get_html_footer,
-)
 from website.csv_utils import read_csv_file
 from website.table_data_helpers import rows_to_json
 
@@ -41,11 +35,6 @@ __all__ = [
     'add_data_labels_to_tables',
     'extract_summary_stats',
     'extract_analysis_sections',
-    # HTML utilities
-    'escape_html',
-    'generate_table_html',
-    'get_base_html_template',
-    'get_html_footer',
     # CSV utilities
     'read_csv_file',
     # Table data helpers

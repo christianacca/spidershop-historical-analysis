@@ -378,6 +378,9 @@
     font-size: var(--font-sm);
     color: var(--color-text-muted);
     margin-bottom: var(--spacing-xs);
+    background: var(--color-info-bg);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-sm);
   }
 
   .table-scroll {

@@ -5,33 +5,6 @@
 # name: TestHtmlSnapshots.test_download_links_snapshot
   'None'
 # ---
-# name: TestHtmlSnapshots.test_footer_structure_snapshot
-  '''
-  <footer>
-  <p>Data scraped from <a href="https://thespidershop.co.uk/" target="_blank">The Spider Shop UK</a></p>
-  <p><a href="https://github.com/christianacca/spidershop-historical-analysis" target="_blank">View on GitHub</a></p>
-  
-  </footer>
-  '''
-# ---
-# name: TestHtmlSnapshots.test_navigation_structure_snapshot
-  '''
-  <nav>
-  <div class="container">
-  <ul>
-  <li><a class="" href="index.html">🏠 Home</a></li>
-  <li><a class="" href="snapshot.html">📸 Latest Snapshot</a></li>
-  <li><a class="" href="history.html">📊 Historical Data</a></li>
-  <li><a class="" href="breeder.html">🌱 Breeder Opportunities</a></li>
-  <li><a class="" href="dealer.html">📦 Dealer Supply Risk</a></li>
-  </ul>
-  </div>
-  </nav>
-  '''
-# ---
 # name: TestHtmlSnapshots.test_search_filter_snapshot
   'None'
-# ---
-# name: TestHtmlSnapshots.test_table_structure_snapshot
-  '<div id="breeder-table-root"></div>'
 # ---

@@ -6,7 +6,6 @@ import os
 from pathlib import Path
 from bs4 import BeautifulSoup
 from conftest import create_temp_csv_file, temp_csv_file, BreederEntry, create_breeder_csv_content, page_config
-from website import generate_table_html, get_base_html_template, get_html_footer
 from website.generate_website import generate_homepage, generate_analysis_page, generate_snapshot_page, generate_history_page, main, OUTPUT_DIR
 
 
@@ -296,32 +295,6 @@ class TestHtmlSnapshots:
     This provides regression detection while keeping diffs manageable.
     """
 
-    def test_table_structure_snapshot(self, snapshot):
-        """Should maintain consistent table HTML structure."""
-        headers = ["Species", "Signal", "OOS"]
-        rows = [
-            ["Aphonopelma seemanni", "🔥", "OUT"],
-            ["Brachypelma hamorii", "⚠️", "IN"],
-        ]
-        
-        html = generate_table_html(headers, rows, "breeder-table", sortable=True)
-        
-        # Svelte renders the table client-side; snapshot the mount div
-        soup = BeautifulSoup(html, "html.parser")
-        mount_div = soup.find("div", id="breeder-table-root")
-
-        assert snapshot == str(mount_div)
-
-    def test_navigation_structure_snapshot(self, snapshot):
-        """Should maintain consistent navigation HTML structure."""
-        template = get_base_html_template("Test Page", "test")
-        
-        # Extract just the nav element
-        soup = BeautifulSoup(template, "html.parser")
-        nav = soup.find("nav")
-        
-        assert snapshot == str(nav)
-
     def test_card_grid_snapshot(self, snapshot):
         """Should maintain consistent card grid structure on homepage."""
         html = generate_homepage(last_scrape_time="2025-01-15T12:00:00")
@@ -331,21 +304,6 @@ class TestHtmlSnapshots:
         card_section = soup.find("section", class_="card-grid")
         
         assert snapshot == str(card_section)
-
-    def test_footer_structure_snapshot(self, snapshot):
-        """Should maintain consistent footer HTML structure (excluding timestamp)."""
-        footer = get_html_footer()
-        
-        # Extract just the footer element
-        soup = BeautifulSoup(footer, "html.parser")
-        footer_elem = soup.find("footer")
-        
-        # Remove the timestamp paragraph for snapshot (it changes every run)
-        timestamp_p = footer_elem.find("p", string=lambda text: text and "Generated:" in text)
-        if timestamp_p:
-            timestamp_p.decompose()
-        
-        assert snapshot == str(footer_elem)
 
     def test_search_filter_snapshot(self, snapshot):
         """Should maintain consistent search filter HTML structure."""
