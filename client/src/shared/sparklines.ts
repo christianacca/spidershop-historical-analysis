@@ -26,6 +26,23 @@ const SVG_HEIGHT = 20;
 const SVG_PADDING_TOP = 2;  // small gap at top so full-height bars don't clip
 
 /**
+ * Derive a trend-based fill colour from bar height levels.
+ *
+ * Mirrors the colour logic in `src/website/sparkline_conversion.py`:
+ * - Rising  (last > first + 1): green  (#22c55e)
+ * - Falling (last < first - 1): red    (#ef4444)
+ * - Stable / single bar:        blue   (#3b82f6)
+ */
+function sparklineFillColor(levels: number[]): string {
+  if (levels.length < 2) return '#3b82f6';
+  const first = levels[0];
+  const last = levels[levels.length - 1];
+  if (last > first + 1) return '#22c55e';
+  if (last < first - 1) return '#ef4444';
+  return '#3b82f6';
+}
+
+/**
  * Convert a Unicode sparkline string to an inline SVG bar chart.
  *
  * Returns the input unchanged when:
@@ -50,13 +67,14 @@ export function unicodeToSvg(sparkline: string): string {
 
   const totalWidth = validLevels.length * (BAR_WIDTH + BAR_GAP) - BAR_GAP;
   const usableHeight = SVG_HEIGHT - SVG_PADDING_TOP;
+  const color = sparklineFillColor(validLevels);
 
   const rects = validLevels
     .map((level, i) => {
       const x = i * (BAR_WIDTH + BAR_GAP);
       const barHeight = Math.round((level / MAX_LEVEL) * usableHeight);
       const y = SVG_HEIGHT - barHeight;
-      return `<rect x="${x}" y="${y}" width="${BAR_WIDTH}" height="${barHeight}" fill="currentColor"/>`;
+      return `<rect x="${x}" y="${y}" width="${BAR_WIDTH}" height="${barHeight}" fill="${color}"/>`;
     })
     .join('');
 

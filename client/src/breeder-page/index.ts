@@ -20,17 +20,21 @@ const COLUMNS: ColumnConfig[] = [
   { key: 'Stock Pattern', label: 'Stock Pattern' },
   { key: 'Price', label: 'Price' },
   { key: 'Price History', label: 'Price History', type: 'sparkline' },
-  { key: 'Wishlist', label: 'Wishlist' },
+  { key: 'Wishlist Pressure', label: 'Wishlist' },
   { key: 'Wishlist History', label: 'Wishlist History', type: 'sparkline' },
   { key: 'Signal', label: 'Signal' },
   { key: 'Recommendation', label: 'Recommendation' },
+  { key: 'Drivers', label: 'Drivers', hidden: true },
 ];
 
 const FILTER_CONFIG: FilterConfig = {
   signalFilter: { column: 'Signal', top10: true },
   stockPatternFilter: { column: 'Stock Pattern' },
+  priceColumn: 'Price',
+  wishlistColumn: 'Wishlist Pressure',
   showSearch: true,
   statsLabel: 'species',
+  driversKey: 'Drivers',
 };
 
 function init(): void {

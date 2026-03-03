@@ -55,6 +55,16 @@ describe('computeRange', () => {
     const rows = [{ price: '10.0' }, { price: 'bad' }, { price: '20.0' }];
     expect(computeRange(rows, 'price', 'float')).toEqual({ min: 10, max: 20 });
   });
+
+  // G7: price values with currency symbol and trend arrow, e.g. "£25.00 ↑"
+  test('float mode: strips leading currency symbol from "£XX.XX ↑" values', () => {
+    const rows = [
+      { price: '£15.00 ↑' },
+      { price: '£25.00 →' },
+      { price: '£10.50 ↓' },
+    ];
+    expect(computeRange(rows, 'price', 'float')).toEqual({ min: 10, max: 25 });
+  });
 });
 
 // ── sortRows ──────────────────────────────────────────────────────────────────

@@ -25,12 +25,16 @@ const COLUMNS: ColumnConfig[] = [
   { key: 'Stock Availability', label: 'Stock Availability', type: 'sparkline' },
   { key: 'Dealer Risk', label: 'Dealer Risk' },
   { key: 'Dealer Recommendation', label: 'Dealer Recommendation' },
+  { key: 'Drivers', label: 'Drivers', hidden: true },
 ];
 
 const FILTER_CONFIG: FilterConfig = {
   signalFilter: { column: 'Dealer Risk', top10: true },
+  priceColumn: 'Price',
+  wishlistColumn: 'Wishlist',
   showSearch: true,
   statsLabel: 'species',
+  driversKey: 'Drivers',
 };
 
 function init(): void {

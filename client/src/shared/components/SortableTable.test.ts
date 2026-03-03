@@ -57,8 +57,9 @@ test('renders all rows initially', () => {
 
 test('renders correct column headers', () => {
   const { container } = renderTable();
+  // Strip the sort-indicator glyph (⇅/↑/↓) before comparing labels.
   const headers = Array.from(container.querySelectorAll('thead th')).map((th) =>
-    th.textContent?.trim(),
+    (th.textContent ?? '').replace(/[\u21c5\u2191\u2193]/g, '').trim(),
   );
   expect(headers).toEqual(['Species', 'Signal', 'Stock Pattern', 'Price']);
 });
@@ -509,3 +510,221 @@ test('CSV quotes values that contain a comma (RFC-4180)', async () => {
   const text = await blob.text();
   expect(text).toContain('"Spider, tarantula"');
 });
+// ── G2: Signal CSS classes ────────────────────────────────────────────────────
+
+const SIGNAL_COLUMN_INDEX = 1; // Signal is the 2nd column in COLUMNS (index 1)
+
+function renderWithSignalFilter() {
+  return render(SortableTable, {
+    tableId: 'signal-class-table',
+    rows: ROWS,
+    columns: COLUMNS,
+    filterConfig: {
+      signalFilter: { column: 'Signal' },
+    },
+  });
+}
+
+test('🔥 row signal td has class signal-hot', () => {
+  const { container } = renderWithSignalFilter();
+  const rows = Array.from(container.querySelectorAll('tbody tr'));
+  const hotRow = rows.find(
+    (tr) =>
+      tr.querySelectorAll('td')[SIGNAL_COLUMN_INDEX]?.textContent?.trim() === '🔥',
+  )!;
+  expect(hotRow).not.toBeNull();
+  const signalTd = hotRow.querySelectorAll('td')[SIGNAL_COLUMN_INDEX];
+  expect(signalTd.classList.contains('signal-hot')).toBe(true);
+});
+
+test('⚠️ row signal td has class signal-watch', () => {
+  const { container } = renderWithSignalFilter();
+  const rows = Array.from(container.querySelectorAll('tbody tr'));
+  const watchRow = rows.find(
+    (tr) =>
+      tr.querySelectorAll('td')[SIGNAL_COLUMN_INDEX]?.textContent?.trim() === '⚠️',
+  )!;
+  expect(watchRow).not.toBeNull();
+  const signalTd = watchRow.querySelectorAll('td')[SIGNAL_COLUMN_INDEX];
+  expect(signalTd.classList.contains('signal-watch')).toBe(true);
+});
+
+test('❌ row signal td has class signal-avoid', () => {
+  const { container } = renderWithSignalFilter();
+  const rows = Array.from(container.querySelectorAll('tbody tr'));
+  const avoidRow = rows.find(
+    (tr) =>
+      tr.querySelectorAll('td')[SIGNAL_COLUMN_INDEX]?.textContent?.trim() === '❌',
+  )!;
+  expect(avoidRow).not.toBeNull();
+  const signalTd = avoidRow.querySelectorAll('td')[SIGNAL_COLUMN_INDEX];
+  expect(signalTd.classList.contains('signal-avoid')).toBe(true);
+});
+
+test('non-signal column td does not have signal class', () => {
+  const { container } = renderWithSignalFilter();
+  const firstSpeciesTd = container.querySelector('tbody tr td:first-child')!;
+  expect(firstSpeciesTd.classList.contains('signal-hot')).toBe(false);
+  expect(firstSpeciesTd.classList.contains('signal-watch')).toBe(false);
+  expect(firstSpeciesTd.classList.contains('signal-avoid')).toBe(false);
+});
+
+// ── G4: Info icon for Drivers ─────────────────────────────────────────────────
+
+const ROWS_WITH_DRIVERS = [
+  {
+    Species: 'Alpha Spider',
+    Signal: '🔥',
+    Drivers: 'Stock: Sustained OOS; Demand: Wishlist 🔥',
+  },
+  {
+    Species: 'Beta Spider',
+    Signal: '⚠️',
+    Drivers: '',
+  },
+];
+
+const COLUMNS_WITH_DRIVERS = [
+  { key: 'Species', label: 'Species' },
+  { key: 'Signal', label: 'Signal' },
+  { key: 'Drivers', label: 'Drivers', hidden: true },
+];
+
+function renderWithDrivers() {
+  return render(SortableTable, {
+    tableId: 'test-table-drivers',
+    rows: ROWS_WITH_DRIVERS,
+    columns: COLUMNS_WITH_DRIVERS,
+    filterConfig: {
+      signalFilter: { column: 'Signal' },
+      driversKey: 'Drivers',
+    },
+  });
+}
+
+test('signal cell with non-empty Drivers renders .info-icon', () => {
+  const { container } = renderWithDrivers();
+  const rows = Array.from(container.querySelectorAll('tbody tr'));
+  const hotRow = rows.find((tr) =>
+    tr.querySelector('td:nth-child(2)')?.textContent?.includes('🔥'),
+  )!;
+  expect(hotRow).not.toBeNull();
+  const infoIcon = hotRow.querySelector('td:nth-child(2) .info-icon');
+  expect(infoIcon).not.toBeNull();
+});
+
+test('signal cell with empty Drivers does not render .info-icon', () => {
+  const { container } = renderWithDrivers();
+  const rows = Array.from(container.querySelectorAll('tbody tr'));
+  const watchRow = rows.find((tr) =>
+    tr.querySelector('td:nth-child(2)')?.textContent?.includes('⚠️'),
+  )!;
+  expect(watchRow).not.toBeNull();
+  const infoIcon = watchRow.querySelector('td:nth-child(2) .info-icon');
+  expect(infoIcon).toBeNull();
+});
+
+test('hidden columns are excluded from rendered thead', () => {
+  const { container } = renderWithDrivers();
+  // Strip sort-indicator glyph before comparing labels.
+  const headers = Array.from(container.querySelectorAll('thead th')).map((th) =>
+    (th.textContent ?? '').replace(/[\u21c5\u2191\u2193]/g, '').trim(),
+  );
+  expect(headers).not.toContain('Drivers');
+  expect(headers).toContain('Species');
+  expect(headers).toContain('Signal');
+});
+
+test('hidden columns are excluded from rendered tbody cells', () => {
+  const { container } = renderWithDrivers();
+  // Should only have 2 visible columns (Species + Signal), not 3
+  const firstRowCells = container.querySelectorAll('tbody tr:first-child td');
+  expect(firstRowCells).toHaveLength(2);
+});
+
+// ── G5: Sort indicator glyphs ─────────────────────────────────────────────────
+
+test('all sortable column headers show ⇅ by default (unsorted)', () => {
+  const { container } = renderTable();
+  const headers = Array.from(container.querySelectorAll('thead th'));
+  for (const th of headers) {
+    const indicator = th.querySelector('.sort-indicator');
+    expect(indicator).not.toBeNull();
+    expect(indicator?.textContent).toBe('⇅');
+  }
+});
+
+test('clicking a column header shows ↑ on that column', async () => {
+  const { container } = renderTable();
+  const speciesTh = container.querySelectorAll('thead th')[0];
+  await fireEvent.click(speciesTh);
+  const indicator = speciesTh.querySelector('.sort-indicator');
+  expect(indicator?.textContent).toBe('↑');
+});
+
+test('clicking same column header twice shows ↓', async () => {
+  const { container } = renderTable();
+  const speciesTh = container.querySelectorAll('thead th')[0];
+  await fireEvent.click(speciesTh);
+  await fireEvent.click(speciesTh);
+  const indicator = speciesTh.querySelector('.sort-indicator');
+  expect(indicator?.textContent).toBe('↓');
+});
+
+test('other column headers still show ⇅ after sorting one column', async () => {
+  const { container } = renderTable();
+  const ths = Array.from(container.querySelectorAll('thead th'));
+  await fireEvent.click(ths[0]); // sort by first column
+  for (let i = 1; i < ths.length; i++) {
+    const indicator = ths[i].querySelector('.sort-indicator');
+    expect(indicator?.textContent).toBe('⇅');
+  }
+});
+
+// ── G6: Per-filter row counts ──────────────────────────────────────────────────
+
+test('Show All button includes total row count', () => {
+  const { getByText } = renderTable();
+  // ROWS has 3 entries (🔥, ⚠️, ❌)
+  expect(getByText(/Show All \(3\)/)).toBeTruthy();
+});
+
+test('signal filter buttons include per-signal row counts', () => {
+  const { getByText } = renderTable();
+  expect(getByText(/🔥 Hot \(1\)/)).toBeTruthy();
+  expect(getByText(/⚠️ Watch \(1\)/)).toBeTruthy();
+  expect(getByText(/❌ Avoid \(1\)/)).toBeTruthy();
+});
+
+// ── G8: "▶ More Filters" label on Advanced Filters toggle ────────────────────
+
+function renderWithAdvancedFilters() {
+  return render(SortableTable, {
+    tableId: 'test-toggle',
+    rows: ROWS,
+    columns: COLUMNS,
+    filterConfig: {
+      signalFilter: { column: 'Signal' },
+      priceColumn: 'Price',
+    },
+  });
+}
+
+test('advanced filters toggle shows "▶ More Filters" when collapsed', () => {
+  const { container } = renderWithAdvancedFilters();
+  const btn = container.querySelector('.advanced-filters-toggle') as HTMLButtonElement;
+  expect(btn).not.toBeNull();
+  expect(btn.textContent).toContain('▶ More Filters');
+  expect(btn.textContent).not.toContain('▼ More Filters');
+});
+
+test('advanced filters toggle shows "▼ More Filters" when expanded', async () => {
+  const { container } = renderWithAdvancedFilters();
+  const btn = container.querySelector('.advanced-filters-toggle') as HTMLButtonElement;
+  await fireEvent.click(btn);
+  expect(btn.textContent).toContain('▼ More Filters');
+  expect(btn.textContent).not.toContain('▶ More Filters');
+});
+
+
+

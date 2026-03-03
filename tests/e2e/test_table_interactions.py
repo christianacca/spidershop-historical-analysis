@@ -27,7 +27,7 @@ from e2e.fixtures import e2e_site_multi_species
     "column_index,parse_cell",
     [
         (3, lambda cell: int(cell.strip())),
-        (7, lambda cell: float(cell.strip().split()[0].replace("£", ""))),
+        (5, lambda cell: float(cell.strip().split()[0].replace("£", ""))),
     ],
 )
 def test_table_sorting_numeric_columns(e2e_site_multi_species, column_index, parse_cell) -> None:
@@ -173,12 +173,12 @@ def test_stock_pattern_filtering_on_breeder_table(e2e_site_multi_species) -> Non
 
     page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
     
-    # Expand advanced filters if collapsed
+    # Expand advanced filters if the panel is not yet in the DOM
     advanced_toggle = page.locator(".advanced-filters-toggle")
     if advanced_toggle.count() > 0:
-        # Check if already expanded
+        # The panel is rendered with {#if showAdvanced} — if not yet in DOM, expand it.
         advanced_content = page.locator(".advanced-filters-content")
-        if not advanced_content.get_attribute("class").split().__contains__("show"):
+        if advanced_content.count() == 0:
             advanced_toggle.click()
             page.wait_for_timeout(200)
     
@@ -203,11 +203,11 @@ def test_search_filter_on_breeder_and_dealer_tables(e2e_site_multi_species) -> N
     # TEST: Breeder page search filter
     page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
     
-    # Expand advanced filters
+    # Expand advanced filters (panel uses {#if showAdvanced} — wait for element in DOM)
     advanced_toggle = page.locator(".advanced-filters-toggle")
     if advanced_toggle.count() > 0:
         advanced_toggle.click()
-        page.wait_for_selector(".advanced-filters-content.show", timeout=2000)
+        page.locator(".advanced-filters-content").wait_for(timeout=2000)
     
     # All rows should be visible initially
     visible_rows = page.locator("#breeder-table tbody tr:visible")
@@ -237,11 +237,11 @@ def test_search_filter_on_breeder_and_dealer_tables(e2e_site_multi_species) -> N
     # TEST: Dealer page search filter
     page.goto(f"{base_url}/dealer.html", wait_until="domcontentloaded")
     
-    # Expand advanced filters
+    # Expand advanced filters (panel uses {#if showAdvanced} — wait for element in DOM)
     advanced_toggle = page.locator(".advanced-filters-toggle")
     if advanced_toggle.count() > 0:
         advanced_toggle.click()
-        page.wait_for_selector(".advanced-filters-content.show", timeout=2000)
+        page.locator(".advanced-filters-content").wait_for(timeout=2000)
     
     # All rows visible initially
     visible_rows = page.locator("#dealer-table tbody tr:visible")

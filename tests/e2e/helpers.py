@@ -330,7 +330,11 @@ def write_multi_species_test_data(cwd: Path) -> None:
                 signal="🔥",
                 oos_runs="4",
                 stock_pattern="Sustained",
-                price="£25.00 ↑"
+                price="£25.00 ↑",
+                wishlist_pressure="🔥",
+                wishlist_delta="↑",
+                drivers="Stock: Sustained OOS (4 runs); Demand: Wishlist 🔥",
+                price_history="▁▄▇",
             ),
             BreederEntry(
                 species="Brachypelma hamorii",
@@ -338,7 +342,11 @@ def write_multi_species_test_data(cwd: Path) -> None:
                 signal="⚠️",
                 oos_runs="2",
                 stock_pattern="Emerging",
-                price="£28.00 →"
+                price="£28.00 →",
+                wishlist_pressure="⚠️",
+                wishlist_delta="→",
+                drivers="Stock: Emerging OOS (2 runs); Demand: Wishlist ⚠️",
+                price_history="▇▄▁",
             ),
             BreederEntry(
                 species="Grammostola pulchra",
@@ -346,7 +354,10 @@ def write_multi_species_test_data(cwd: Path) -> None:
                 signal="❌",
                 oos_runs="0",
                 stock_pattern="Always",
-                price="£30.00 ↓"
+                price="£30.00 ↓",
+                wishlist_pressure="❌",
+                wishlist_delta="→",
+                drivers="",
             ),
             BreederEntry(
                 species="Lasiodora parahybana",
@@ -354,7 +365,10 @@ def write_multi_species_test_data(cwd: Path) -> None:
                 signal="🔥",
                 oos_runs="6",
                 stock_pattern="Cyclical",
-                price="£20.00 ↑"
+                price="£20.00 ↑",
+                wishlist_pressure="🔥",
+                wishlist_delta="↑",
+                drivers="Stock: Cyclical OOS (6 runs); Price: Rising",
             ),
             BreederEntry(
                 species="Pterinochilus murinus",
@@ -362,7 +376,10 @@ def write_multi_species_test_data(cwd: Path) -> None:
                 signal="⚠️",
                 oos_runs="3",
                 stock_pattern="Emerging",
-                price="£15.00 →"
+                price="£15.00 →",
+                wishlist_pressure="⚠️",
+                wishlist_delta="→",
+                drivers="Stock: Emerging OOS (3 runs)",
             ),
         ]),
         encoding="utf-8",
@@ -376,7 +393,8 @@ def write_multi_species_test_data(cwd: Path) -> None:
                 risk="🔥",
                 stock_reliability="Low",
                 restock_speed="Slow",
-                price="£25.00 ↑"
+                price="£25.00 ↑",
+                drivers="Risk: Low reliability; Demand: Rising wishlist",
             ),
             DealerEntry(
                 species="Brachypelma hamorii",

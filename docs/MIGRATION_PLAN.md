@@ -1878,25 +1878,30 @@ def test_wishlist_pressure_column_not_empty(breeder_page):
 
 ### Phase 4g checklist
 
-- [ ] G1. Fix `key: 'Wishlist'` → `key: 'Wishlist Pressure'` in `breeder-page/index.ts`
+- [x] G1. Fix `key: 'Wishlist'` → `key: 'Wishlist Pressure'` in `breeder-page/index.ts`
           Add E2E regression test. `make test-client && make test-e2e` green.
-- [ ] G2. Add signal CSS class (`.signal-hot` etc.) to Signal `<td>` in `SortableTable`.
+- [x] G2. Add signal CSS class (`.signal-hot` etc.) to Signal `<td>` in `SortableTable`.
           Add Vitest tests. Add E2E test. `make test-client && make test-e2e` green.
-- [ ] G3. Restore sparkline trend colours (`unicodeToSvg` + `_color` JSON keys).
+- [x] G3. Restore sparkline trend colours (`unicodeToSvg` + `_color` JSON keys).
           Add Vitest test. Add E2E test. `make test-client && make test-e2e` green.
-- [ ] G4. Restore ℹ️ info icon / Drivers tooltip in `SortableTable` signal cell.
+- [x] G4. Restore ℹ️ info icon / Drivers tooltip in `SortableTable` signal cell.
           Add Vitest tests. Add E2E test. `make test-client && make test-e2e` green.
-- [ ] G5. Add sort arrow glyph (`⇅/↑/↓`) to sortable `<th>` in `SortableTable`.
+- [x] G5. Add sort arrow glyph (`⇅/↑/↓`) to sortable `<th>` in `SortableTable`.
           Add Vitest tests. Add E2E test. `make test-client && make test-e2e` green.
-- [ ] G6. Restore per-signal-button row counts using `$derived.by`.
+- [x] G6. Restore per-signal-button row counts using `$derived.by`.
           Add Vitest tests. Add E2E test. `make test-client && make test-e2e` green.
-- [ ] G7. Enable price/wishlist sliders for Breeder and Dealer (`priceColumn`/`wishlistColumn`).
+- [x] G7. Enable price/wishlist sliders for Breeder and Dealer (`priceColumn`/`wishlistColumn`).
           Add E2E tests. `make test-client && make test-e2e` green.
-- [ ] G8. Restore "▶ More Filters" button label. `make test-e2e` green.
-- [ ] G9. Add `tests/e2e/test_visual_contracts.py` with 6 regression guard tests.
-          `make test-e2e` → all new tests pass.
-- [ ] Final: `make test && make test-client && make coverage-client && make test-e2e` all green.
-         Update this file — tick all G steps, record any decisions.
+          **Decision:** Filter logic uses `isNaN(v) || (v >= min && v <= max)` so non-numeric
+          values (emojis in Wishlist Pressure, empty strings) pass through unchanged rather than
+          being excluded by the range filter. This prevents the `wishlistColumn: 'Wishlist Pressure'`
+          setting from emptying the table when all pressure values are emoji-only.
+- [x] G8. Restore "▶ More Filters" button label. `make test-e2e` green.
+          Button renders `{showAdvanced ? '▼ More Filters' : '▶ More Filters'}`.
+          Two E2E tests added to `test_breeder_page_interactions.py` (collapsed/expanded label).
+- [x] G9. Add `tests/e2e/test_visual_contracts.py` with 6 regression guard tests.
+          `make test-e2e` → all 6 new tests pass (126 total).
+- [x] Final: `make test && make test-client && make coverage-client && make test-e2e` all green.
 
 ---
 

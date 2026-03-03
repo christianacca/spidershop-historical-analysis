@@ -40,4 +40,36 @@ describe('unicodeToSvg', () => {
 
     expect(heightOf(svgMax)).toBeGreaterThan(heightOf(svgMin));
   });
+
+  // ── G3: Trend-based colours ──────────────────────────────────────────────
+
+  it('rising sparkline (▁▄▇) uses green fill (#22c55e)', () => {
+    const result = unicodeToSvg('▁▄▇');
+    expect(result).toContain('fill="#22c55e"');
+    expect(result).not.toContain('fill="currentColor"');
+  });
+
+  it('falling sparkline (▇▄▁) uses red fill (#ef4444)', () => {
+    const result = unicodeToSvg('▇▄▁');
+    expect(result).toContain('fill="#ef4444"');
+    expect(result).not.toContain('fill="currentColor"');
+  });
+
+  it('stable sparkline (▄▄▄) uses blue fill (#3b82f6)', () => {
+    const result = unicodeToSvg('▄▄▄');
+    expect(result).toContain('fill="#3b82f6"');
+    expect(result).not.toContain('fill="currentColor"');
+  });
+
+  it('single bar sparkline uses blue fill (stable)', () => {
+    const result = unicodeToSvg('▄');
+    expect(result).toContain('fill="#3b82f6"');
+  });
+
+  it('all bars share the same fill colour (trend is overall, not per-bar)', () => {
+    const result = unicodeToSvg('▁▄▇');
+    const fills = [...result.matchAll(/fill="([^"]+)"/g)].map((m) => m[1]);
+    const uniqueFills = new Set(fills);
+    expect(uniqueFills.size).toBe(1);
+  });
 });

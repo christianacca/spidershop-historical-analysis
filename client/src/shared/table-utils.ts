@@ -27,16 +27,22 @@ export function computeRange(
 ): { min: number; max: number } {
   if (!col) return { min: 0, max: 0 };
 
+  /** Strip leading non-numeric characters (e.g. currency symbol '£') so that
+   *  values like "£25.00 ↑" parse as 25.0 rather than NaN.
+   *  Undefined/null values fall back to '0' (treated as 0 in range calculations). */
+  const toNumericStr = (raw: unknown): string =>
+    String(raw ?? '0').replace(/^[^0-9.]*/, '');
+
   if (mode === 'float') {
     const vals = rows
-      .map((r) => parseFloat(String(r[col] ?? '0')))
+      .map((r) => parseFloat(toNumericStr(r[col])))
       .filter((v) => !isNaN(v));
     return vals.length
       ? { min: Math.floor(Math.min(...vals)), max: Math.ceil(Math.max(...vals)) }
       : { min: 0, max: 0 };
   } else {
     const vals = rows
-      .map((r) => parseInt(String(r[col] ?? '0'), 10))
+      .map((r) => parseInt(toNumericStr(r[col]), 10))
       .filter((v) => !isNaN(v));
     return vals.length ? { min: Math.min(...vals), max: Math.max(...vals) } : { min: 0, max: 0 };
   }

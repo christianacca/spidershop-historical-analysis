@@ -17,6 +17,8 @@
     csvHeader?: string;
     /** Key in the row object that holds the raw (unformatted) value for CSV export. */
     rawValueKey?: string;
+    /** When true the column is included in row data but has no <th> or <td> rendered. */
+    hidden?: boolean;
   }
 
   export interface SignalFilterConfig {
@@ -36,6 +38,8 @@
     wishlistColumn?: string;
     showSearch?: boolean;
     statsLabel?: string;
+    /** Row key whose value is shown as a tooltip ℹ️ icon in the signal column cell. */
+    driversKey?: string;
   }
 
   interface Props {
@@ -106,19 +110,19 @@
       );
     }
 
-    // 5. Price range
+    // 5. Price range — NaN (non-numeric cell, e.g. empty) passes through unchanged.
     if (priceCol) {
       result = result.filter((r) => {
-        const v = parseFloat(String(r[priceCol] ?? '0'));
-        return !isNaN(v) && v >= sliderPriceMin && v <= sliderPriceMax;
+        const v = parseFloat(String(r[priceCol] ?? '').replace(/^[^0-9.]*/, ''));
+        return isNaN(v) || (v >= sliderPriceMin && v <= sliderPriceMax);
       });
     }
 
-    // 6. Wishlist range
+    // 6. Wishlist range — NaN (emoji values, empty cells) passes through unchanged.
     if (wishlistCol) {
       result = result.filter((r) => {
-        const v = parseInt(String(r[wishlistCol] ?? '0'), 10);
-        return !isNaN(v) && v >= sliderWishlistMin && v <= sliderWishlistMax;
+        const v = parseInt(String(r[wishlistCol] ?? '').replace(/^[^0-9.]*/, ''), 10);
+        return isNaN(v) || (v >= sliderWishlistMin && v <= sliderWishlistMax);
       });
     }
 
@@ -189,17 +193,10 @@
 
   // ── CSV download ───────────────────────────────────────────────────────────
   function downloadCsv(): void {
-    triggerDownload(buildCsv(columns, visibleRows, escapeCsvRow), `${tableId}_filtered.csv`);
+    triggerDownload(buildCsv(columns.filter(col => !col.hidden), visibleRows, escapeCsvRow), `${tableId}_filtered.csv`);
   }
 
   // ── Static button configs ──────────────────────────────────────────────────
-  const SIGNAL_BUTTONS: { value: string; label: string }[] = [
-    { value: 'all', label: 'Show All' },
-    { value: '🔥', label: '🔥 Hot' },
-    { value: '⚠️', label: '⚠️ Watch' },
-    { value: '❌', label: '❌ Avoid' },
-  ];
-
   const STOCK_PATTERN_BUTTONS: { value: string; label: string }[] = [
     { value: 'all', label: 'Show All' },
     { value: 'Sustained', label: 'Sustained' },
@@ -207,6 +204,26 @@
     { value: 'Cyclical', label: 'Cyclical' },
     { value: 'Always Available', label: 'Always Available' },
   ];
+
+  // ── Derived: per-signal row counts (from all rows, not filtered) ──────────
+  const signalCounts = $derived.by(() => {
+    if (!filterConfig.signalFilter) return { all: 0, hot: 0, watch: 0, avoid: 0 };
+    const key = filterConfig.signalFilter.column;
+    return {
+      all: allRows.length,
+      hot: allRows.filter(r => String(r[key] ?? '').includes('🔥')).length,
+      watch: allRows.filter(r => String(r[key] ?? '').includes('⚠️')).length,
+      avoid: allRows.filter(r => String(r[key] ?? '').includes('❌')).length,
+    };
+  });
+
+  // ── Derived: signal filter buttons with row counts in labels ─────────────
+  const signalButtons = $derived([
+    { value: 'all', label: `Show All (${signalCounts.all})` },
+    { value: '🔥', label: `🔥 Hot (${signalCounts.hot})` },
+    { value: '⚠️', label: `⚠️ Watch (${signalCounts.watch})` },
+    { value: '❌', label: `❌ Avoid (${signalCounts.avoid})` },
+  ]);
 
   const formatPrice = (v: number): string => `£${v}`;
 
@@ -218,7 +235,7 @@
   <div class="signal-filter-row">
     <span class="filter-label">Signal:</span>
     <div class="filter-buttons-container">
-      {#each SIGNAL_BUTTONS as btn}
+      {#each signalButtons as btn}
         <FilterButton
           label={btn.label}
           value={btn.value}
@@ -276,7 +293,7 @@
       class={{ btn: true, 'advanced-filters-toggle': true, 'is-expanded': showAdvanced }}
       onclick={() => (showAdvanced = !showAdvanced)}
     >
-      Advanced Filters
+      {showAdvanced ? '▼ More Filters' : '▶ More Filters'}
       <span
         class={{ 'filter-badge': true, hidden: activeFilterCount === 0 }}
         id="filterBadge-{tableId}"
@@ -338,13 +355,16 @@
     <thead>
       <tr>
         {#each columns as col}
-          <th
-            class="sortable-header"
-            data-sort-direction={sortKey === col.key ? sortDir : 'none'}
-            onclick={() => handleSort(col.key)}
-          >
-            {col.label}
-          </th>
+          {#if !col.hidden}
+            <th
+              class="sortable-header"
+              data-sort-direction={sortKey === col.key ? sortDir : 'none'}
+              onclick={() => handleSort(col.key)}
+            >
+              {col.label}
+              <span class="sort-indicator">{sortKey === col.key ? (sortDir === 'asc' ? '↑' : '↓') : '⇅'}</span>
+            </th>
+          {/if}
         {/each}
       </tr>
     </thead>
@@ -352,17 +372,25 @@
       {#each visibleRows as row}
         <tr>
           {#each columns as col}
-            <td>
-              {#if col.type === 'sparkline'}
-                {@html unicodeToSvg(String(row[col.key] ?? ''))}
-              {:else if col.type === 'species-link'}
-                {@const slug = slugify(String(row[col.key] ?? ''))}
-                {@const viewSuffix = col.linkViewParam ? `?view=${col.linkViewParam}` : ''}
-                {#if slug}<a href="species/{slug}.html{viewSuffix}">{row[col.key] ?? ''}</a>{:else}{row[col.key] ?? ''}{/if}
-              {:else}
-                {row[col.key] ?? ''}
-              {/if}
-            </td>
+            {#if !col.hidden}
+              {@const isSignalCol = col.key === (filterConfig.signalFilter?.column ?? '')}
+              {@const cellValue = String(row[col.key] ?? '')}
+              <td
+                class:signal-hot={isSignalCol && cellValue.includes('🔥')}
+                class:signal-watch={isSignalCol && cellValue.includes('⚠️')}
+                class:signal-avoid={isSignalCol && cellValue.includes('❌')}
+              >
+                {#if col.type === 'sparkline'}
+                  {@html unicodeToSvg(cellValue)}
+                {:else if col.type === 'species-link'}
+                  {@const slug = slugify(cellValue)}
+                  {@const viewSuffix = col.linkViewParam ? `?view=${col.linkViewParam}` : ''}
+                  {#if slug}<a href="species/{slug}.html{viewSuffix}">{cellValue}</a>{:else}{cellValue}{/if}
+                {:else}
+                  {cellValue}{#if isSignalCol && filterConfig.driversKey && row[filterConfig.driversKey]}<span class="info-icon" title={String(row[filterConfig.driversKey] ?? '')}>ℹ️</span>{/if}
+                {/if}
+              </td>
+            {/if}
           {/each}
         </tr>
       {/each}
