@@ -5,6 +5,7 @@
   import type { ColumnConfig } from '../shared/components/SortableTable.svelte';
   import DateFilter from './DateFilter.svelte';
   import RangeSlider from '../shared/components/RangeSlider.svelte';
+  import FiltersPanel from '../shared/components/FiltersPanel.svelte';
   import SearchInput from '../shared/components/SearchInput.svelte';
 
   // ── Types ───────────────────────────────────────────────────────────────────
@@ -225,7 +226,7 @@
 <!-- ── Advanced filters panel ───────────────────────────────────────────── -->
 {#if showAdvanced}
   <div id="advanced-filters-{tableId}" class="advanced-filters">
-    <div class="advanced-filters-content">
+    <FiltersPanel>
       {#if priceColumn}
         <RangeSlider
           label="💷 Price Range:"
@@ -257,7 +258,7 @@
           oninput={(v) => (searchText = v)}
         />
       </div>
-    </div>
+    </FiltersPanel>
   </div>
 {/if}
 
@@ -344,16 +345,6 @@
   .advanced-filters {
     margin-top: var(--spacing-sm);
     margin-bottom: var(--spacing-sm);
-  }
-
-  .advanced-filters-content {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-    padding: var(--spacing-md);
-    background: var(--color-surface);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border-light);
   }
 
   .search-filter-row {

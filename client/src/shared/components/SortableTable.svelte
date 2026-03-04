@@ -5,6 +5,7 @@
   import FilterButton from './FilterButton.svelte';
   import SearchInput from './SearchInput.svelte';
   import RangeSlider from './RangeSlider.svelte';
+  import FiltersPanel from './FiltersPanel.svelte';
 
   // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -314,7 +315,7 @@
 
 <!-- ── Advanced filters panel ───────────────────────────────────────────── -->
 {#if showAdvanced}
-  <div class="advanced-filters-content">
+  <FiltersPanel>
     {#if filterConfig.stockPatternFilter}
       <div class="signal-filter-row">
         <span class="filter-label">📊 Stock Pattern:</span>
@@ -365,7 +366,7 @@
         displayId="wishlistDisplay"
       />
     {/if}
-  </div>
+  </FiltersPanel>
 {/if}
 
 <!-- ── Table stats ───────────────────────────────────────────────────────── -->
@@ -495,17 +496,6 @@
 
   .filter-badge.hidden {
     display: none;
-  }
-
-  .advanced-filters-content {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-    padding: var(--spacing-md);
-    background: var(--color-surface);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border-light);
-    margin-bottom: var(--spacing-sm);
   }
 
   .table-stats {
