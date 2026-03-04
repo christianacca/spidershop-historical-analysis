@@ -7,7 +7,11 @@ import { resolve } from 'path';
 // preserveModules keeps each module as its own file in dist/,
 // maintaining relative imports — output is structurally identical to source.
 export default defineConfig({
-  plugins: [svelte()],
+  // emitCss: false — component styles are injected into <head> at runtime by
+  // the JS module that owns them. This means no separate .css files are emitted
+  // for Svelte components, so page templates never need to add <link> tags when
+  // a new component is introduced or an existing component gains a new dependency.
+  plugins: [svelte({ emitCss: false })],
   // Ensure Svelte resolves its browser (DOM) entry conditions for both
   // the build output and the Vitest test environment.
   resolve: {
