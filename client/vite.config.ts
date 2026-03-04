@@ -37,7 +37,10 @@ export default defineConfig({
   build: {
     outDir: resolve(__dirname, '../templates/scripts/dist'),
     emptyOutDir: true,
-    minify: false,
+    // Minify and emit source maps only in CI (GitHub Actions sets CI=true automatically).
+    // Local builds stay readable for easier debugging.
+    minify: process.env.CI ? 'esbuild' : false,
+    sourcemap: !!process.env.CI,
     rollupOptions: {
       preserveEntrySignatures: 'allow-extension',
       input: {
@@ -53,9 +56,6 @@ export default defineConfig({
         preserveModulesRoot: resolve(__dirname, 'src'),
         entryFileNames: '[name].js',
         chunkFileNames: '[name].js',
-        // Use stable (hash-free) CSS file names so templates can link them with
-        // fixed paths. The Python build always regenerates the website, so stale
-        // CSS is not a concern.
         assetFileNames: 'assets/[name][extname]',
       },
     },
