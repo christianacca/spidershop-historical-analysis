@@ -24,8 +24,8 @@
 
 <style>
   .search-input {
-    flex: 1;
-    min-width: 150px;
+    width: 100%;
+    box-sizing: border-box;
     padding: var(--spacing-xs) var(--spacing-sm);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);

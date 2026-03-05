@@ -335,10 +335,10 @@
     {/if}
     {#if filterConfig.showSearch !== false}
       <div class="search-filter-row">
-        <span class="filter-label">🔍 Search:</span>
+        <strong class="filter-label">🔍 Search:</strong>
         <SearchInput
           {tableId}
-          placeholder="Search {statsLabel}…"
+          placeholder="Type to filter {statsLabel}, names, etc."
           oninput={(v) => (searchText = v)}
         />
       </div>
@@ -468,9 +468,9 @@
 
   .search-filter-row {
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
     gap: var(--spacing-sm);
-    flex-wrap: wrap;
     width: 100%;
   }
 
