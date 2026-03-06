@@ -227,6 +227,14 @@
 {#if showAdvanced}
   <div id="advanced-filters-{tableId}" class="advanced-filters">
     <FiltersPanel>
+      <div class="search-filter-row">
+        <strong class="filter-label">🔍 Search:</strong>
+        <SearchInput
+          {tableId}
+          placeholder="Type to filter species, dates, etc."
+          oninput={(v) => (searchText = v)}
+        />
+      </div>
       {#if priceColumn}
         <RangeSlider
           label="💷 Price Range:"
@@ -250,14 +258,6 @@
           displayId="wishlistDisplay"
         />
       {/if}
-      <div class="search-filter-row">
-        <strong class="filter-label">🔍 Search:</strong>
-        <SearchInput
-          {tableId}
-          placeholder="Type to filter species, dates, etc."
-          oninput={(v) => (searchText = v)}
-        />
-      </div>
     </FiltersPanel>
   </div>
 {/if}
@@ -265,8 +265,8 @@
 <!-- ── Table stats ───────────────────────────────────────────────────────── -->
 <div class="table-stats">
   <span>
-    <strong>Filtered Results:</strong>
-    Showing <span id="visible-count-{tableId}">{visibleCount}</span> of {totalRows} rows
+    <strong>Showing:</strong>
+    <span id="visible-count-{tableId}">{visibleCount}</span> of {totalRows} rows
   </span>
   <a
     href="#download"
@@ -384,7 +384,7 @@
     flex-wrap: wrap;
     gap: var(--spacing-sm);
     font-size: var(--font-sm);
-    color: var(--color-text-muted);
+    color: var(--color-text);
     margin-bottom: var(--spacing-xs);
     background: var(--color-info-bg);
     padding: var(--spacing-md);

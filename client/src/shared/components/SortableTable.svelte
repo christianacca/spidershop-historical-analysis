@@ -505,7 +505,7 @@
     flex-wrap: wrap;
     gap: var(--spacing-sm);
     font-size: var(--font-sm);
-    color: var(--color-text-muted);
+    color: var(--color-text);
     margin-bottom: var(--spacing-xs);
     background: var(--color-info-bg);
     padding: var(--spacing-md);
