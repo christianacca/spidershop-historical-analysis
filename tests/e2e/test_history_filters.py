@@ -27,18 +27,18 @@ def test_more_filters_toggle_shows_and_hides_panel(e2e_site_multi_species) -> No
 
     page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
 
-    panel = page.locator("#advanced-filters-history-table")
+    panel = page.locator(".advanced-filters-content")
 
     # Panel is hidden initially
     assert not panel.is_visible(), "Filter panel should be hidden before toggle"
 
     # Click toggle — panel opens
-    page.locator(".btn--filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
     assert panel.is_visible(), "Filter panel should be visible after first click"
 
     # Click toggle again — panel closes
-    page.locator(".btn--filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
     assert not panel.is_visible(), "Filter panel should be hidden after second click"
 
@@ -54,7 +54,7 @@ def test_search_input_filters_history_rows(e2e_site_multi_species) -> None:
     assert total_rows > 1, "Expected more than one row to make search filtering meaningful"
 
     # Open the filter panel
-    page.locator(".btn--filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     # Type a species name that matches only one row
@@ -86,7 +86,7 @@ def test_filter_badge_shows_when_search_active(e2e_site_multi_species) -> None:
 
     page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
 
-    page.locator(".btn--filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     page.locator("input[data-action='search'][data-table-id='history-table']").fill("Aphonopelma")
@@ -104,7 +104,7 @@ def test_filter_badge_hidden_after_search_cleared(e2e_site_multi_species) -> Non
 
     page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
 
-    page.locator(".btn--filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     search_input = page.locator("input[data-action='search'][data-table-id='history-table']")
@@ -135,7 +135,7 @@ def test_visible_count_updates_with_search(e2e_site_multi_species) -> None:
     )
 
     # Open filters and search
-    page.locator(".btn--filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
     page.locator("input[data-action='search'][data-table-id='history-table']").fill("Aphonopelma")
     page.wait_for_timeout(200)
@@ -156,7 +156,7 @@ def test_price_sliders_exist_and_initialise_correctly(e2e_site_multi_species) ->
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
-    page.locator(".btn--filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     price_min_slider = page.locator("#priceMin")
@@ -189,7 +189,7 @@ def test_price_max_slider_hides_rows_above_threshold(e2e_site_multi_species) -> 
     total_rows = page.locator("#history-table tbody tr").count()
     assert total_rows > 1
 
-    page.locator(".btn--filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     # Set max to a value below the most expensive row (£35 in test data; set to £28)
@@ -212,7 +212,7 @@ def test_price_filter_badge_shows_one(e2e_site_multi_species) -> None:
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
-    page.locator(".btn--filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     page.locator("#priceMax").fill("28")
@@ -231,7 +231,7 @@ def test_price_filter_reset_shows_all_rows(e2e_site_multi_species) -> None:
     page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
     total_rows = page.locator("#history-table tbody tr").count()
 
-    page.locator(".btn--filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     price_max_slider = page.locator("#priceMax")
@@ -258,7 +258,7 @@ def test_wishlist_sliders_exist_and_initialise_correctly(e2e_site_multi_species)
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
-    page.locator(".btn--filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     wishlist_min_slider = page.locator("#wishlistMin")
@@ -292,7 +292,7 @@ def test_wishlist_min_slider_hides_rows_below_threshold(e2e_site_multi_species) 
     total_rows = page.locator("#history-table tbody tr").count()
     assert total_rows > 1
 
-    page.locator(".btn--filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     page.locator("#wishlistMin").fill("9")
@@ -314,7 +314,7 @@ def test_wishlist_filter_badge_shows_one(e2e_site_multi_species) -> None:
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
-    page.locator(".btn--filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     page.locator("#wishlistMin").fill("9")
@@ -331,7 +331,7 @@ def test_price_and_wishlist_filters_badge_shows_two(e2e_site_multi_species) -> N
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
-    page.locator(".btn--filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     page.locator("#priceMax").fill("28")
@@ -352,7 +352,7 @@ def test_wishlist_filter_reset_shows_all_rows(e2e_site_multi_species) -> None:
     page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
     total_rows = page.locator("#history-table tbody tr").count()
 
-    page.locator(".btn--filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     wishlist_min_slider = page.locator("#wishlistMin")

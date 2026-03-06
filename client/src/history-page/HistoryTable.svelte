@@ -198,13 +198,10 @@
 
 <!-- ── More Filters toggle ───────────────────────────────────────────────── -->
 <button
-  class="btn btn--filters"
-  data-action="toggle-filters"
-  data-content-id="advanced-filters-{tableId}"
+  class={{ btn: true, 'advanced-filters-toggle': true, 'is-expanded': showAdvanced }}
   onclick={() => (showAdvanced = !showAdvanced)}
 >
-  <span class="arrow">▶</span>
-  <span>More Filters</span>
+  {showAdvanced ? '▼ More Filters' : '▶ More Filters'}
   <span
     class={{ 'filter-badge': true, hidden: activeFilterCount === 0 }}
     id="filterBadge-{tableId}"
@@ -215,12 +212,11 @@
 
 <!-- ── Advanced filters panel ───────────────────────────────────────────── -->
 {#if showAdvanced}
-  <div id="advanced-filters-{tableId}" class="advanced-filters">
-    <FiltersPanel>
+  <FiltersPanel>
       <div class="search-filter-row">
         <strong class="filter-label">🔍 Search:</strong>
         <SearchInput
-          {tableId}
+          {tableId} 
           placeholder="Type to filter species, dates, etc."
           oninput={(v) => (searchText = v)}
         />
@@ -248,8 +244,7 @@
           displayId="wishlistDisplay"
         />
       {/if}
-    </FiltersPanel>
-  </div>
+  </FiltersPanel>
 {/if}
 
 <!-- ── Table stats ───────────────────────────────────────────────────────── -->
@@ -325,9 +320,11 @@
     margin-bottom: 8px;
   }
 
-  .advanced-filters {
-    margin-top: var(--spacing-sm);
-    margin-bottom: var(--spacing-sm);
+  .advanced-filters-toggle {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
   }
 
   .search-filter-row {

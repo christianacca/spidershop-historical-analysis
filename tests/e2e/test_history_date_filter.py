@@ -70,10 +70,7 @@ def _open_date_picker(page) -> None:
 
 def _open_more_filters(page) -> None:
     """Click the More Filters toggle to reveal the search/price/wishlist panel."""
-    btn = page.locator(
-        f"button[data-action='toggle-filters']"
-        f"[data-content-id='advanced-filters-{TABLE_ID}']"
-    )
+    btn = page.locator(".advanced-filters-toggle:not(.date-expand-btn)")
     btn.click()
     page.wait_for_timeout(200)
 

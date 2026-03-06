@@ -814,27 +814,16 @@ def test_search_input_styling(e2e_site_multi_species) -> None:
     search_input = page.locator('.search-input')
     assert search_input.count() >= 1, "Breeder page should have .search-input element"
 
-    # The search input sits in a flex row alongside a label — compare against available space
-    available_width = search_input.first.evaluate(
-        '''el => {
-            const row = el.parentElement;
-            const rowWidth = row.getBoundingClientRect().width;
-            const rowStyle = window.getComputedStyle(row);
-            const gap = parseFloat(rowStyle.gap || rowStyle.columnGap || "0");
-            const siblings = Array.from(row.children).filter(c => c !== el);
-            const siblingsWidth = siblings.reduce((s, c) => {
-                const r = c.getBoundingClientRect();
-                const mr = parseFloat(window.getComputedStyle(c).marginRight || "0");
-                return s + r.width + mr;
-            }, 0);
-            return rowWidth - siblingsWidth - (siblings.length > 0 ? gap : 0);
-        }'''
+    # The search input is in a column-direction flex container (label stacked above input),
+    # so the full row width is available — verify the input fills it.
+    row_width = search_input.first.evaluate(
+        'el => el.parentElement.getBoundingClientRect().width'
     )
     input_width = search_input.first.evaluate(
         'el => el.getBoundingClientRect().width'
     )
-    assert abs(available_width - input_width) < 5, \
-        f".search-input should fill available flex space (available={available_width:.1f}, input={input_width:.1f})"
+    assert abs(row_width - input_width) < 5, \
+        f".search-input should fill its container width (row={row_width:.1f}, input={input_width:.1f})"
 
     border_radius = search_input.first.evaluate(
         'el => window.getComputedStyle(el).borderRadius'

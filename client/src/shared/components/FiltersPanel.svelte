@@ -5,7 +5,7 @@
   let { children }: Props = $props();
 </script>
 
-<div class="filters-panel">
+<div class="filters-panel advanced-filters-content">
   {@render children()}
 </div>
 
