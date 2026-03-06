@@ -6,6 +6,7 @@
   import SearchInput from './SearchInput.svelte';
   import RangeSlider from './RangeSlider.svelte';
   import FiltersPanel from './FiltersPanel.svelte';
+  import TableStats from './TableStats.svelte';
 
   // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -370,20 +371,13 @@
 {/if}
 
 <!-- ── Table stats ───────────────────────────────────────────────────────── -->
-<div class="table-stats">
-  <span>
-    <strong>Showing:</strong>
-    <span id="visible-count-{tableId}">{visibleCount}</span> of {totalRows} {statsLabel}
-  </span>
-  <a
-    href="#download"
-    download
-    class="btn btn--download"
-    data-action="download-filtered-csv"
-    data-table-id={tableId}
-    onclick={(e) => { e.preventDefault(); downloadCsv(); }}
-  >⬇️ Download Filtered CSV</a>
-</div>
+<TableStats
+  {tableId}
+  {visibleCount}
+  {totalRows}
+  {statsLabel}
+  onDownload={downloadCsv}
+/>
 
 <!-- ── Table ─────────────────────────────────────────────────────────────── -->
 <div class="table-scroll">
@@ -496,20 +490,6 @@
 
   .filter-badge.hidden {
     display: none;
-  }
-
-  .table-stats {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: var(--spacing-sm);
-    font-size: var(--font-sm);
-    color: var(--color-text);
-    margin-bottom: var(--spacing-xs);
-    background: var(--color-info-bg);
-    padding: var(--spacing-md);
-    border-radius: var(--radius-sm);
   }
 
   .table-scroll {
