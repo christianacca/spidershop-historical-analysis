@@ -39,6 +39,7 @@ function init(): void {
       rows,
       columns: COLUMNS,
       filterConfig: FILTER_CONFIG,
+      primaryToggle: true,
     },
   });
 }

@@ -5,6 +5,7 @@
   import { SortState } from '../sort-state.svelte.js';
   import FilterButton from './FilterButton.svelte';
   import SearchInput from './SearchInput.svelte';
+  import ToggleButton from './ToggleButton.svelte';
   import RangeSlider from './RangeSlider.svelte';
   import FiltersPanel from './FiltersPanel.svelte';
   import TableStats from './TableStats.svelte';
@@ -52,9 +53,11 @@
     rows: Record<string, unknown>[];
     columns: ColumnConfig[];
     filterConfig?: FilterConfig;
+    /** When true, renders the More Filters toggle with the primary (blue) button style. */
+    primaryToggle?: boolean;
   }
 
-  let { tableId, rows, columns, filterConfig = {} }: Props = $props();
+  let { tableId, rows, columns, filterConfig = {}, primaryToggle = false }: Props = $props();
 
   // ── One-time range computation (data is static after mount) ────────────────
 
@@ -270,18 +273,16 @@
         {/if}
       {/each}
       {#if hasAdvancedContent}
-        <button
-          class={{ btn: true, 'advanced-filters-toggle': true, 'is-expanded': showAdvanced }}
-          onclick={() => (showAdvanced = !showAdvanced)}
+        <ToggleButton
+          expanded={showAdvanced}
+          onToggle={() => (showAdvanced = !showAdvanced)}
+          badge={activeFilterCount}
+          badgeId="filterBadge-{tableId}"
+          class="advanced-filters-toggle"
+          variant={primaryToggle ? 'primary' : 'default'}
         >
-          {showAdvanced ? '▼ More Filters' : '▶ More Filters'}
-          <span
-            class={{ 'filter-badge': true, hidden: activeFilterCount === 0 }}
-            id="filterBadge-{tableId}"
-          >
-            {activeFilterCount}
-          </span>
-        </button>
+          {#snippet children()}More Filters{/snippet}
+        </ToggleButton>
       {/if}
     </div>
   </div>
@@ -290,18 +291,16 @@
 <!-- ── Fallback controls row (for pages without a signal filter) ─────────── -->
 {#if !filterConfig.signalFilter && hasAdvancedContent}
   <div class="controls-row">
-    <button
-      class={{ btn: true, 'advanced-filters-toggle': true, 'is-expanded': showAdvanced }}
-      onclick={() => (showAdvanced = !showAdvanced)}
+    <ToggleButton
+      expanded={showAdvanced}
+      onToggle={() => (showAdvanced = !showAdvanced)}
+      badge={activeFilterCount}
+      badgeId="filterBadge-{tableId}"
+      class="advanced-filters-toggle"
+      variant={primaryToggle ? 'primary' : 'default'}
     >
-      {showAdvanced ? '▼ More Filters' : '▶ More Filters'}
-      <span
-        class={{ 'filter-badge': true, hidden: activeFilterCount === 0 }}
-        id="filterBadge-{tableId}"
-      >
-        {activeFilterCount}
-      </span>
-    </button>
+      {#snippet children()}More Filters{/snippet}
+    </ToggleButton>
   </div>
 {/if}
 
@@ -457,30 +456,6 @@
     align-items: flex-start;
     gap: var(--spacing-sm);
     width: 100%;
-  }
-
-  .advanced-filters-toggle {
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-  }
-
-  .filter-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--color-accent);
-    color: #fff;
-    border-radius: 50%;
-    width: 1.2em;
-    height: 1.2em;
-    font-size: 0.75em;
-    font-weight: 700;
-  }
-
-  .filter-badge.hidden {
-    display: none;
   }
 
   .table-scroll {

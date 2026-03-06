@@ -709,7 +709,7 @@ test('signal filter buttons include per-signal row counts', () => {
   expect(getByText(/❌ Avoid \(1\)/)).toBeTruthy();
 });
 
-// ── G8: "▶ More Filters" label on Advanced Filters toggle ────────────────────
+// ── G8: More Filters toggle expanded/collapsed state ─────────────────────────
 
 function renderWithAdvancedFilters() {
   return render(SortableTable, {
@@ -723,20 +723,20 @@ function renderWithAdvancedFilters() {
   });
 }
 
-test('advanced filters toggle shows "▶ More Filters" when collapsed', () => {
+test('advanced filters toggle does not have is-expanded class when collapsed', () => {
   const { container } = renderWithAdvancedFilters();
   const btn = container.querySelector('.advanced-filters-toggle') as HTMLButtonElement;
   expect(btn).not.toBeNull();
-  expect(btn.textContent).toContain('▶ More Filters');
-  expect(btn.textContent).not.toContain('▼ More Filters');
+  expect(btn).not.toHaveClass('is-expanded');
+  expect(btn.textContent).toContain('More Filters');
 });
 
-test('advanced filters toggle shows "▼ More Filters" when expanded', async () => {
+test('advanced filters toggle has is-expanded class when expanded', async () => {
   const { container } = renderWithAdvancedFilters();
   const btn = container.querySelector('.advanced-filters-toggle') as HTMLButtonElement;
   await fireEvent.click(btn);
-  expect(btn.textContent).toContain('▼ More Filters');
-  expect(btn.textContent).not.toContain('▶ More Filters');
+  expect(btn).toHaveClass('is-expanded');
+  expect(btn.textContent).toContain('More Filters');
 });
 
 // ── H3: Stock Pattern and Search inside More Filters panel ──────────────────

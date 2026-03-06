@@ -79,7 +79,7 @@ async function openDatePicker(container: HTMLElement): Promise<void> {
 }
 
 async function openAdvancedFilters(container: HTMLElement): Promise<void> {
-  const btn = container.querySelector<HTMLButtonElement>('.btn--filters')!;
+  const btn = container.querySelector<HTMLButtonElement>('.advanced-filters-toggle:not(.date-expand-btn)')!;
   await fireEvent.click(btn);
 }
 
@@ -442,7 +442,7 @@ test('omitting priceColumn and wishlistColumn renders table with all rows', asyn
   // All rows visible; no RangeSlider rendered for price or wishlist
   expect(visibleRows(container)).toHaveLength(4);
   // Advanced filters panel has no price/wishlist sliders
-  const advancedBtn = container.querySelector('.btn--filters')!;
+  const advancedBtn = container.querySelector('.advanced-filters-toggle:not(.date-expand-btn)')!;
   await fireEvent.click(advancedBtn);
   expect(container.querySelector('#priceMin')).toBeNull();
 });

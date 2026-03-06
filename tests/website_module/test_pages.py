@@ -311,7 +311,8 @@ class TestGenerateSnapshotPage:
             download_link = soup.find('a', class_='btn--download')
             assert download_link is not None, "Should have download button"
             
-            # Filter button should NOT exist
+            # Filter toggle is Svelte-rendered (not in Python HTML); its presence/absence
+            # based on search config is verified by E2E tests.
             filter_button = soup.find('button', class_='btn--filters')
             assert filter_button is None, "Should NOT have filter button when search disabled"
 
@@ -1161,6 +1162,8 @@ class TestGenerateHistoryPage:
             html = generate_history_page(config)
             soup = BeautifulSoup(html, 'html.parser')
 
+            # Filter toggle is Svelte-rendered (not in Python HTML); its presence/absence
+            # based on search config is verified by E2E tests.
             assert soup.find('button', class_='btn--filters') is None, "Should not have filter toggle when search disabled"
             assert soup.find('input', type='text') is None, "Should not have search input when search disabled"
 

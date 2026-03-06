@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ToggleButton from '../shared/components/ToggleButton.svelte';
+
   // ── Types ───────────────────────────────────────────────────────────────────
 
   interface Props {
@@ -75,20 +77,18 @@
 </div>
 
 <!-- ── Expand / collapse picker ─────────────────────────────────────────── -->
-<button
-  class={{ btn: true, 'date-expand-btn': true, 'advanced-filters-toggle': true, expanded: showPicker }}
+<ToggleButton
+  expanded={showPicker}
+  onToggle={() => (showPicker = !showPicker)}
+  class="advanced-filters-toggle date-expand-btn"
   data-action="toggle-date-picker"
   data-content-id="date-picker-{tableId}"
   data-table-id={tableId}
-  onclick={() => (showPicker = !showPicker)}
 >
-  <span class="arrow">▶</span>
-  {#if showPicker}
-    <span>Hide individual dates</span>
-  {:else}
-    <span>Show individual dates</span>
-  {/if}
-</button>
+  {#snippet children(expanded)}
+    {expanded ? 'Hide individual dates' : 'Show individual dates'}
+  {/snippet}
+</ToggleButton>
 
 <!-- ── Individual date picker ───────────────────────────────────────────── -->
 {#if showPicker}
@@ -163,29 +163,7 @@
   }
 
   .date-expand-btn {
-    background: var(--color-date-filter);
-    color: #856404;
-    border: none;
-    padding: 6px 14px;
-    border-radius: var(--radius-sm);
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
     margin-bottom: 4px;
-  }
-
-  .date-expand-btn:hover {
-    background: var(--color-date-filter-hover);
-  }
-
-  .date-expand-btn .arrow {
-    transition: transform 0.2s;
-    font-size: 0.8rem;
-  }
-
-  .date-expand-btn.expanded .arrow {
-    transform: rotate(90deg);
   }
 
   .date-picker-content {

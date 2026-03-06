@@ -9,6 +9,7 @@
   import FiltersPanel from '../shared/components/FiltersPanel.svelte';
   import SearchInput from '../shared/components/SearchInput.svelte';
   import TableStats from '../shared/components/TableStats.svelte';
+  import ToggleButton from '../shared/components/ToggleButton.svelte';
 
   // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -197,18 +198,16 @@
 {/if}
 
 <!-- ── More Filters toggle ───────────────────────────────────────────────── -->
-<button
-  class={{ btn: true, 'advanced-filters-toggle': true, 'is-expanded': showAdvanced }}
-  onclick={() => (showAdvanced = !showAdvanced)}
+<ToggleButton
+  expanded={showAdvanced}
+  onToggle={() => (showAdvanced = !showAdvanced)}
+  badge={activeFilterCount}
+  badgeId="filterBadge-{tableId}"
+  class="advanced-filters-toggle"
+  variant="primary"
 >
-  {showAdvanced ? '▼ More Filters' : '▶ More Filters'}
-  <span
-    class={{ 'filter-badge': true, hidden: activeFilterCount === 0 }}
-    id="filterBadge-{tableId}"
-  >
-    {activeFilterCount}
-  </span>
-</button>
+  {#snippet children()}More Filters{/snippet}
+</ToggleButton>
 
 <!-- ── Advanced filters panel ───────────────────────────────────────────── -->
 {#if showAdvanced}
@@ -314,18 +313,18 @@
     border-radius: var(--radius-lg);
     padding: 16px 20px;
     margin-bottom: 15px;
+    /* Pass amber theme to ToggleButton inside DateFilter via CSS variable cascade */
+    --toggle-btn-bg: var(--color-date-filter);
+    --toggle-btn-color: #856404;
+    --toggle-btn-hover-bg: var(--color-date-filter-hover);
+    --toggle-btn-border: none;  --toggle-btn-hover-border: none;    --toggle-btn-padding: 6px 14px;
+    --toggle-btn-radius: var(--radius-sm);
+    --toggle-btn-font-size: 0.9rem;
   }
 
   .date-filter-label {
     font-size: 1rem;
     margin-bottom: 8px;
-  }
-
-  .advanced-filters-toggle {
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--spacing-xs);
   }
 
   .search-filter-row {
@@ -339,23 +338,6 @@
   .filter-label {
     color: var(--color-primary-light);
     white-space: nowrap;
-  }
-
-  .filter-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--color-accent);
-    color: #fff;
-    border-radius: 50%;
-    width: 1.2em;
-    height: 1.2em;
-    font-size: 0.75em;
-    font-weight: 700;
-  }
-
-  .filter-badge.hidden {
-    display: none;
   }
 
   .table-scroll {

@@ -441,7 +441,7 @@ def test_snapshot_filter_badge_updates_with_search(e2e_site_multi_species) -> No
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
     
     # Badge should be hidden by default
-    badge = page.locator(".filter-badge")
+    badge = page.locator(".toggle-btn__badge")
     assert badge.count() == 1, "Badge element should exist on snapshot page"
     assert not badge.is_visible(), "Badge should be hidden when no filters active"
     

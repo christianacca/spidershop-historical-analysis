@@ -382,7 +382,7 @@ def test_more_filters_button_label_collapsed(e2e_site_multi_species) -> None:
 
 @pytest.mark.e2e
 def test_more_filters_button_label_expanded(e2e_site_multi_species) -> None:
-    """Advanced Filters toggle shows '▼ More Filters' after clicking to expand the panel."""
+    """Advanced Filters toggle gains is-expanded class after clicking to expand the panel."""
     page, base_url, errors = e2e_site_multi_species
     _wait_for_breeder_table(page, base_url)
 
@@ -390,9 +390,10 @@ def test_more_filters_button_label_expanded(e2e_site_multi_species) -> None:
     btn.click()
     page.wait_for_timeout(200)
 
-    label = btn.text_content() or ""
-    assert "▼ More Filters" in label, f"Expected '▼ More Filters' in expanded label, got: {label!r}"
-    assert "▶" not in label, f"'▶' should not appear in expanded label, got: {label!r}"
+    classes = btn.get_attribute("class") or ""
+    assert "is-expanded" in classes, f"Expected 'is-expanded' class on expanded toggle, got: {classes!r}"
+    assert btn.text_content() and "More Filters" in (btn.text_content() or ""), \
+        f"Button should still contain 'More Filters' text when expanded"
 
 
 
