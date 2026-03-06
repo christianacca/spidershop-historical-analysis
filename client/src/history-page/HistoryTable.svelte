@@ -284,7 +284,8 @@
                 {@html unicodeToSvg(String(row[col.key] ?? ''))}
               {:else if col.type === 'page-url'}
                 {@const href = String(row[col.key] ?? '')}
-                {#if href}<a href={href}>{href}</a>{:else}–{/if}
+                {@const label = col.linkLabelKey ? String(row[col.linkLabelKey] ?? href) : href}
+                {#if href}<a href={href}>{label}</a>{:else}–{/if}
               {:else}
                 {row[col.key] ?? ''}
               {/if}

@@ -23,7 +23,7 @@ const COLUMNS: ColumnConfig[] = [
   { key: 'Size (cm)', label: 'Size (cm)', csvHeader: 'size_cm' },
   { key: 'Price (GBP)', label: 'Price (GBP)', csvHeader: 'price_gbp' },
   { key: 'Wishlist Count', label: 'Wishlist Count', csvHeader: 'wishlist_count' },
-  { key: 'Page URL', label: 'Page URL', type: 'page-url', csvHeader: 'page_url' },
+  { key: 'Page URL', label: 'Page URL', type: 'page-url', linkLabelKey: 'Scientific Name', csvHeader: 'page_url' },
 ];
 
 function init(): void {

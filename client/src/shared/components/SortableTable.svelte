@@ -16,6 +16,8 @@
     label: string;
     type?: 'sparkline' | 'species-link' | 'page-url';
     linkViewParam?: string;
+    /** Row key to use as the visible link text for page-url columns (defaults to the raw URL). */
+    linkLabelKey?: string;
     /** Raw CSV column header used when building a downloadable CSV (defaults to `key`). */
     csvHeader?: string;
     /** Key in the row object that holds the raw (unformatted) value for CSV export. */

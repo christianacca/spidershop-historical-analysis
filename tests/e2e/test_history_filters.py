@@ -387,3 +387,27 @@ def test_history_summary_info_styling(e2e_site_multi_species) -> None:
     bg = summary_info.first.evaluate('el => window.getComputedStyle(el).backgroundColor')
     assert 'rgb(248, 249, 250)' in bg, \
         f"summary-info should have light grey background, got {bg}"
+
+
+@pytest.mark.e2e
+def test_page_url_column_shows_scientific_name_as_link_text(e2e_site_multi_species) -> None:
+    """Page URL column should render the scientific name as anchor text, not the raw URL."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
+    page.locator("#history-table tbody tr").first.wait_for(timeout=5000)
+
+    # Find links in the Page URL column (last column)
+    links = page.locator("#history-table tbody tr td:last-child a")
+    assert links.count() > 0, "Expected at least one link in the Page URL column"
+
+    first_link = links.first
+    link_text = first_link.inner_text()
+    href = first_link.get_attribute("href")
+
+    assert href and href.startswith("http"), f"Expected a valid URL in href, got: {href!r}"
+    assert link_text != href, \
+        f"Link text should be the scientific name, not the raw URL (got {link_text!r})"
+    # Scientific names contain a space between genus and species
+    assert " " in link_text, \
+        f"Link text should be a scientific name (Genus species), got: {link_text!r}"
