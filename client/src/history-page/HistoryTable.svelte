@@ -1,7 +1,8 @@
 <script lang="ts">
   import { unicodeToSvg } from '../shared/sparklines.js';
   import { escapeCsvRow } from '../shared/csv-utils.js';
-  import { computeRange, sortRows, buildCsv, triggerDownload } from '../shared/table-utils.js';
+  import { computeRange, buildCsv, triggerDownload } from '../shared/table-utils.js';
+  import { SortState } from '../shared/sort-state.svelte.js';
   import type { ColumnConfig } from '../shared/components/SortableTable.svelte';
   import DateFilter from './DateFilter.svelte';
   import RangeSlider from '../shared/components/RangeSlider.svelte';
@@ -71,8 +72,7 @@
   let selectedDates = $state(new Set(collectAllDates(rows, dateColumn)));
   let searchText = $state('');
   let showAdvanced = $state(false);
-  let sortKey = $state<string | null>(null);
-  let sortDir = $state<'asc' | 'desc'>('asc');
+  const sort = new SortState();
   let sliderPriceMin = $state(priceRange.min);
   let sliderPriceMax = $state(priceRange.max);
   let sliderWishlistMin = $state(wishlistRange.min);
@@ -112,9 +112,7 @@
     }
 
     // 5. Sort
-    if (sortKey !== null) {
-      result = sortRows(result, sortKey, sortDir);
-    }
+    result = sort.apply(result);
 
     return result;
   });
@@ -155,15 +153,6 @@
   // ── Handlers ───────────────────────────────────────────────────────────────
   function handleDateChange(selected: string[]): void {
     selectedDates = new Set(selected);
-  }
-
-  function handleSort(key: string): void {
-    if (sortKey === key) {
-      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-    } else {
-      sortKey = key;
-      sortDir = 'asc';
-    }
   }
 
   function handlePriceChange(detail: { min: number; max: number }): void {
@@ -279,10 +268,11 @@
         {#each columns as col}
           <th
             class="sortable-header"
-            data-sort-direction={sortKey === col.key ? sortDir : 'none'}
-            onclick={() => handleSort(col.key)}
+            data-sort-direction={sort.key === col.key ? sort.dir : 'none'}
+            onclick={() => sort.toggle(col.key)}
           >
             {col.label}
+            <span class="sort-indicator">{sort.key === col.key ? (sort.dir === 'asc' ? '↑' : '↓') : '⇅'}</span>
           </th>
         {/each}
       </tr>
