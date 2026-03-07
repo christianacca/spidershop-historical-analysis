@@ -116,7 +116,7 @@ before writing any DTO code.
 **Goal:** Define the TypeScript DTO interface and write all Python DTO tests before touching
 production code. Every new test must FAIL (import error) before Phase B begins.
 
-- [ ] A1. Create `client/src/shared/types.ts` (new file):
+- [x] A1. Create `client/src/shared/types.ts` (new file):
          ```ts
          export interface SparklineBarData {
            bar_height: number;
@@ -132,7 +132,7 @@ production code. Every new test must FAIL (import error) before Phase B begins.
          }
          ```
 
-- [ ] A2. Write `tests/website_module/test_sparkline_dto.py` (new file). All tests import
+- [x] A2. Write `tests/website_module/test_sparkline_dto.py` (new file). All tests import
          `sparkline_to_dto` and `build_sparkline_dto_rows` from `website.sparkline_conversion`.
          These functions do not exist yet — every test must fail with `ImportError`.
          
@@ -147,7 +147,7 @@ production code. Every new test must FAIL (import error) before Phase B begins.
          - `TestEdgeCases` — empty, dash, single bar, no historical data
          - `TestBuildSparklineDtoRows` — pipeline integration
 
-- [ ] A3. Confirm `make test` fails with `ImportError` on `test_sparkline_dto.py`.
+- [x] A3. Confirm `make test` fails with `ImportError` on `test_sparkline_dto.py`.
          Do NOT proceed to Phase B until all tests are written and confirmed RED.
 
 ---
@@ -433,5 +433,5 @@ Do G2 before G5.
 
 | Phase | Decision | Reason |
 |---|---|---|
-| | | |
+| A | `TestBarHeightPrice` — "Zero-based normalization floor" test corrected: input changed from `["5.00", "10.00"]` to `["0.00", "10.00"]` | The plan's stated expected value (bar[0] == 2.0) is only achievable with val=0. Formula is `(0.1 + val/max * 0.9) * 20`; for val=5, max=10 → 11.0 not 2.0. Test now correctly demonstrates the 10% floor (2.0px) triggered by a zero-valued price. |
 
