@@ -194,7 +194,7 @@ production code. Every new test must FAIL (import error) before Phase B begins.
 
 **Goal:** Write all component tests before creating the component. Every test must FAIL.
 
-- [ ] C1. Create `client/src/shared/components/SparklineBar.test.ts`.
+- [x] C1. Create `client/src/shared/components/SparklineBar.test.ts`.
          Import `SparklineBar` from `./SparklineBar.svelte` — file does not exist yet.
          
          Required test cases:
@@ -210,7 +210,7 @@ production code. Every new test must FAIL (import error) before Phase B begins.
          - `dto` is a plain string `"▁▂▃"` (no DTO): no `<svg>`, rendered as text
          - Single-bar DTO (`bar_height == 20`): rect has `height="20"`, `y="0"`
 
-- [ ] C2. Confirm `make test-client` fails with a module-not-found error.
+- [x] C2. Confirm `make test-client` fails with a module-not-found error.
          Do NOT proceed to Phase D until C1 is complete and confirmed RED.
 
 ---
@@ -436,4 +436,8 @@ Do G2 before G5.
 | A | `TestBarHeightPrice` — "Zero-based normalization floor" test corrected: input changed from `["5.00", "10.00"]` to `["0.00", "10.00"]` | The plan's stated expected value (bar[0] == 2.0) is only achievable with val=0. Formula is `(0.1 + val/max * 0.9) * 20`; for val=5, max=10 → 11.0 not 2.0. Test now correctly demonstrates the 10% floor (2.0px) triggered by a zero-valued price. |
 | B | `generate_analysis_page` json_rows ordering kept BEFORE `build_sparkline_dto_rows` | For Phase B (no client changes), json_rows must remain unicode strings so the existing Svelte `unicodeToSvg` renderer is not broken. DTOs will flow into json_rows in Phase E when SortableTable.svelte is updated to use SparklineBar. |
 | B | `generate_snapshot_page` and `generate_history_page` effectively unchanged | These pages read CSVs without sparkline columns ("History"/"Availability" headers), so `build_sparkline_dto_rows` finds no sparkline columns and returns rows unchanged. No behavioral difference from swapping the function. |
+| C | `{#if bar !== null}` guard must be INSIDE `{#each bars as bar, i}`, not replacing it | The gap x-positioning test asserts that null at index 1 → second real rect has `x="20"` (i=2). If the `{#if}` were outside the `{#each}` (e.g. filtering nulls first), `i` would reset and the second rect would get `x="10"`. The loop index `i` must advance for every slot including nulls. |
+| C | Outer `<title>` must be a direct child of `<svg>`, not nested inside `{#each}` | The test queries `:scope > title` on the `<svg>` element, which only matches immediate children. Place `<title>{dto.title}</title>` before the `{#each}` block. |
+| C | `opacity` attribute — Svelte coerces `1.0` → `"1"` in HTML | `toHaveAttribute('opacity', '1')` (not `'1.0'`) is the correct assertion. The Phase D implementor does not need to do anything special — Svelte's default attribute binding handles this automatically. |
+| C | String fallback covers both `"-"` and unicode strings | Tests confirm that any non-DTO value (including real unicode sparkline strings like `"▁▂▃"`) must be rendered as plain text with no `<svg>` wrapper. This is the graceful degradation path for species with no historical data (Phase B decision: unicode strings still flow into `json_rows` until Phase E). |
 
