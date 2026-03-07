@@ -46,6 +46,7 @@ try:
     from website.sparkline_conversion import (
         load_historical_sparkline_data,
         convert_sparklines_in_rows,
+        build_sparkline_dto_rows,
     )
     from website.markdown_utils import (
         parse_markdown_to_html,
@@ -72,6 +73,7 @@ except ModuleNotFoundError:
     from sparkline_conversion import (
         load_historical_sparkline_data,
         convert_sparklines_in_rows,
+        build_sparkline_dto_rows,
     )
     from markdown_utils import (
         parse_markdown_to_html,
@@ -147,10 +149,10 @@ def generate_snapshot_page(config: BasePageConfig) -> str:
     
     #Load sparkline data from history CSV for conversion
     sparkline_data = load_historical_sparkline_data()
-    
-    # Convert Unicode sparklines to SVG in rows
+
+    # Convert Unicode sparklines to DTO dicts in sparkline columns
     if headers and rows:
-        rows = convert_sparklines_in_rows(headers, rows, sparkline_data, config.csv_filename)
+        rows = build_sparkline_dto_rows(headers, rows, sparkline_data, config.csv_filename)
     
     # Rename raw CSV header names to proper English for display
     display_headers = _rename_raw_headers(headers)
@@ -199,11 +201,11 @@ def generate_history_page(config: BasePageConfig) -> str:
 
     # Load sparkline data from history CSV for conversion
     sparkline_data = load_historical_sparkline_data()
-    
-    # Convert Unicode sparklines to SVG in rows
+
+    # Convert Unicode sparklines to DTO dicts in sparkline columns
     if headers and rows:
-        rows = convert_sparklines_in_rows(headers, rows, sparkline_data, config.csv_filename)
-    
+        rows = build_sparkline_dto_rows(headers, rows, sparkline_data, config.csv_filename)
+
     # Rename raw CSV header names to proper English for display
     display_headers = _rename_raw_headers(headers)
 
@@ -265,9 +267,9 @@ def generate_analysis_page(config: BasePageConfig) -> str:
     # Load historical data if available to enrich sparklines with values
     historical_data = load_historical_sparkline_data()
 
-    # Convert Unicode sparklines to SVG in sparkline columns
+    # Convert Unicode sparklines to DTO dicts in sparkline columns
     if headers and rows:
-        rows = convert_sparklines_in_rows(headers, rows, historical_data, config.csv_filename)
+        rows = build_sparkline_dto_rows(headers, rows, historical_data, config.csv_filename)
     
     # Extract summary stats from analysis markdown (if config has this attribute)
     analysis_markdown = getattr(config, 'analysis_markdown', None)

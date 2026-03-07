@@ -156,7 +156,7 @@ production code. Every new test must FAIL (import error) before Phase B begins.
 
 **Goal:** Make all Phase A tests pass. No client-side changes.
 
-- [ ] B1. In `src/website/sparkline_conversion.py`, extract internal function
+- [x] B1. In `src/website/sparkline_conversion.py`, extract internal function
          `_compute_bar_data(unicode_sparkline, bars, metric_type, compact_values,
          compact_is_carried_forward, color) -> List[Optional[tuple]]`.
          Extracts the per-bar `(bar_height, fill, opacity, tooltip | None)` computation
@@ -164,26 +164,26 @@ production code. Every new test must FAIL (import error) before Phase B begins.
          Update `convert_sparkline_to_svg()` to call `_compute_bar_data()` internally.
          **External behavior of `convert_sparkline_to_svg()` is unchanged.**
 
-- [ ] B2. Implement `sparkline_to_dto(unicode_sparkline, values, metric_type,
+- [x] B2. Implement `sparkline_to_dto(unicode_sparkline, values, metric_type,
          is_carried_forward) -> Optional[dict]` in `sparkline_conversion.py`.
          Returns `None` for empty/dash inputs.
          Returns dict matching schema from A1.
 
-- [ ] B3. Implement `build_sparkline_dto_rows(headers, rows, historical_data,
+- [x] B3. Implement `build_sparkline_dto_rows(headers, rows, historical_data,
          csv_filename) -> List[List[Any]]` in `sparkline_conversion.py`.
          Logic parallel to `convert_sparklines_in_rows()`: iterates sparkline columns,
          calls `extract_historical_values_with_carryforward`, calls `sparkline_to_dto()`.
          Sparkline cells become DTO dicts; non-sparkline cells unchanged.
          When historical data unavailable for a species, cell stays as unicode string.
 
-- [ ] B4. Update each `generate_*` function in `generate_website.py`:
+- [x] B4. Update each `generate_*` function in `generate_website.py`:
          replace `convert_sparklines_in_rows()` call with `build_sparkline_dto_rows()`.
          DTOs flow into `json_rows` via existing `rows_to_json()` — dict values are
          pass-through (the `startswith("<svg")` filter does not affect them).
 
-- [ ] B5. `make test` → all Python tests green. Confirm `test_sparkline_dto.py` fully green.
+- [x] B5. `make test` → all Python tests green. Confirm `test_sparkline_dto.py` fully green.
 
-- [ ] B6. Update `tests/website_module/test_table_data_helpers.py` — add one test:
+- [x] B6. Update `tests/website_module/test_table_data_helpers.py` — add one test:
          a sparkline cell containing a DTO dict passes through `rows_to_json()` intact
          (not stripped by the `startswith("<svg")` guard).
          `make test` → still green.
@@ -434,4 +434,6 @@ Do G2 before G5.
 | Phase | Decision | Reason |
 |---|---|---|
 | A | `TestBarHeightPrice` — "Zero-based normalization floor" test corrected: input changed from `["5.00", "10.00"]` to `["0.00", "10.00"]` | The plan's stated expected value (bar[0] == 2.0) is only achievable with val=0. Formula is `(0.1 + val/max * 0.9) * 20`; for val=5, max=10 → 11.0 not 2.0. Test now correctly demonstrates the 10% floor (2.0px) triggered by a zero-valued price. |
+| B | `generate_analysis_page` json_rows ordering kept BEFORE `build_sparkline_dto_rows` | For Phase B (no client changes), json_rows must remain unicode strings so the existing Svelte `unicodeToSvg` renderer is not broken. DTOs will flow into json_rows in Phase E when SortableTable.svelte is updated to use SparklineBar. |
+| B | `generate_snapshot_page` and `generate_history_page` effectively unchanged | These pages read CSVs without sparkline columns ("History"/"Availability" headers), so `build_sparkline_dto_rows` finds no sparkline columns and returns rows unchanged. No behavioral difference from swapping the function. |
 

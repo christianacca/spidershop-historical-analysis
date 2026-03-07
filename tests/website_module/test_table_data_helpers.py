@@ -134,3 +134,17 @@ class TestRowsToJsonSvgExclusion:
         rows = [["See the <svg> chart"]]
         result = rows_to_json(headers, rows)
         assert result == [{"Notes": "See the <svg> chart"}]
+
+    def test_dto_dict_passes_through_unchanged(self):
+        """A sparkline DTO dict is not stripped — it passes through rows_to_json intact."""
+        dto = {
+            "bars": [{"bar_height": 20.0, "fill": "#22c55e", "opacity": 0.7, "tooltip": "£15.00"}],
+            "svg_width": 10,
+            "svg_height": 20,
+            "title": "Price History",
+        }
+        headers = ["Species", "Price History"]
+        rows = [["Brachypelma hamorii", dto]]
+        result = rows_to_json(headers, rows)
+        assert result == [{"Species": "Brachypelma hamorii", "Price History": dto}]
+        assert result[0]["Price History"] is dto
