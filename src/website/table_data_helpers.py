@@ -39,10 +39,6 @@ def rows_to_json(headers: List[str], rows: List[List[Any]]) -> List[dict]:
         for i, value in enumerate(row):
             if i >= len(headers):
                 break
-            str_value = str(value) if value is not None else ""
-            if str_value.startswith("<svg"):
-                # SVG sparkline — skip; client regenerates from Unicode string
-                continue
             row_dict[headers[i]] = value
         result.append(row_dict)
     return result

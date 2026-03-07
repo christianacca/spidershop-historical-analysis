@@ -17,7 +17,7 @@ Opacity gradient:
 """
 
 import pytest
-from website.sparkline_conversion import sparkline_to_dto, build_sparkline_dto_rows
+from website.sparkline_dto import sparkline_to_dto, build_sparkline_dto_rows
 
 
 # ---------------------------------------------------------------------------

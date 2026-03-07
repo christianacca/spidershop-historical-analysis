@@ -43,9 +43,8 @@ from typing import Optional, List, Any
 # Handle both direct script execution and module import
 try:
     from website.page_config import BasePageConfig, NAV_ITEMS
-    from website.sparkline_conversion import (
+    from website.sparkline_dto import (
         load_historical_sparkline_data,
-        convert_sparklines_in_rows,
         build_sparkline_dto_rows,
     )
     from website.markdown_utils import (
@@ -70,9 +69,8 @@ try:
     from shared.parsing import format_datetime_smart, snake_to_display_header
 except ModuleNotFoundError:
     from page_config import BasePageConfig, NAV_ITEMS  # type: ignore[assignment]
-    from sparkline_conversion import (
+    from sparkline_dto import (
         load_historical_sparkline_data,
-        convert_sparklines_in_rows,
         build_sparkline_dto_rows,
     )
     from markdown_utils import (

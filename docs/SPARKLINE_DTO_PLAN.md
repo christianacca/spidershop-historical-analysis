@@ -286,39 +286,39 @@ production code. Every new test must FAIL (import error) before Phase B begins.
 
 **Goal:** Remove all code made dead by the DTO migration.
 
-- [ ] G0. Rename `src/website/sparkline_conversion.py` → `src/website/sparkline_dto.py`.
+- [x] G0. Rename `src/website/sparkline_conversion.py` → `src/website/sparkline_dto.py`.
          Update `src/website/__init__.py` and all
          `from website.sparkline_conversion import ...` references in `src/` and `tests/`.
          `make test` → green after rename.
 
-- [ ] G1. Delete `convert_sparkline_to_svg()` from `sparkline_dto.py`.
+- [x] G1. Delete `convert_sparkline_to_svg()` from `sparkline_dto.py`.
          Redirect `tests/shared_module/test_convert_sparkline_to_svg.py`: change the import
          to `from website.sparkline_dto import sparkline_to_dto` and rewrite assertions
          to call `sparkline_to_dto` instead. Test cases themselves are preserved.
          `make test` → green.
 
-- [ ] G2. Delete `convert_sparklines_in_rows()` from `sparkline_dto.py`.
+- [x] G2. Delete `convert_sparklines_in_rows()` from `sparkline_dto.py`.
          Confirm no remaining callers in `generate_website.py`.
          `make test` → green.
 
-- [ ] G3. In `client/src/shared/sparklines.ts`:
+- [x] G3. In `client/src/shared/sparklines.ts`:
          - Delete `sparklineFillColor()` function.
          - Decision: if `SparklineBar.svelte` handles the string fallback inline (renders
            raw string text, no `unicodeToSvg` call), delete `unicodeToSvg()` and the
            entire file. If `unicodeToSvg` is still used elsewhere, retain it stripped of
            color logic.
 
-- [ ] G4. Update `client/src/shared/sparklines.test.ts`:
+- [x] G4. Update `client/src/shared/sparklines.test.ts`:
          - Delete the `sparklineFillColor` color test group.
          - If `unicodeToSvg` was deleted in G3, delete this file entirely.
          - If `unicodeToSvg` retained, keep structural tests only.
 
-- [ ] G5. Remove the `startswith("<svg")` guard from `rows_to_json()` in
+- [x] G5. Remove the `startswith("<svg")` guard from `rows_to_json()` in
          `src/website/table_data_helpers.py` — dead code now that SVG strings never
          reach the serializer. Remove the corresponding assertion from
          `tests/website_module/test_table_data_helpers.py`.
 
-- [ ] G6. Final gate:
+- [x] G6. Final gate:
          `make test && make test-client && make coverage-client && make test-e2e` → all green.
 
 ---
@@ -438,8 +438,10 @@ Do G2 before G5.
 | F | `svg.sparkline rect` selector used for new visual contract tests (not `.sparkline svg rect`) | The `SparklineBar.svelte` component places the `.sparkline` CSS class on the `<svg>` element itself. The selector `.sparkline svg rect` would look for a `<svg>` nested inside a `.sparkline` element, which never matches. Correct selector is `svg.sparkline rect`. |
 | F | Two pre-existing E2E failures fixed as part of Phase F gate work | `test_rising_sparkline_uses_green_fill` failed because the multi-species fixture only had 1 history entry per species — DTOs need multiple values to compute a rising trend. Added 2 earlier history entries for seemanni (£8.99 → £15.00 → £25.00). `test_signal_cell_with_drivers_has_info_icon` failed because commit 3867e70 changed `.info-icon` from a `title` attribute to a child `<span class="tooltip">` — test updated to match new DOM structure. |
 
-| Phase | Decision | Reason |
-|---|---|---|
+| G | `sparklines.ts` and `sparklines.test.ts` deleted entirely | `unicodeToSvg` was only referenced in `sparklines.test.ts` (its own test). `SparklineBar.svelte` handles string fallback inline. Both files were entirely dead. |
+| G | `sparkline_to_dto` signature changed: `values` default set to `None` | The parameter was `Optional[List]` but had no default, breaking calls that omit `values` (e.g. stock sparklines). Made `values: Optional[List] = None` consistent with the type annotation. |
+| G | `test_convert_sparkline_to_svg.py` rewritten; `test_sparklines.py` deleted | All assertions translated from SVG-string form to DTO-dict form. `test_sparklines.py` tested only dead functions (`convert_sparkline_to_svg`, `convert_sparklines_in_rows`) and was deleted. |
+| G | `TestRowsToJsonSvgExclusion` class deleted; `test_dto_dict_passes_through_unchanged` kept as standalone | The SVG exclusion behaviour no longer exists. The DTO passthrough test was extracted from the class as a top-level function. |
 | A | `TestBarHeightPrice` — "Zero-based normalization floor" test corrected: input changed from `["5.00", "10.00"]` to `["0.00", "10.00"]` | The plan's stated expected value (bar[0] == 2.0) is only achievable with val=0. Formula is `(0.1 + val/max * 0.9) * 20`; for val=5, max=10 → 11.0 not 2.0. Test now correctly demonstrates the 10% floor (2.0px) triggered by a zero-valued price. |
 | B | `generate_analysis_page` json_rows ordering kept BEFORE `build_sparkline_dto_rows` | For Phase B (no client changes), json_rows must remain unicode strings so the existing Svelte `unicodeToSvg` renderer is not broken. DTOs will flow into json_rows in Phase E when SortableTable.svelte is updated to use SparklineBar. |
 | B | `generate_snapshot_page` and `generate_history_page` effectively unchanged | These pages read CSVs without sparkline columns ("History"/"Availability" headers), so `build_sparkline_dto_rows` finds no sparkline columns and returns rows unchanged. No behavioral difference from swapping the function. |

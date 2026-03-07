@@ -7,10 +7,8 @@ from website.page_config import (
     SnapshotPageConfig,
     HistoryPageConfig,
 )
-from website.sparkline_conversion import (
-    convert_sparkline_to_svg,
+from website.sparkline_dto import (
     load_historical_sparkline_data,
-    convert_sparklines_in_rows,
     SPARKLINE_CHARS,
 )
 from website.markdown_utils import (
@@ -25,10 +23,8 @@ from website.table_data_helpers import rows_to_json
 __all__ = [
     # Configuration
     'PageConfig',
-    # Sparkline conversion
-    'convert_sparkline_to_svg',
+    # Sparkline utilities
     'load_historical_sparkline_data',
-    'convert_sparklines_in_rows',
     'SPARKLINE_CHARS',
     # Markdown utilities
     'parse_markdown_to_html',
