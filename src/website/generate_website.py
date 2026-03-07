@@ -260,16 +260,15 @@ def generate_analysis_page(config: BasePageConfig) -> str:
         f"generate_analysis_page only serves breeder/dealer pages, got: {config.active_page}"
     headers, rows = read_csv_file(config.csv_filename)
 
-    # Serialise raw rows for Svelte data contract (must be before SVG sparkline conversion
-    # so JSON contains the original Unicode sparkline strings, not SVG markup)
-    json_rows = rows_to_json(headers or [], rows)
-
     # Load historical data if available to enrich sparklines with values
     historical_data = load_historical_sparkline_data()
 
     # Convert Unicode sparklines to DTO dicts in sparkline columns
     if headers and rows:
         rows = build_sparkline_dto_rows(headers, rows, historical_data, config.csv_filename)
+
+    # Serialise rows for Svelte data contract (DTOs flow to SparklineBar component)
+    json_rows = rows_to_json(headers or [], rows)
     
     # Extract summary stats from analysis markdown (if config has this attribute)
     analysis_markdown = getattr(config, 'analysis_markdown', None)

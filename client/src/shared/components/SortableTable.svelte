@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { unicodeToSvg } from '../sparklines.js';
+  import SparklineBar from './SparklineBar.svelte';
+  import type { SparklineDto } from '../types.js';
   import { escapeCsvRow } from '../csv-utils.js';
   import { computeRange, buildCsv, triggerDownload } from '../table-utils.js';
   import { SortState } from '../sort-state.svelte.js';
@@ -401,7 +402,7 @@
                 class:signal-avoid={isSignalCol && cellValue.includes('❌')}
               >
                 {#if col.type === 'sparkline'}
-                  {@html unicodeToSvg(cellValue)}
+                  <SparklineBar dto={row[col.key] as SparklineDto | string} />
                 {:else if col.type === 'species-link'}
                   {@const slug = slugify(cellValue)}
                   {@const viewSuffix = col.linkViewParam ? `?view=${col.linkViewParam}` : ''}

@@ -412,8 +412,14 @@ test('CSV quotes values that contain a comma (RFC-4180)', async () => {
 
 // ── Sparkline column type ─────────────────────────────────────────────────────
 
-test('sparkline column renders unicode bars as SVG html', () => {
-  const sparklineRow = { ...ROWS[0], Sparkline: '▁▄▇' };
+test('sparkline column with DTO value renders an <svg> element', () => {
+  const sparklineDto = {
+    bars: [{ bar_height: 14, fill: '#22c55e', opacity: 0.85, tooltip: '£15.00' }],
+    svg_width: 10,
+    svg_height: 20,
+    title: 'Price History',
+  };
+  const sparklineRow = { ...ROWS[0], Sparkline: sparklineDto };
   const sparklineCol = { key: 'Sparkline', label: 'Sparkline', type: 'sparkline' as const };
 
   const { container } = render(HistoryTable, {
@@ -423,7 +429,7 @@ test('sparkline column renders unicode bars as SVG html', () => {
     dateColumn: 'Scrape Date',
   });
 
-  // The sparkline td should contain an SVG rectangle (unicodeToSvg output)
+  // The sparkline td should contain an SVG element rendered by SparklineBar
   const svgEl = container.querySelector('tbody tr td svg');
   expect(svgEl).not.toBeNull();
 });

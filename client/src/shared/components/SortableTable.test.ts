@@ -414,6 +414,30 @@ test('species-link with linkViewParam appends ?view= suffix to href', () => {
   expect(link.href).toContain('?view=breeder');
 });
 
+// ── Column type: sparkline ─────────────────────────────────────────────────────
+
+test('sparkline column with DTO value renders an <svg> element', () => {
+  const sparklineDto = {
+    bars: [{ bar_height: 14, fill: '#22c55e', opacity: 0.85, tooltip: '£15.00' }],
+    svg_width: 10,
+    svg_height: 20,
+    title: 'Price History',
+  };
+  const sparklineRows = [{ Species: 'Test Spider', 'Price History': sparklineDto }];
+  const sparklineColumns = [
+    { key: 'Species', label: 'Species' },
+    { key: 'Price History', label: 'Price History', type: 'sparkline' as const },
+  ];
+  const { container } = render(SortableTable, {
+    tableId: 'sparkline-table',
+    rows: sparklineRows,
+    columns: sparklineColumns,
+  });
+
+  const svg = container.querySelector('tbody td svg');
+  expect(svg).not.toBeNull();
+});
+
 // ── CSV download ──────────────────────────────────────────────────────────────
 
 async function clickDownloadAndGetBlob(container: HTMLElement): Promise<Blob> {

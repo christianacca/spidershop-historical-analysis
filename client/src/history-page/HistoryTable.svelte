@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { unicodeToSvg } from '../shared/sparklines.js';
+  import SparklineBar from '../shared/components/SparklineBar.svelte';
+  import type { SparklineDto } from '../shared/types.js';
   import { escapeCsvRow } from '../shared/csv-utils.js';
   import { computeRange, buildCsv, triggerDownload } from '../shared/table-utils.js';
   import { SortState } from '../shared/sort-state.svelte.js';
@@ -282,7 +283,7 @@
           {#each columns as col}
             <td>
               {#if col.type === 'sparkline'}
-                {@html unicodeToSvg(String(row[col.key] ?? ''))}
+                <SparklineBar dto={row[col.key] as SparklineDto | string} />
               {:else if col.type === 'page-url'}
                 {@const href = String(row[col.key] ?? '')}
                 {@const label = col.linkLabelKey ? String(row[col.linkLabelKey] ?? href) : href}

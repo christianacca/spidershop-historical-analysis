@@ -242,20 +242,20 @@ production code. Every new test must FAIL (import error) before Phase B begins.
 
 **Goal:** Replace `{@html unicodeToSvg(...)}` with `<SparklineBar>` in both table components.
 
-- [ ] E1. Update `client/src/shared/components/SortableTable.svelte`:
+- [x] E1. Update `client/src/shared/components/SortableTable.svelte`:
          - Add `import SparklineBar from './SparklineBar.svelte';`
          - For cells where `col.type === 'sparkline'`, replace:
            `{@html unicodeToSvg(row[col.key])}`
            with: `<SparklineBar dto={row[col.key]} />`
          - No changes to column config, filter logic, or any other rendering.
 
-- [ ] E2. Update `client/src/history-page/HistoryTable.svelte` — same replacement.
+- [x] E2. Update `client/src/history-page/HistoryTable.svelte` — same replacement.
 
-- [ ] E3. Update `client/src/shared/components/SortableTable.test.ts`:
+- [x] E3. Update `client/src/shared/components/SortableTable.test.ts`:
          Any test asserting sparkline rendering should assert that a `type: 'sparkline'`
          column with a DTO object value renders an `<svg>` element, not a raw string.
 
-- [ ] E4. `make build-client && make test-client` → green.
+- [x] E4. `make build-client && make test-client` → green.
 
 ---
 
@@ -429,7 +429,8 @@ Do G2 before G5.
 
 ## Decisions log
 
-*(Record decisions that deviate from this plan here, to inform the next phase conversation.)*
+| E | `HistoryTable.test.ts` existing sparkline test updated to use DTO object instead of unicode string | The old test (`sparkline column renders unicode bars as SVG html`) passed a raw unicode string and expected SVG output via `unicodeToSvg`. After Phase E, `SparklineBar` renders strings as plain text fallback (no SVG). Updated test to pass a DTO object and renamed it `sparkline column with DTO value renders an <svg> element`. |
+| E | `HistoryTable.test.ts` update treated as a Phase E task (not Phase G) | The test in `HistoryTable.test.ts` directly tests the sparkline column rendering path of `HistoryTable.svelte`, which was changed in E2. It would have failed immediately without updating it. |
 
 | Phase | Decision | Reason |
 |---|---|---|
