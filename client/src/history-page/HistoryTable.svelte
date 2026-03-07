@@ -198,16 +198,18 @@
 {/if}
 
 <!-- ── More Filters toggle ───────────────────────────────────────────────── -->
-<ToggleButton
-  expanded={showAdvanced}
-  onToggle={() => (showAdvanced = !showAdvanced)}
-  badge={activeFilterCount}
-  badgeId="filterBadge-{tableId}"
-  class="advanced-filters-toggle"
-  variant="primary"
->
-  {#snippet children()}More Filters{/snippet}
-</ToggleButton>
+<div class="controls-row">
+  <ToggleButton
+    expanded={showAdvanced}
+    onToggle={() => (showAdvanced = !showAdvanced)}
+    badge={activeFilterCount}
+    badgeId="filterBadge-{tableId}"
+    class="advanced-filters-toggle"
+    variant="primary"
+  >
+    {#snippet children()}More Filters{/snippet}
+  </ToggleButton>
+</div>
 
 <!-- ── Advanced filters panel ───────────────────────────────────────────── -->
 {#if showAdvanced}
@@ -297,6 +299,14 @@
 </div>
 
 <style>
+  .controls-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+    margin-bottom: var(--spacing-sm);
+  }
+
   .summary-info {
     background: var(--color-surface-light);
     border: 1px solid var(--color-border);
