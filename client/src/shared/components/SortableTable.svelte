@@ -407,7 +407,7 @@
                   {@const viewSuffix = col.linkViewParam ? `?view=${col.linkViewParam}` : ''}
                   {#if slug}<a href="species/{slug}.html{viewSuffix}">{cellValue}</a>{:else}{cellValue}{/if}
                 {:else}
-                  {cellValue}{#if isSignalCol && filterConfig.driversKey && row[filterConfig.driversKey]}<span class="info-icon" title={String(row[filterConfig.driversKey] ?? '')}>ℹ️</span>{/if}
+                  {cellValue}{#if isSignalCol && filterConfig.driversKey && row[filterConfig.driversKey]}<span class="info-icon" tabindex="0">ℹ️<span class="tooltip">{String(row[filterConfig.driversKey] ?? '')}</span></span>{/if}
                 {/if}
               </td>
             {/if}
