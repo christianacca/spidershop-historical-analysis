@@ -263,15 +263,18 @@ production code. Every new test must FAIL (import error) before Phase B begins.
 
 **Goal:** Confirm all existing browser behaviour preserved. This is the primary rollback point.
 
-- [ ] F1. `make test-e2e` → all existing 126+ E2E tests pass unmodified.
+- [x] F1. `make test-e2e` → all existing 126+ E2E tests pass unmodified.
 
-- [ ] F2. Update `tests/e2e/test_visual_contracts.py`:
+- [x] F2. Update `tests/e2e/test_visual_contracts.py`:
          - Update existing `test_sparkline_fill_is_not_currentColor`: assert sparkline
            SVG bars are present with a non-`currentColor` `fill` attribute (mechanism-agnostic).
-         - Add new test `test_sparkline_bar_has_tooltip`: find a `<rect>` inside a `.sparkline`
-           SVG on the breeder page; assert its `<title>` child exists and contains `£`.
+           Updated selector from `#breeder-table tbody tr td svg rect` to `svg.sparkline rect`
+           (class is on the `<svg>` element itself, not a parent wrapper).
+         - Add new test `test_sparkline_bar_has_tooltip`: find a `<rect>` inside a `svg.sparkline`
+           on the breeder page; assert its `<title>` child exists and contains `£`.
 
-- [ ] F3. `make test && make test-client && make coverage-client && make test-e2e` → all green.
+- [x] F3. `make test && make test-client && make coverage-client && make test-e2e` → all green.
+         Python: 633 passed, coverage 95.05%. Vitest: 183 passed. E2E: 136 passed.
          
          **Do NOT proceed to Phase G unless all four suites are green.**
          If E2E fails here, rollback to Phase D state — `convert_sparkline_to_svg()` still
@@ -431,6 +434,9 @@ Do G2 before G5.
 
 | E | `HistoryTable.test.ts` existing sparkline test updated to use DTO object instead of unicode string | The old test (`sparkline column renders unicode bars as SVG html`) passed a raw unicode string and expected SVG output via `unicodeToSvg`. After Phase E, `SparklineBar` renders strings as plain text fallback (no SVG). Updated test to pass a DTO object and renamed it `sparkline column with DTO value renders an <svg> element`. |
 | E | `HistoryTable.test.ts` update treated as a Phase E task (not Phase G) | The test in `HistoryTable.test.ts` directly tests the sparkline column rendering path of `HistoryTable.svelte`, which was changed in E2. It would have failed immediately without updating it. |
+
+| F | `svg.sparkline rect` selector used for new visual contract tests (not `.sparkline svg rect`) | The `SparklineBar.svelte` component places the `.sparkline` CSS class on the `<svg>` element itself. The selector `.sparkline svg rect` would look for a `<svg>` nested inside a `.sparkline` element, which never matches. Correct selector is `svg.sparkline rect`. |
+| F | Two pre-existing E2E failures fixed as part of Phase F gate work | `test_rising_sparkline_uses_green_fill` failed because the multi-species fixture only had 1 history entry per species — DTOs need multiple values to compute a rising trend. Added 2 earlier history entries for seemanni (£8.99 → £15.00 → £25.00). `test_signal_cell_with_drivers_has_info_icon` failed because commit 3867e70 changed `.info-icon` from a `title` attribute to a child `<span class="tooltip">` — test updated to match new DOM structure. |
 
 | Phase | Decision | Reason |
 |---|---|---|

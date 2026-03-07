@@ -8,7 +8,8 @@ from silently dropping a feature that the stylesheet expects.
 Guarded contracts (one per fix):
 - G1: Wishlist column non-empty (correct JSON key 'Wishlist' used)
 - G2: Signal <td> cells carry .signal-hot / .signal-watch / .signal-avoid
-- G3: Sparkline SVG bars use explicit hex fill, not "currentColor"
+- G3: Sparkline SVG bars present with explicit hex fill, not "currentColor"
+- G3b: Sparkline SVG bar <rect> elements have per-bar tooltip <title> children
 - G4: Info icon (ℹ️) present inside signal cells that have Drivers data
 - G5: Column headers show ⇅ / ↑ / ↓ sort-indicator glyphs
 - G6: Signal filter buttons include a parenthesised row count
@@ -125,14 +126,19 @@ def test_signal_cells_have_css_class(e2e_site_multi_species) -> None:
 
 @pytest.mark.e2e
 def test_sparkline_fill_is_not_currentColor(e2e_site_multi_species) -> None:
-    """Sparkline SVG bars use explicit hex colours, not 'currentColor'."""
+    """Sparkline SVG bars are present with explicit hex colours, not 'currentColor'.
+
+    This contract is mechanism-agnostic: asserts that <rect> elements inside sparkline
+    SVGs carry a hex fill, regardless of whether they were produced by unicodeToSvg or
+    the DTO-based SparklineBar component.
+    """
     page, base_url, _errors = e2e_site_multi_species
     _go_breeder(page, base_url)
 
-    # Find the first sparkline SVG rect/polygon that has a fill attribute
-    rects = page.locator("#breeder-table tbody tr td svg rect, #breeder-table tbody tr td svg polygon")
+    # SparklineBar renders <svg class="sparkline" ...> — the class is on the svg itself
+    rects = page.locator("svg.sparkline rect")
     count = rects.count()
-    assert count > 0, "No sparkline <rect> or <polygon> elements found in breeder table"
+    assert count > 0, "No sparkline <rect> elements found inside svg.sparkline elements in breeder table"
 
     fills = set()
     for i in range(min(count, 20)):
@@ -145,6 +151,52 @@ def test_sparkline_fill_is_not_currentColor(e2e_site_multi_species) -> None:
     )
     assert any(f.startswith("#") for f in fills), (
         f"Expected at least one sparkline element with a hex fill, found: {fills}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# G3b — Sparkline bar <rect> elements have per-bar tooltip <title> children
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.e2e
+def test_sparkline_bar_has_tooltip(e2e_site_multi_species) -> None:
+    """Each sparkline bar <rect> has a child <title> with a non-empty tooltip string.
+
+    This guards the DTO pipeline: Python must emit tooltip strings and SparklineBar
+    must render them as <title> children inside each <rect>.
+    Price-history sparklines are checked because they always carry £ amounts.
+    """
+    page, base_url, _errors = e2e_site_multi_species
+    _go_breeder(page, base_url)
+
+    # Find a <rect> inside a svg.sparkline element on the breeder page
+    first_rect = page.locator("svg.sparkline rect").first
+    assert first_rect.count() > 0 or page.locator("svg.sparkline rect").count() > 0, (
+        "No <rect> found inside svg.sparkline on breeder page"
+    )
+
+    # The rect must have a child <title> containing tooltip text
+    title_child = first_rect.locator("title")
+    assert title_child.count() > 0, (
+        "No <title> child found inside sparkline <rect>; per-bar tooltips are missing"
+    )
+    tooltip_text = title_child.first.text_content() or ""
+    assert tooltip_text.strip(), "Sparkline <rect> <title> child is empty"
+
+    # Price-history sparklines must contain £ amounts
+    rects_with_title = page.locator("svg.sparkline rect")
+    found_price_tooltip = False
+    for i in range(min(rects_with_title.count(), 30)):
+        rect_title = rects_with_title.nth(i).locator("title")
+        if rect_title.count() > 0:
+            text = rect_title.first.text_content() or ""
+            if "£" in text:
+                found_price_tooltip = True
+                break
+    assert found_price_tooltip, (
+        "No sparkline bar tooltip found containing '£'; "
+        "price-history tooltips are missing from the breeder page"
     )
 
 

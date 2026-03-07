@@ -271,6 +271,24 @@ def write_multi_species_test_data(cwd: Path) -> None:
     )
     
     history_entries = [
+        # Aphonopelma seemanni — three dated entries to produce a rising price trend
+        # (matches the 3-bar sparkline ▁▄▇ in breeder_opportunity_table.csv)
+        HistoryEntry(
+            scrape_datetime="2025-12-18",
+            scientific_name="Aphonopelma seemanni",
+            common_name="Costa Rican Zebra",
+            size_cm="1.5",
+            price_gbp="8.99",
+            wishlist_count="3"
+        ),
+        HistoryEntry(
+            scrape_datetime="2025-12-25",
+            scientific_name="Aphonopelma seemanni",
+            common_name="Costa Rican Zebra",
+            size_cm="1.5",
+            price_gbp="15.00",
+            wishlist_count="4"
+        ),
         HistoryEntry(
             scrape_datetime="2026-01-01",
             scientific_name="Aphonopelma seemanni",

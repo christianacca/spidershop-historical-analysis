@@ -231,9 +231,10 @@ def test_signal_cell_with_drivers_has_info_icon(e2e_site_multi_species) -> None:
     for cell in signal_cells:
         icon = cell.locator(".info-icon")
         if icon.count() > 0:
-            # Icon must have a non-empty title (tooltip)
-            title = icon.first.get_attribute("title") or ""
-            assert title, f".info-icon has empty title attribute on cell: {cell.text_content()}"
+            # Icon uses a child <span class="tooltip"> for accessible tooltip text
+            tooltip_span = icon.first.locator(".tooltip")
+            tooltip_text = (tooltip_span.first.text_content() or "").strip() if tooltip_span.count() > 0 else ""
+            assert tooltip_text, f".info-icon has no tooltip content on cell: {cell.text_content()}"
             found_icon = True
 
     assert found_icon, (
