@@ -219,7 +219,7 @@ production code. Every new test must FAIL (import error) before Phase B begins.
 
 **Goal:** Make all Phase C tests pass.
 
-- [ ] D1. Create `client/src/shared/components/SparklineBar.svelte`. Props:
+- [x] D1. Create `client/src/shared/components/SparklineBar.svelte`. Props:
          `dto: SparklineDto | string` (import `SparklineDto` from `'../types.js'`).
          
          Two render paths:
@@ -234,7 +234,7 @@ production code. Every new test must FAIL (import error) before Phase B begins.
          `<style>` block: `.sparkline { vertical-align: middle }`.
          No design tokens needed. No business logic.
 
-- [ ] D2. `make build-client && make test-client && make coverage-client` → all green.
+- [x] D2. `make build-client && make test-client && make coverage-client` → all green.
 
 ---
 
@@ -440,4 +440,8 @@ Do G2 before G5.
 | C | Outer `<title>` must be a direct child of `<svg>`, not nested inside `{#each}` | The test queries `:scope > title` on the `<svg>` element, which only matches immediate children. Place `<title>{dto.title}</title>` before the `{#each}` block. |
 | C | `opacity` attribute — Svelte coerces `1.0` → `"1"` in HTML | `toHaveAttribute('opacity', '1')` (not `'1.0'`) is the correct assertion. The Phase D implementor does not need to do anything special — Svelte's default attribute binding handles this automatically. |
 | C | String fallback covers both `"-"` and unicode strings | Tests confirm that any non-DTO value (including real unicode sparkline strings like `"▁▂▃"`) must be rendered as plain text with no `<svg>` wrapper. This is the graceful degradation path for species with no historical data (Phase B decision: unicode strings still flow into `json_rows` until Phase E). |
+| D | `{@const d = dto as SparklineDto}` used inside `{#if isDto}` block | TypeScript cannot narrow the `dto` prop type through a `$derived` boolean — the template still sees `SparklineDto \| string`. Casting once via `{@const}` avoids repeated `(dto as SparklineDto)` throughout the block and is the idiomatic Svelte 5 pattern for this situation. |
+| D | `<rect>` tag must use explicit closing tag `</rect>`, not self-closing `<rect ... />` | SVG `<rect>` is not a void element; the child `<title>` tooltip must be nested inside it. Self-closing syntax (`<rect ... />`) is treated as void in some parsers and will swallow the child `<title>`. Use `<rect ...><title>…</title></rect>`. |
+| D | `$derived` used for `isDto` rather than an inline template expression | Extracts the duck-typing check (`typeof dto === 'object' && dto !== null && 'bars' in dto`) to a named reactive value, keeping the template readable and the detection logic easy to audit. No functional difference to an inline expression. |
+| D | Phase E: `json_rows` ordering must be updated in `generate_analysis_page` | The Phase B decision deliberately kept `json_rows` BEFORE `build_sparkline_dto_rows` so unicode strings flowed to the client. Phase E swaps `SortableTable` and `HistoryTable` to use `SparklineBar`, so `generate_analysis_page` (and any other page with sparkline columns) must move `build_sparkline_dto_rows` output into `json_rows` AFTER Phase E's client changes are in place. Doing it before would pass DTO objects to the old `unicodeToSvg` path, breaking the rendered page. |
 
