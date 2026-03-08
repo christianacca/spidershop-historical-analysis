@@ -12,7 +12,7 @@
 #   All commands automatically activate the .venv virtual environment
 #   Ensure .venv exists and has dependencies installed first
 
-.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only clean-cache clean-artifacts clean-all build-client test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install coverage check-coverage test-client coverage-client .check-venv .check-gh
+.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only clean-cache clean-artifacts clean-all build-client test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install open-coverage check-coverage test-client open-coverage-client .check-venv .check-gh
 
 # Shell configuration
 SHELL := /bin/bash
@@ -61,11 +61,11 @@ help:
 	@echo "  make test-e2e-debug         Run e2e with Playwright Inspector (PWDEBUG)"
 	@echo "  make test-e2e-headed        Run e2e with visible browser window"
 	@echo "  make test-e2e-show-trace    Open trace viewer for last e2e run"
-	@echo "  make coverage               View coverage report in browser
+	@echo "  make open-coverage          Open Python coverage report in browser"
 	@echo "  make check-coverage         Print coverage summary (exits non-zero if below threshold)"
 	@echo "  make check-coverage MODULE=<path>  Check coverage for a specific module"
-	@echo "  make test-client            Run Vitest unit tests for client/src/ (requires Node)"
-	@echo "  make coverage-client        Run Vitest with coverage for client/src/ (enforces 80% threshold)"
+	@echo "  make test-client            Run Vitest unit tests with coverage for client/src/ (enforces 80% threshold)"
+	@echo "  make open-coverage-client   Open client coverage report in browser"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make test-file FILE=tests/website_module/test_csv.py"
@@ -254,7 +254,7 @@ test-e2e-show-trace: .check-venv e2e-install
 	@echo "🔍 Opening trace viewer..."
 	source $(VENV)/bin/activate && playwright show-trace tmp/e2e-trace.zip
 
-coverage:
+open-coverage:
 	@echo "Opening coverage report in browser..."
 	open tmp/coverage/html/index.html
 
@@ -265,20 +265,18 @@ check-coverage: .check-venv
 		$(PYTHON) scripts/check_coverage.py; \
 	fi
 
-# Run Vitest unit tests for client/src/ (fast, no Python required).
-# Do NOT fold into `make test` — that command is the Python-only loop (≤1s,
-# no Node dependency); merging would add Node to every Python edit cycle.
+# Run Vitest unit tests with coverage for client/src/.
+# Mirrors `make test` (which always includes coverage) but kept separate to
+# avoid adding a Node dependency to the Python-only edit cycle.
 test-client:
 	@echo "🧪 Running Vitest tests..."
-	cd client && npm run test
+	cd client && npm run coverage
 	@echo "✅ Vitest tests passed"
 
-# Run Vitest with coverage for client/src/.
-# Enforces 80% threshold globally; the build fails if coverage drops below it.
-coverage-client:
-	@echo "📊 Running Vitest coverage..."
-	cd client && npm run coverage
-	@echo "✅ Coverage report generated"
+# Open Vitest coverage report in browser (run `make test-client` first).
+open-coverage-client:
+	@echo "Opening client coverage report in browser..."
+	open client/coverage/index.html
 
 # ==============================================================================
 # Cleanup

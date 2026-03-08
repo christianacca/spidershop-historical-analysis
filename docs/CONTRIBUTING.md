@@ -329,14 +329,14 @@ This runs pytest with full coverage reporting, showing:
 ### Run client-side (Vitest) tests
 
 ```sh
-# Run Vitest unit tests for client/src/ (fast, no Python required)
+# Run Vitest unit tests with coverage for client/src/ (enforces 80% threshold)
 make test-client
 
-# Run Vitest with coverage report for client/src/
-make coverage-client
+# Open client coverage report in browser
+make open-coverage-client
 ```
 
-`make test-client` is the mandatory command for any edit in `client/src/`. It is kept **separate from `make test`** — `make test` is the Python-only loop (≤1 second, no Node required); merging would add a Node dependency to every Python edit cycle.
+`make test-client` is the mandatory command for any edit in `client/src/`. It always runs with coverage to mirror `make test`, but is kept **separate from `make test`** — `make test` is the Python-only loop (≤1 second, no Node required); merging would add a Node dependency to every Python edit cycle.
 
 **When Vitest tests are required:**
 - Any new or modified Svelte component in `client/src/`
@@ -440,7 +440,11 @@ Notes:
 
 ### View interactive HTML coverage report
 ```sh
-make coverage
+# Server-side (Python)
+make open-coverage
+
+# Client-side (Vitest)
+make open-coverage-client
 ```
 
 Opens the HTML coverage report in your browser, providing:
