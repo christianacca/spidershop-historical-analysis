@@ -12,7 +12,7 @@
 #   All commands automatically activate the .venv virtual environment
 #   Ensure .venv exists and has dependencies installed first
 
-.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only clean-cache clean-artifacts clean-all build-client test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install open-coverage check-coverage test-client open-coverage-client .check-venv .check-gh
+.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only clean-cache clean-artifacts clean-all build-client test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install open-coverage check-coverage test-client test-client-fast test-client-watch open-coverage-client .check-venv .check-gh
 
 # Shell configuration
 SHELL := /bin/bash
@@ -65,6 +65,8 @@ help:
 	@echo "  make check-coverage         Print coverage summary (exits non-zero if below threshold)"
 	@echo "  make check-coverage MODULE=<path>  Check coverage for a specific module"
 	@echo "  make test-client            Run Vitest unit tests with coverage for client/src/ (enforces 80% threshold)"
+	@echo "  make test-client-fast       Run Vitest unit tests without coverage (fast iteration, no threshold)"
+	@echo "  make test-client-watch      Run Vitest unit tests in watch mode (interactive, no coverage)"
 	@echo "  make open-coverage-client   Open client coverage report in browser"
 	@echo ""
 	@echo "Examples:"
@@ -272,6 +274,18 @@ test-client:
 	@echo "🧪 Running Vitest tests..."
 	cd client && npm run coverage
 	@echo "✅ Vitest tests passed"
+
+# Run Vitest unit tests without coverage — fast local iteration loop.
+# Use this during active component development; run `make test-client` before committing.
+test-client-fast:
+	@echo "🧪 Running Vitest tests (no coverage)..."
+	cd client && npm test -- --reporter=dot
+	@echo "✅ Vitest tests passed"
+
+# Run Vitest unit tests in watch mode — interactive development.
+# Re-runs affected tests on every file save. Requires an interactive terminal.
+test-client-watch:
+	cd client && npm run test:watch
 
 # Open Vitest coverage report in browser (run `make test-client` first).
 open-coverage-client:

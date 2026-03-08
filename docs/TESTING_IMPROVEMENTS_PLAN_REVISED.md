@@ -399,25 +399,25 @@ not asked to resolve `var(--tokens)`. That boundary is being respected.
 
 **Goal:** Improve the default local iteration path before adding heavier tooling.
 
-- [ ] 6. Add a fast client test command in `Makefile` that runs the client suite without coverage.
+- [x] 6. Add a fast client test command in `Makefile` that runs the client suite without coverage.
       Suggested shape:
       - `make test-client-fast`
       - or a clearly named equivalent
 
-- [ ] 7. Keep `make test-client` as the coverage-enforcing command so existing instructions and CI guarantees remain intact.
+- [x] 7. Keep `make test-client` as the coverage-enforcing command so existing instructions and CI guarantees remain intact.
 
-- [ ] 8. Add a watch-mode client command for active component work.
+- [x] 8. Add a watch-mode client command for active component work.
       Suggested shape:
       - `make test-client-watch`
       - or `npm run test:watch` wired through `Makefile`
 
-- [ ] 9. Update the intended local order of operations in docs and agent instructions:
+- [x] 9. Update the intended local order of operations in docs and agent instructions:
       - fast tests first
       - coverage second
       - visual/browser tests when CSS or layout changes are involved
       - E2E last
 
-- [ ] 10. Verify that the fast command is materially faster than the current `make test-client` path and becomes the recommended default for active iteration.
+- [x] 10. Verify that the fast command is materially faster than the current `make test-client` path and becomes the recommended default for active iteration.
 
 ### Phase 1 Outputs
 
@@ -435,11 +435,45 @@ not asked to resolve `var(--tokens)`. That boundary is being respected.
 - Final command names
 - Whether watch mode is practical enough to recommend by default
 
+### Phase 1 Findings
+
+#### Implementation
+
+- `make test-client-fast` → `cd client && npm test -- --reporter=dot` (190 tests, no coverage thresholds)
+- `make test-client-watch` → `cd client && npm run test:watch` (interactive Vitest watch mode)
+- `"test:watch": "vitest"` added to `client/package.json` scripts
+- `.github/copilot-instructions.md` updated: recommended order is now fast → coverage → E2E
+
+#### Timing (measured 2026-03-08, MacBook, macOS, warm run)
+
+| Command | Wall time |
+| --- | --- |
+| `make test-client-fast` | **5.9 s** |
+| `make test-client` (coverage) | **6.5 s** |
+
+Phase 0 cold-run baseline: 5.1 s (no coverage) vs 7.1 s (coverage). The savings are
+consistent: skipping coverage instrumentation and reporting reliably saves ~10–28% depending
+on system load and caching state.
+
+#### Phase 1 recorded decisions
+
+1. **Command names confirmed:** `make test-client-fast` and `make test-client-watch` match the
+   Phase 0 suggestion exactly.
+
+2. **Watch mode:** `make test-client-watch` is practical for active component development.
+   It requires an interactive terminal (not suitable for make pipelines), which is the expected
+   and correct behaviour for a watch-mode command.
+
+3. **`make test-client-fast` is the new recommended default for active iteration.** The fast
+   command passes the full test suite (190 tests, all 11 files) without enforcing coverage
+   thresholds — useful when branching into new code before writing tests. `make test-client`
+   remains the mandatory gate before committing.
+
 ---
 
 ## Phase 2 — Test helper extraction and smaller seams
 
-**Before starting:** Read the **Phase 0 Findings** section. The "Client test file inventory", "URL mock duplicated in 3 files", `clickDownloadAndGetBlob` duplication, and `openDatePicker`/`openAdvancedFilters` duplication findings directly drive steps 11–13.
+**Before starting:** Read the **Phase 0 Findings** and **Phase 1 Findings** sections above. The Phase 0 "Client test file inventory", "URL mock duplicated in 3 files", `clickDownloadAndGetBlob` duplication, and `openDatePicker`/`openAdvancedFilters` duplication findings directly drive steps 11–13. Phase 1 Findings confirm the final command names and the new recommended iteration order (fast → coverage → E2E).
 
 **Goal:** Reduce setup friction and improve failure locality in ordinary client tests.
 

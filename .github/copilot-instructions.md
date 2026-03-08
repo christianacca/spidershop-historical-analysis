@@ -150,8 +150,10 @@ Assign a `vi.fn()` spy as the callback prop in tests; assert `toHaveBeenCalled()
 2. `.venv/bin/python scripts/check_coverage.py --module=<edited_file>.py`
 
 **For ANY edit in `client/src/`:**
-1. `make test-client` (Vitest unit tests with coverage — enforces 80% branches/functions; lines/statements threshold
-   ratchets upward phase-by-phase as Svelte components are added and tested)
+1. `make test-client-fast` (fast Vitest run without coverage — use during active iteration)
+2. `make test-client` (Vitest unit tests with coverage — final check; enforces 80% branches/functions;
+   lines/statements threshold ratchets upward phase-by-phase as Svelte components are added and tested)
+3. `make test-e2e` when you have changed JavaScript behaviour or website output (see E2E section below)
 
 **Vitest vs E2E — use the right tool:**
 - **Vitest** covers Svelte component logic (props, events, `$state` / `$derived`), pure utility
@@ -375,7 +377,13 @@ def test_parse_price(input, expected):
 # Run all unit tests (fast, ~1 second)
 make test
 
-# Run client-side Vitest tests with coverage (required for any edit in client/src/)
+# Run client-side Vitest tests without coverage (fast iteration during active development)
+make test-client-fast
+
+# Run client-side Vitest tests in watch mode (re-runs on every file save)
+make test-client-watch
+
+# Run client-side Vitest tests with coverage (required before committing any client/src/ change)
 make test-client
 
 # Open client coverage report in browser
