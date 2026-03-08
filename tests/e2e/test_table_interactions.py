@@ -17,8 +17,11 @@ What's NOT tested here:
 
 from __future__ import annotations
 
+import re
 import pytest
+from playwright.sync_api import expect
 
+from e2e.css_tokens import token_rgb
 from e2e.fixtures import e2e_site_multi_species
 
 
@@ -38,15 +41,11 @@ def test_table_sorting_numeric_columns(e2e_site_multi_species, column_index, par
 
     column_header = page.locator('#breeder-table thead th').nth(column_index)
 
-    # First click: sort descending (default direction flips from undefined to desc)
+    # First click: sort ascending
     column_header.click()
-    page.wait_for_timeout(100)  # Small delay for sorting to complete
+    expect(column_header).to_have_attribute('data-sort-direction', 'asc')
 
-    # Verify sort direction attribute
-    sort_direction = column_header.get_attribute('data-sort-direction')
-    assert sort_direction == 'asc', "Expected ascending sort after first click"
-
-    column_cells = page.locator('#breeder-table tbody tr:visible td').nth(column_index).all_text_contents()
+    column_cells = page.locator('#breeder-table tbody tr td').nth(column_index).all_text_contents()
     column_values = [parse_cell(cell) for cell in column_cells if cell.strip()]
 
     # Verify ascending order
@@ -54,12 +53,9 @@ def test_table_sorting_numeric_columns(e2e_site_multi_species, column_index, par
 
     # Second click: sort descending
     column_header.click()
-    page.wait_for_timeout(100)
+    expect(column_header).to_have_attribute('data-sort-direction', 'desc')
 
-    sort_direction = column_header.get_attribute('data-sort-direction')
-    assert sort_direction == 'desc', "Expected descending sort after second click"
-
-    column_cells = page.locator('#breeder-table tbody tr:visible td').nth(column_index).all_text_contents()
+    column_cells = page.locator('#breeder-table tbody tr td').nth(column_index).all_text_contents()
     column_values = [parse_cell(cell) for cell in column_cells if cell.strip()]
 
     # Verify descending order
@@ -76,10 +72,10 @@ def test_table_sorting_string_columns(e2e_site_multi_species) -> None:
     # Click "Species" column header (index 0)
     species_header = page.locator('#breeder-table thead th').nth(0)
     species_header.click()
-    page.wait_for_timeout(100)
-    
-    # Get species names from visible rows
-    species_cells = page.locator('#breeder-table tbody tr:visible td').nth(0).all_text_contents()
+    expect(species_header).to_have_attribute('data-sort-direction', 'asc')
+
+    # Get species names from sorted rows
+    species_cells = page.locator('#breeder-table tbody tr td').nth(0).all_text_contents()
     species_names = [cell.strip() for cell in species_cells]
     
     # Verify alphabetical order (ascending by default)
@@ -87,9 +83,9 @@ def test_table_sorting_string_columns(e2e_site_multi_species) -> None:
     
     # Second click: descending
     species_header.click()
-    page.wait_for_timeout(100)
-    
-    species_cells = page.locator('#breeder-table tbody tr:visible td').nth(0).all_text_contents()
+    expect(species_header).to_have_attribute('data-sort-direction', 'desc')
+
+    species_cells = page.locator('#breeder-table tbody tr td').nth(0).all_text_contents()
     species_names = [cell.strip() for cell in species_cells]
     
     # Verify reverse alphabetical order
@@ -106,7 +102,7 @@ def test_breeder_price_column_exists_with_currency_and_arrow_values(e2e_site_mul
     headers = [h.strip() for h in page.locator("#breeder-table thead th").all_text_contents()]
     price_idx = next((index for index, header in enumerate(headers) if header.startswith("Price")), None)
     assert price_idx is not None, f"Expected Price header, got: {headers}"
-    price_cells = page.locator(f"#breeder-table tbody tr:visible td:nth-child({price_idx + 1})").all_text_contents()
+    price_cells = page.locator(f"#breeder-table tbody tr td:nth-child({price_idx + 1})").all_text_contents()
     price_values = [cell.strip() for cell in price_cells if cell.strip()]
 
     assert price_values, "Expected non-empty Price values in breeder table"
@@ -125,7 +121,7 @@ def test_dealer_price_column_exists_with_currency_and_arrow_values(e2e_site_mult
     headers = [h.strip() for h in page.locator("#dealer-table thead th").all_text_contents()]
     price_idx = next((index for index, header in enumerate(headers) if header.startswith("Price")), None)
     assert price_idx is not None, f"Expected Price header, got: {headers}"
-    price_cells = page.locator(f"#dealer-table tbody tr:visible td:nth-child({price_idx + 1})").all_text_contents()
+    price_cells = page.locator(f"#dealer-table tbody tr td:nth-child({price_idx + 1})").all_text_contents()
     price_values = [cell.strip() for cell in price_cells if cell.strip()]
 
     assert price_values, "Expected non-empty Price values in dealer table"
@@ -148,11 +144,7 @@ def test_signal_filtering_on_breeder_table(e2e_site_multi_species) -> None:
     # Click "🔥 Hot" filter button (use specific selector to avoid matching Hot (top 10))
     hot_button = page.locator('button[data-action="filter-signal"][data-signal="🔥"]:not([data-limit])')
     hot_button.click()
-    page.wait_for_timeout(100)
-    
-    # Only rows with data-signal="🔥" should be visible
-    visible_rows = page.locator('#breeder-table tbody tr:visible').count()
-    assert visible_rows == 2, "Expected 2 species with 🔥 signal"
+    expect(page.locator('#breeder-table tbody tr')).to_have_count(2)
     
     # Verify button has active class
     assert "is-active" in hot_button.get_attribute("class"), "Expected is-active class on clicked button"
@@ -160,10 +152,7 @@ def test_signal_filtering_on_breeder_table(e2e_site_multi_species) -> None:
     # Click "Show All" to reset (use specific selector for signal filter)
     show_all = page.locator('button[data-action="filter-signal"][data-signal="all"]')
     show_all.click()
-    page.wait_for_timeout(100)
-    
-    visible_rows = page.locator('#breeder-table tbody tr:visible').count()
-    assert visible_rows == 5, "Expected all rows visible after Show All"
+    expect(page.locator('#breeder-table tbody tr')).to_have_count(5)
 
 
 @pytest.mark.e2e
@@ -180,17 +169,13 @@ def test_stock_pattern_filtering_on_breeder_table(e2e_site_multi_species) -> Non
         advanced_content = page.locator(".advanced-filters-content")
         if advanced_content.count() == 0:
             advanced_toggle.click()
-            page.wait_for_timeout(200)
+            advanced_content.wait_for(state="visible")
     
     # Click "Emerging" pattern filter
     emerging_button = page.locator('button[data-action="filter-stock-pattern"][data-stock-pattern="Emerging"]')
     emerging_button.click()
-    page.wait_for_timeout(100)
-    
-    # Only rows with data-stock-pattern="Emerging" should be visible
-    visible_rows = page.locator('#breeder-table tbody tr:visible').count()
-    assert visible_rows == 2, "Expected 2 species with Emerging pattern"
-    
+    expect(page.locator('#breeder-table tbody tr')).to_have_count(2)
+
     # Verify button has active class
     assert "is-active" in emerging_button.get_attribute("class"), "Expected is-active class"
 
@@ -210,19 +195,15 @@ def test_search_filter_on_breeder_and_dealer_tables(e2e_site_multi_species) -> N
         page.locator(".advanced-filters-content").wait_for(timeout=2000)
     
     # All rows should be visible initially
-    visible_rows = page.locator("#breeder-table tbody tr:visible")
-    assert visible_rows.count() == 5, "Expected 5 visible rows initially"
+    assert page.locator("#breeder-table tbody tr").count() == 5, "Expected 5 visible rows initially"
     
     # Type "Brachypelma" in search box
     search_input = page.locator("#search-breeder-table")
     assert search_input.count() == 1, "Search input should exist"
     search_input.type("Brachypelma")
-    
-    # Only 1 row should be visible (Brachypelma hamorii)
-    page.wait_for_timeout(200)
-    visible_rows = page.locator("#breeder-table tbody tr:visible")
-    assert visible_rows.count() == 1, "Expected 1 visible row after filtering 'Brachypelma'"
-    
+    visible_rows = page.locator("#breeder-table tbody tr")
+    expect(visible_rows).to_have_count(1)
+
     # Verify the correct species is visible
     visible_text = visible_rows.first.text_content()
     assert "Brachypelma hamorii" in visible_text, "Wrong species visible after filter"
@@ -230,9 +211,7 @@ def test_search_filter_on_breeder_and_dealer_tables(e2e_site_multi_species) -> N
     # Clear search - all rows should be visible again
     search_input.fill("")
     search_input.dispatch_event("keyup")
-    page.wait_for_timeout(200)
-    visible_rows = page.locator("#breeder-table tbody tr:visible")
-    assert visible_rows.count() == 5, "Expected 5 visible rows after clearing filter"
+    expect(page.locator("#breeder-table tbody tr")).to_have_count(5)
     
     # TEST: Dealer page search filter
     page.goto(f"{base_url}/dealer.html", wait_until="domcontentloaded")
@@ -244,30 +223,23 @@ def test_search_filter_on_breeder_and_dealer_tables(e2e_site_multi_species) -> N
         page.locator(".advanced-filters-content").wait_for(timeout=2000)
     
     # All rows visible initially
-    visible_rows = page.locator("#dealer-table tbody tr:visible")
-    assert visible_rows.count() == 5, "Expected 5 visible rows initially on dealer page"
+    assert page.locator("#dealer-table tbody tr").count() == 5, "Expected 5 visible rows initially on dealer page"
     
     # Search for "hamorii"
     search_input = page.locator("#search-dealer-table")
     assert search_input.count() == 1, "Search input should exist on dealer page"
     search_input.type("hamorii")
-    
-    # Only 1 row should be visible
-    page.wait_for_timeout(200)
-    visible_rows = page.locator("#dealer-table tbody tr:visible")
-    assert visible_rows.count() == 1, "Expected 1 visible row after filtering 'hamorii'"
-    
+    visible_rows = page.locator("#dealer-table tbody tr")
+    expect(visible_rows).to_have_count(1)
+
     visible_text = visible_rows.first.text_content()
     assert "hamorii" in visible_text, "Wrong species visible after filter on dealer page"
     
     # Test case-insensitive search
     search_input.fill("")
     search_input.dispatch_event("keyup")
-    page.wait_for_timeout(100)
     search_input.type("PULCHRA")  # UPPERCASE
-    page.wait_for_timeout(200)
-    visible_rows = page.locator("#dealer-table tbody tr:visible")
-    assert visible_rows.count() == 1, "Expected 1 visible row for case-insensitive search"
+    expect(page.locator("#dealer-table tbody tr")).to_have_count(1)
     
     visible_text = visible_rows.first.text_content()
     assert "pulchra" in visible_text.lower(), "Case-insensitive search failed"
@@ -289,40 +261,26 @@ def test_combined_signal_and_stock_pattern_filters(e2e_site_multi_species) -> No
     advanced_toggle = page.locator(".advanced-filters-toggle")
     if advanced_toggle.count() > 0:
         advanced_toggle.click()
-        page.wait_for_timeout(200)
-    
+        page.locator(".advanced-filters-content").wait_for(state="visible")
+
     # Apply signal filter: ⚠️ Watch (use specific selector to avoid matching top10)
     watch_button = page.locator('button[data-action="filter-signal"][data-signal="⚠️"]:not([data-limit])')
     watch_button.click()
-    page.wait_for_timeout(100)
-    
-    # Should show 2 rows with ⚠️ signal (Brachypelma + Pterinochilus)
-    visible_after_signal = page.locator('#breeder-table tbody tr:visible').count()
-    assert visible_after_signal == 2, "Expected 2 rows after ⚠️ signal filter"
-    
+    expect(page.locator('#breeder-table tbody tr')).to_have_count(2)
+
     # Now apply stock pattern filter: Emerging (both ⚠️ species are Emerging)
     # SortableTable applies AND logic: shows rows matching BOTH filters
     emerging_button = page.locator("button[data-action='filter-stock-pattern'][data-stock-pattern='Emerging']")
     emerging_button.click()
-    page.wait_for_timeout(100)
-    
-    # Should show 2 rows (Brachypelma ⚠️ Emerging + Pterinochilus ⚠️ Emerging)
-    visible_after_both = page.locator('#breeder-table tbody tr:visible').count()
-    assert visible_after_both == 2, "Expected 2 rows matching both ⚠️ signal AND Emerging pattern"
-    
+    expect(page.locator('#breeder-table tbody tr')).to_have_count(2)
+
     # Click signal filter's "Show All" to clear the signal filter
     show_all = page.locator('button[data-action="filter-signal"][data-signal="all"]:not([data-limit])')
     show_all.click()
-    page.wait_for_timeout(100)
-
     # Also clear the stock pattern filter (filters are independent — each must be reset separately)
     show_all_stock = page.locator("button[data-action='filter-stock-pattern'][data-stock-pattern='all']")
     show_all_stock.click()
-    page.wait_for_timeout(100)
-
-    # All rows should now be visible
-    visible_after_clear = page.locator('#breeder-table tbody tr:visible').count()
-    assert visible_after_clear == 5, "Expected all 5 rows after clearing all filters"
+    expect(page.locator('#breeder-table tbody tr')).to_have_count(5)
 
 
 @pytest.mark.e2e
@@ -336,26 +294,19 @@ def test_search_filter_combined_with_signal_filter(e2e_site_multi_species) -> No
     advanced_toggle = page.locator(".advanced-filters-toggle")
     if advanced_toggle.count() > 0:
         advanced_toggle.click()
-        page.wait_for_timeout(200)
-    
+        page.locator(".advanced-filters-content").wait_for(state="visible")
+
     # Apply ⚠️ Watch signal filter first (2 species)
     watch_button = page.locator('button:has-text("⚠️")')
     watch_button.click()
-    page.wait_for_timeout(100)
-    
-    visible_after_signal = page.locator('#breeder-table tbody tr:visible').count()
-    assert visible_after_signal == 2, "Expected 2 rows with ⚠️ signal"
-    
+    expect(page.locator('#breeder-table tbody tr')).to_have_count(2)
+
     # Now type search: "Brachypelma" (only matches one of the ⚠️ species)
     search_input = page.locator("#search-breeder-table")
     search_input.type("Brachypelma")
-    page.wait_for_timeout(200)
-    
-    # Should show only 1 row (Brachypelma hamorii with ⚠️)
-    visible_after_both = page.locator('#breeder-table tbody tr:visible').count()
-    assert visible_after_both == 1, "Expected 1 row matching both ⚠️ and 'Brachypelma'"
-    
-    visible_text = page.locator('#breeder-table tbody tr:visible').first.text_content()
+    expect(page.locator('#breeder-table tbody tr')).to_have_count(1)
+
+    visible_text = page.locator('#breeder-table tbody tr').first.text_content()
     assert "Brachypelma" in visible_text, "Expected Brachypelma in filtered results"
 
 
@@ -375,23 +326,13 @@ def test_advanced_filters_toggle_expand_collapse(e2e_site_multi_species) -> None
     assert toggle_button.count() > 0, "snapshot.html should have an advanced-filters-toggle button"
     content_div = page.locator(".advanced-filters-content")
     
-    # Initially collapsed (content not in DOM)
-    initially_expanded = content_div.count() > 0
-    
-    # Click to toggle
+    # Click to toggle (initially collapsed - content not in DOM)
     toggle_button.click()
-    page.wait_for_timeout(200)
-    
-    # Verify DOM presence changed
-    has_content_after_click = content_div.count() > 0
-    assert has_content_after_click != initially_expanded, "Expected toggle to change expanded state"
-    
+    content_div.wait_for(state="visible")
+
     # Click again to toggle back
     toggle_button.click()
-    page.wait_for_timeout(200)
-    
-    has_content_finally = content_div.count() > 0
-    assert has_content_finally == initially_expanded, "Expected toggle to return to initial state"
+    content_div.wait_for(state="detached")
 
 @pytest.mark.e2e
 def test_snapshot_page_advanced_filters_toggle(e2e_site_multi_species) -> None:
@@ -410,11 +351,8 @@ def test_snapshot_page_advanced_filters_toggle(e2e_site_multi_species) -> None:
     
     # Click to expand
     toggle_button.click()
-    page.wait_for_timeout(200)
-    
-    # Content should now be in DOM
-    assert content_div.count() > 0, "Advanced filters content should be in DOM when expanded"
-    
+    content_div.wait_for(state="visible")
+
     # Verify button has 'is-expanded' class when open
     toggle_classes = toggle_button.get_attribute("class").split()
     assert "is-expanded" in toggle_classes, "Toggle button should have 'is-expanded' class when expanded"
@@ -425,10 +363,8 @@ def test_snapshot_page_advanced_filters_toggle(e2e_site_multi_species) -> None:
     
     # Click again to collapse
     toggle_button.click()
-    page.wait_for_timeout(200)
-    
-    # Content should be removed from DOM again
-    assert content_div.count() == 0, "Advanced filters content should be removed from DOM when collapsed"
+    content_div.wait_for(state="detached")
+
     toggle_classes = toggle_button.get_attribute("class").split()
     assert "is-expanded" not in toggle_classes, "Toggle button should not have 'is-expanded' class when collapsed"
 
@@ -448,24 +384,17 @@ def test_snapshot_filter_badge_updates_with_search(e2e_site_multi_species) -> No
     # Expand filters (snapshot page uses .advanced-filters-toggle)
     toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
-    page.wait_for_timeout(200)
-    
+    page.locator(".advanced-filters-content").wait_for(state="visible")
+
     # Type in search box
     search_input = page.locator("#search-snapshot-table")
     search_input.type("hamorii")
-    page.wait_for_timeout(200)
-    
-    # Badge should appear with count "1"
-    assert badge.is_visible(), "Badge should be visible when search active"
-    assert badge.text_content() == "1", "Badge should show '1' for one active filter"
-    
+    expect(badge).to_have_text("1")
+
     # Clear search
     search_input.fill("")
     search_input.dispatch_event("keyup")
-    page.wait_for_timeout(200)
-    
-    # Badge should hide again
-    assert not badge.is_visible(), "Badge should hide when filters cleared"
+    expect(badge).not_to_be_visible()
 
 
 @pytest.mark.e2e
@@ -487,7 +416,6 @@ def test_snapshot_stats_strip_updates_count_when_filtered(e2e_site_multi_species
     
     # Get total count (should match initial visible count)
     # Pattern: "Showing: X of Y species"
-    import re
     match = re.search(r'Showing:\s*(\d+)\s*of\s*(\d+)\s*species', initial_text)
     assert match, f"Should match pattern, got: {initial_text}"
     initial_visible = int(match.group(1))
@@ -498,12 +426,12 @@ def test_snapshot_stats_strip_updates_count_when_filtered(e2e_site_multi_species
     # Expand advanced filters
     toggle_button = page.locator(".advanced-filters-toggle")
     toggle_button.click()
-    page.wait_for_timeout(200)
-    
+    page.locator(".advanced-filters-content").wait_for(state="visible")
+
     # Apply search filter that will reduce visible rows
     search_input = page.locator("#search-snapshot-table")
     search_input.type("hamorii")  # Should match only specific species
-    page.wait_for_timeout(300)  # Give time for filtering to complete
+    expect(stats_strip).not_to_contain_text(f"Showing: {total_count} of {total_count}")
     
     # Check that visible count has decreased
     filtered_text = stats_strip.text_content()
@@ -519,7 +447,7 @@ def test_snapshot_stats_strip_updates_count_when_filtered(e2e_site_multi_species
     # Clear the filter
     search_input.fill("")
     search_input.dispatch_event("keyup")
-    page.wait_for_timeout(300)
+    expect(stats_strip).to_contain_text(f"Showing: {total_count} of")
 
     # Verify count returns to original
     final_text = stats_strip.text_content()
@@ -600,7 +528,6 @@ def test_instruction_box_legend_link_opens_legend_section(e2e_site_multi_species
         # Open the instruction box first so the link becomes visible.
         instruction_box = page.locator('.instruction-box')
         instruction_box.locator('summary').click()
-        page.wait_for_timeout(100)
 
         # Click the anchor inside instruction-box
         legend_link = page.locator('.instruction-box a[data-action="open-details"]')
@@ -608,7 +535,6 @@ def test_instruction_box_legend_link_opens_legend_section(e2e_site_multi_species
             f"{page_name}: instruction box should contain exactly one legend anchor"
 
         legend_link.click()
-        page.wait_for_timeout(100)
 
         # Legend should now be open (JS handler sets open=true)
         is_open_after = legend_section.evaluate('el => el.open')
@@ -646,22 +572,22 @@ def test_stat_cards_have_correct_border_colors(e2e_site_multi_species) -> None:
     hot_card = page.locator('.stat-card.stat-card--hot').first
     if hot_card.count() > 0:
         border_color = hot_card.evaluate('el => window.getComputedStyle(el).borderLeftColor')
-        # #e74c3c = rgb(231, 76, 60)
-        assert 'rgb(231, 76, 60)' in border_color, \
+        # --color-danger: #e74c3c
+        assert token_rgb('--color-danger') in border_color, \
             f"Hot card should have red border, got {border_color}"
 
     watch_card = page.locator('.stat-card.stat-card--watch').first
     if watch_card.count() > 0:
         border_color = watch_card.evaluate('el => window.getComputedStyle(el).borderLeftColor')
-        # --color-signal-watch: #f59e0b = rgb(245, 158, 11)
-        assert 'rgb(245, 158, 11)' in border_color, \
+        # --color-signal-watch: #f59e0b
+        assert token_rgb('--color-signal-watch') in border_color, \
             f"Watch card should have amber border, got {border_color}"
 
     avoid_card = page.locator('.stat-card.stat-card--avoid').first
     if avoid_card.count() > 0:
         border_color = avoid_card.evaluate('el => window.getComputedStyle(el).borderLeftColor')
-        # --color-signal-avoid: #94a3b8 = rgb(148, 163, 184)
-        assert 'rgb(148, 163, 184)' in border_color, \
+        # --color-signal-avoid: #94a3b8
+        assert token_rgb('--color-signal-avoid') in border_color, \
             f"Avoid card should have slate border, got {border_color}"
 
 
@@ -674,14 +600,12 @@ def test_active_filter_button_has_correct_styling(e2e_site_multi_species) -> Non
 
     hot_button = page.locator('.filter-btn').first
     hot_button.click()
-    page.wait_for_timeout(100)
-
     assert hot_button.evaluate('el => el.classList.contains("is-active")'), \
         "Clicked filter button should have 'is-active' class"
 
     bg_color = hot_button.evaluate('el => window.getComputedStyle(el).backgroundColor')
-    # FilterButton.svelte .filter-btn.is-active uses --color-accent: #3498db = rgb(52, 152, 219)
-    assert 'rgb(52, 152, 219)' in bg_color, \
+    # FilterButton.svelte .filter-btn.is-active uses --color-accent
+    assert token_rgb('--color-accent') in bg_color, \
         f"Active button should have blue (--color-accent) background, got {bg_color}"
 
     text_color = hot_button.evaluate('el => window.getComputedStyle(el).color')
@@ -729,8 +653,8 @@ def test_analysis_row_count_paragraph_styling(e2e_site_multi_species) -> None:
         color = paragraphs.first.evaluate(
             'el => window.getComputedStyle(el).color'
         )
-        # --color-text-muted: #7f8c8d = rgb(127, 140, 141)
-        assert 'rgb(127, 140, 141)' in color, \
+        # --color-text-muted: #7f8c8d
+        assert token_rgb('--color-text-muted') in color, \
             f"{page_name} .table-row-count should be grey rgb(127,140,141), got {color}"
 
 
@@ -786,9 +710,9 @@ def test_filter_label_styling(e2e_site_multi_species) -> None:
     filter_label = page.locator('.filter-label')
     assert filter_label.count() >= 1, "Breeder page should have .filter-label element"
 
-    # #34495e = rgb(52, 73, 94)
+    # --color-primary-light: #34495e
     color = filter_label.first.evaluate('el => window.getComputedStyle(el).color')
-    assert 'rgb(52, 73, 94)' in color, \
+    assert token_rgb('--color-primary-light') in color, \
         f".filter-label should be rgb(52, 73, 94), got {color}"
 
     margin_right = filter_label.first.evaluate('el => window.getComputedStyle(el).marginRight')

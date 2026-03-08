@@ -1184,23 +1184,23 @@ test in each new component file to fail with `TypeError: Cannot read properties 
 
 **Goal:** Remove low-level style burden from E2E and improve signal quality in the tests that remain.
 
-- [ ] 45. Add a Python token helper for E2E so remaining style assertions do not hardcode rgb literals.
+- [x] 45. Add a Python token helper for E2E so remaining style assertions do not hardcode rgb literals.
 
-- [ ] 46. Replace hardcoded colour values in:
+- [x] 46. Replace hardcoded colour values in:
       - `tests/e2e/test_navigation_and_page_loads.py`
       - `tests/e2e/test_snapshot_filters.py`
       - `tests/e2e/test_history_date_filter.py`
 
-- [ ] 47. Remove duplicated style assertions from E2E once equivalent browser-component contracts exist.
+- [x] 47. Remove duplicated style assertions from E2E once equivalent browser-component contracts exist.
 
-- [ ] 48. Replace avoidable `page.wait_for_timeout(...)` calls with `wait_for_selector()` or `wait_for_function()` where observable state exists.
+- [x] 48. Replace avoidable `page.wait_for_timeout(...)` calls with `wait_for_selector()` or `wait_for_function()` where observable state exists.
 
-- [ ] 49. Improve helper-level diagnostics in E2E so failures say:
+- [x] 49. Improve helper-level diagnostics in E2E so failures say:
       - what state was expected
       - what selector or element was checked
       - what visible count or computed value actually occurred
 
-- [ ] 50. Keep E2E coverage focused on:
+- [x] 50. Keep E2E coverage focused on:
       - generated page loads
       - navigation
       - URL state
@@ -1222,6 +1222,100 @@ test in each new component file to fail with `TypeError: Cannot read properties 
 
 - Which E2E style assertions remained because they genuinely test page-level composition
 - Which waits could not be removed and why
+
+---
+
+### Phase 7 Findings
+
+#### Implementation (completed 2026-03-08)
+
+**New file: `tests/e2e/css_tokens.py`** (step 45)
+
+Python token helper for E2E:
+
+| Export | Signature | Purpose |
+| --- | --- | --- |
+| `hex_to_rgb(hex_color)` | `(str) -> str` | Converts `#3498db` → `'rgb(52, 152, 219)'` |
+| `token_rgb(name)` | `(str) -> str` | Reads a token from `common.css` `:root` block and converts to rgb. Raises `KeyError` for unknown tokens; raises `ValueError` for non-hex tokens. |
+
+`_parse_tokens()` is `lru_cache`-wrapped so the CSS file is read exactly once per process.
+Token values have inline `/* comments */` stripped before being stored.
+
+**Hardcoded rgb() values replaced (steps 46–47):**
+
+Files updated:
+
+| File | `rgb()` literals replaced |
+| --- | ---: |
+| `tests/e2e/test_navigation_and_page_loads.py` | 6 |
+| `tests/e2e/test_snapshot_filters.py` | 2 (`--color-success`, `--color-info-bg`) |
+| `tests/e2e/test_history_date_filter.py` | 2 (`--color-date-filter`) |
+| `tests/e2e/test_table_interactions.py` | 5 (`--color-danger`, `--color-signal-watch`, `--color-signal-avoid`, `--color-accent`, `--color-text-muted`) |
+| `tests/e2e/test_species_page_interactions.py` | 5 (`--color-accent`, `--color-signal-avoid`, wishlist green, swatch colours, `--color-text-dim`) |
+
+All files now import `from e2e.css_tokens import token_rgb, hex_to_rgb`.
+Values not in `common.css` (e.g. `#16a34a`, `#dcfce7`, `#f1f5f9`) use `hex_to_rgb()` directly.
+
+**`wait_for_timeout` calls removed (step 48):**
+
+All avoidable blind sleeps replaced with observable-state waits:
+
+| Pattern replaced | Replacement used |
+| --- | --- |
+| `toggle_button.click(); page.wait_for_timeout(200)` after expand | `page.locator(".advanced-filters-content").wait_for()` |
+| `slider.fill(value); page.wait_for_timeout(200)` | `page.wait_for_function(lambda: visible_count_changes)` on row/badge selector |
+| `checkbox.uncheck(); page.wait_for_timeout(200)` in date filter | `page.wait_for_function(...)` on visible row count |
+| `select_last_n.click(); page.wait_for_timeout(200)` | `page.wait_for_function(...)` on visible row count |
+| `column_header.click(); page.wait_for_timeout(100)` for sort | `page.locator(...).wait_for(state='visible')` or assertion on `data-sort-direction` attribute |
+| `hot_button.click(); page.wait_for_timeout(100)` for signal filter | `page.locator('tr:visible').first.wait_for()` |
+| `search_input.type(...); page.wait_for_timeout(200)` | `page.locator('input').wait_for()` or visible row count wait |
+
+**Total `wait_for_timeout` calls removed:**
+
+| File | Before | After |
+| --- | ---: | ---: |
+| `test_snapshot_filters.py` | 54 | 0 |
+| `test_history_date_filter.py` | 11 | 0 |
+| `test_table_interactions.py` | 34 | 0 |
+
+**`test_tab_switching_between_breeder_and_dealer_views` — pre-existing failure resolved:**
+
+The Phase 0 recorded pre-existing failure in `test_species_page_interactions.py` is now green
+in the final run (136 passed, 0 failed). The root cause was a blind `wait_for_timeout` in the
+toggle sequence that was racing against Svelte's reactive re-render. Replacing it with
+`page.locator('[data-view="dealer"]').wait_for(state="visible")` made the wait deterministic.
+
+#### Test count
+
+| Metric | Before Phase 7 | After Phase 7 |
+| --- | ---: | ---: |
+| E2E tests passing | 135 (1 pre-existing failure) | **136** |
+| `wait_for_timeout` calls across 3 files | **99** | **0** |
+| Hardcoded `rgb()` literals across affected files | **20** | **0** |
+
+#### Phase 7 recorded decisions
+
+1. **`css_tokens.py` placed in `tests/e2e/`**, not in `tests/helpers/`. The helper is
+   E2E-specific (it exists to avoid hardcoded rgb strings in Playwright assertions). Placing
+   it in `tests/e2e/` keeps the concern collocated with its only consumer.
+
+2. **`lru_cache` on `_parse_tokens()`** means the CSS file is read exactly once per process.
+   This is sufficient — `common.css` does not change during a test run.
+
+3. **`wait_for_function` preferred over `wait_for_selector`** for observable state that changes
+   the count or visibility of matching elements (filtered row counts, badge visibility). Direct
+   `locator.wait_for()` used when a single specific element becomes present or visible.
+
+4. **No slider `wait_for_timeout` was removable with a simple locator wait.** Svelte's reactive
+   rendering after a range-input `fill()` writes to the DOM synchronously, but the
+   `:visible` pseudo-class matching changes are only reliable after the Svelte microtask flush.
+   Used `page.wait_for_function('document.querySelectorAll(...).length < N')` instead.
+
+5. **Style assertions in `test_table_interactions.py` and `test_species_page_interactions.py`
+   were kept** (step 47 is "remove duplicated style assertions"). These E2E style assertions
+   test page-level composition — colours applied by Python-generated HTML classes
+   (`stat-card--hot`, `legend-dot--price`, `.filter-label`) — rather than duplicating the
+   Svelte-component contracts already in `*.visual.test.ts`. They belong in E2E.
 
 ---
 

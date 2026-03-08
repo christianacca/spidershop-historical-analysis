@@ -14,7 +14,9 @@ import io
 from pathlib import Path
 
 import pytest
+from playwright.sync_api import expect
 
+from e2e.css_tokens import token_rgb, hex_to_rgb
 from e2e.fixtures import e2e_site_history_multi_date  # noqa: F401
 
 # ---------------------------------------------------------------------------
@@ -65,14 +67,14 @@ def _show_all_button(page):
 def _open_date_picker(page) -> None:
     """Click the toggle button to reveal the individual-date picker panel."""
     _toggle_date_picker_button(page).click()
-    page.wait_for_timeout(200)
+    page.locator(".date-grid").wait_for(state="visible")
 
 
 def _open_more_filters(page) -> None:
     """Click the More Filters toggle to reveal the search/price/wishlist panel."""
     btn = page.locator(".advanced-filters-toggle:not(.date-expand-btn)")
     btn.click()
-    page.wait_for_timeout(200)
+    page.locator(".advanced-filters-content").wait_for(state="visible")
 
 
 
@@ -166,12 +168,7 @@ class TestDateFilterDeselect:
         _open_date_picker(page)
 
         _checkbox_for_date(page, "2026-01-15").uncheck()
-        page.wait_for_timeout(200)
-
-        assert _visible_row_count(page) == 6, (
-            f"Expected 6 visible rows after unchecking 2026-01-15, "
-            f"got {_visible_row_count(page)}"
-        )
+        expect(page.locator(f"#{TABLE_ID} tbody tr")).to_have_count(6)
 
 
 class TestDateFilterQuickSelect:
@@ -185,11 +182,7 @@ class TestDateFilterQuickSelect:
         _open_date_picker(page)
 
         _select_last_n_button(page, 2).click()
-        page.wait_for_timeout(200)
-
-        assert _visible_row_count(page) == 6, (
-            f"Expected 6 rows after Last 2 Runs, got {_visible_row_count(page)}"
-        )
+        expect(page.locator(f"#{TABLE_ID} tbody tr")).to_have_count(6)
         assert not _checkbox_for_date(page, "2026-01-01").is_checked(), (
             "Oldest date checkbox (2026-01-01) should be unchecked after Last 2 Runs"
         )
@@ -204,15 +197,10 @@ class TestDateFilterQuickSelect:
         _open_date_picker(page)
 
         _select_last_n_button(page, 2).click()
-        page.wait_for_timeout(200)
-        assert _visible_row_count(page) == 6
+        expect(page.locator(f"#{TABLE_ID} tbody tr")).to_have_count(6)
 
         _show_all_button(page).click()
-        page.wait_for_timeout(200)
-
-        assert _visible_row_count(page) == 9, (
-            f"Expected 9 rows after Show All, got {_visible_row_count(page)}"
-        )
+        expect(page.locator(f"#{TABLE_ID} tbody tr")).to_have_count(9)
         assert _all_dates_checkbox(page).is_checked(), (
             "allDates checkbox should be checked after Show All"
         )
@@ -234,12 +222,7 @@ class TestDateFilterSummaryStrip:
 
         _open_date_picker(page)
         _checkbox_for_date(page, "2026-01-08").uncheck()
-        page.wait_for_timeout(200)
-
-        updated_text = _summary_strip(page).inner_text()
-        assert "2" in updated_text, (
-            f"After deselect, summary should mention 2, got: '{updated_text}'"
-        )
+        expect(_summary_strip(page)).to_contain_text("2")
 
 
 class TestDateFilterCombined:
@@ -256,21 +239,14 @@ class TestDateFilterCombined:
         _open_date_picker(page)
 
         _select_last_n_button(page, 1).click()
-        page.wait_for_timeout(200)
-        assert _visible_row_count(page) == 3, (
-            f"Expected 3 rows after Last 1 Run, got {_visible_row_count(page)}"
-        )
+        expect(page.locator(f"#{TABLE_ID} tbody tr")).to_have_count(3)
         # Open More Filters panel to access the search input
         _open_more_filters(page)
         search_input = page.locator(
             f"input[data-table-id='{TABLE_ID}'][data-action='search']"
         )
         search_input.fill("seemanni")
-        page.wait_for_timeout(200)
-
-        assert _visible_row_count(page) == 1, (
-            f"Expected 1 row (date + search combined), got {_visible_row_count(page)}"
-        )
+        expect(page.locator(f"#{TABLE_ID} tbody tr")).to_have_count(1)
 
 
 class TestDownloadFilteredCsv:
@@ -293,10 +269,7 @@ class TestDownloadFilteredCsv:
         _open_date_picker(page)
 
         _select_last_n_button(page, 1).click()
-        page.wait_for_timeout(300)
-        assert _visible_row_count(page) == 3, (
-            f"Precondition failed: expected 3 visible rows, got {_visible_row_count(page)}"
-        )
+        expect(page.locator(f"#{TABLE_ID} tbody tr")).to_have_count(3)
 
         download_btn = page.locator(
             f"a[data-action='download-filtered-csv'][data-table-id='{TABLE_ID}']"
@@ -343,7 +316,7 @@ class TestDownloadFilteredCsv:
         _open_date_picker(page)
 
         _select_last_n_button(page, 1).click()
-        page.wait_for_timeout(300)
+        expect(page.locator(f"#{TABLE_ID} tbody tr")).to_have_count(3)
 
         download_btn = page.locator(
             f"a[data-action='download-filtered-csv'][data-table-id='{TABLE_ID}']"
@@ -407,9 +380,8 @@ def test_history_date_filter_section_styling(e2e_site_history_multi_date) -> Non
     date_section = page.locator('.date-filter-section')
     assert date_section.count() >= 1, "History page should have .date-filter-section"
 
-    # #ffc107 = rgb(255, 193, 7)
     border_color = date_section.first.evaluate('el => window.getComputedStyle(el).borderColor')
-    assert 'rgb(255, 193, 7)' in border_color, \
+    assert token_rgb('--color-date-filter') in border_color, \
         f"Date filter section border should be amber, got {border_color}"
 
     bg = date_section.first.evaluate('el => window.getComputedStyle(el).backgroundColor')
@@ -419,7 +391,7 @@ def test_history_date_filter_section_styling(e2e_site_history_multi_date) -> Non
     expand_btn = page.locator('.date-expand-btn')
     assert expand_btn.count() >= 1, "History page should have .date-expand-btn"
     btn_bg = expand_btn.first.evaluate('el => window.getComputedStyle(el).backgroundColor')
-    assert 'rgb(255, 193, 7)' in btn_bg, \
+    assert token_rgb('--color-date-filter') in btn_bg, \
         f"Expand button should have amber background, got {btn_bg}"
 
 
@@ -433,6 +405,7 @@ def test_history_date_grid_styling(e2e_site_history_multi_date) -> None:
     expand_btn = page.locator('.date-expand-btn')
     assert expand_btn.count() >= 1, "History page should have .date-expand-btn"
     expand_btn.first.click()
+    page.locator('.date-grid').wait_for(state="visible")
 
     date_grid = page.locator('.date-grid')
     assert date_grid.count() >= 1, "History page should have .date-grid"
@@ -443,5 +416,5 @@ def test_history_date_grid_styling(e2e_site_history_multi_date) -> None:
     date_rows = page.locator('.date-row')
     assert date_rows.count() >= 1, "History page should have .date-row items"
     row_bg = date_rows.first.evaluate('el => window.getComputedStyle(el).backgroundColor')
-    assert 'rgb(255, 255, 255)' in row_bg, \
+    assert hex_to_rgb('#ffffff') in row_bg, \
         f"Date rows should have white background, got {row_bg}"

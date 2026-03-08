@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import pytest
 
+from e2e.css_tokens import hex_to_rgb, token_rgb
 from e2e.fixtures import e2e_site_minimal
 
 
@@ -430,28 +431,28 @@ def test_species_detail_chart_legend_dot_colors(e2e_site_minimal) -> None:
 
     _navigate_to_species_page(page, base_url)
 
-    # Price dot — #3498db = rgb(52, 152, 219)
+    # Price dot — --color-accent
     price_dot = page.locator('.legend-dot--price')
     assert price_dot.count() >= 1, "Should have .legend-dot--price element"
     price_bg = price_dot.first.evaluate('el => window.getComputedStyle(el).backgroundColor')
-    assert 'rgb(52, 152, 219)' in price_bg, \
-        f".legend-dot--price should have rgb(52, 152, 219), got {price_bg}"
+    assert token_rgb('--color-accent') in price_bg, \
+        f".legend-dot--price should have {token_rgb('--color-accent')}, got {price_bg}"
 
-    # Gap dot — #94a3b8 = rgb(148, 163, 184)
+    # Gap dot — --color-signal-avoid
     gap_dot = page.locator('.legend-dot--gap')
     assert gap_dot.count() >= 1, "Should have .legend-dot--gap elements"
     gap_bg = gap_dot.first.evaluate('el => window.getComputedStyle(el).backgroundColor')
-    assert 'rgb(148, 163, 184)' in gap_bg, \
-        f".legend-dot--gap should have rgb(148, 163, 184), got {gap_bg}"
+    assert token_rgb('--color-signal-avoid') in gap_bg, \
+        f".legend-dot--gap should have {token_rgb('--color-signal-avoid')}, got {gap_bg}"
 
-    # Wishlist dot — #16a34a = rgb(22, 163, 74)
+    # Wishlist dot — #16a34a (species-detail.css, not a common.css token)
     wishlist_dot = page.locator('.legend-dot--wishlist')
     assert wishlist_dot.count() >= 1, "Should have .legend-dot--wishlist element"
     wishlist_bg = wishlist_dot.first.evaluate(
         'el => window.getComputedStyle(el).backgroundColor'
     )
-    assert 'rgb(22, 163, 74)' in wishlist_bg, \
-        f".legend-dot--wishlist should have rgb(22, 163, 74), got {wishlist_bg}"
+    assert hex_to_rgb('#16a34a') in wishlist_bg, \
+        f".legend-dot--wishlist should have {hex_to_rgb('#16a34a')}, got {wishlist_bg}"
 
 
 @pytest.mark.e2e
@@ -478,23 +479,23 @@ def test_species_detail_legend_swatch_colors(e2e_site_minimal) -> None:
 
     _navigate_to_species_page(page, base_url)
 
-    # Observed swatch — #dcfce7 = rgb(220, 252, 231)
+    # Observed swatch — #dcfce7 (species-detail.css, not a common.css token)
     observed_swatch = page.locator('.legend-swatch--observed')
     assert observed_swatch.count() >= 1, "Should have .legend-swatch--observed"
     obs_bg = observed_swatch.first.evaluate(
         'el => window.getComputedStyle(el).backgroundColor'
     )
-    assert 'rgb(220, 252, 231)' in obs_bg, \
-        f".legend-swatch--observed should have rgb(220, 252, 231), got {obs_bg}"
+    assert hex_to_rgb('#dcfce7') in obs_bg, \
+        f".legend-swatch--observed should have {hex_to_rgb('#dcfce7')}, got {obs_bg}"
 
-    # Gap swatch — #f1f5f9 = rgb(241, 245, 249)
+    # Gap swatch — #f1f5f9 (species-detail.css, not a common.css token)
     gap_swatch = page.locator('.legend-swatch--gap')
     assert gap_swatch.count() >= 1, "Should have .legend-swatch--gap"
     gap_bg = gap_swatch.first.evaluate(
         'el => window.getComputedStyle(el).backgroundColor'
     )
-    assert 'rgb(241, 245, 249)' in gap_bg, \
-        f".legend-swatch--gap should have rgb(241, 245, 249), got {gap_bg}"
+    assert hex_to_rgb('#f1f5f9') in gap_bg, \
+        f".legend-swatch--gap should have {hex_to_rgb('#f1f5f9')}, got {gap_bg}"
 
 
 @pytest.mark.e2e
@@ -524,10 +525,10 @@ def test_species_detail_table_footnote_styling(e2e_site_minimal) -> None:
     footnote = page.locator('.table-footnote')
     assert footnote.count() >= 1, "Species detail should have .table-footnote"
 
-    # #607080 = rgb(96, 112, 128)
+    # --color-text-dim: #607080
     color = footnote.first.evaluate('el => window.getComputedStyle(el).color')
-    assert 'rgb(96, 112, 128)' in color, \
-        f".table-footnote should have rgb(96, 112, 128), got {color}"
+    assert token_rgb('--color-text-dim') in color, \
+        f".table-footnote should have {token_rgb('--color-text-dim')}, got {color}"
 
     # 0.92rem ≈ 14.72px at default 16px root
     font_size = footnote.first.evaluate(
