@@ -53,5 +53,8 @@ client/node_modules/
 # Vitest coverage output
 client/coverage/
 
+# Vitest Browser Mode failure screenshots (generated automatically on test failure)
+client/src/**/__screenshots__/
+
 # Temporary files and local testing (includes coverage, local-testing, etc.)
 tmp/

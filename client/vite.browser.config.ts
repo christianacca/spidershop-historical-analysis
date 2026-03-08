@@ -30,6 +30,13 @@ export default defineConfig({
       allow: [resolve(__dirname, '..')],
     },
   },
+  // Pre-bundle @testing-library/svelte so Vite does not reload the browser
+  // context mid-run when the dependency is first encountered by a test file.
+  // Without this entry, the first test in each component file fails with
+  // "Vite unexpectedly reloaded a test" and a TypeError from the reload.
+  optimizeDeps: {
+    include: ['@testing-library/svelte'],
+  },
   test: {
     globals: true,
     // Browser mode: tests run inside a real Chromium instance via Playwright.

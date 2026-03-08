@@ -1026,43 +1026,43 @@ running in the same browser instance will add ≤2ms per test.
 
 ### Initial contract matrix
 
-- [ ] 35. Add `FilterButton` visual contracts:
+- [x] 35. Add `FilterButton` visual contracts:
       - active background
       - active border
       - inactive background
       - active/inactive state semantics
 
-- [ ] 36. Add `SearchInput` visual contracts:
+- [x] 36. Add `SearchInput` visual contracts:
       - unfocused border
       - focused border
       - focus state stability
 
-- [ ] 37. Add `FiltersPanel` visual contracts:
+- [x] 37. Add `FiltersPanel` visual contracts:
       - background
       - border
       - visible/collapsed state if meaningful in the component layer
 
-- [ ] 38. Add `RangeSlider` visual contracts for inspectable elements:
+- [x] 38. Add `RangeSlider` visual contracts for inspectable elements:
       - labels
       - value text
       - any container styling that is stable and meaningful
 
-- [ ] 39. Add `TableStats` visual contracts:
+- [x] 39. Add `TableStats` visual contracts:
       - info-strip background
       - visible count strip styling
 
-- [ ] 40. Add `DateFilter` visual contracts:
+- [x] 40. Add `DateFilter` visual contracts:
       - section border
       - expand button styling
       - open/closed state chrome if stable enough
 
-- [ ] 41. Add one table-level contract for sticky header or other behavior that is hard to trust in `happy-dom` but stable in a component or narrow browser harness.
+- [x] 41. Add one table-level contract for sticky header or other behavior that is hard to trust in `happy-dom` but stable in a component or narrow browser harness.
 
-- [ ] 42. Add one responsive layout contract for a high-risk surface, such as the filter bar or filter panel arrangement.
+- [x] 42. Add one responsive layout contract for a high-risk surface, such as the filter bar or filter panel arrangement.
 
 ### Contract scope rules
 
-- [ ] 43. Keep contracts semantic and stable.
+- [x] 43. Keep contracts semantic and stable.
       Test what matters to the product:
       - signal state is visually distinct
       - active controls look active
@@ -1070,7 +1070,7 @@ running in the same browser instance will add ≤2ms per test.
       - panels and headers retain expected chrome
       - responsive layout does not collapse incorrectly
 
-- [ ] 44. Avoid turning browser-backed tests into screenshot diffs or giant all-style snapshots.
+- [x] 44. Avoid turning browser-backed tests into screenshot diffs or giant all-style snapshots.
 
 ### Phase 6 Outputs
 
@@ -1086,6 +1086,97 @@ running in the same browser instance will add ≤2ms per test.
 
 - Which contracts were high-value
 - Which proposed contracts were too brittle and should be removed or moved upward/downward
+
+---
+
+### Phase 6 Findings
+
+#### Implementation (completed 2026-03-08)
+
+**New `*.visual.test.ts` files — 7 files, 26 new tests:**
+
+| File | Tests | Purpose |
+| --- | ---: | --- |
+| `client/src/shared/components/FilterButton.visual.test.ts` | 6 | Active bg/border/colour vs inactive bg/border; state-semantics distinct |
+| `client/src/shared/components/SearchInput.visual.test.ts` | 4 | Unfocused border + bg; focused `:focus` border (requires real browser) |
+| `client/src/shared/components/FiltersPanel.visual.test.ts` | 4 | Background + border tokens; `display:flex` + `flex-direction:column` layout |
+| `client/src/shared/components/RangeSlider.visual.test.ts` | 3 | Label, value text, current display colours using primary and muted tokens |
+| `client/src/shared/components/TableStats.visual.test.ts` | 2 | Info-strip background uses `--color-info-bg`; text uses `--color-text` |
+| `client/src/history-page/DateFilter.visual.test.ts` | 4 | Open/closed state; picker border-top + quick-select bar use `--color-date-filter` |
+| `client/src/shared/components/SortableTable.visual.test.ts` | 3 | `overflow-x: auto` on table-scroll; controls-row `flex` + `flex-wrap: wrap` |
+
+**`client/vite.browser.config.ts` updated:**
+
+Added `optimizeDeps.include: ['@testing-library/svelte']`. Without this entry, Vite reloads
+the browser context the first time `@testing-library/svelte` is encountered, causing the first
+test in each new component file to fail with `TypeError: Cannot read properties of undefined
+(reading 'call')`. Pre-bundling the library prevents the reload entirely.
+
+#### Step notes
+
+- **Step 37 serves double duty for step 42.** `FiltersPanel.visual.test.ts` provides both the
+  colour chrome and the responsive layout contract. `flex-direction: column` is the key
+  responsive property that ensures filters stack vertically at all viewport widths.
+
+- **Step 41 (table-level contract): `overflow-x: auto` on `.table-scroll`.** `SortableTable`
+  has no sticky header. The horizontal-scroll overflow contract was chosen instead — it is the
+  most important layout behaviour for the table wrapper. `getComputedStyle` in happy-dom does
+  not reliably model overflow on composed components, making this a genuine browser-backed
+  contract.
+
+- **`container.querySelector()` over `getByRole()`.** In Vitest Browser Mode, renders from
+  earlier tests in the same file accumulate in `document.body` across the test run (auto-cleanup
+  does not fire between tests the way it does in happy-dom mode). `getByRole()` searches the
+  whole document and finds duplicates. Using `container.querySelector()` scopes queries to the
+  specific render's container and avoids the "multiple elements with role button" error.
+
+- **`:focus` pseudo-class resolves after `element.focus()` in real Chromium.** This is the
+  primary reason `SearchInput` focus contracts require browser mode; happy-dom's CSS engine
+  does not apply pseudo-class styles to `getComputedStyle` results reliably.
+
+#### Test count delta
+
+| Before Phase 6 | After Phase 6 |
+| ---: | ---: |
+| 11 browser-backed tests, 1 visual file | 37 browser-backed tests, 8 visual files |
+| 216 happy-dom tests, 13 files | 216 happy-dom tests, 13 files (unchanged) |
+
+#### Baseline runtime (measured 2026-03-08, MacBook, macOS)
+
+| Command | Wall time | Notes |
+| --- | --- | --- |
+| `make test-visual` (37 tests, 8 files) | **~4.8s** | Down from 7.4s Phase 5 baseline; 26 new tests add < 250ms total |
+| `make test-client-fast` | **~5.6s** | Unchanged — visual tests in separate config |
+
+#### Phase 6 recorded decisions
+
+1. **`optimizeDeps.include` is required in `vite.browser.config.ts`** for any dependency that
+   imports from `@testing-library/svelte`. This must be maintained as new component test files
+   are added. The fix is a one-line addition to the config; it does not change test behaviour.
+
+2. **`container.querySelector()` is the correct query idiom for visual tests in browser mode.**
+   `getByRole()` is safe in happy-dom mode (Vitest resets the DOM per test) but unsafe in
+   browser mode (renders accumulate in `document.body`). All visual tests use
+   `container.querySelector()` for this reason.
+
+3. **`:focus` state tested via `element.focus()` before `getComputedStyle()`.** No `await` or
+   explicit flush is needed — Chromium applies `:focus` styles synchronously before the next
+   `getComputedStyle` call.
+
+4. **`FiltersPanel.visual.test.ts` owns step 42 (responsive layout).** The `flex-direction:
+   column` assertion on the filters panel is a substantive responsive contract: if this property
+   changes to `row`, the filter options spread horizontally and collapse on narrow screens. This
+   is the highest-risk layout regression conceivable in the filters bar.
+
+5. **No sticky-header contract added.** `SortableTable` does not have sticky positioning. The
+   `overflow-x: auto` contract on `.table-scroll` is the most valuable table-layout substitute.
+
+6. **`createRawSnippet` from `svelte`** is the correct way to supply a children snippet to
+   `FiltersPanel` in a visual test. The pattern is identical to the non-visual
+   `ToggleButton.test.ts` (established in Phase 2).
+
+7. **All 26 new visual contracts pass (37 total). All 216 existing happy-dom tests pass
+   unchanged.**
 
 ---
 
