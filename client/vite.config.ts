@@ -24,7 +24,14 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,svelte}'],
-      exclude: ['src/test-setup.ts', 'src/global.d.ts', 'src/**/*.test.ts'],
+      exclude: [
+        'src/test-setup.ts',
+        'src/global.d.ts',
+        'src/**/*.test.ts',
+        // Page entry points: mount Svelte components against window globals and
+        // DOM elements injected by the Python template. Only exercisable via E2E.
+        'src/*/index.ts',
+      ],
       // Thresholds start at 0 and are ratcheted upward phase-by-phase as
       // Svelte components are added and tested (plan phase 4c onwards).
       // Target: 80% across all four metrics once all modules have tests.
