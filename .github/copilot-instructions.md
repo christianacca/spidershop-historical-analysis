@@ -141,6 +141,18 @@ Assign a `vi.fn()` spy as the callback prop in tests; assert `toHaveBeenCalled()
 
 **A code change is complete only when all tests pass and coverage meets thresholds (80%).**
 
+### The four-layer testing pyramid
+
+| Layer | Command | Speed | Required when |
+|---|---|---|---|
+| Client unit + coverage | `make test-client` | ~7s | Any `client/src/` change |
+| Browser-backed visual | `make test-visual` | ~5s | CSS tokens or Svelte `<style>` blocks change |
+| Python unit | `make test` | ~5s | Any `src/` change |
+| E2E (Playwright) | `make test-e2e` | ~20-85s | `client/src/`, `src/website/`, or `templates/` change |
+
+**CI failure order mirrors this pyramid**: client tests → visual contracts → Python tests → conditional E2E.
+Failures always surface at the cheapest valid layer first.
+
 ### ✅ MANDATORY: Always Use Make Commands
 
 **NEVER run pytest directly.** Make commands ensure proper working directory and artifact management.
@@ -151,15 +163,21 @@ Assign a `vi.fn()` spy as the callback prop in tests; assert `toHaveBeenCalled()
 
 **For ANY edit in `client/src/`:**
 1. `make test-client-fast` (fast Vitest run without coverage — use during active iteration)
-2. `make test-client` (Vitest unit tests with coverage — final check; enforces 80% branches/functions;
+2. `make test-visual` when you changed CSS tokens, Svelte `<style>` blocks, or any visual contract
+3. `make test-client` (Vitest unit tests with coverage — final check; enforces 80% branches/functions;
    lines/statements threshold ratchets upward phase-by-phase as Svelte components are added and tested)
-3. `make test-e2e` when you have changed JavaScript behaviour or website output (see E2E section below)
+4. `make test-e2e` when you have changed JavaScript behaviour or website output (see E2E section below)
 
-**Vitest vs E2E — use the right tool:**
-- **Vitest** covers Svelte component logic (props, events, `$state` / `$derived`), pure utility
-  functions in `client/src/shared/`, and render output. Sub-100ms, optimal for iteration.
-- **E2E (Playwright)** covers browser interactions, URL state, CSS computed styles, Blob downloads,
-  and real data shape from the Python generator. These cannot be replicated in Vitest.
+**When is `make test-visual` required?**
+- You changed a CSS custom property in `templates/common.css`
+- You changed a `<style>` block in any `.svelte` component
+- You added a new Svelte component with styled elements
+- You changed a BEM modifier that affects computed colours or layout in Phase 2 CSS files
+
+**Vitest vs visual contracts vs E2E — use the right tool:**
+- **Vitest (`*.test.ts`)** covers Svelte component logic (props, events, `$state` / `$derived`), pure utilities, and render output. ~7s including coverage.
+- **Visual contracts (`*.visual.test.ts`)** cover computed styles, CSS token resolution (`var(--token)` → actual colour), focus states, overflow, layout properties — things `happy-dom` cannot model. ~5s in a real Chromium instance.
+- **E2E (Playwright)** covers full-site assembly, URL state, downloads, and real data shape from the Python generator. ~20-85s.
 - Coverage is a **migration confidence gate**, not a substitute for thinking about edge cases.
   A green coverage number means logic paths were exercised; it does not mean all edge cases
   are handled. Always think about what the code could do wrong.
@@ -389,6 +407,9 @@ make test-client
 # Open client coverage report in browser
 make open-coverage-client
 
+# Run browser-backed visual contract tests (required when CSS tokens or Svelte style blocks change)
+make test-visual
+
 # Run individual test file (REQUIRED when testing specific functionality)
 make test-file FILE=tests/website_module/test_csv.py
 make test-file FILE=tests/scrape_module/test_breeder_matrix.py
@@ -506,12 +527,13 @@ evaluate_script(`
 **Inspection order:**
 
 1. `make test-client-fast` — confirm logic layer is clean first
-2. `make preview` — regenerate and serve the site at `http://localhost:8000`
-3. Navigate to the affected page via Chrome DevTools MCP
-4. Use `evaluate_script` to read `getComputedStyle` on the target element
-5. Compare against the token value (read `templates/common.css` or call `parseTokens()`)
-6. If the value is wrong: fix the CSS and re-inspect
-7. If the value is correct: promote the finding into an automated assertion at the
+2. `make test-visual` — run browser-backed visual contracts; many style questions are already answered here
+3. `make preview` — regenerate and serve the site at `http://localhost:8000`
+4. Navigate to the affected page via Chrome DevTools MCP
+5. Use `evaluate_script` to read `getComputedStyle` on the target element
+6. Compare against the token value (read `templates/common.css` or call `parseTokens()`)
+7. If the value is wrong: fix the CSS and re-inspect
+8. If the value is correct: promote the finding into an automated assertion at the
    lowest valid layer (Vitest browser-backed visual contract, or E2E token helper)
 
 **Safe browser profile guidance:**

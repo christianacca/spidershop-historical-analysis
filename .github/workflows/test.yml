@@ -19,22 +19,46 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # ── Layer 1: Fast client tests (earliest failure) ────────────────────────
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install Node dependencies
+        run: cd client && npm ci
+
+      - name: Run client tests (unit + coverage)
+        run: make test-client
+
+      # ── Layer 2: Browser-backed visual contracts ─────────────────────────────
+      - name: Cache Playwright browsers (Node)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-node-chromium-${{ runner.os }}-${{ hashFiles('client/package-lock.json') }}
+          restore-keys: |
+            playwright-node-chromium-${{ runner.os }}-
+
+      - name: Run browser-backed visual contract tests
+        run: make test-visual
+
+      # ── Layer 3: Python tests and coverage ───────────────────────────────────
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
       - name: Build client assets
-        uses: ./.github/actions/build-client
-
-      - name: Run client tests
-        run: make test-client
+        run: cd client && npm run build
 
       - name: Run tests with coverage
         run: |
@@ -140,7 +164,11 @@ jobs:
 
   e2e-tests:
     runs-on: ubuntu-latest
-    # Always run on master pushes (after PR merge), conditionally on PR branches
+    # Layer 4: runs in parallel with the test job.
+    # Wasted E2E runs are prevented by the file-change conditional guard below —
+    # on PRs, this job only runs when client, templates, website, or e2e files
+    # change. The cheap unit/visual/Python layers surface regressions faster;
+    # E2E adds browser-level confidence without blocking on them sequentially.
     if: github.event_name == 'push' || github.event_name == 'pull_request'
     
     permissions:
@@ -207,6 +235,23 @@ jobs:
       - name: Build client assets
         if: steps.should-run.outputs.should-run == 'true'
         uses: ./.github/actions/build-client
+
+      # Cache the Python Playwright browser binary to avoid a ~100 MB download on every run.
+      # The cache key uses the installed playwright version so a package upgrade automatically
+      # invalidates the stale browser entry.
+      - name: Get installed Playwright version
+        id: playwright-version
+        if: steps.should-run.outputs.should-run == 'true'
+        run: echo "version=$(python -m playwright --version | cut -d' ' -f2)" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers (Python)
+        if: steps.should-run.outputs.should-run == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-python-chromium-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+          restore-keys: |
+            playwright-python-chromium-${{ runner.os }}-
 
       - name: Run E2E smoke tests
         if: steps.should-run.outputs.should-run == 'true'

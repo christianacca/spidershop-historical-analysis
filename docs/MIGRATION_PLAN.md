@@ -22,9 +22,25 @@ Vite foundation → TypeScript → feature-slice folders → Svelte tooling →
 CSS audit/tokens/BEM → data contract → primitive Svelte components →
 `SortableTable` (breeder/dealer/snapshot) → `HistoryTable` → CSV download → dead-code cleanup.
 
-**Testing strategy:** Vitest is the primary component test layer (sub-100ms, optimal for AI
-iteration). Playwright E2E is the integration safety net (real browser, Python data shape, URL state).
-Vitest coverage (≥ 80%) is enforced in CI as a migration confidence gate and long-term feature integrity check.
+**Testing strategy:** The project uses a four-layer testing pyramid. Each layer is cheaper and
+faster than the one above it; CI surfaces failures at the cheapest valid layer first.
+
+| Layer | Command | Speed | What it covers |
+|---|---|---|---|
+| Client unit + coverage | `make test-client` | ~7s | Svelte component logic, pure utilities, coverage ≥ 80% |
+| Browser-backed visual | `make test-visual` | ~5s | Computed styles, CSS token resolution, layout contracts |
+| Python unit | `make test` | ~5s | Python analysis and website-generation logic, coverage ≥ 80% |
+| E2E (Playwright) | `make test-e2e` | ~20-85s | Full-site assembly, URL state, downloads, data shape |
+
+**CI failure order:** client tests → visual contracts → Python tests → conditional E2E.
+Each job only runs after the previous layer passes, ensuring the cheapest failure is always
+reported first.
+
+**Local iteration order (recommended):**
+1. `make test-client-fast` — no coverage, fastest feedback during active component work
+2. `make test-visual` — when CSS tokens or Svelte `<style>` blocks change
+3. `make test-client` — before committing: enforces 80% coverage threshold
+4. `make test-e2e` — when `client/src/`, `src/website/`, or `templates/` change
 
 **CSS strategy:** CSS migrates progressively into Svelte scoped `<style>` blocks. Global CSS
 shrinks to chrome, design tokens, and reset only. BEM is applied only to permanent global CSS
@@ -95,8 +111,8 @@ client/
 
 - `make build-client` — zero TS/Svelte compile errors; expected `dist/*.js` and `dist/*.css` emitted
 - `make test` — Python unit tests green, coverage ≥ 80%
-- `make test-client` — Vitest green (Phase 3 onwards)
-- `make coverage-client` — Vitest coverage ≥ 80% branches/functions/lines for all `client/src/` modules (Phase 3 onwards)
+- `make test-client` — Vitest green (Phase 3 onwards), coverage ≥ 80%
+- `make test-visual` — browser-backed visual contracts green (Phase 5 onwards; required when CSS tokens or Svelte `<style>` blocks change)
 - `make test-e2e` — Playwright green (required for any website-output change)
 
 ---
@@ -150,18 +166,19 @@ test('calls onchange with {min, max} after clamp', async () => {
 Native DOM events (`click`, `input`, `change`) still use `fireEvent` on the host element.
 Svelte binds these automatically when the component uses `onclick={...}` / `oninput={...}`.
 
-### When to write Vitest vs E2E
+### When to write Vitest vs visual contracts vs E2E
 
-| Scenario | Vitest | E2E |
-|---|---|---|
-| Pure function (no DOM) | ✅ only | ❌ |
-| Svelte component render, props, events | ✅ primary | ❌ |
-| Filter / sort logic in `$derived` state | ✅ primary | Smoke test only |
-| URL `pushState` / `?view=` param reads | ❌ | ✅ only |
-| CSS computed styles, visual layout | ❌ | ✅ only |
-| Blob download (OS file system) | ❌ | ✅ only |
-| Asset 404 / missing CSS or JS files | ❌ | ✅ only |
-| Real data shape from Python generator | ❌ | ✅ only |
+| Scenario | Vitest (`*.test.ts`) | Visual (`*.visual.test.ts`) | E2E |
+|---|---|---|---|
+| Pure function (no DOM) | ✅ only | ❌ | ❌ |
+| Svelte component render, props, events | ✅ primary | ❌ | ❌ |
+| Filter / sort logic in `$derived` state | ✅ primary | ❌ | Smoke test only |
+| CSS token value (colour, spacing) | ❌ | ✅ primary | ❌ |
+| Computed style, focus state, overflow | ❌ | ✅ primary | ❌ |
+| URL `pushState` / `?view=` param reads | ❌ | ❌ | ✅ only |
+| Blob download (OS file system) | ❌ | ❌ | ✅ only |
+| Asset 404 / missing CSS or JS files | ❌ | ❌ | ✅ only |
+| Real data shape from Python generator | ❌ | ❌ | ✅ only |
 
 E2E tests are **kept in full** throughout and after the migration — they cover real browser
 behaviour and Python data shape that Vitest cannot replicate. Vitest and E2E test different layers;

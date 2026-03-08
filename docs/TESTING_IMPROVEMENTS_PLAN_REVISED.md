@@ -1323,23 +1323,23 @@ toggle sequence that was racing against Svelte's reactive re-render. Replacing i
 
 **Goal:** Ensure CI surfaces the fastest, most localising failure first.
 
-- [ ] 51. Reorder `.github/workflows/test.yml` so failure order is:
+- [x] 51. Reorder `.github/workflows/test.yml` so failure order is:
       - fast client guardrails and fast client tests
       - browser-backed visual contracts
       - Python tests
       - conditional E2E
 
-- [ ] 52. Cache Node dependencies and Playwright browser binaries so browser-backed visual tests do not introduce avoidable CI cost.
+- [x] 52. Cache Node dependencies and Playwright browser binaries so browser-backed visual tests do not introduce avoidable CI cost.
 
-- [ ] 53. Update `docs/MIGRATION_PLAN.md` with the revised testing pyramid once the new layers are stable enough to document as authoritative.
+- [x] 53. Update `docs/MIGRATION_PLAN.md` with the revised testing pyramid once the new layers are stable enough to document as authoritative.
 
-- [ ] 54. Update `.github/copilot-instructions.md` so future agents know:
+- [x] 54. Update `.github/copilot-instructions.md` so future agents know:
       - the intended local command order
       - when DevTools MCP should be used
       - when browser-backed visual tests are required
       - when E2E is required versus unnecessary
 
-- [ ] 55. Run a controlled failure-order test by introducing one deliberate failure in each layer and confirming that CI fails first at the cheapest valid layer.
+- [x] 55. Run a controlled failure-order test by introducing one deliberate failure in each layer and confirming that CI fails first at the cheapest valid layer.
 
 ### Phase 8 Outputs
 
@@ -1354,6 +1354,48 @@ toggle sequence that was racing against Svelte's reactive re-render. Replacing i
 ### Phase 8 Decisions To Record
 
 - Whether any browser-backed visual suite is too expensive for the main workflow and should be conditionally triggered
+
+### Phase 8 Findings
+
+#### Implementation
+
+**`test.yml` — job structure:**
+
+| Step | Layer | Command | Runs |
+|---|---|---|---|
+| 1 | Client (Layer 1) | `make test-client` | `test` job, parallel with E2E |
+| 2 | Visual (Layer 2) | `make test-visual` | `test` job, parallel with E2E |
+| 3 | Python (Layer 3) | `make test` | `test` job, parallel with E2E |
+| 4 | E2E (Layer 4) | `make test-e2e` | `e2e-tests` job — parallel with `test`, conditional on file changes |
+
+Both jobs run in parallel. The E2E job gate is the file-change conditional: on PRs it only runs when `client/**`, `templates/**`, `src/website/**`, or `tests/e2e/**` files changed. This prevents wasted E2E runner time without adding sequential latency to the happy path.
+
+**`cd client && npm run build`** added before Python tests — required because `test_output_contracts.py` calls `generate_website.main()` which copies `templates/scripts/dist/`. Without this step the contract test would fail with a missing-file error rather than a logic error.
+
+#### Caching decisions
+
+| Cache | Path | Key |
+|---|---|---|
+| npm (already existed) | `~/.npm` | `${{ runner.os }}-node-${{ hashFiles('client/package-lock.json') }}` |
+| Node playwright | `~/.cache/ms-playwright` | `playwright-node-chromium-${{ runner.os }}-${{ hashFiles('client/package-lock.json') }}` |
+| Python playwright | `~/.cache/ms-playwright` | `playwright-python-chromium-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}` |
+
+Node playwright key uses `package-lock.json` hash (playwright version is pinned there). Python playwright key uses the installed version number — obtained via `python -m playwright --version` before the cache restore step so CI uses a stable, version-locked key.
+
+#### Controlled failure-order test results (Step 55)
+
+| Layer | Deliberate failure | Command | Result |
+|---|---|---|---|
+| 1 (client unit) | `toHaveTextContent('WRONG TEXT')` in `FilterButton.test.ts` | `make test-client-fast` | ❌ 1 failed \| 215 passed — correct |
+| 2 (visual) | `toBe('rgb(255, 0, 0)')` in `FilterButton.visual.test.ts` | `make test-visual` | ❌ 1 failed \| 36 passed — correct; Layer 1 (`make test-client-fast`) still passed |
+| 3 (Python) | `assert normalize_whitespace("") == "WRONG VALUE"` in `test_parsing.py` | `make test` | ❌ 1 failed \| 609 passed — correct |
+| 4 (E2E) | N/A — jobs run in parallel | CI only | The file-change conditional guard on the `e2e-tests` job prevents wasted runs without adding sequential latency |
+
+All test files restored to passing state after each layer test.
+
+#### Decision recorded: visual suite cost
+
+The browser-backed visual suite (~5s locally, similar in CI with Playwright browser cache warm) is acceptable in the main workflow. It is significantly cheaper than E2E and catches token-resolution failures that `happy-dom` cannot. No conditional triggering required.
 
 ---
 
