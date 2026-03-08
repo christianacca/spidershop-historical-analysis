@@ -591,27 +591,27 @@ Central test-helper module.  Exports four helpers:
 
 **Goal:** Shift obvious style-system failures to the cheapest possible layer.
 
-- [ ] 17. Create a shared token parser utility for `templates/common.css`.
+- [x] 17. Create a shared token parser utility for `templates/common.css`.
       It should parse the `:root` block into a stable token map.
 
-- [ ] 18. Add a design-token assertion test to the ordinary client suite.
+- [x] 18. Add a design-token assertion test to the ordinary client suite.
       Preferred behavior:
       - readable diff when a token changes
       - stable ordering
       - easy snapshot review or structured map comparison
 
-- [ ] 19. Add a Svelte CSS compliance audit that scans `client/src/**/*.svelte` style blocks and rejects hardcoded values that duplicate known design tokens.
+- [x] 19. Add a Svelte CSS compliance audit that scans `client/src/**/*.svelte` style blocks and rejects hardcoded values that duplicate known design tokens.
 
-- [ ] 20. Keep the compliance rule intentionally narrow at first:
+- [x] 20. Keep the compliance rule intentionally narrow at first:
       - only Svelte component styles
       - only hardcoded values that match known tokens
       - clear allowlist for legitimate values like `transparent`, `none`, `0`, and other obvious non-token cases
 
-- [ ] 21. Make failure messages prescriptive.
+- [x] 21. Make failure messages prescriptive.
       Example format:
       - `FilterButton.svelte uses hardcoded #3498db; use var(--color-accent)`
 
-- [ ] 22. Run these checks as part of the fast client loop only if they stay cheap enough.
+- [x] 22. Run these checks as part of the fast client loop only if they stay cheap enough.
       If they meaningfully slow down the loop, keep them in `make test-client` but document the tradeoff.
 
 ### Phase 3 Outputs
@@ -631,7 +631,97 @@ Central test-helper module.  Exports four helpers:
 
 ---
 
+### Phase 3 Findings
+
+#### Implementation (completed 2026-03-08)
+
+**New file: `client/src/test-utils/design-tokens.ts`**
+
+Parser/utility module exporting four items:
+
+| Export | Purpose |
+| --- | --- |
+| `TOKEN_CSS_PATH` | Absolute path to `templates/common.css`, resolved via `import.meta.url`. |
+| `CLIENT_SRC_DIR` | Absolute path to `client/src/`, used as the root for Svelte file discovery. |
+| `parseTokens(cssPath?)` | Parses every `--custom-property: value;` entry from the `:root` block; returns an alphabetically-sorted `Record<string, string>` for stable diffs. |
+| `findSvelteFiles(dir?)` | Recursively collects all `.svelte` file paths under `CLIENT_SRC_DIR`. |
+| `extractStyleBlock(source)` | Extracts concatenated `<style>` block text from a Svelte source string, with CSS block comments stripped to prevent false positives. |
+| `normalizeHex(hex)` | Expands 3-char shorthand hex to 6-char lowercase form (`#abc` → `#aabbcc`). Required for reliable equality comparison with token values. |
+
+**New file: `client/src/test-utils/design-tokens.test.ts`**
+
+Two describe blocks:
+
+1. **`design tokens — templates/common.css`** (step 18)
+   - `token map matches snapshot` — `toMatchSnapshot()` captures all 44 tokens sorted
+     alphabetically. Snapshot file:
+     `client/src/test-utils/__snapshots__/design-tokens.test.ts.snap`.
+     Diff on a token change is a single property change in a compact object — instantly readable.
+
+2. **`Svelte CSS compliance — no hardcoded token-equivalent colours`** (steps 19–21)
+   - `it.each` generates one test case per `.svelte` file (currently 10 files).
+   - Each case scans the file's `<style>` block for hex color literals that match a known token
+     value. Violations produce a prescriptive error:
+     `FileName.svelte uses hardcoded #3498db; use var(--color-accent)`.
+
+**Allowlisted values** (accepted even if they equal a token's hex):
+
+| Value | Reason |
+| --- | --- |
+| `#fff`, `#ffffff`, `white` | White text on coloured backgrounds — a conventional contrast pattern. Using `var(--color-surface)` as text colour would be semantically wrong. A dedicated `--color-text-inverse` token can address this later. |
+| `transparent`, `none`, `inherit`, `currentcolor` | Structural CSS — not semantic colour choices. |
+
+#### Pre-existing Svelte style state
+
+All 10 existing Svelte components pass the compliance audit. The only hardcoded hex values present
+(`#fff` in `FilterButton.svelte`, `#fff`/`white` in `ToggleButton.svelte`, `#856404` and
+`#d3d3d3` in `HistoryTable.svelte`/`RangeSlider.svelte`) are either in the allowlist or not
+in the token map and therefore not flagged.
+
+#### Test count delta
+
+| Before Phase 3 | After Phase 3 |
+| ---: | ---: |
+| 205 tests, 12 files | 216 tests, 13 files |
+
+#### Timing
+
+| Command | Wall time |
+| --- | --- |
+| `make test-client-fast` (no coverage) | **5.5 s** |
+| `make test-client` (coverage) | **~6.5 s** |
+
+The new guardrail tests add no measurable overhead — all file reads complete in < 5 ms total.
+Both commands include the guardrails. Step 22 decision: **include in fast loop** (cost is negligible).
+
+#### Phase 3 recorded decisions
+
+1. **Snapshot is the right model for the token test.** A diff on a token change names the exact
+   property and old/new value. A structured expected-object would require hand-maintenance every
+   time a token is added. Snapshot is lower friction with equivalent readability.
+
+2. **One test case per `.svelte` file** (via `it.each`) provides the tightest failure locality.
+   When a violation is introduced, exactly one test case fails and names both the file and the
+   fix in the error message.
+
+3. **Compliance audit scans only hex literals.** `rgb()`, `hsl()`, and named colors other than
+   `white` are not currently used in Svelte styles and are not detected. If they appear in future,
+   the scanner can be extended. The narrow scope reduces false-positive risk.
+
+4. **`#d3d3d3` and `#856404` are not flagged.** These hardcoded values exist in `RangeSlider.svelte`
+   (untracked slider-track color) and `HistoryTable.svelte` (amber date-button text). Neither
+   matches a token value. They are tokenization gaps but are out of scope for a compliance audit
+   that only checks for token-equivalent duplicates.
+
+5. **`import.meta.url` for path resolution.** The utility uses `import.meta.url` +
+   `fileURLToPath` rather than `process.cwd()` so the paths are correct regardless of which
+   directory the test runner is invoked from.
+
+---
+
 ## Phase 4 — DevTools MCP workflow and preview ergonomics
+
+**Before starting:** Read the **Phase 0 Findings**, **Phase 1 Findings**, **Phase 2 Findings**, and **Phase 3 Findings** sections above. Phase 0 identifies the existing `make generate-website` / `make serve-only` / `scripts/test_website_locally.py` preview path that this phase must reuse rather than duplicate. Phase 3 Findings document the new static guardrails layer and confirm that DevTools MCP is diagnosis, not enforcement — this phase makes that workflow explicit and documented.
 
 **Goal:** Make real-browser interactive inspection an explicit part of the agent workflow.
 
