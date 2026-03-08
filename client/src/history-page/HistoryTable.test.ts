@@ -1,19 +1,14 @@
 import { render, fireEvent } from '@testing-library/svelte';
-import { vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import HistoryTable from './HistoryTable.svelte';
+import {
+  setupBlobUrlMock,
+  clickDownloadAndGetBlob,
+  openAdvancedFilters,
+  openDatePicker,
+} from '../test-utils/index.js';
 
 // Mock URL.createObjectURL / revokeObjectURL — not available in happy-dom
-beforeAll(() => {
-  vi.stubGlobal('URL', {
-    ...URL,
-    createObjectURL: vi.fn(() => 'blob:mock-url'),
-    revokeObjectURL: vi.fn(),
-  });
-});
-beforeEach(() => {
-  (URL.createObjectURL as ReturnType<typeof vi.fn>).mockClear();
-});
-afterAll(() => vi.unstubAllGlobals());
+setupBlobUrlMock();
 
 // ── Shared fixtures ───────────────────────────────────────────────────────────
 
@@ -69,18 +64,6 @@ function renderTable(overrides: Record<string, unknown> = {}) {
 
 function visibleRows(container: HTMLElement): HTMLTableRowElement[] {
   return Array.from(container.querySelectorAll('tbody tr'));
-}
-
-async function openDatePicker(container: HTMLElement): Promise<void> {
-  const btn = container.querySelector<HTMLButtonElement>(
-    "button[data-action='toggle-date-picker']",
-  )!;
-  await fireEvent.click(btn);
-}
-
-async function openAdvancedFilters(container: HTMLElement): Promise<void> {
-  const btn = container.querySelector<HTMLButtonElement>('.advanced-filters-toggle:not(.date-expand-btn)')!;
-  await fireEvent.click(btn);
 }
 
 // ── Rendering ─────────────────────────────────────────────────────────────────
@@ -324,13 +307,6 @@ test('omitting dateColumn hides summary strip and date filter section', () => {
 
 // ── CSV download ──────────────────────────────────────────────────────────────
 
-async function clickDownloadAndGetBlob(container: HTMLElement): Promise<Blob> {
-  const link = container.querySelector<HTMLAnchorElement>(
-    "a[data-action='download-filtered-csv']",
-  )!;
-  await fireEvent.click(link);
-  return (URL.createObjectURL as ReturnType<typeof vi.fn>).mock.calls[0][0] as Blob;
-}
 
 test('clicking download link invokes URL.createObjectURL (buildCsv + downloadCsv)', async () => {
   const { container } = renderTable();

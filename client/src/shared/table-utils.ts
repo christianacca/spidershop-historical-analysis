@@ -98,6 +98,23 @@ export function buildCsv(
 }
 
 /**
+ * Filter `rows` to those where any column value contains `searchText`
+ * (case-insensitive substring match).  Returns `rows` unchanged when
+ * `searchText` is blank or whitespace-only.
+ */
+export function applySearchFilter(
+  rows: Record<string, unknown>[],
+  columns: { key: string }[],
+  searchText: string,
+): Record<string, unknown>[] {
+  const q = searchText.trim().toLowerCase();
+  if (!q) return rows;
+  return rows.filter((r) =>
+    columns.some((col) => String(r[col.key] ?? '').toLowerCase().includes(q)),
+  );
+}
+
+/**
  * Create a temporary `<a download>` link, trigger a click, then clean up.
  *
  * Uses `URL.createObjectURL` / `URL.revokeObjectURL` for in-memory blob delivery.

@@ -1,5 +1,6 @@
-import { describe, expect, test, vi, beforeEach, afterAll } from 'vitest';
-import { computeRange, sortRows, buildCsv, triggerDownload } from './table-utils.js';
+import { describe, expect, test } from 'vitest';
+import { computeRange, sortRows, buildCsv, triggerDownload, applySearchFilter } from './table-utils.js';
+import { setupBlobUrlMock } from '../test-utils/index.js';
 
 // ── computeRange ─────────────────────────────────────────────────────────────
 
@@ -175,18 +176,7 @@ describe('buildCsv', () => {
 // ── triggerDownload ───────────────────────────────────────────────────────────
 
 describe('triggerDownload', () => {
-  beforeEach(() => {
-    (URL.createObjectURL as ReturnType<typeof vi.fn>).mockClear();
-    (URL.revokeObjectURL as ReturnType<typeof vi.fn>).mockClear();
-  });
-  afterAll(() => vi.unstubAllGlobals());
-
-  // Stub URL to avoid happy-dom navigation issues with anchor click
-  vi.stubGlobal('URL', {
-    ...URL,
-    createObjectURL: vi.fn(() => 'blob:mock-url'),
-    revokeObjectURL: vi.fn(),
-  });
+  setupBlobUrlMock();
 
   test('calls URL.createObjectURL once', () => {
     triggerDownload('col1,col2\r\nval1,val2', 'test.csv');
@@ -203,5 +193,53 @@ describe('triggerDownload', () => {
     triggerDownload('content', 'out.csv');
     const blob = createObjectURL.mock.calls[0][0] as Blob;
     expect(blob.type).toBe('text/csv;charset=utf-8;');
+  });
+});
+
+// ── applySearchFilter ─────────────────────────────────────────────────────
+
+describe('applySearchFilter', () => {
+  const columns = [{ key: 'Species' }, { key: 'Signal' }];
+
+  const rows = [
+    { Species: 'Alpha Spider', Signal: '🔥' },
+    { Species: 'Beta Spider', Signal: '⚠️' },
+    { Species: 'Gamma Spider', Signal: '❌' },
+  ];
+
+  test('returns all rows when searchText is empty', () => {
+    expect(applySearchFilter(rows, columns, '')).toEqual(rows);
+  });
+
+  test('returns all rows when searchText is whitespace only', () => {
+    expect(applySearchFilter(rows, columns, '   ')).toEqual(rows);
+  });
+
+  test('filters rows by partial case-insensitive match in a column', () => {
+    const result = applySearchFilter(rows, columns, 'alpha');
+    expect(result).toHaveLength(1);
+    expect(result[0]['Species']).toBe('Alpha Spider');
+  });
+
+  test('matches against all supplied columns', () => {
+    // Signal column contains emoji — search by signal value
+    const result = applySearchFilter(rows, columns, '🔥');
+    expect(result).toHaveLength(1);
+    expect(result[0]['Species']).toBe('Alpha Spider');
+  });
+
+  test('returns empty array when no row matches', () => {
+    expect(applySearchFilter(rows, columns, 'xyzzy')).toEqual([]);
+  });
+
+  test('returns the original array reference when query is blank (no-op)', () => {
+    const result = applySearchFilter(rows, columns, '');
+    expect(result).toBe(rows);
+  });
+
+  test('does not mutate the input array', () => {
+    const original = [...rows];
+    applySearchFilter(rows, columns, 'Beta');
+    expect(rows).toEqual(original);
   });
 });

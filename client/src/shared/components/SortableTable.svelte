@@ -2,7 +2,7 @@
   import SparklineBar from './SparklineBar.svelte';
   import type { SparklineDto } from '../types.js';
   import { escapeCsvRow } from '../csv-utils.js';
-  import { computeRange, buildCsv, triggerDownload } from '../table-utils.js';
+  import { computeRange, buildCsv, triggerDownload, applySearchFilter } from '../table-utils.js';
   import { SortState } from '../sort-state.svelte.js';
   import FilterButton from './FilterButton.svelte';
   import SearchInput from './SearchInput.svelte';
@@ -112,10 +112,7 @@
 
     // 4. Search (all columns)
     if (searchText.trim()) {
-      const q = searchText.trim().toLowerCase();
-      result = result.filter((r) =>
-        columns.some((col) => String(r[col.key] ?? '').toLowerCase().includes(q)),
-      );
+      result = applySearchFilter(result, columns, searchText);
     }
 
     // 5. Price range — NaN (non-numeric cell, e.g. empty) passes through unchanged.

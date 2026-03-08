@@ -1,21 +1,15 @@
 import { render, fireEvent } from '@testing-library/svelte';
-import { vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import SortableTable from './SortableTable.svelte';
+import {
+  setupBlobUrlMock,
+  clickDownloadAndGetBlob,
+  openAdvancedFilters,
+} from '../../test-utils/index.js';
 
 // ── Shared fixtures ───────────────────────────────────────────────────────────
 
 // Mock URL.createObjectURL / revokeObjectURL — not available in happy-dom
-beforeAll(() => {
-  vi.stubGlobal('URL', {
-    ...URL,
-    createObjectURL: vi.fn(() => 'blob:mock-url'),
-    revokeObjectURL: vi.fn(),
-  });
-});
-beforeEach(() => {
-  (URL.createObjectURL as ReturnType<typeof vi.fn>).mockClear();
-});
-afterAll(() => vi.unstubAllGlobals());
+setupBlobUrlMock();
 
 const ROWS = [
   { Species: 'Alpha Spider', Signal: '🔥', 'Stock Pattern': 'Sustained', Price: '15.00', 'Wishlist Count': '3' },
@@ -236,8 +230,7 @@ test('Top 10 button gets is-active class when enabled', async () => {
 test('clicking a stock pattern filter button filters rows', async () => {
   const { container } = renderTable();
   // Stock pattern buttons are inside the More Filters panel — expand it first
-  const toggle = container.querySelector('.advanced-filters-toggle') as HTMLElement;
-  await fireEvent.click(toggle);
+  await openAdvancedFilters(container);
   const emergingBtn = container.querySelector(
     '[data-action="filter-stock-pattern"][data-stock-pattern="Emerging"]',
   ) as HTMLElement;
@@ -253,8 +246,7 @@ test('clicking a stock pattern filter button filters rows', async () => {
 test('search input filters rows by text', async () => {
   const { container } = renderTable();
   // Search input is inside the More Filters panel — expand it first
-  const toggle = container.querySelector('.advanced-filters-toggle') as HTMLElement;
-  await fireEvent.click(toggle);
+  await openAdvancedFilters(container);
   const searchInput = container.querySelector('#search-test-table') as HTMLInputElement;
 
   await fireEvent.input(searchInput, { target: { value: 'Alpha' } });
@@ -269,8 +261,7 @@ test('signal filter AND search are combined', async () => {
   const { container } = renderTable();
 
   // Search is inside the More Filters panel — expand it first
-  const toggle = container.querySelector('.advanced-filters-toggle') as HTMLElement;
-  await fireEvent.click(toggle);
+  await openAdvancedFilters(container);
 
   const hotBtn = container.querySelector(
     '[data-action="filter-signal"][data-signal="🔥"]',
@@ -287,8 +278,7 @@ test('signal filter AND search are combined', async () => {
 test('search that matches no rows shows zero visible count', async () => {
   const { container } = renderTable();
   // Search is inside the More Filters panel — expand it first
-  const toggle = container.querySelector('.advanced-filters-toggle') as HTMLElement;
-  await fireEvent.click(toggle);
+  await openAdvancedFilters(container);
   const searchInput = container.querySelector('#search-test-table') as HTMLInputElement;
 
   await fireEvent.input(searchInput, { target: { value: 'xyzzy' } });
@@ -439,14 +429,6 @@ test('sparkline column with DTO value renders an <svg> element', () => {
 });
 
 // ── CSV download ──────────────────────────────────────────────────────────────
-
-async function clickDownloadAndGetBlob(container: HTMLElement): Promise<Blob> {
-  const link = container.querySelector<HTMLAnchorElement>(
-    "a[data-action='download-filtered-csv']",
-  )!;
-  await fireEvent.click(link);
-  return (URL.createObjectURL as ReturnType<typeof vi.fn>).mock.calls[0][0] as Blob;
-}
 
 test('download link is rendered', () => {
   const { container } = renderTable();

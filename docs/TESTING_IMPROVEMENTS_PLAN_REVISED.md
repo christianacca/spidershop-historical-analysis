@@ -477,27 +477,27 @@ on system load and caching state.
 
 **Goal:** Reduce setup friction and improve failure locality in ordinary client tests.
 
-- [ ] 11. Create shared client test helpers for repeated setup patterns.
+- [x] 11. Create shared client test helpers for repeated setup patterns.
       Candidate responsibilities:
       - URL/download mocks
       - table render harnesses
       - shared row and column fixtures
       - domain-level selectors or convenience assertions
 
-- [ ] 12. Refactor `client/src/shared/components/SortableTable.test.ts` to use shared helpers and remove duplicated setup.
+- [x] 12. Refactor `client/src/shared/components/SortableTable.test.ts` to use shared helpers and remove duplicated setup.
 
-- [ ] 13. Refactor `client/src/history-page/HistoryTable.test.ts` to use the same shared infrastructure where possible.
+- [x] 13. Refactor `client/src/history-page/HistoryTable.test.ts` to use the same shared infrastructure where possible.
 
-- [ ] 14. Extract high-churn table logic into smaller pure TypeScript seams where practical.
+- [x] 14. Extract high-churn table logic into smaller pure TypeScript seams where practical.
       Prioritise:
       - filter state derivation
       - visible-row computation
       - summary/count logic
       - download row selection logic if it can be separated cleanly
 
-- [ ] 15. Add small parametrized tests for any extracted pure helpers.
+- [x] 15. Add small parametrized tests for any extracted pure helpers.
 
-- [ ] 16. Confirm that failure messages now point more often at a specific helper or component state instead of a large DOM-heavy test body.
+- [x] 16. Confirm that failure messages now point more often at a specific helper or component state instead of a large DOM-heavy test body.
 
 ### Phase 2 Outputs
 
@@ -516,9 +516,78 @@ on system load and caching state.
 - Which helper patterns worked well and should be reused
 - Which component logic was not worth extracting because the seam was artificial
 
+### Phase 2 Findings
+
+#### Implementation (completed 2026-03-08)
+
+**New file: `client/src/test-utils/index.ts`**
+
+Central test-helper module.  Exports four helpers:
+
+| Export | Purpose |
+| --- | --- |
+| `setupBlobUrlMock()` | Installs `URL.createObjectURL` / `revokeObjectURL` stubs via `beforeAll/beforeEach/afterAll`. Replaces 6-line boilerplate duplicated in three files. |
+| `clickDownloadAndGetBlob(container)` | Clicks the CSV download link and returns the `Blob`. Was independently defined in `SortableTable.test.ts` and `HistoryTable.test.ts`. |
+| `openAdvancedFilters(container)` | Clicks the More Filters toggle (`:not(.date-expand-btn)` selector works for both `SortableTable` and `HistoryTable`). Replaces 2-line inline setup in four tests. |
+| `openDatePicker(container)` | Clicks the date-picker expand button.  Local to `HistoryTable.test.ts` before extraction. |
+
+**Extracted pure-TS seams:**
+
+- `applySearchFilter(rows, columns, searchText)` added to `client/src/shared/table-utils.ts`
+  – Identical logic was copy-pasted in `SortableTable.svelte` and `HistoryTable.svelte`. Both
+  components now import the shared function.  7 parametrized tests added to `table-utils.test.ts`.
+
+- `collectAllDates(rows, dateColumn)` extracted from `HistoryTable.svelte` to
+  `client/src/history-page/history-utils.ts`.  8 unit tests added in the new
+  `history-page/history-utils.test.ts`.  `HistoryTable.svelte` imports it from the new module.
+
+**Seams not extracted (artificial):**
+
+- `visibleRows` derivation in each component — tightly coupled to 6+ `$state` variables;
+  the outer shape of `$derived.by(() => {...})` calling a helper function would just move the
+  same code without creating a testable seam. Behavior is already well-covered by component tests.
+- Price / wishlist range filters — differ slightly between components (NaN handling), so a
+  shared extraction would introduce coupling without a clean contract.
+- `activeFilterCount` computation — trivial arithmetic on state; extraction would add
+  indirection without value.
+
+#### Test count delta
+
+| Before Phase 2 | After Phase 2 |
+| ---: | ---: |
+| 190 tests, 11 files | 205 tests, 12 files |
+
+#### Phase 2 recorded decisions
+
+1. **Shared test-helper location:** `client/src/test-utils/index.ts`.  Not under `shared/`
+   (which is for production code) and not co-located with any one component.
+
+2. **`setupBlobUrlMock()` call semantics:** The function calls Vitest lifecycle hooks
+   (`beforeAll`, `beforeEach`, `afterAll`) inline.  It must be called at file scope or inside a
+   `describe` block — not inside a `test`.  All three usages follow this constraint.
+
+3. **`openAdvancedFilters` selector:** The `:not(.date-expand-btn)` suffix makes the helper
+   correct for both `SortableTable` (no date button present) and `HistoryTable` (has a separate
+   date-expand button).  Use this selector everywhere.
+
+4. **`applySearchFilter` placement:** Added to `table-utils.ts` alongside `sortRows` and
+   `buildCsv`.  It belongs there: same signature style, no Svelte dependencies, directly
+   relevant to table rendering.
+
+5. **`collectAllDates` placement:** Moved to `history-page/history-utils.ts` rather than
+   `shared/table-utils.ts` because the semantics are history-page-specific (ascending date
+   order, skip-empty logic tied to how the history CSV is structured).
+
+6. **`table-utils.test.ts` URL-mock refactor:** `vi.stubGlobal` was previously called inline at
+   describe scope (runs during test collection rather than as a lifecycle hook).
+   Replaced with `setupBlobUrlMock()` inside `describe('triggerDownload', ...)` for consistency.
+   The `vi, beforeEach, afterAll` imports were removed from the file entirely.
+
 ---
 
 ## Phase 3 — Static token guardrails
+
+**Before starting:** Read the **Phase 0 Findings**, **Phase 1 Findings**, and **Phase 2 Findings** sections above. Phase 0 establishes the token architecture (`templates/common.css` `:root` block, naming conventions) and the CSS 3-layer model that guardrails must respect. Phase 1 Findings confirm that fast tests are the recommended default for iteration. Phase 2 Findings document the `client/src/test-utils/index.ts` shared helper module and the conventions to follow when adding new test infrastructure.
 
 **Goal:** Shift obvious style-system failures to the cheapest possible layer.
 

@@ -2,7 +2,8 @@
   import SparklineBar from '../shared/components/SparklineBar.svelte';
   import type { SparklineDto } from '../shared/types.js';
   import { escapeCsvRow } from '../shared/csv-utils.js';
-  import { computeRange, buildCsv, triggerDownload } from '../shared/table-utils.js';
+  import { computeRange, buildCsv, triggerDownload, applySearchFilter } from '../shared/table-utils.js';
+  import { collectAllDates } from './history-utils.js';
   import { SortState } from '../shared/sort-state.svelte.js';
   import type { ColumnConfig } from '../shared/components/SortableTable.svelte';
   import DateFilter from './DateFilter.svelte';
@@ -32,25 +33,6 @@
 
   const priceRange = computeRange(rows, priceColumn, 'float');
   const wishlistRange = computeRange(rows, wishlistColumn, 'int');
-
-  // ── Helper: collect unique dates from rows (oldest-to-newest reversed) ─────
-
-  function collectAllDates(
-    sourceRows: Record<string, unknown>[],
-    dateCol: string | undefined,
-  ): string[] {
-    if (!dateCol) return [];
-    const seen = new Set<string>();
-    const ordered: string[] = [];
-    for (let i = sourceRows.length - 1; i >= 0; i--) {
-      const d = String(sourceRows[i][dateCol] ?? '');
-      if (d && !seen.has(d)) {
-        seen.add(d);
-        ordered.push(d);
-      }
-    }
-    return ordered;
-  }
 
   // ── Data (raw — rows never change after mount) ─────────────────────────────
   const allRows = $state.raw(rows);
@@ -91,10 +73,7 @@
 
     // 2. Search (all columns)
     if (searchText.trim()) {
-      const q = searchText.trim().toLowerCase();
-      result = result.filter((r) =>
-        columns.some((col) => String(r[col.key] ?? '').toLowerCase().includes(q)),
-      );
+      result = applySearchFilter(result, columns, searchText);
     }
 
     // 3. Price range
