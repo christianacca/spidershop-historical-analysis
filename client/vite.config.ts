@@ -21,6 +21,14 @@ export default defineConfig({
     globals: true,
     environment: 'happy-dom',
     setupFiles: ['src/test-setup.ts'],
+    // Exclude browser-backed visual contract tests: they run via a separate
+    // Vitest Browser Mode config (vite.browser.config.ts) and must not
+    // distort the logic-coverage gate enforced by `make test-client`.
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      'src/**/*.visual.test.ts',
+    ],
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,svelte}'],
@@ -28,6 +36,11 @@ export default defineConfig({
         'src/test-setup.ts',
         'src/global.d.ts',
         'src/**/*.test.ts',
+        // Browser-backed visual test files: run via vite.browser.config.ts,
+        // not in the happy-dom suite. Must not distort logic-coverage numbers.
+        'src/**/*.visual.test.ts',
+        'src/test-utils/browser-setup.ts',
+        'src/test-utils/token-colors.ts',
         // Page entry points: mount Svelte components against window globals and
         // DOM elements injected by the Python template. Only exercisable via E2E.
         'src/*/index.ts',

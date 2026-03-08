@@ -12,7 +12,7 @@
 #   All commands automatically activate the .venv virtual environment
 #   Ensure .venv exists and has dependencies installed first
 
-.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only preview clean-cache clean-artifacts clean-all build-client test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install open-coverage check-coverage test-client test-client-fast test-client-watch open-coverage-client .check-venv .check-gh
+.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only preview clean-cache clean-artifacts clean-all build-client test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install open-coverage check-coverage test-client test-client-fast test-client-watch open-coverage-client test-visual visual-install .check-venv .check-gh
 
 # Shell configuration
 SHELL := /bin/bash
@@ -69,6 +69,8 @@ help:
 	@echo "  make test-client-fast       Run Vitest unit tests without coverage (fast iteration, no threshold)"
 	@echo "  make test-client-watch      Run Vitest unit tests in watch mode (interactive, no coverage)"
 	@echo "  make open-coverage-client   Open client coverage report in browser"
+	@echo "  make visual-install         Install Playwright browser for visual tests (one-time setup)"
+	@echo "  make test-visual            Run browser-backed visual contract tests (Vitest Browser Mode)"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make test-file FILE=tests/website_module/test_csv.py"
@@ -295,6 +297,22 @@ test-client-watch:
 open-coverage-client:
 	@echo "Opening client coverage report in browser..."
 	open client/coverage/index.html
+
+# Install Playwright Chromium browser for browser-backed visual tests (one-time setup).
+# Uses the Node playwright package installed in client/node_modules, not the
+# Python playwright used by make test-e2e.
+visual-install:
+	@echo "📦 Installing Playwright browser for visual tests..."
+	cd client && node node_modules/playwright/cli.js install chromium
+	@echo "✅ Playwright browser ready for visual tests"
+
+# Run browser-backed visual contract tests in a real Chromium instance.
+# These tests verify computed styles (getComputedStyle) and CSS custom-property
+# resolution — things that happy-dom cannot simulate.
+test-visual: visual-install
+	@echo "🔍 Running browser-backed visual contract tests..."
+	cd client && npm run test:visual
+	@echo "✅ Visual tests passed"
 
 # ==============================================================================
 # Cleanup
