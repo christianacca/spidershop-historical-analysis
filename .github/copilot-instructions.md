@@ -428,6 +428,113 @@ python scripts/check_coverage.py --module=website/generate_website.py --threshol
 
 ---
 
+## Interactive Browser Inspection (DevTools MCP)
+
+Chrome DevTools MCP gives the agent live eyes inside a real browser. It is a **diagnostic tool,
+not a CI gate.** Use it when:
+
+- Vitest unit tests pass but the question is about computed styles (CSS custom properties, layout)
+- You want to verify visual behaviour before writing or changing an E2E test
+- An E2E failure is unclear and you need to inspect the actual DOM or resolved value
+- You are designing a browser-backed visual contract and need the ground-truth computed value
+
+**Do NOT reach for DevTools MCP first.** Run `make test-client-fast` before escalating to
+interactive inspection. Only use DevTools MCP when the logic layer cannot answer the question.
+
+### Generating and serving the site
+
+```bash
+# One command — generate website from existing CSVs + serve at http://localhost:8000
+make preview
+
+# Or step by step:
+make generate-website   # build client assets + generate HTML → tmp/local-testing/website/
+make serve-only         # start HTTP server at http://localhost:8000 (blocking)
+```
+
+If CSV files are missing from `tmp/local-testing/`:
+
+```bash
+make download-artifacts   # download latest from GitHub Actions
+# or
+make scrape-only          # run the scraper locally
+```
+
+The server binds to `127.0.0.1:8000` only. Pages served:
+- `http://localhost:8000/` — homepage
+- `http://localhost:8000/breeder-opportunities/` — Breeder Opportunities
+- `http://localhost:8000/dealer-supply-risk/` — Dealer Supply Risk
+- `http://localhost:8000/latest-snapshot/` — Latest Snapshot
+- `http://localhost:8000/historical-data/` — Historical Data
+- `http://localhost:8000/species/<slug>/` — Species Detail
+
+### Inspecting with Chrome DevTools MCP
+
+Once the site is served, use Chrome DevTools MCP tools to inspect it. Example for checking
+the computed background colour of an active filter button:
+
+```javascript
+// 1. Navigate to the target page
+//    e.g. http://localhost:8000/breeder-opportunities/
+
+// 2. Activate a filter button so it has the active state, then:
+evaluate_script(`
+  const el = document.querySelector('.filter-btn.is-active');
+  const style = window.getComputedStyle(el);
+  return {
+    backgroundColor: style.backgroundColor,
+    borderColor:     style.borderColor,
+    color:           style.color,
+  };
+`)
+
+// 3. Compare against the expected token value.
+//    e.g. --color-accent is #3498db → resolves to rgb(52, 152, 219) in getComputedStyle.
+//    Token values are in templates/common.css (:root block).
+//    parseTokens() in client/src/test-utils/design-tokens.ts reads them programmatically.
+```
+
+### DevTools MCP operating playbook
+
+**Trigger conditions — reach for DevTools MCP when:**
+
+- You changed a CSS token, Svelte `<style>` block, or BEM class in Layer 1 or 2
+- A computed style question cannot be answered by `happy-dom` (css custom props, real layout)
+- An E2E test fails with a style assertion and you need to debug the actual resolved value
+- You are writing a new token-aware assertion and need the ground-truth colour or dimension
+
+**Inspection order:**
+
+1. `make test-client-fast` — confirm logic layer is clean first
+2. `make preview` — regenerate and serve the site at `http://localhost:8000`
+3. Navigate to the affected page via Chrome DevTools MCP
+4. Use `evaluate_script` to read `getComputedStyle` on the target element
+5. Compare against the token value (read `templates/common.css` or call `parseTokens()`)
+6. If the value is wrong: fix the CSS and re-inspect
+7. If the value is correct: promote the finding into an automated assertion at the
+   lowest valid layer (Vitest browser-backed visual contract, or E2E token helper)
+
+**Safe browser profile guidance:**
+
+- DevTools MCP is read-only inspection during normal use; avoid `evaluate_script` calls
+  that write to storage or modify persistent state
+- The preview server binds to `127.0.0.1` only — it is not reachable from external networks
+- Do not run `make preview` in CI or automated pipelines; it is for local agent use only
+- Shut down the server (`Ctrl+C`) before running `make test-e2e` to avoid port conflicts
+
+**Converting discoveries into durable assertions:**
+
+- Computed style verified correct via `getComputedStyle` → add to `make test-visual` (Phase 5
+  browser-backed visual contracts) so it is enforced automatically on every run
+- Interaction sequence verified → add a targeted E2E test that guards that path
+- Hardcoded colour found in a Svelte `<style>` block → the Phase 3 compliance audit in
+  `client/src/test-utils/design-tokens.test.ts` should detect it; if it does not, extend the
+  scanner
+- **Do not leave inspection results as agent memory only.** Every useful discovery must
+  become an automated assertion before the conversation ends.
+
+---
+
 ## GitHub Workflows Troubleshooting
 - **Fetching Workflow Logs**: Use the GitHub API to download logs as a zip file, not `gh run view` which opens a pager:
   ```bash

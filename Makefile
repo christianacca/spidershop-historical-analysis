@@ -12,7 +12,7 @@
 #   All commands automatically activate the .venv virtual environment
 #   Ensure .venv exists and has dependencies installed first
 
-.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only clean-cache clean-artifacts clean-all build-client test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install open-coverage check-coverage test-client test-client-fast test-client-watch open-coverage-client .check-venv .check-gh
+.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only preview clean-cache clean-artifacts clean-all build-client test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install open-coverage check-coverage test-client test-client-fast test-client-watch open-coverage-client .check-venv .check-gh
 
 # Shell configuration
 SHELL := /bin/bash
@@ -47,6 +47,7 @@ help:
 	@echo "  make scrape-only            Run scraper only (no website generation)"
 	@echo "  make generate-website       Generate website from existing CSV files"
 	@echo "  make serve-only             Serve existing website (no regeneration)"
+	@echo "  make preview                Generate website + serve (alias for website-serve)"
 	@echo "  make build-client           Build client-side TS/Svelte assets (auto-run by generate-website)"
 	@echo ""
 	@echo "Testing:"
@@ -117,6 +118,9 @@ build-client:
 # ==============================================================================
 
 website-serve: generate-website serve-only
+
+# Thin alias for website-serve; used during interactive DevTools MCP inspection.
+preview: website-serve
 
 scrape-website: scrape-only generate-website
 	@echo "✅ Scrape complete and website generated"

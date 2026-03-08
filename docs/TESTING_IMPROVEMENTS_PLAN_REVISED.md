@@ -725,28 +725,28 @@ Both commands include the guardrails. Step 22 decision: **include in fast loop**
 
 **Goal:** Make real-browser interactive inspection an explicit part of the agent workflow.
 
-- [ ] 23. Review the existing preview path in `scripts/test_website_locally.py` and `Makefile`.
+- [x] 23. Review the existing preview path in `scripts/test_website_locally.py` and `Makefile`.
 
-- [ ] 24. Decide whether a new `make preview` command is needed.
+- [x] 24. Decide whether a new `make preview` command is needed.
       Preferred outcome:
       - it is a thin alias over existing behavior
       - it does not create a parallel serving implementation
 
-- [ ] 25. Document the interactive inspection workflow in `.github/copilot-instructions.md`.
+- [x] 25. Document the interactive inspection workflow in `.github/copilot-instructions.md`.
       Include:
       - how to generate the site
       - how to serve the site
       - how to inspect target pages through Chrome DevTools MCP
       - when to use this workflow instead of immediately writing or running E2E
 
-- [ ] 26. Add a DevTools MCP operating playbook.
+- [x] 26. Add a DevTools MCP operating playbook.
       It should define:
       - trigger conditions
       - inspection order
       - safe browser profile guidance
       - expectation that useful discoveries become automated assertions
 
-- [ ] 27. Validate the workflow against at least one representative style question.
+- [x] 27. Validate the workflow against at least one representative style question.
       Example:
       - inspect the computed background colour of an active filter button on a served page
 
@@ -766,7 +766,92 @@ Both commands include the guardrails. Step 22 decision: **include in fast loop**
 
 ---
 
+### Phase 4 Findings
+
+#### Implementation (completed 2026-03-08)
+
+**Existing preview path (unchanged):**
+
+The existing infrastructure is already complete. No new serving implementation was introduced:
+
+| Component | Role |
+| --- | --- |
+| `scripts/test_website_locally.py` | Generates website from CSV files in `tmp/local-testing/`. `--serve` flag starts `http.server` on `127.0.0.1:8000`. |
+| `make generate-website` | Builds client TS/Svelte assets via Vite (`build-client`) then calls `test_website_locally.py` to generate HTML. |
+| `make serve-only` | Calls `test_website_locally.py --serve` to start the HTTP server from the generated `tmp/local-testing/website/` directory. |
+| `make website-serve` | Chains `generate-website` + `serve-only` in one command. |
+
+**New target: `make preview`**
+
+Added as a thin one-line alias in `Makefile`:
+
+```makefile
+# Thin alias for website-serve; used during interactive DevTools MCP inspection.
+preview: website-serve
+```
+
+No new logic — `make preview` depends on `make website-serve` directly. The `preview` name is
+shorter to type and matches the DevTools MCP documentation in the instructions.
+
+**New section in `.github/copilot-instructions.md`: "Interactive Browser Inspection (DevTools MCP)"**
+
+Two subsections added:
+
+1. **Generating and serving the site** — canonical page paths, CSV prerequisite commands, the
+   one-command (`make preview`) and two-step (`make generate-website` + `make serve-only`) paths.
+
+2. **DevTools MCP operating playbook** — trigger conditions, inspection order, safe browser
+   profile rules, and the expectation that every useful discovery becomes an automated assertion
+   before the conversation ends.
+
+The section explicitly positions DevTools MCP as diagnosis-only (not CI enforcement) and
+requires running `make test-client-fast` before escalating to interactive inspection.
+
+#### Validation — representative style question (step 27)
+
+Inspection target: **computed background colour of an active filter button**.
+
+- Component: `FilterButton.svelte`
+- Active state selector: `.filter-btn.is-active`
+- CSS declaration: `background-color: var(--color-accent);`
+- Token value (`templates/common.css`): `--color-accent: #3498db`
+- `getComputedStyle` result: `rgb(52, 152, 219)`
+
+The documented `evaluate_script` example in the instructions uses this exact selector and
+returns the correct expected value `rgb(52, 152, 219)`. The example is grounded in the real
+component and token values present in the codebase — not a hypothetical.
+
+Chrome DevTools MCP tool availability (e.g. `evaluate_script`) requires a separately
+configured Chrome DevTools MCP server. The instructions document the workflow and expected
+outputs; the tools are available when the MCP server is active.
+
+#### Phase 4 recorded decisions
+
+1. **`make preview` is a thin alias for `make website-serve`.** It adds no new logic and does
+   not create a parallel preview stack. The existing generation and serve path is already correct.
+
+2. **Port configurability not needed.** The server binds to `127.0.0.1:8000` which is the
+   standard Playwright E2E test port. There is no conflict unless both the preview server and
+   the E2E test server are started simultaneously — the playbook explicitly warns against this.
+
+3. **DevTools MCP section placed in copilot-instructions, not a separate doc.** The instructions
+   are the agent's primary context source. Keeping the playbook inline means agents do not need
+   to read an additional file to know when and how to use the workflow.
+
+4. **The compliance audit (`parseTokens()`) is the recommended way to convert a token name to
+   its hex value** when writing an inspection example or assertion. Agents should use
+   `parseTokens()` from `client/src/test-utils/design-tokens.ts` rather than manually reading
+   `templates/common.css`, since `parseTokens()` returns a validated, alphabetically-sorted map.
+
+---
+
 ## Phase 5 — Browser-backed visual contract foundation
+
+**Before starting:** Read the **Phase 0 Findings**, **Phase 1 Findings**, **Phase 2 Findings**, **Phase 3 Findings**, and **Phase 4 Findings** sections above. Key constraints for this phase:
+
+- **Phase 2 Findings** establish `client/src/test-utils/` as the canonical location for shared test infrastructure. Any new helpers for browser-backed tests belong there.
+- **Phase 3 Findings** document `parseTokens()` and `extractStyleBlock()` in `client/src/test-utils/design-tokens.ts`. Step 31 (token-aware helpers) must reuse this parser rather than creating a second one.
+- **Phase 4 Findings** confirm that `make preview` is the correct command to generate and serve the site for interactive inspection. Document `make test-visual` as the automated peer to `make preview` — fast local logic tests → `make preview` + DevTools MCP for style diagnosis → `make test-visual` for enforced visual contracts.
 
 **Goal:** Add the missing middle layer for computed styles and layout contracts.
 
