@@ -47,6 +47,7 @@ Thumbs.db
 templates/scripts/dist/
 
 # Node.js
+node_modules/
 client/node_modules/
 
 # Vitest coverage output

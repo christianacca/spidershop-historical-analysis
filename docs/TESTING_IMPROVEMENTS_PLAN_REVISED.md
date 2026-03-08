@@ -174,7 +174,7 @@ DevTools MCP lighthouse_audit
 
 **Goal:** Build the move-down map before adding new layers.
 
-- [ ] 1. Audit the current assertions in:
+- [x] 1. Audit the current assertions in:
       - `client/src/shared/components/SortableTable.test.ts`
       - `client/src/history-page/HistoryTable.test.ts`
       - `tests/e2e/test_visual_contracts.py`
@@ -182,21 +182,21 @@ DevTools MCP lighthouse_audit
       - `tests/e2e/test_snapshot_filters.py`
       - `tests/e2e/test_history_date_filter.py`
 
-- [ ] 2. Tag each assertion as one of:
+- [x] 2. Tag each assertion as one of:
       - pure logic
       - component behavior
       - browser-style contract
       - full integration
 
-- [ ] 3. Produce a move-down table that records:
+- [x] 3. Produce a move-down table that records:
       - keep in place
       - move to fast Vitest
       - move to browser-backed component tests
       - keep in E2E because it depends on full-site assembly
 
-- [ ] 4. Identify the top three client test files with the highest setup friction and the top three E2E tests with the most duplicated waits or style assertions.
+- [x] 4. Identify the top three client test files with the highest setup friction and the top three E2E tests with the most duplicated waits or style assertions.
 
-- [ ] 5. Record the baseline timings for:
+- [x] 5. Record the baseline timings for:
       - `make test-client`
       - `make test-e2e`
       - one representative client test file
@@ -221,7 +221,181 @@ DevTools MCP lighthouse_audit
 
 ---
 
+### Phase 0 Findings
+
+#### Baseline timings (measured 2026-03-08, MacBook, macOS)
+
+| Command | Wall time |
+| --- | --- |
+| `make test-client` (coverage) | **7.1s** |
+| `cd client && npm test` (no coverage) | **5.1s** |
+| `make test-e2e` (full suite) | **~85s** (1 pre-existing failure) |
+
+The gap between coverage and no-coverage runs is ~2s. The test suite itself takes ~3.9s
+inside Vitest; coverage instrumentation and reporting accounts for the rest.
+
+#### Pre-existing E2E failure
+
+`tests/e2e/test_species_page_interactions.py::test_tab_switching_between_breeder_and_dealer_views`
+is **already failing** on this branch prior to any Phase 0 work. Do not break it further; leave
+fix for Phase 7 cleanup or a dedicated PR.
+
+#### Client test file inventory
+
+| File | Tests | URL mock boilerplate | Setup friction |
+| --- | ---: | ---: | --- |
+| `SortableTable.test.ts` | 58 | 6 lines (duplicated) | Advanced-filters toggle required before accessing sliders; large fixture set |
+| `HistoryTable.test.ts` | 26 | 6 lines (duplicated) | `openDatePicker` + `openAdvancedFilters` helpers re-invented per file; multi-step fixture |
+| `table-utils.test.ts` | 0 (describe-style) | 5 matches | URL mock in non-component utility file |
+| `DateFilter.test.ts` | 16 | 0 | Clean — no URL mock needed |
+| `RangeSlider.test.ts` | 8 | 0 | Clean |
+| `FilterButton.test.ts` | 5 | 0 | Clean |
+
+**URL mock (`vi.stubGlobal('URL', {...})`) is duplicated in three files.**
+A single shared test helper should own this setup.
+
+`clickDownloadAndGetBlob` helper is independently re-invented in both `SortableTable.test.ts`
+and `HistoryTable.test.ts` with identical logic.
+
+#### Client assertion ownership map
+
+All assertions in both Vitest component test files are correctly placed in the **component
+behavior** layer. There are no assertions in client tests that need to move down to E2E or up
+to browser-backed component tests.
+
+No assertions in the audited client test files assert computed CSS styles — happy-dom is
+not asked to resolve `var(--tokens)`. That boundary is being respected.
+
+| Test group | Layer | Decision |
+| --- | --- | --- |
+| Render (rows, headers, IDs) | Component behavior | Keep in Vitest |
+| Sorting (click → order) | Component behavior | Keep in Vitest |
+| Signal / stock-pattern filter | Component behavior | Keep in Vitest |
+| Search text filter | Component behavior | Keep in Vitest |
+| Advanced-filters toggle expand/collapse | Component behavior | Keep in Vitest |
+| Price / wishlist slider filter | Component behavior | Keep in Vitest |
+| CSV download content (Blob) | Component behavior | Keep in Vitest |
+| Signal CSS class (`signal-hot` etc.) | Component behavior | Keep in Vitest |
+| Species-link column type | Component behavior | Keep in Vitest |
+| Sparkline column type | Component behavior | Keep in Vitest |
+| URL mock setup | Infrastructure | **Extract to shared helper (Phase 2)** |
+| `clickDownloadAndGetBlob` helper | Infrastructure | **Extract to shared helper (Phase 2)** |
+| `openDatePicker` / `openAdvancedFilters` helpers | Infrastructure | **Extract to shared helper (Phase 2)** |
+
+#### E2E test file inventory
+
+| File | Tests | `wait_for_timeout` calls | `getComputedStyle`/`rgb(` calls |
+| --- | ---: | ---: | ---: |
+| `test_snapshot_filters.py` | 22 | **54** | 7 |
+| `test_table_interactions.py` | 25 | **34** | 31 |
+| `test_species_page_interactions.py` | 15 | 14 | **30** |
+| `test_history_date_filter.py` | 16 | 11 | 9 |
+| `test_history_filters.py` | 17 | **30** | 3 |
+| `test_breeder_page_interactions.py` | 14 | 4 | 0 |
+| `test_visual_contracts.py` | 15 | 0 | 0 |
+| `test_navigation_and_page_loads.py` | 5 | 0 | **23** |
+| `test_top10_filter.py` | 5 | 8 | 0 |
+
+#### E2E assertion ownership map
+
+| Test / test group | Layer | Decision |
+| --- | --- | --- |
+| Page loads + titles (all pages) | Full integration | Keep in E2E |
+| Navigation breeder/dealer → species link | Full integration | Keep in E2E |
+| Back button rendering | Full integration | Keep in E2E |
+| Table structural attributes (data-signal, data-stock-pattern) | Full integration | Keep in E2E |
+| Signal / stock-pattern filter (breeder, dealer) | **Partly redundant** with SortableTable.test.ts | Keep in E2E as smoke; note overlap |
+| Search filter (breeder, dealer) | **Partly redundant** with SortableTable.test.ts | Keep in E2E as smoke; note overlap |
+| Advanced-filters toggle (table_interactions) | **Partly redundant** with SortableTable.test.ts | Keep for now; candidate for removal in Phase 7 |
+| Filter badge with search (table_interactions) | **Partly redundant** | Keep for now |
+| Price / wishlist sliders (snapshot_filters) | **Mostly redundant** with SortableTable.test.ts | Keep for now; candidate for thinning in Phase 7 |
+| Stats strip count update | **Partly redundant** | Keep for now |
+| Python-generated HTML structure (stat-cards, signal rows, instruction box) | Full integration | Keep in E2E |
+| Sort glyph in headers | Full integration | Keep in E2E (G5 guards assembly) |
+| Wishlist column non-empty | Full integration | Keep in E2E (G1 guards data pipeline) |
+| Sparkline SVG fill and tooltips | Full integration | Keep in E2E (G3/G3b guards DTO pipeline) |
+| Info icon in signal cells | Full integration | Keep in E2E (G4 guards Drivers field) |
+| Species page tab switching + URL state | Full integration | Keep in E2E |
+| Species page charts (SVG renders, data points) | Full integration | Keep in E2E |
+| Species page tooltips, stock strip, gaps | Full integration | Keep in E2E |
+| CSV download content + schema | Full integration | Keep in E2E |
+| Header/footer computed background colour | Browser-style contract | **Refactor: replace hardcoded rgb() with token helper (Phase 7)** |
+| Homepage card grid / link colours / info-box colours | Browser-style contract | **Refactor: replace hardcoded rgb() with token helper (Phase 7)** |
+| Stat card border colours | Browser-style contract | **Refactor: replace hardcoded rgb() with token helper (Phase 7)** |
+| Species page chart legend dot colours | Browser-style contract | **Refactor: replace hardcoded rgb() with token helper (Phase 7)** |
+| Date filter section amber border / background | Browser-style contract | **Refactor: replace hardcoded rgb() with token helper (Phase 7)** |
+| Date grid display:grid, date row white background | Browser-style contract | **Refactor: replace hardcoded rgb() with token helper (Phase 7)** |
+| Species page legend swatch colours | Browser-style contract | **Refactor: replace hardcoded rgb() with token helper (Phase 7)** |
+| All `wait_for_timeout(200)` calls | Infrastructure | **Replace with wait_for() on observable DOM change (Phase 7)** |
+
+#### Top pain points ranked
+
+**Client tests:**
+
+1. **`SortableTable.test.ts` (58 tests)** — Largest file; URL mock and `clickDownloadAndGetBlob`
+   duplicated; requires toggle expansion before panel elements become available in DOM. High time
+   cost when a global fixture change breaks many tests at once.
+
+2. **`HistoryTable.test.ts` (26 tests) + `table-utils.test.ts`** — URL mock duplicated; local
+   `openDatePicker` and `openAdvancedFilters` helpers re-invented identically to E2E helpers in
+   `test_history_date_filter.py`. Three files own the same teardown pattern.
+
+3. **No shared Vitest test-helper module** — There is no `client/src/test-utils/` or equivalent.
+   Each file that needs URL mocks, download helpers, or render wrappers builds them inline.
+
+**E2E tests:**
+
+1. **`test_snapshot_filters.py` (54 `wait_for_timeout` calls)** — Almost every slider interaction
+   is followed by a 200ms blind sleep. Largest source of gratuitous wall-clock latency in the E2E
+   suite. Also tests slider behavior already covered by SortableTable.test.ts.
+
+2. **`test_table_interactions.py` (34 timeouts, 31 style assertions)** — Mixes assembly-level
+   integration checks with style contracts expressed as hardcoded rgb values. Split into two
+   concerns once token helper exists.
+
+3. **`test_species_page_interactions.py` (30 style assertions, 14 timeouts)** — Heaviest use of
+   `getComputedStyle` with hardcoded rgb values. The pre-existing failure
+   (`test_tab_switching_between_breeder_and_dealer_views`) is in this file.
+
+#### Files already lean enough to leave alone
+
+- `test_visual_contracts.py` — 0 timeouts, 0 hardcoded rgb values. Guards the DTO pipeline with
+  DOM-attribute checks. Clean; low friction; no changes needed in Phase 7.
+- `test_top10_filter.py` — Small and focused. Timeout calls exist but the file is short enough
+  that they are not the dominant cost.
+- `test_breeder_page_interactions.py` — 4 timeouts, no style assertions. Already well-scoped.
+
+#### Phase 0 recorded decisions
+
+1. **No client assertions need to move layers.** All Vitest component tests are correctly placed.
+   Focus for Phase 2 is helper extraction, not test migration.
+
+2. **E2E slider behavior tests (test_snapshot_filters.py) are candidates for thinning in Phase 7**
+   but are NOT removed now — they currently cover slider behavior that is not yet verified in
+   the Vitest suite for the snapshot/breeder pages specifically. Defer removal to Phase 7 after
+   a deliberate check.
+
+3. **Redundant E2E tests** (advanced-filters toggle, filter badge) could be removed from
+   `test_table_interactions.py` in Phase 7 once we confirm the Vitest coverage is sufficient.
+
+4. **test_visual_contracts.py** is lean and correct. Leave it alone.
+
+5. **Pre-existing E2E failure** (`test_tab_switching_between_breeder_and_dealer_views`): do not
+   fix in this plan phase. Record it here so Phase 7 includes it.
+
+6. **Watch mode** (`npm run test`) already runs Vitest in watch mode via the `test` script.
+   Phase 1 can wire `make test-client-fast` to `npm test -- --reporter=dot` and
+   `make test-client-watch` to `npm test` (interactive watch mode).
+
+7. **Fast vs coverage timing:** no-coverage run takes ~5.1s vs 7.1s with coverage — a 28% saving.
+   Worthwhile for quick iteration but not dramatic. The bigger win comes from running a single file
+   in watch mode (sub-second feedback) rather than the full suite.
+
+---
+
 ## Phase 1 — Fast loop first
+
+**Before starting:** Read the **Phase 0 Findings** section above. Decision 6 and Decision 7 give the specific commands and timing baseline to use for steps 6–10.
 
 **Goal:** Improve the default local iteration path before adding heavier tooling.
 
@@ -264,6 +438,8 @@ DevTools MCP lighthouse_audit
 ---
 
 ## Phase 2 — Test helper extraction and smaller seams
+
+**Before starting:** Read the **Phase 0 Findings** section. The "Client test file inventory", "URL mock duplicated in 3 files", `clickDownloadAndGetBlob` duplication, and `openDatePicker`/`openAdvancedFilters` duplication findings directly drive steps 11–13.
 
 **Goal:** Reduce setup friction and improve failure locality in ordinary client tests.
 
