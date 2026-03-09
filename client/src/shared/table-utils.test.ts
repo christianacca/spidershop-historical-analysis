@@ -109,6 +109,37 @@ describe('sortRows', () => {
     const result = sortRows(mixed, 'v', 'asc');
     expect(result).toHaveLength(2);
   });
+
+  test('ascending sort strips leading currency symbol', () => {
+    const priceRows = [
+      { price: '£15.00 ↑' },
+      { price: '£5.00 →' },
+      { price: '£25.00 ↓' },
+    ];
+    const result = sortRows(priceRows, 'price', 'asc');
+    expect(result.map((r) => r['price'])).toEqual(['£5.00 →', '£15.00 ↑', '£25.00 ↓']);
+  });
+
+  test('descending sort strips leading currency symbol', () => {
+    const priceRows = [
+      { price: '£15.00 ↑' },
+      { price: '£5.00 →' },
+      { price: '£25.00 ↓' },
+    ];
+    const result = sortRows(priceRows, 'price', 'desc');
+    expect(result.map((r) => r['price'])).toEqual(['£25.00 ↓', '£15.00 ↑', '£5.00 →']);
+  });
+
+  test('empty rows returns empty array', () => {
+    expect(sortRows([], 'price', 'asc')).toEqual([]);
+  });
+
+  test('single row returns unchanged single-element array', () => {
+    const single = [{ price: '£10.00' }];
+    const result = sortRows(single, 'price', 'asc');
+    expect(result).toHaveLength(1);
+    expect(result[0]['price']).toBe('£10.00');
+  });
 });
 
 // ── buildCsv ─────────────────────────────────────────────────────────────────
@@ -241,5 +272,16 @@ describe('applySearchFilter', () => {
     const original = [...rows];
     applySearchFilter(rows, columns, 'Beta');
     expect(rows).toEqual(original);
+  });
+
+  test('matches partial text across multiple columns — returns all rows where any column matches', () => {
+    const multiColRows = [
+      { Species: 'Alpha Spider', Info: 'red' },
+      { Species: 'Blue Tarantula', Info: 'alpha' },
+    ];
+    const colDefs = [{ key: 'Species' }, { key: 'Info' }];
+    // 'alpha' appears in Species of row 1 and Info of row 2
+    const result = applySearchFilter(multiColRows, colDefs, 'alpha');
+    expect(result).toHaveLength(2);
   });
 });

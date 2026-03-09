@@ -51,7 +51,8 @@ export function computeRange(
 /**
  * Return a new sorted copy of `rows` by `key` in the given direction.
  *
- * Numeric detection: if both `a[key]` and `b[key]` parse as finite numbers,
+ * Numeric detection: if both `a[key]` and `b[key]` parse as finite numbers
+ * after stripping leading non-numeric characters (e.g. currency symbol '£'),
  * numeric comparison is used; otherwise `localeCompare` for strings.
  * The original array is never mutated.
  */
@@ -60,11 +61,16 @@ export function sortRows(
   key: string,
   dir: 'asc' | 'desc',
 ): Record<string, unknown>[] {
+  /** Mirror the stripping logic in `computeRange()` so that price values like
+   *  "£25.00 ↑" sort numerically (25.0) rather than falling back to localeCompare. */
+  const toSortableNumber = (raw: unknown): number =>
+    parseFloat(String(raw ?? '').replace(/^[^0-9.]*/, ''));
+
   return [...rows].sort((a, b) => {
     const aRaw = a[key] ?? '';
     const bRaw = b[key] ?? '';
-    const aNum = parseFloat(String(aRaw));
-    const bNum = parseFloat(String(bRaw));
+    const aNum = toSortableNumber(aRaw);
+    const bNum = toSortableNumber(bRaw);
     const isNumeric = !isNaN(aNum) && !isNaN(bNum);
     const cmp = isNumeric ? aNum - bNum : String(aRaw).localeCompare(String(bRaw));
     return dir === 'asc' ? cmp : -cmp;

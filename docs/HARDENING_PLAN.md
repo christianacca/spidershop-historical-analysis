@@ -77,23 +77,23 @@ Work falls into three categories:
 ### Checklist
 
 **RED phase — write failing tests first:**
-- [ ] 2.1 In `client/src/shared/table-utils.test.ts`, add test `sortRows – ascending sort strips leading currency symbol` (rows `['£15.00 ↑', '£5.00 →', '£25.00 ↓']`; ascending should give `£5.00`, `£15.00`, `£25.00`)
-- [ ] 2.2 Add test `sortRows – descending sort strips leading currency symbol` (same rows reversed)
-- [ ] 2.3 Run `make test-client-fast` and confirm both new tests **fail** (RED confirmed before writing any implementation)
+- [x] 2.1 In `client/src/shared/table-utils.test.ts`, add test `sortRows – ascending sort strips leading currency symbol` (rows `['£15.00 ↑', '£5.00 →', '£25.00 ↓']`; ascending should give `£5.00`, `£15.00`, `£25.00`)
+- [x] 2.2 Add test `sortRows – descending sort strips leading currency symbol` (same rows reversed)
+- [x] 2.3 Run `make test-client-fast` and confirm both new tests **fail** (RED confirmed before writing any implementation)
 
 **GREEN phase — fix the implementation:**
-- [ ] 2.4 In `client/src/shared/table-utils.ts`, extract the leading-non-numeric-strip logic into a private `toSortableNumber` helper that mirrors `computeRange()`'s `toNumericStr` — or inline the same regex into `sortRows()`'s numeric detection
-- [ ] 2.5 Update `sortRows()` to call `toSortableNumber` (or equivalent) before `parseFloat` for both `aRaw` and `bRaw`
-- [ ] 2.6 Run `make test-client-fast` — confirm both new tests now **pass** and no existing tests regress
+- [x] 2.4 In `client/src/shared/table-utils.ts`, extract the leading-non-numeric-strip logic into a private `toSortableNumber` helper that mirrors `computeRange()`'s `toNumericStr` — or inline the same regex into `sortRows()`'s numeric detection
+- [x] 2.5 Update `sortRows()` to call `toSortableNumber` (or equivalent) before `parseFloat` for both `aRaw` and `bRaw`
+- [x] 2.6 Run `make test-client-fast` — confirm both new tests now **pass** and no existing tests regress
 
 **Close remaining edge-case gaps:**
-- [ ] 2.7 Add test `sortRows – empty rows returns empty array`
-- [ ] 2.8 Add test `sortRows – single row returns unchanged single-element array`
-- [ ] 2.9 Add test `buildCsv – empty rows produces header-only output (no data lines)`
-- [ ] 2.10 Add test `applySearchFilter – matches partial text across multiple columns`
-- [ ] 2.11 Add test `applySearchFilter – whitespace-only search returns all rows unchanged`
-- [ ] 2.12 Run `make test-client` — confirm all tests pass and coverage does not regress
-- [ ] 2.13 **Mark off each completed step. Reflect on any discoveries that will inform future phases. Update the "Findings / Discoveries" section at the top of Phase 3 before starting it.**
+- [x] 2.7 Add test `sortRows – empty rows returns empty array`
+- [x] 2.8 Add test `sortRows – single row returns unchanged single-element array`
+- [x] 2.9 Add test `buildCsv – empty rows produces header-only output (no data lines)` *(already existed as `empty visibleRows produces header line only` — no action needed)*
+- [x] 2.10 Add test `applySearchFilter – matches partial text across multiple columns`
+- [x] 2.11 Add test `applySearchFilter – whitespace-only search returns all rows unchanged` *(already existed as `returns all rows when searchText is whitespace only` — no action needed)*
+- [x] 2.12 Run `make test-client` — confirm all tests pass and coverage does not regress
+- [x] 2.13 **Mark off each completed step. Reflect on any discoveries that will inform future phases. Update the "Findings / Discoveries" section at the top of Phase 3 before starting it.**
 
 ---
 
@@ -105,7 +105,11 @@ Work falls into three categories:
 
 The `$derived.by()` block in `SortableTable.svelte` runs 6–7 sequential filter/sort steps inline with no intermediate labels. Introducing named local `const` variables (`afterSignal`, `afterTop10`, etc.) makes intent explicit and makes future filter additions lower-risk while producing identical runtime behaviour. The refactor is rename-only — no logic moves.
 
-> **Findings / Discoveries from Phase 2:** *(fill in after Phase 2 reflection)*
+> **Findings / Discoveries from Phase 2:**
+> - Fix was minimal: introduced a private `toSortableNumber` helper in `sortRows()` using the same `/^[^0-9.]*/` regex as `computeRange()`. No other logic changed.
+> - Steps 2.9 and 2.11 were already covered by existing tests (`empty visibleRows produces header line only` and `returns all rows when searchText is whitespace only`). Marked done without adding duplicates.
+> - `table-utils.ts` branch coverage is now 80.95% (up from ~78%). The uncovered branches are the `rawValueKey` fallback path in `buildCsv` and the `?? ''` null-coalesce in `toSortableNumber` — both are low-risk defensive guards unlikely to be hit in production.
+> - No surprises — Phase 3 steps need no changes.
 
 ### Checklist
 
