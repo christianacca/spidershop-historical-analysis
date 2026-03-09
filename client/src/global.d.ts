@@ -17,6 +17,13 @@ type TableRow = Record<string, unknown>;
  * to produce a machine-readable export.
  */
 interface HistoryTableRow extends Record<string, unknown> {
+  /**
+   * Raw ISO datetime string (e.g. `"2026-01-15T06:10:00"`) required for
+   * machine-readable CSV export.  The display column 'Scrape Date' formats
+   * this value for readability; this field MUST be preserved through to
+   * `buildCsv()` via `rawValueKey` so the exported CSV contains a
+   * machine-parseable timestamp rather than the human display value.
+   */
   _raw_scrape_datetime: string;
 }
 

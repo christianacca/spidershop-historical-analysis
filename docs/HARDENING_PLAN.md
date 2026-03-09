@@ -206,20 +206,20 @@ The history slice (`HistoryTable.svelte`, `DateFilter.svelte`, `history-utils.ts
 ### Checklist
 
 **Read before writing:**
-- [ ] 5.1 Read `client/src/history-page/HistoryTable.svelte` in full — confirm `_raw_scrape_datetime` is in the CSV column definition; note the filter pipeline order
-- [ ] 5.2 Read `client/src/history-page/history-utils.ts` — confirm all exported functions are pure (no side effects, no global reads)
-- [ ] 5.3 Read `client/src/history-page/DateFilter.svelte` — note the `data-action` attributes that E2E tests target
+- [x] 5.1 Read `client/src/history-page/HistoryTable.svelte` in full — `_raw_scrape_datetime` confirmed in the CSV column definition as `rawValueKey`; filter pipeline: date → search → price → wishlist → sort ✅
+- [x] 5.2 Read `client/src/history-page/history-utils.ts` — `collectAllDates()` is pure: no side effects, no global reads ✅
+- [x] 5.3 Read `client/src/history-page/DateFilter.svelte` — `data-action` attributes present: `toggle-date-picker`, `select-last-n`, `show-all-dates`. E2E test file confirms these are all that are required ✅
 
 **Low-risk improvements only:**
-- [ ] 5.4 If `collectAllDates()` or any function in `history-utils.ts` has side effects, extract the side-effecting code into the calling component
-- [ ] 5.5 If `_raw_scrape_datetime` does not have a JSDoc comment explaining why it must be preserved in CSV exports, add one
-- [ ] 5.6 If `DateFilter.svelte` is missing `data-action="select-all"` or `data-action="clear-all"` attributes on the relevant buttons (required by E2E selectors), add them
+- [x] 5.4 `collectAllDates()` is pure — no side effects to extract (no-op) ✅
+- [x] 5.5 Added property-level JSDoc directly on `_raw_scrape_datetime` in `global.d.ts` — the interface-level JSDoc existed but no property-level doc. Added one explaining why it must survive to `buildCsv()` via `rawValueKey` ✅
+- [x] 5.6 No missing `data-action` attributes — E2E tests use `toggle-date-picker`, `select-last-n`, and `show-all-dates` which all exist; `select-all`/`clear-all` are not required by any E2E selector (no-op) ✅
 
 **Tests:**
-- [ ] 5.7 Add test `HistoryTable – CSV export blob contains a column header for raw scrape datetime` (use `clickDownloadAndGetBlob`; assert the header is present in the CSV output)
-- [ ] 5.8 If `HistoryTable.test.ts` does not yet test date-filter interaction reducing visible row count, add one focused test for that path
-- [ ] 5.9 Run `make test-client` — confirm all tests pass
-- [ ] 5.10 **Mark off each completed step. Reflect on any discoveries that will inform future phases. Update the "Findings / Discoveries" section at the top of Phase 6 before starting it.**
+- [x] 5.7 Already covered by `'CSV header uses csvHeader values from column config'` which asserts `headerLine === 'scrape_datetime,scientific_name,price_gbp,wishlist_count'` — no duplicate test added ✅
+- [x] 5.8 Already covered by `'deselecting a date hides rows for that date'` which opens the date picker, deselects 2026-01-15, and asserts 2 rows remain — no duplicate test added ✅
+- [x] 5.9 Run `make test-client` — all tests pass; coverage holds: statements 96.9% | branches 86.18% | functions 94.36% | lines 96.9% ✅
+- [x] 5.10 **All steps complete. Discoveries recorded below. Phase 6 findings updated.** ✅
 
 ---
 
@@ -231,7 +231,12 @@ The history slice (`HistoryTable.svelte`, `DateFilter.svelte`, `history-utils.ts
 
 CSS regression is an identified project risk. Visual tests are mandatory for any CSS-affecting change. Eight `.visual.test.ts` files currently exist. The gap analysis identified: no active-state token colour assertion for `DateFilter` quick-select buttons; no sort-indicator colour assertion on `SortableTable` headers. These are the most useful gaps to close.
 
-> **Findings / Discoveries from Phase 5:** *(fill in after Phase 5 reflection)*
+> **Findings / Discoveries from Phase 5:**
+> - History slice is in good shape overall — `history-utils.ts` is already pure (step 5.4 no-op); all required E2E `data-action` attributes are present on `DateFilter.svelte` (step 5.6 no-op).
+> - `HistoryTableRow._raw_scrape_datetime` lacked a property-level JSDoc even though the interface-level JSDoc existed. Added a property-level doc explaining the `rawValueKey` CSV export contract.
+> - Steps 5.7 and 5.8 were already covered by existing tests: `'CSV header uses csvHeader values from column config'` and `'deselecting a date hides rows for that date'` respectively — not duplicated.
+> - Coverage unchanged from Phase 4 baseline: 96.9% | 86.18% | 94.36% | 96.9%.
+> - No surprises — Phase 6 steps need no changes.
 >
 > **Pre-seeded from Phase 1:** Both gaps identified in the plan are confirmed absent:
 > - `DateFilter.visual.test.ts` has only two *border* assertions using `--color-date-filter` — zero assertions on active quick-select button *background* colour.
