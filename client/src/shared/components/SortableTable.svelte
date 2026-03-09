@@ -89,52 +89,46 @@
     const priceCol = filterConfig.priceColumn;
     const wishlistCol = filterConfig.wishlistColumn;
 
-    let result: Record<string, unknown>[] = allRows;
-
     // 1. Signal filter
-    if (signalCol && activeSignal !== 'all') {
-      result = result.filter((r) => String(r[signalCol] ?? '') === activeSignal);
-    }
+    const afterSignal: Record<string, unknown>[] = signalCol && activeSignal !== 'all'
+      ? allRows.filter((r) => String(r[signalCol] ?? '') === activeSignal)
+      : allRows;
 
     // 2. Top-10: pins a subset from the signal-filtered list, then allows the
     //    remaining filters to narrow further (e.g. search within top-10).
-    if (top10Limit !== null) {
-      const pinned = new Set(result.slice(0, top10Limit));
-      result = allRows.filter((r) => pinned.has(r));
-    }
+    const top10Pinned = top10Limit !== null ? new Set(afterSignal.slice(0, top10Limit)) : null;
+    const afterTop10 = top10Pinned !== null ? allRows.filter((r) => top10Pinned.has(r)) : afterSignal;
 
     // 3. Stock pattern filter
-    if (stockPatternCol && activeStockPattern !== 'all') {
-      result = result.filter(
-        (r) => String(r[stockPatternCol] ?? '') === activeStockPattern,
-      );
-    }
+    const afterStockPattern = stockPatternCol && activeStockPattern !== 'all'
+      ? afterTop10.filter((r) => String(r[stockPatternCol] ?? '') === activeStockPattern)
+      : afterTop10;
 
     // 4. Search (all columns)
-    if (searchText.trim()) {
-      result = applySearchFilter(result, columns, searchText);
-    }
+    const afterSearch = searchText.trim()
+      ? applySearchFilter(afterStockPattern, columns, searchText)
+      : afterStockPattern;
 
     // 5. Price range — NaN (non-numeric cell, e.g. empty) passes through unchanged.
-    if (priceCol) {
-      result = result.filter((r) => {
-        const v = parseFloat(String(r[priceCol] ?? '').replace(/^[^0-9.]*/, ''));
-        return isNaN(v) || (v >= sliderPriceMin && v <= sliderPriceMax);
-      });
-    }
+    const afterPriceRange = priceCol
+      ? afterSearch.filter((r) => {
+          const v = parseFloat(String(r[priceCol] ?? '').replace(/^[^0-9.]*/, ''));
+          return isNaN(v) || (v >= sliderPriceMin && v <= sliderPriceMax);
+        })
+      : afterSearch;
 
     // 6. Wishlist range — NaN (emoji values, empty cells) passes through unchanged.
-    if (wishlistCol) {
-      result = result.filter((r) => {
-        const v = parseInt(String(r[wishlistCol] ?? '').replace(/^[^0-9.]*/, ''), 10);
-        return isNaN(v) || (v >= sliderWishlistMin && v <= sliderWishlistMax);
-      });
-    }
+    const afterWishlist = wishlistCol
+      ? afterPriceRange.filter((r) => {
+          const v = parseInt(String(r[wishlistCol] ?? '').replace(/^[^0-9.]*/, ''), 10);
+          return isNaN(v) || (v >= sliderWishlistMin && v <= sliderWishlistMax);
+        })
+      : afterPriceRange;
 
     // 7. Sort
-    result = sort.apply(result);
+    const sorted = sort.apply(afterWishlist);
 
-    return result;
+    return sorted;
   });
 
   // ── Derived: counts ────────────────────────────────────────────────────────
@@ -204,10 +198,10 @@
 
   // ── Derived: signal filter buttons with row counts in labels ─────────────
   const signalButtons = $derived([
-    { value: 'all', label: `Show All (${signalCounts.all})` },
-    { value: '🔥', label: `🔥 Hot (${signalCounts.hot})` },
-    { value: '⚠️', label: `⚠️ Watch (${signalCounts.watch})` },
-    { value: '❌', label: `❌ Avoid (${signalCounts.avoid})` },
+    { value: 'all', label: `Show All (${signalCounts.all})`, count: signalCounts.all },
+    { value: '🔥', label: `🔥 Hot (${signalCounts.hot})`, count: signalCounts.hot },
+    { value: '⚠️', label: `⚠️ Watch (${signalCounts.watch})`, count: signalCounts.watch },
+    { value: '❌', label: `❌ Avoid (${signalCounts.avoid})`, count: signalCounts.avoid },
   ]);
 
   // ── Derived: per-stock-pattern row counts (from all rows, not filtered) ───
@@ -257,6 +251,7 @@
           onclick={() => handleSignalFilter(btn.value, null)}
           data-action="filter-signal"
           data-signal={btn.value}
+          data-count={btn.count}
         />
         {#if i === 0 && filterConfig.signalFilter.top10}
           <FilterButton

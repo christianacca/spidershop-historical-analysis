@@ -164,6 +164,21 @@ test('signal filter button gets is-active class when selected', async () => {
   expect(hotBtn.classList.contains('is-active')).toBe(true);
 });
 
+test('signal filter buttons show correct per-signal row counts via data-count attribute', () => {
+  // ROWS has 1 × 🔥, 1 × ⚠️, 1 × ❌ → totals: all=3, hot=1, watch=1, avoid=1
+  const { container } = renderTable();
+
+  const allBtn  = container.querySelector('[data-action="filter-signal"][data-signal="all"]:not([data-limit])') as HTMLElement;
+  const hotBtn  = container.querySelector('[data-action="filter-signal"][data-signal="🔥"]') as HTMLElement;
+  const watchBtn = container.querySelector('[data-action="filter-signal"][data-signal="⚠️"]') as HTMLElement;
+  const avoidBtn = container.querySelector('[data-action="filter-signal"][data-signal="❌"]') as HTMLElement;
+
+  expect(allBtn.getAttribute('data-count')).toBe('3');
+  expect(hotBtn.getAttribute('data-count')).toBe('1');
+  expect(watchBtn.getAttribute('data-count')).toBe('1');
+  expect(avoidBtn.getAttribute('data-count')).toBe('1');
+});
+
 test('"Show All" signal button resets filter and shows all rows', async () => {
   const { container } = renderTable();
   const hotBtn = container.querySelector(
@@ -194,7 +209,8 @@ test('visible count updates after signal filter', async () => {
 // ── Top-10 filter ─────────────────────────────────────────────────────────────
 
 test('Top 10 button limits visible rows to at most 10', async () => {
-  // Use 15 rows to test the cap
+  // Use 15 rows to test the cap: with all rows having the same signal, top-10
+  // should pin exactly 10 — not just "at most" 10.
   const manyRows = Array.from({ length: 15 }, (_, i) => ({
     Species: `Spider ${i + 1}`,
     Signal: '🔥',
@@ -213,7 +229,7 @@ test('Top 10 button limits visible rows to at most 10', async () => {
   const top10Btn = container.querySelector('[data-limit="10"]') as HTMLElement;
   await fireEvent.click(top10Btn);
 
-  expect(tbody(container).length).toBeLessThanOrEqual(10);
+  expect(tbody(container)).toHaveLength(10);
 });
 
 test('Top 10 button gets is-active class when enabled', async () => {
@@ -273,6 +289,40 @@ test('signal filter AND search are combined', async () => {
 
   // 'Beta Spider' is ⚠️, so signal=🔥 AND name=Beta → no results
   expect(tbody(container)).toHaveLength(0);
+});
+
+test('signal filter + search applied together — only rows matching both criteria are visible', async () => {
+  // Two 🔥 rows with different species names; signal filter narrows to 🔥,
+  // search further narrows to only 'Alpha' → exactly 1 row visible.
+  const twoHotRows = [
+    { Species: 'Alpha Spider', Signal: '🔥', 'Stock Pattern': 'Sustained', Price: '15.00', 'Wishlist Count': '3' },
+    { Species: 'Delta Spider', Signal: '🔥', 'Stock Pattern': 'Emerging', Price: '20.00', 'Wishlist Count': '5' },
+    { Species: 'Gamma Spider', Signal: '❌', 'Stock Pattern': 'Cyclical', Price: '35.00', 'Wishlist Count': '1' },
+  ];
+  const { container } = render(SortableTable, {
+    tableId: 'two-hot-table',
+    rows: twoHotRows,
+    columns: COLUMNS,
+    filterConfig: {
+      signalFilter: { column: 'Signal', top10: true },
+      showSearch: true,
+    },
+  });
+
+  const hotBtn = container.querySelector(
+    '[data-action="filter-signal"][data-signal="🔥"]',
+  ) as HTMLElement;
+  await fireEvent.click(hotBtn);
+  // Signal filter alone: both 🔥 rows visible
+  expect(tbody(container)).toHaveLength(2);
+
+  await openAdvancedFilters(container);
+  const searchInput = container.querySelector('#search-two-hot-table') as HTMLInputElement;
+  await fireEvent.input(searchInput, { target: { value: 'Alpha' } });
+
+  // Combined signal + search: only Alpha Spider matches both
+  expect(tbody(container)).toHaveLength(1);
+  expect(container.querySelector('tbody tr td')?.textContent?.trim()).toBe('Alpha Spider');
 });
 
 test('search that matches no rows shows zero visible count', async () => {

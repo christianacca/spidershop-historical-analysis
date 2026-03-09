@@ -114,23 +114,23 @@ The `$derived.by()` block in `SortableTable.svelte` runs 6–7 sequential filter
 ### Checklist
 
 **Read before writing:**
-- [ ] 3.1 Re-read the `$derived.by()` block in `SortableTable.svelte` and sketch the exact pipeline order (signal → top-10 → stock-pattern → search → price-range → wishlist → sort) to confirm it matches expectation
+- [x] 3.1 Re-read the `$derived.by()` block in `SortableTable.svelte` and sketch the exact pipeline order (signal → top-10 → stock-pattern → search → price-range → wishlist → sort) to confirm it matches expectation
 
 **Refactor — internal pipeline clarity (no API change):**
-- [ ] 3.2 In the `$derived.by()` block, introduce named `const` intermediate variables for each stage. Use the names: `afterSignal`, `afterTop10`, `afterStockPattern`, `afterSearch`, `afterPriceRange`, `afterWishlist`, `sorted`
-- [ ] 3.3 Run `make test-client-fast` — confirm no regressions from the naming-only change
+- [x] 3.2 In the `$derived.by()` block, introduce named `const` intermediate variables for each stage. Use the names: `afterSignal`, `afterTop10`, `afterStockPattern`, `afterSearch`, `afterPriceRange`, `afterWishlist`, `sorted`
+- [x] 3.3 Run `make test-client-fast` — confirm no regressions from the naming-only change
 
 **Tests — combined filter and badge behaviour:**
-- [ ] 3.4 In `client/src/shared/components/SortableTable.test.ts`, add test `signal filter + search applied together — only rows matching both criteria are visible`  
+- [x] 3.4 In `client/src/shared/components/SortableTable.test.ts`, add test `signal filter + search applied together — only rows matching both criteria are visible`  
   *(inject 3 rows: two 🔥 with different species names; activate 🔥 filter then type a search term that matches only one of them; assert 1 row visible)*
-- [ ] 3.5 Add test `signal filter buttons show correct per-signal row counts via data-count attribute`  
+- [x] 3.5 Add test `signal filter buttons show correct per-signal row counts via data-count attribute`  
   *(inject rows with known signal distribution; assert `data-count` on each signal button matches count)*
-- [ ] 3.6 Add test `top-10 pin: only 10 rows shown when top10 is enabled and 15 rows injected`
-- [ ] 3.7 Add test `stock-pattern filter: clicking a pattern button filters table to matching rows only`
-- [ ] 3.8 Add test `CSV download contains only currently visible rows, not all rows`  
+- [x] 3.6 Add test `top-10 pin: only 10 rows shown when top10 is enabled and 15 rows injected`
+- [x] 3.7 Add test `stock-pattern filter: clicking a pattern button filters table to matching rows only`
+- [x] 3.8 Add test `CSV download contains only currently visible rows, not all rows`  
   *(activate a signal filter, trigger download via `clickDownloadAndGetBlob`, parse result, assert only filtered species names present)*
-- [ ] 3.9 Run `make test-client` — confirm all tests pass and branches coverage holds or improves
-- [ ] 3.10 **Mark off each completed step. Reflect on any discoveries that will inform future phases. Update the "Findings / Discoveries" section at the top of Phase 4 before starting it.**
+- [x] 3.9 Run `make test-client` — confirm all tests pass and branches coverage holds or improves
+- [x] 3.10 **Mark off each completed step. Reflect on any discoveries that will inform future phases. Update the "Findings / Discoveries" section at the top of Phase 4 before starting it.**
 
 ---
 
@@ -142,7 +142,13 @@ The `$derived.by()` block in `SortableTable.svelte` runs 6–7 sequential filter
 
 Every stable entry point reads its payload as `(window as Record<string, unknown>)[...] ?? []` with no further validation. When the Python template renames a column or changes the serialisation shape, the JS receives an array of incorrectly shaped rows and renders an empty table — no error, no log. A small `assertPayload()` function gated on `import.meta.env.DEV` adds a clear error in development and CI without bundling any validation logic into production builds.
 
-> **Findings / Discoveries from Phase 3:** *(fill in after Phase 3 reflection)*
+> **Findings / Discoveries from Phase 3:**
+> - The `$derived.by()` refactor was pure naming — zero logic changes. The `top10` step introduced one helper (`top10Pinned`) alongside `afterTop10` to keep the conditional readable without an IIFE.
+> - Tests 3.7 (`stock-pattern filter`) and 3.8 (`CSV scoped to visible rows`) were already covered by "clicking a stock pattern filter button filters rows" and "filtered CSV excludes hidden rows" respectively — marked done without adding duplicates.
+> - Test 3.6 (`top-10 exact count`) was partially covered by an existing test that used `toBeLessThanOrEqual(10)`. Strengthened that assertion to `toHaveLength(10)` — exact count is achievable because all 15 injected rows share the same signal.
+> - `data-count` attribute did not exist on signal filter buttons before Phase 3. Added `count` field to the `signalButtons` derived array and spread `data-count={btn.count}` onto each `FilterButton`. `FilterButton` already accepts `...rest` so no component change was needed.
+> - Coverage: statements 96.83% | branches 86.01% | functions 94.28% | lines 96.83% — all hold or improve vs baseline.
+> - No surprises — Phase 4 steps need no changes.
 >
 > **Pre-seeded from Phase 1:** Window global keys are kebab-case (e.g. `'breeder-tableData'`) because TABLE_ID uses hyphens. TypeScript `interface Window` supports quoted property names with hyphens — step 4.2 must use `'breeder-tableData'?: TableRow[]` syntax rather than `breederTableData`. Verify the Python template injection to confirm the exact key names before writing global.d.ts additions.
 
