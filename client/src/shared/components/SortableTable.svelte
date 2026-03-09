@@ -10,6 +10,8 @@
   import RangeSlider from './RangeSlider.svelte';
   import FiltersPanel from './FiltersPanel.svelte';
   import TableStats from './TableStats.svelte';
+  import InfoTooltip from './InfoTooltip.svelte';
+  import FilterSection from './FilterSection.svelte';
 
   // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -240,9 +242,8 @@
 
 <!-- ── Signal filter row ─────────────────────────────────────────────────── -->
 {#if filterConfig.signalFilter}
-  <div class="signal-filter-row">
-    <span class="filter-label">🎯 Signal:</span>
-    <div class="filter-buttons-container">
+  <FilterSection label="🎯 Signal:">
+    {#snippet children()}
       {#each signalButtons as btn, i}
         <FilterButton
           label={btn.label}
@@ -277,8 +278,8 @@
           {#snippet children()}More Filters{/snippet}
         </ToggleButton>
       {/if}
-    </div>
-  </div>
+    {/snippet}
+  </FilterSection>
 {/if}
 
 <!-- ── Fallback controls row (for pages without a signal filter) ─────────── -->
@@ -301,9 +302,8 @@
 {#if showAdvanced}
   <FiltersPanel>
     {#if filterConfig.stockPatternFilter}
-      <div class="signal-filter-row">
-        <span class="filter-label">📊 Stock Pattern:</span>
-        <div class="filter-buttons-container">
+      <FilterSection label="📊 Stock Pattern:">
+        {#snippet children()}
           {#each stockPatternButtons as btn}
             <FilterButton
               label={btn.label}
@@ -314,8 +314,8 @@
               data-stock-pattern={btn.value}
             />
           {/each}
-        </div>
-      </div>
+        {/snippet}
+      </FilterSection>
     {/if}
     {#if filterConfig.showSearch !== false}
       <div class="search-filter-row">
@@ -400,7 +400,7 @@
                   {@const viewSuffix = col.linkViewParam ? `?view=${col.linkViewParam}` : ''}
                   {#if slug}<a href="species/{slug}.html{viewSuffix}">{cellValue}</a>{:else}{cellValue}{/if}
                 {:else}
-                  {cellValue}{#if isSignalCol && filterConfig.driversKey && row[filterConfig.driversKey]}<span class="info-icon" tabindex="0">ℹ️<span class="tooltip">{String(row[filterConfig.driversKey] ?? '')}</span></span>{/if}
+                  {cellValue}<InfoTooltip tip={isSignalCol && filterConfig.driversKey ? String(row[filterConfig.driversKey] ?? '') : ''} />
                 {/if}
               </td>
             {/if}
@@ -411,30 +411,7 @@
   </table>
 </div>
 
-<p class="table-row-count"><strong>Total rows:</strong> {totalRows}</p>
-
 <style>
-  .signal-filter-row {
-    display: flex;
-    align-items: center;
-    margin-bottom: 15px;
-    flex-wrap: wrap;
-    gap: var(--spacing-sm);
-  }
-
-  .filter-label {
-    color: var(--color-primary-light);
-    margin-right: 10px;
-    white-space: nowrap;
-  }
-
-  .filter-buttons-container {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-
   .controls-row {
     display: flex;
     align-items: center;
@@ -458,11 +435,5 @@
   .sortable-header {
     cursor: pointer;
     user-select: none;
-  }
-
-  .table-row-count {
-    margin-top: 15px;
-    color: var(--color-text-muted);
-    font-size: var(--font-sm);
   }
 </style>

@@ -476,7 +476,7 @@ def test_analysis_pages_have_analysis_ui(e2e_site_multi_species) -> None:
         assert page.locator('.stat-card.stat-card--watch').count() >= 1, f"{page_name} should have .stat-card--watch card"
         assert page.locator('.stat-card.stat-card--avoid').count() >= 1, f"{page_name} should have .stat-card--avoid card"
 
-        assert page.locator('.filter-buttons-container').count() >= 1, \
+        assert page.locator('.filter-controls').count() >= 1, \
             f"{page_name} should have filter button containers"
         assert page.locator('.filter-btn[data-action="filter-signal"]').count() >= 3, \
             f"{page_name} should have at least 3 signal filter buttons"
@@ -549,11 +549,11 @@ def test_filter_buttons_layout(e2e_site_multi_species) -> None:
 
     page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
 
-    container_display = page.locator('.filter-buttons-container').first.evaluate(
+    container_display = page.locator('.filter-controls').first.evaluate(
         'el => window.getComputedStyle(el).display'
     )
     assert container_display == 'flex', \
-        f".filter-buttons-container should use flex, got {container_display}"
+        f".filter-controls should use flex, got {container_display}"
 
     button_display = page.locator('.filter-btn').first.evaluate(
         'el => window.getComputedStyle(el).display'
@@ -634,28 +634,28 @@ def test_table_scroll_containers_have_overflow_auto(e2e_site_multi_species) -> N
 
 @pytest.mark.e2e
 def test_analysis_row_count_paragraph_styling(e2e_site_multi_species) -> None:
-    """Row-count paragraphs on analysis pages should use .table-row-count class."""
+    """Row-count strip on analysis pages should use the .table-stats component."""
     page, base_url, errors = e2e_site_multi_species
 
     for page_name in ['breeder.html', 'dealer.html']:
         page.goto(f"{base_url}/{page_name}", wait_until="domcontentloaded")
 
-        paragraphs = page.locator('.table-row-count')
-        assert paragraphs.count() >= 1, \
-            f"{page_name} should have at least one .table-row-count paragraph"
+        stats = page.locator('.table-stats')
+        assert stats.count() >= 1, \
+            f"{page_name} should have at least one .table-stats element"
 
-        margin_top = paragraphs.first.evaluate(
-            'el => window.getComputedStyle(el).marginTop'
+        display = stats.first.evaluate(
+            'el => window.getComputedStyle(el).display'
         )
-        assert margin_top == '15px', \
-            f"{page_name} .table-row-count should have margin-top: 15px, got {margin_top}"
+        assert display == 'flex', \
+            f"{page_name} .table-stats should have display: flex, got {display}"
 
-        color = paragraphs.first.evaluate(
+        color = stats.first.evaluate(
             'el => window.getComputedStyle(el).color'
         )
-        # --color-text-muted: #7f8c8d
-        assert token_rgb('--color-text-muted') in color, \
-            f"{page_name} .table-row-count should be grey rgb(127,140,141), got {color}"
+        # --color-text: #333
+        assert token_rgb('--color-text') in color, \
+            f"{page_name} .table-stats should use --color-text (#333), got {color}"
 
 
 @pytest.mark.e2e
@@ -685,19 +685,19 @@ def test_signal_filter_row_layout(e2e_site_multi_species) -> None:
 
     page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
 
-    filter_row = page.locator('.signal-filter-row')
-    assert filter_row.count() >= 1, "Breeder page should have .signal-filter-row element"
+    filter_row = page.locator('.filter-section')
+    assert filter_row.count() >= 1, "Breeder page should have .filter-section element"
 
     styles = filter_row.first.evaluate(
         'el => { const s = window.getComputedStyle(el); '
         'return { display: s.display, alignItems: s.alignItems, marginBottom: s.marginBottom }; }'
     )
     assert styles['display'] == 'flex', \
-        f".signal-filter-row should have display: flex, got {styles['display']}"
+        f".filter-section should have display: flex, got {styles['display']}"
     assert styles['alignItems'] == 'center', \
-        f".signal-filter-row should have align-items: center, got {styles['alignItems']}"
+        f".filter-section should have align-items: center, got {styles['alignItems']}"
     assert styles['marginBottom'] == '15px', \
-        f".signal-filter-row should have margin-bottom: 15px, got {styles['marginBottom']}"
+        f".filter-section should have margin-bottom: 15px, got {styles['marginBottom']}"
 
 
 @pytest.mark.e2e

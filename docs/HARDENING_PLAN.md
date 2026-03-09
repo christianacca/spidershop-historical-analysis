@@ -23,6 +23,7 @@ Work falls into three categories:
 - History chart data contract at the type/DTO layer only
 - Coverage threshold ratchet after stable code settles
 - Doc compression to stable operating model
+- CSS layer compliance: extract `InfoTooltip.svelte`, `FilterSection.svelte`; remove dead global CSS; fix hardcoded colour in `HistoryTable.svelte`
 
 **Out of scope (explicitly deferred or forbidden):**
 - Merging `HistoryTable.svelte` into `SortableTable.svelte`
@@ -380,9 +381,96 @@ Migration plan documents accumulate narrative that is historically accurate but 
 
 ---
 
+## Phase 10 — CSS Layer Compliance and Component Cleanup
+
+**Goal:** Fix the CSS layer violations and structural duplications that survived the initial migration. No logic changes — this is entirely structural.
+
+### Context
+
+Post-migration review (after Phases 1–9 were complete) identified five items missed from the original plan:
+
+1. **`.info-icon` / `.tooltip` in `analysis.css`**: These styles live in Layer 2 (page-level static CSS) but exclusively style elements rendered by `SortableTable.svelte` (Layer 3 Svelte). This directly violates the 3-layer CSS model. Extracting `InfoTooltip.svelte` corrects ownership.
+2. **Redundant `<p class="table-row-count">`**: Sits below the table in `SortableTable.svelte` and says "Total rows: N". `TableStats` already shows "Showing X of Y species" above the table. The paragraph is noise.
+3. **`FilterSection` pattern duplicated twice**: The `<div class="signal-filter-row"><span class="filter-label">…</span><div class="filter-buttons-container">…</div></div>` wrapper appears identically for the signal filter row and the stock-pattern filter row inside `SortableTable.svelte`. Extracting `FilterSection.svelte` removes both copies cleanly.
+4. **Dead `.table-scroll` in `common.css`**: All `<div class="table-scroll">` elements are Svelte-rendered. Both `SortableTable` and `HistoryTable` have their own scoped `.table-scroll { overflow-x: auto }`. The global rule in `common.css` is never applied.
+5. **Hardcoded `#856404` in `HistoryTable.svelte`**: The `.date-filter-section` block sets `--toggle-btn-color: #856404`. This hex value has no design token. The `design-tokens.test.ts` scanner missed it — the scanner flags hex values that duplicate *existing* token values, not novel hardcoded colours.
+
+### Do-not-touch list
+
+- Do **not** extract anything else from `HistoryTable.svelte` beyond step 10.23 (history is transitional)
+- Do **not** rename `.info-icon` or `.tooltip` class names inside `InfoTooltip.svelte` — E2E tests target them by class name
+
+> **Findings / Discoveries from Phases 1–9:** *(this phase is newly added scope; no prior phase seeded discoveries into it)*
+
+### Checklist
+
+**Read before writing:**
+- [x] 10.1 Read `templates/analysis.css` in full — identify the exact extent of `.info-icon` / `.tooltip` / `.tooltip::after` rules and all associated `@media` overrides to be moved
+- [x] 10.2 Read `tests/e2e/test_breeder_page_interactions.py` lines around the `G4` group — confirm `.info-icon` and `.tooltip` are the exact selector strings used; confirm Svelte scoping (which preserves original class names alongside the hash) will not break Playwright selectors
+- [x] 10.3 Run `grep -r 'table-row-count\|Total rows' client/src/` — confirm no test queries that element before deleting it
+
+**A — Extract `InfoTooltip.svelte`:**
+- [x] 10.4 Create `client/src/shared/components/InfoTooltip.svelte`:
+  - Props: `tip: string`
+  - Template: renders `<span class="info-icon" tabindex="0">ℹ️<span class="tooltip">{tip}</span></span>` only when `tip` is truthy; renders nothing otherwise
+  - Scoped `<style>`: copy `.info-icon`, `.tooltip`, `.tooltip::after`, hover, focus, and `@media` rules **verbatim** from `templates/analysis.css` (class names preserved to keep E2E selectors working)
+- [x] 10.5 Add `client/src/shared/components/InfoTooltip.test.ts` — write **failing** tests first (RED):
+  - `renders nothing when tip is empty string`
+  - `renders ℹ️ icon when tip is provided`
+  - `tooltip span contains the tip text`
+  Run `make test-client-fast` and confirm all 3 fail before implementing
+- [x] 10.6 Implement the component; run `make test-client-fast` — confirm all 3 tests **pass**
+- [x] 10.7 In `SortableTable.svelte`, import `InfoTooltip` and replace the inline tooltip block  
+  *(the `{#if isSignalCol && filterConfig.driversKey && row[filterConfig.driversKey]}<span class="info-icon"…</span>{/if}` markup)*  
+  with `<InfoTooltip tip={isSignalCol && filterConfig.driversKey ? String(row[filterConfig.driversKey] ?? '') : ''} />`
+- [x] 10.8 Remove the `.info-icon`, `.tooltip`, `.tooltip::after`, hover, focus, and all associated `@media` blocks from `templates/analysis.css`
+- [x] 10.9 Run `make test-client-fast` — confirm no regressions in `SortableTable.test.ts`
+- [x] 10.10 Run `make test-e2e` — confirm the `G4 — Info icons and Drivers tooltips` group in `tests/e2e/test_breeder_page_interactions.py` still passes
+
+**B — Remove redundant `<p class="table-row-count">`:**
+- [x] 10.11 In `SortableTable.svelte`, delete the `<p class="table-row-count"><strong>Total rows:</strong> {totalRows}</p>` element
+- [x] 10.12 Delete the `.table-row-count { … }` CSS rule from `SortableTable.svelte`'s `<style>` block
+- [x] 10.13 Run `make test-client-fast` — confirm nothing relied on that element
+
+**C — Extract `FilterSection.svelte`:**
+- [x] 10.14 Create `client/src/shared/components/FilterSection.svelte`:
+  - Props: `label: string`, `children: Snippet`
+  - Template: `<div class="filter-section"><span class="filter-label">{label}</span><div class="filter-controls">{@render children()}</div></div>`
+  - Scoped `<style>`: take `.signal-filter-row` → `.filter-section`, `.filter-buttons-container` → `.filter-controls`, and `.filter-label` (unchanged) from `SortableTable.svelte`'s `<style>` block verbatim
+- [x] 10.15 Add `client/src/shared/components/FilterSection.test.ts` — write **failing** tests first (RED):
+  - `renders the label text`
+  - `renders slotted children`
+  Run `make test-client-fast` and confirm both fail before implementing
+- [x] 10.16 Implement the component; run `make test-client-fast` — confirm both tests **pass**
+- [x] 10.17 In `SortableTable.svelte`, import `FilterSection` and replace both `<div class="signal-filter-row">…</div>` wrappers with `<FilterSection label="🎯 Signal:">…</FilterSection>` and `<FilterSection label="📊 Stock Pattern:">…</FilterSection>`
+- [x] 10.18 Remove `.signal-filter-row`, `.filter-label`, `.filter-buttons-container` from `SortableTable.svelte`'s `<style>` block
+- [x] 10.19 Run `make test-client-fast` — confirm no regressions in `SortableTable.test.ts`
+
+**D — Remove dead `.table-scroll` from `common.css`:**
+- [x] 10.20 In `templates/common.css`, remove the `/* Table Scroll Wrapper */` comment and `.table-scroll { overflow-x: auto; }` rule
+- [x] 10.21 Run `make test-visual` — confirm `SortableTable.visual.test.ts`'s `overflow-x: auto` assertion still passes (the Svelte-scoped rules remain; the global was redundant)
+
+**E — Fix hardcoded `#856404` in `HistoryTable.svelte`:**
+- [x] 10.22 In `templates/common.css`, add `--color-date-filter-text: #856404;` to the `:root` block, grouped with the other `--color-date-filter-*` tokens
+- [x] 10.23 In `client/src/history-page/HistoryTable.svelte`, change `--toggle-btn-color: #856404;` → `--toggle-btn-color: var(--color-date-filter-text);`
+- [x] 10.24 Run `make test-visual` — design-tokens snapshot failed with exactly one new line (`--color-date-filter-text: #856404`). Diff verified as intentional; updated with `npx vitest run -u src/test-utils/design-tokens.test.ts`. Re-run confirmed all 39 visual tests green.
+- [x] 10.25 Run `make test-client-fast` — confirm the Svelte CSS compliance tests still pass; from this point the hex scanner will flag any future re-introduction of `#856404` as "use var(--color-date-filter-text)"
+
+**Wrap-up:**
+- [x] 10.26 Run `make test-client`, `make test-visual`, and `make test-e2e` — client 235 passed; visual 39 passed; E2E 135 passed, 1 pre-existing failure in `test_top10_filter.py` (confirmed present on baseline before Phase 10 changes)
+- [x] 10.27 **All steps complete. No further phases planned. See Discoveries below.**
+
+> **Findings / Discoveries from Phase 10:**
+> - E2E `.info-icon` / `.tooltip` selectors continue to work after extraction into `InfoTooltip.svelte` — Svelte scoping adds a hash class to elements but preserves original class names; Playwright's class selectors match on class presence.
+> - `design-tokens.test.ts` hex scanner now auto-detects `InfoTooltip.svelte` (new file added to shared/components/). The `#fff` inside `.tooltip { color: #fff }` passes the ALLOWLIST check (white is explicitly allowed).
+> - The snapshot update command (`npx vitest run -u`) is the correct form for Vitest 3 (`--update-snapshots` is not a valid flag).
+> - `test_top10_filter.py::test_hot_top_10_shows_same_entries_regardless_of_sort_order[Species-Watch Species 03]` is a pre-existing E2E failure unrelated to Phase 10.
+
+---
+
 ## Completion Checklist
 
-Use this after Phase 9 to confirm every hardening objective was met.
+Use this after all phases to confirm every hardening objective was met.
 
 - [x] `sortRows()` strips currency prefixes — behaviour is consistent with `computeRange()`
 - [x] `SortableTable.svelte` internal pipeline has named intermediate variables — each stage is self-documenting
@@ -394,6 +482,13 @@ Use this after Phase 9 to confirm every hardening objective was met.
 - [x] `lines` and `statements` coverage thresholds are non-zero values in `client/vite.config.ts`
 - [x] `docs/MIGRATION_PLAN.md` leads with current architecture, not migration history
 - [x] `.github/copilot-instructions.md` reflects all new files, patterns and threshold values from this plan
+
+**Phase 10 (added post-completion):**
+- [x] `InfoTooltip.svelte` exists in `client/src/shared/components/`; `.info-icon` / `.tooltip` CSS removed from `templates/analysis.css`
+- [x] `FilterSection.svelte` exists in `client/src/shared/components/`; both `<div class="signal-filter-row">` wrappers in `SortableTable.svelte` use it
+- [x] `<p class="table-row-count">` and its CSS rule removed from `SortableTable.svelte`
+- [x] Dead `.table-scroll` rule removed from `templates/common.css`
+- [x] `--color-date-filter-text` token in `templates/common.css`; `HistoryTable.svelte` uses `var(--color-date-filter-text)` not `#856404`
 
 ---
 
@@ -412,7 +507,7 @@ Use this after Phase 9 to confirm every hardening objective was met.
 | `client/src/dealer-page/index.ts` | Phase 4 — wire `assertPayload` |
 | `client/src/snapshot-page/index.ts` | Phase 4 — wire `assertPayload` |
 | `client/src/history-page/index.ts` | Phase 4 + 5 — validation + CSV contract |
-| `client/src/history-page/HistoryTable.svelte` | Phase 5 — read-only audit; low-risk fixes only |
+| `client/src/history-page/HistoryTable.svelte` | Phase 5 — read-only audit; Phase 10 — fix `#856404` hardcoded colour |
 | `client/src/history-page/history-utils.ts` | Phase 5 — purity confirmation |
 | `client/src/history-page/DateFilter.svelte` | Phase 5 — data-action attribute check only |
 | `client/src/test-utils/token-colors.ts` | Phase 6 — doc update |
@@ -424,3 +519,9 @@ Use this after Phase 9 to confirm every hardening objective was met.
 | `client/vite.config.ts` | Phase 8 — threshold ratchet |
 | `docs/MIGRATION_PLAN.md` | Phase 9 — compress to stable model |
 | `.github/copilot-instructions.md` | Phase 8 + 9 — threshold + architecture update |
+| `templates/analysis.css` | Phase 10 — remove `.info-icon` / `.tooltip` CSS block |
+| `templates/common.css` | Phase 10 — remove dead `.table-scroll`; add `--color-date-filter-text` token |
+| `client/src/shared/components/InfoTooltip.svelte` | Phase 10 — new file |
+| `client/src/shared/components/InfoTooltip.test.ts` | Phase 10 — new file |
+| `client/src/shared/components/FilterSection.svelte` | Phase 10 — new file |
+| `client/src/shared/components/FilterSection.test.ts` | Phase 10 — new file |

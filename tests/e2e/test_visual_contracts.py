@@ -327,10 +327,10 @@ def test_more_filters_button_in_signal_row(e2e_site_multi_species) -> None:
     page, base_url, _errors = e2e_site_multi_species
     _go_breeder(page, base_url)
 
-    # The toggle button must be a descendant of .signal-filter-row
-    toggle_in_signal_row = page.locator(".signal-filter-row .advanced-filters-toggle")
+    # The toggle button must be a descendant of the signal .filter-section
+    toggle_in_signal_row = page.locator(".filter-section .advanced-filters-toggle")
     assert toggle_in_signal_row.count() > 0, (
-        "'.advanced-filters-toggle' should be inside '.signal-filter-row' on breeder page"
+        "'.advanced-filters-toggle' should be inside '.filter-section' on breeder page"
     )
 
 
@@ -345,7 +345,7 @@ def test_signal_filter_row_has_emoji_label(e2e_site_multi_species) -> None:
     page, base_url, _errors = e2e_site_multi_species
     _go_breeder(page, base_url)
 
-    signal_row = page.locator(".signal-filter-row").first
+    signal_row = page.locator(".filter-section").first
     row_text = signal_row.text_content() or ""
     assert "🎯" in row_text, f"Expected '🎯' emoji in signal filter row, got: {row_text[:80]!r}"
 

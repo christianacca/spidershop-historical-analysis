@@ -305,7 +305,7 @@
     margin-bottom: 15px;
     /* Pass amber theme to ToggleButton inside DateFilter via CSS variable cascade */
     --toggle-btn-bg: var(--color-date-filter);
-    --toggle-btn-color: #856404;
+    --toggle-btn-color: var(--color-date-filter-text);
     --toggle-btn-hover-bg: var(--color-date-filter-hover);
     --toggle-btn-border: none;  --toggle-btn-hover-border: none;    --toggle-btn-padding: 6px 14px;
     --toggle-btn-radius: var(--radius-sm);

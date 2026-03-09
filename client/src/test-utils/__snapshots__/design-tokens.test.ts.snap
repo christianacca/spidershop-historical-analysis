@@ -12,6 +12,7 @@ exports[`design tokens — templates/common.css > token map matches snapshot 1`]
   "--color-date-filter": "#ffc107",
   "--color-date-filter-bg": "#fff8e1",
   "--color-date-filter-hover": "#e0a800",
+  "--color-date-filter-text": "#856404",
   "--color-info-accent": "#2196F3",
   "--color-info-accent-dark": "#1976d2",
   "--color-info-bg": "#e8f4f8",

@@ -30,6 +30,7 @@
     --color-date-filter:        #ffc107;
     --color-date-filter-bg:     #fff8e1;
     --color-date-filter-hover:  #e0a800;
+    --color-date-filter-text:   #856404;
 
     /* === Text === */
     --color-text:               #333;
@@ -531,9 +532,3 @@ details hr {
         padding: 10px;
     }
 }
-
-/* Table Scroll Wrapper */
-.table-scroll {
-    overflow-x: auto;
-}
-

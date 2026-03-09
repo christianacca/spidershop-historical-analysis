@@ -61,10 +61,11 @@ export function sortRows(
   key: string,
   dir: 'asc' | 'desc',
 ): Record<string, unknown>[] {
-  /** Mirror the stripping logic in `computeRange()` so that price values like
-   *  "£25.00 ↑" sort numerically (25.0) rather than falling back to localeCompare. */
+  /** Strip only known currency/whitespace prefixes so that price values like
+   *  "£25.00 ↑" sort numerically (25.0) while species names like "Hot Species 15"
+   *  fall back to localeCompare instead of being parsed as the number 15. */
   const toSortableNumber = (raw: unknown): number =>
-    parseFloat(String(raw ?? '').replace(/^[^0-9.]*/, ''));
+    parseFloat(String(raw ?? '').replace(/^[\s£$€%]*/, ''));
 
   return [...rows].sort((a, b) => {
     const aRaw = a[key] ?? '';

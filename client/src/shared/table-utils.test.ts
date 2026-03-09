@@ -130,6 +130,25 @@ describe('sortRows', () => {
     expect(result.map((r) => r['price'])).toEqual(['£25.00 ↓', '£15.00 ↑', '£5.00 →']);
   });
 
+  test('species names with trailing numbers sort alphabetically, not numerically', () => {
+    // Regression: "Hot Species 15" was parsed as 15, "Watch Species 03" as 3,
+    // causing numeric sort to put Hot before Watch in descending order.
+    const speciesRows = [
+      { species: 'Hot Species 15' },
+      { species: 'Hot Species 01' },
+      { species: 'Watch Species 03' },
+      { species: 'Avoid Species 02' },
+    ];
+    const result = sortRows(speciesRows, 'species', 'desc');
+    // Alphabetical desc: W > H > A; within group order by full string
+    expect(result.map((r) => r['species'])).toEqual([
+      'Watch Species 03',
+      'Hot Species 15',
+      'Hot Species 01',
+      'Avoid Species 02',
+    ]);
+  });
+
   test('empty rows returns empty array', () => {
     expect(sortRows([], 'price', 'asc')).toEqual([]);
   });
