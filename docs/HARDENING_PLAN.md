@@ -246,17 +246,17 @@ CSS regression is an identified project risk. Visual tests are mandatory for any
 ### Checklist
 
 **Audit the existing suite:**
-- [ ] 6.1 For each of the 8 `.visual.test.ts` files, record in a comment or note: "protects [specific behaviour] via [specific assertion]". This creates a machine-readable coverage map of the visual layer
+- [x] 6.1 Audit recorded here (describe/it block names already constitute the machine-readable map; file JSDoc headers describe coverage; no separate structured comment pass needed): browser-smoke (token loading plumbing), RangeSlider (label/value/current → --color-primary/text-muted), SearchInput (unfocused/focused border/bg → --color-border/surface/accent), FiltersPanel (bg/border → --color-surface/border-light + flex-direction), FilterButton (inactive/active bg+border → --color-surface/border-light/accent; active text white), DateFilter (open/closed state + border-top → --color-date-filter; + new: toggle bg in section context), TableStats (bg/text → --color-info-bg/text), SortableTable (overflow-x:auto, flex-wrap:wrap + new: active signal btn bg → --color-accent) ✅
 
 **Close identified gaps:**
-- [ ] 6.2 In `client/src/history-page/DateFilter.visual.test.ts`, if an active quick-select button colour assertion is missing, add one using `tokenRgb('--color-date-filter')` (the background token for active date filter controls)
-- [ ] 6.3 In `client/src/shared/components/SortableTable.visual.test.ts`, if there is no assertion that an active signal filter button uses `var(--color-accent)`, add one
+- [x] 6.2 Added `describe('DateFilter — expand toggle in date-filter-section context')` with one test: simulates `HistoryTable`'s `.date-filter-section` CSS var override (`--toggle-btn-bg: var(--color-date-filter)`) on the container, expands the picker, asserts toggle button `backgroundColor === tokenRgb('--color-date-filter')`. This guards the amber-vs-blue visual contract. ✅
+- [x] 6.3 Added `describe('SortableTable — active signal filter button')` with one test: renders with `signalFilter` config, clicks the 🔥 button, asserts `backgroundColor === tokenRgb('--color-accent')`. Integration-level complement to `FilterButton.visual.test.ts` ✅
 
 **Enforce conventions:**
-- [ ] 6.4 In `client/src/test-utils/token-colors.ts`, confirm the JSDoc at the top of the file names the exact import pattern and `tokenRgb()` usage — update if the example is stale
-- [ ] 6.5 In `client/src/test-utils/design-tokens.test.ts`, add a JSDoc comment on the `ALLOWLIST` set explaining why `#fff`/`white` is permitted (white text on coloured backgrounds — `--color-text-inverse` deferred) so future contributors don't mistakenly add new colours to the list without understanding the intent
-- [ ] 6.6 Run `make test-visual` — confirm all visual contracts pass (green)
-- [ ] 6.7 **Mark off each completed step. Reflect on any discoveries that will inform future phases. Update the "Findings / Discoveries" section at the top of Phase 7 before starting it.**
+- [x] 6.4 Updated `token-colors.ts` JSDoc example: old path `'../test-utils/token-colors'` was only correct for history-page-depth files; updated to show the most common pattern `'../../test-utils/token-colors'` (shared/components) and note relative path varies by file location ✅
+- [x] 6.5 `ALLOWLIST` JSDoc already present with full `#fff`/`white`/`transparent`/`inherit` rationale — no-op ✅
+- [x] 6.6 Run `make test-visual` — **39 tests pass** (37 → 39, +2 new) across 8 files ✅
+- [x] 6.7 **All steps complete. Discoveries recorded below. Phase 7 findings updated.** ✅
 
 ---
 
@@ -271,7 +271,13 @@ CSS regression is an identified project risk. Visual tests are mandatory for any
 - No new Jinja2 template injection until the data shape is locked
 - All work stays at the type definition and pure-function data layer
 
-> **Findings / Discoveries from Phase 6:** *(fill in after Phase 6 reflection)*
+> **Findings / Discoveries from Phase 6:**
+> - Step 6.2 is not about the quick-select bar buttons (`Last Run`, etc.) directly — those have no active state CSS. The gap was the **expand/collapse toggle button background**. `HistoryTable.svelte`'s `.date-filter-section` overrides `--toggle-btn-bg: var(--color-date-filter)`, making the toggle amber instead of blue when expanded. The test simulates this CSS context by calling `container.style.setProperty('--toggle-btn-bg', 'var(--color-date-filter)')` — a clean way to test CSS custom-property cascade without rendering the full HistoryTable.
+> - Step 6.3 required adding `fireEvent` and `tokenRgb` imports to `SortableTable.visual.test.ts`. The rows passed to the component must include the Signal column even if it's not in the `columns` config — filterConfig reads from row data independently.
+> - Step 6.4 discovered the JSDoc example path `'../test-utils/token-colors'` was only correct for history-page-depth files. The 5 component tests under `shared/components/` all correctly use `'../../test-utils/token-colors'`. Fixed to show the most common pattern.
+> - Step 6.5 was a no-op — the ALLOWLIST JSDoc was already present and accurate.
+> - Visual test count: **39** (was 37). All 8 files pass.
+> - No surprises — Phase 7 steps need no changes.
 
 ### Checklist
 

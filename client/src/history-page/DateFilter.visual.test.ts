@@ -72,3 +72,23 @@ describe('DateFilter — date filter token colours', () => {
     expect(window.getComputedStyle(bar).borderTopColor).toBe(tokenRgb('--color-date-filter'));
   });
 });
+
+// ── Toggle button background in date-filter-section context ───────────────────
+
+describe('DateFilter — expand toggle in date-filter-section context', () => {
+  it('expanded toggle background uses --color-date-filter when --toggle-btn-bg is overridden by parent', async () => {
+    // HistoryTable wraps DateFilter in a .date-filter-section div that sets
+    // --toggle-btn-bg: var(--color-date-filter). This keeps the toggle button
+    // amber (date-filter accent) rather than defaulting to --color-accent (blue)
+    // when the picker is open. Simulate that context via an inline CSS var.
+    const { container } = render(DateFilter, {
+      dates: DATES, rowCounts: ROW_COUNTS, tableId: 'test', onchange: vi.fn(),
+    });
+    (container as HTMLElement).style.setProperty('--toggle-btn-bg', 'var(--color-date-filter)');
+    await openDatePicker(container);
+    const toggleBtn = container.querySelector<HTMLButtonElement>(
+      'button[data-action="toggle-date-picker"]',
+    )!;
+    expect(window.getComputedStyle(toggleBtn).backgroundColor).toBe(tokenRgb('--color-date-filter'));
+  });
+});

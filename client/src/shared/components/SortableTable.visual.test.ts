@@ -16,7 +16,8 @@
  * reliably for layout properties on composed components.
  */
 import { describe, it, expect } from 'vitest';
-import { render } from '@testing-library/svelte';
+import { render, fireEvent } from '@testing-library/svelte';
+import { tokenRgb } from '../../test-utils/token-colors';
 import SortableTable from './SortableTable.svelte';
 
 // ── Minimal fixtures ──────────────────────────────────────────────────────────
@@ -72,5 +73,26 @@ describe('SortableTable — controls row layout', () => {
     const controls = container.querySelector('.controls-row') as HTMLElement;
     expect(controls).not.toBeNull();
     expect(window.getComputedStyle(controls).flexWrap).toBe('wrap');
+  });
+});
+
+// ── Active signal filter button colour (step 43) ──────────────────────────────
+
+describe('SortableTable — active signal filter button', () => {
+  it('active signal filter button background uses --color-accent token', async () => {
+    const { container } = render(SortableTable, {
+      tableId: 'visual-test',
+      rows: [
+        { species: 'Alpha Spider', Signal: '🔥' },
+        { species: 'Beta Spider',  Signal: '⚠️' },
+      ],
+      columns: TEST_COLUMNS,
+      filterConfig: { signalFilter: { column: 'Signal' } },
+    });
+    const hotBtn = container.querySelector(
+      '[data-action="filter-signal"][data-signal="🔥"]',
+    ) as HTMLElement;
+    await fireEvent.click(hotBtn);
+    expect(window.getComputedStyle(hotBtn).backgroundColor).toBe(tokenRgb('--color-accent'));
   });
 });

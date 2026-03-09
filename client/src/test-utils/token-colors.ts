@@ -5,9 +5,13 @@
  * APIs are used. The design-token values are read from the live document
  * root (populated by browser-setup.ts from templates/common.css).
  *
- * Typical usage in a *.visual.test.ts file:
+ * Typical usage in a *.visual.test.ts file (path is relative to the test
+ * file's location — adjust the leading `../` segments accordingly):
  *
- *   import { hexToRgb, tokenRgb } from '../test-utils/token-colors';
+ *   // From shared/components/  (most common — 5 of 8 visual test files):
+ *   import { tokenRgb } from '../../test-utils/token-colors';
+ *   // From history-page/ or another page-slice folder:
+ *   import { tokenRgb } from '../test-utils/token-colors';
  *
  *   it('active filter button uses accent colour', () => {
  *     const btn = container.querySelector('.filter-btn.is-active')!;
