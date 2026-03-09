@@ -1,17 +1,17 @@
 # Copilot Instructions for spidershop-historical-analysis
 
-## TypeScript / Svelte Migration
+## Client-Side Architecture
 
-If the user asks you to work on any of the following, read `docs/MIGRATION_PLAN.md` first:
+The TypeScript/Svelte migration (Phases 0–4h) is complete. `docs/MIGRATION_PLAN.md` is now
+an architecture reference — read it when working on any of:
 - The `client/` directory or anything in it
 - TypeScript or Svelte components
 - Vite build config (`vite.config.ts`, `tsconfig.json`, `client/package.json`)
-- CSS design tokens or the BEM refactor
-- Any phase of the TypeScript/Svelte migration
+- CSS design tokens or layout
+- Species-page chart work (Phase 5 — future)
 
-The plan file contains the authoritative step list, target folder structure, CSS conventions,
-and decisions log. At the end of a migration phase conversation, update the plan file to tick
-off completed steps and record any decisions that deviated from the plan.
+The file documents the current stable architecture, CSS conventions and design tokens,
+the Decisions log, and the planned species-page charts.
 
 ### client/src/ feature-slice structure (Phase 2+)
 
@@ -27,12 +27,29 @@ imports — they are never Vite entry points themselves.
 | `history-page.js` | `history-page/index.ts` | Historical Data page (+ date filter + CSV download) |
 | `species-page.js` | `species-page/index.ts` + `charts.ts` | Species Detail page |
 
-`filterByPrice` and `filterByWishlist` are **page-local** in each slice's `index.ts`
-(they own module-level `RangeSlider` singletons). `filterRows` in `shared/filter.ts`
-accepts the sliders as parameters.
+Key shared modules (all in `client/src/shared/`):
+- `payload-validation.ts` — `assertPayload()` for dev-time window global shape validation
+- `table-utils.ts`, `filter.ts`, `csv-utils.ts` — table sort / filter / download utilities
+- `components/SortableTable.svelte`, `RangeSlider.svelte`, `FilterButton.svelte`, `SearchInput.svelte`, `FiltersPanel.svelte`
 
 The dist output mirrors the source tree (`shared/`, `species-page/` subdirectories).
 `generate_website.py` copies the entire dist tree with `shutil.copytree`.
+
+### Page entry point conventions
+
+Every stable page entry point (`breeder-page/index.ts`, `dealer-page/index.ts`,
+`snapshot-page/index.ts`) follows this pattern:
+
+```typescript
+const rows = ((window as Record<string, unknown>)['page-tableData'] ?? []) as Record<string, unknown>[];
+assertPayload(rows, REQUIRED_COLS);  // dev-only: console.warn if required columns missing
+mount(SortableTable, { target, props: { columns: COLUMNS, rows, filterConfig: FILTER_CONFIG } });
+```
+
+`assertPayload()` (from `shared/payload-validation.ts`) is a no-op in production (tree-shaken).
+`history-page/index.ts` passes an empty `REQUIRED_COLS` list — the history row shape is
+transitional (a chart/KPI redesign is planned; see `History page — future direction` in
+`docs/MIGRATION_PLAN.md`).
 
 ### CSS Architecture (3-layer model, established Phase 4a)
 
@@ -164,8 +181,8 @@ Failures always surface at the cheapest valid layer first.
 **For ANY edit in `client/src/`:**
 1. `make test-client-fast` (fast Vitest run without coverage — use during active iteration)
 2. `make test-visual` when you changed CSS tokens, Svelte `<style>` blocks, or any visual contract
-3. `make test-client` (Vitest unit tests with coverage — final check; enforces 80% branches/functions;
-   lines/statements threshold ratchets upward phase-by-phase as Svelte components are added and tested)
+3. `make test-client` (Vitest unit tests with coverage — final check; enforces thresholds:
+   branches 85%, functions 90%, lines 95%, statements 95%)
 4. `make test-e2e` when you have changed JavaScript behaviour or website output (see E2E section below)
 
 **When is `make test-visual` required?**

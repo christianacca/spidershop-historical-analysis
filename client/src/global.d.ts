@@ -37,6 +37,37 @@ interface SpeciesChartData {
   runs: SpeciesRun[];
 }
 
+/**
+ * A single scrape observation for one species on one date, used by the
+ * history chart/KPI layer. Mirrors the columns from the history CSV that
+ * are relevant for time-series charting.
+ */
+interface HistoryChartRun {
+  date: string;
+  price_gbp: number | null;
+  wishlist_count: number | null;
+  in_stock: boolean;
+}
+
+/**
+ * All chart runs for a single species, grouped together.
+ */
+interface HistoryChartSpecies {
+  scientific_name: string;
+  common_name: string;
+  runs: HistoryChartRun[];
+}
+
+/**
+ * Top-level payload for the history chart/KPI page.
+ * `scrape_dates` is the chronologically sorted, deduplicated list of all
+ * scrape dates across all species — used to align multi-series charts.
+ */
+interface HistoryChartData {
+  species: HistoryChartSpecies[];
+  scrape_dates: string[];
+}
+
 interface Window {
   /** Stable table payload keys (kebab-case TABLE_ID + 'Data') */
   'breeder-tableData'?: TableRow[];
@@ -44,4 +75,5 @@ interface Window {
   'snapshot-tableData'?: TableRow[];
   'history-tableData'?: HistoryTableRow[];
   speciesChartData?: SpeciesChartData;
+  historyChartData?: HistoryChartData;
 }

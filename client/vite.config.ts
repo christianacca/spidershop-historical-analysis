@@ -45,10 +45,10 @@ export default defineConfig({
         // DOM elements injected by the Python template. Only exercisable via E2E.
         'src/*/index.ts',
       ],
-      // Thresholds start at 0 and are ratcheted upward phase-by-phase as
-      // Svelte components are added and tested (plan phase 4c onwards).
-      // Target: 80% across all four metrics once all modules have tests.
-      thresholds: { branches: 80, functions: 80, lines: 0, statements: 0 },
+      // Thresholds ratcheted after post-migration hardening phases 2–7.
+      // lines/statements measured at 96.9%; set to 95 (rounded down to nearest 5%).
+      // branches: 86.18% → 85; functions: 94.36% → 90.
+      thresholds: { branches: 85, functions: 90, lines: 95, statements: 95 },
       // Apply thresholds globally (not per-file) so early phases don't fail
       // before all modules have tests.
       perFile: false,

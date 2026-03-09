@@ -1,204 +1,224 @@
-# TypeScript + Svelte Migration Plan
+# Client-Side Architecture
 
-## How to use this document
-
-Each phase is designed to be executed in a **separate AI conversation** to keep context tight.
-Open a new conversation and start with:
-
-> "Read `docs/MIGRATION_PLAN.md`. We are implementing **Phase N**. Begin."
-
-At the end of each phase conversation, ask the AI to update this file — tick off completed steps
-and record any decisions that deviated from the plan.
+> This document describes the **current stable architecture** of the `client/` layer and
+> future work direction.
+> For the step-by-step migration history (Phases 0–4h), see
+> [Migration history (archived)](#migration-history-archived).
 
 ---
 
-## TL;DR
+## Current architecture
 
-Vite compiles `client/` (never committed to git); `dist/` is built locally via `make build-client`
-and in CI before the Python generator runs.
+`client/` is a Svelte 5 + Vite app. Built output (`dist/`) is committed to the repository.
+CI rebuilds it via `make build-client` before the Python generator runs.
 
-**Phase sequence:**
-Vite foundation → TypeScript → feature-slice folders → Svelte tooling →
-CSS audit/tokens/BEM → data contract → primitive Svelte components →
-`SortableTable` (breeder/dealer/snapshot) → `HistoryTable` → CSV download → dead-code cleanup.
-
-**Testing strategy:** The project uses a four-layer testing pyramid. Each layer is cheaper and
-faster than the one above it; CI surfaces failures at the cheapest valid layer first.
+### Four-layer testing pyramid
 
 | Layer | Command | Speed | What it covers |
 |---|---|---|---|
-| Client unit + coverage | `make test-client` | ~7s | Svelte component logic, pure utilities, coverage ≥ 80% |
-| Browser-backed visual | `make test-visual` | ~5s | Computed styles, CSS token resolution, layout contracts |
-| Python unit | `make test` | ~5s | Python analysis and website-generation logic, coverage ≥ 80% |
-| E2E (Playwright) | `make test-e2e` | ~20-85s | Full-site assembly, URL state, downloads, data shape |
+| Client unit + coverage | `make test-client` | ~7s | Svelte component logic, pure utilities |
+| Browser-backed visual | `make test-visual` | ~5s | CSS token resolution, computed styles |
+| Python unit | `make test` | ~5s | Python analysis and website-generation logic |
+| E2E (Playwright) | `make test-e2e` | ~20-85s | Full-site assembly, URL state, downloads |
 
-**CI failure order:** client tests → visual contracts → Python tests → conditional E2E.
-Each job only runs after the previous layer passes, ensuring the cheapest failure is always
-reported first.
+**Coverage thresholds** (`client/vite.config.ts`): branches 85%, functions 90%, lines 95%, statements 95%.
 
-**Local iteration order (recommended):**
-1. `make test-client-fast` — no coverage, fastest feedback during active component work
-2. `make test-visual` — when CSS tokens or Svelte `<style>` blocks change
-3. `make test-client` — before committing: enforces 80% coverage threshold
-4. `make test-e2e` — when `client/src/`, `src/website/`, or `templates/` change
+### Stable shared table layer
 
-**CSS strategy:** CSS migrates progressively into Svelte scoped `<style>` blocks. Global CSS
-shrinks to chrome, design tokens, and reset only. BEM is applied only to permanent global CSS
-during Phase 4a — not before, because most current classes are being deleted into Svelte scopes.
+Three pages — Breeder Opportunities, Dealer Supply Risk, Latest Snapshot — use
+`SortableTable.svelte` from `client/src/shared/components/`. Each page entry point
+(`breeder-page/index.ts`, `dealer-page/index.ts`, `snapshot-page/index.ts`):
 
----
+1. Reads a window global (`window['breeder-tableData']` etc.)
+2. Calls `assertPayload(rows, REQUIRED_COLS)` — dev-only, validates shape, never throws in production
+3. Mounts `SortableTable` with a `ColumnConfig[]` and `FilterConfig`
 
-## Target client-side structure
+Files that change for page-level tweaks: the entry point `index.ts` and CSS tokens in `common.css`.
+`SortableTable.svelte` itself changes only when a cross-cutting table feature is needed.
 
-```
-client/
-  package.json
-  tsconfig.json
-  vite.config.ts
-  src/
-    test-setup.ts
-    global.d.ts             ← window.speciesChartData interface
-    shared/
-      constants.ts
-      dom-utils.ts          ← getElement, setActiveButton, toggleRowVisibility
-      sort.ts               ← sortTable
-      filter.ts             ← filterByAttribute, filterRows, updateFilterBadge
-      components/
-        RangeSlider.svelte  ← used by SortableTable + HistoryTable
-        SearchInput.svelte
-        FilterButton.svelte
-        SortableTable.svelte ← breeder, dealer, snapshot pages
-    breeder-page/
-      index.ts              ← entry point; mounts SortableTable
-    dealer-page/
-      index.ts
-    snapshot-page/
-      index.ts
-    history-page/
-      index.ts              ← entry point; mounts HistoryTable
-      HistoryTable.svelte   ← structurally different from SortableTable
-      DateFilter.svelte     ← unique to history page
-    species-page/
-      index.ts              ← entry point; mounts charts
-      charts.ts             ← renderLineChart, renderStockStrip (until Phase 5)
-      LineChart.svelte      ← Phase 5
-      StockStrip.svelte     ← Phase 5
+### Transitional history slice
+
+`HistoryTable.svelte` and `DateFilter.svelte` live in `history-page/` — intentionally not shared.
+They are transitional pending a chart/KPI redesign.
+See [History page — future direction](#history-page--future-direction).
+
+### Typed server-to-client payload contracts
+
+Python injects JSON data via `<script>` blocks in each HTML template.
+TypeScript interfaces in `client/src/global.d.ts` declare the expected shapes:
+
+- `TableRow` — breeder, dealer, snapshot table rows
+- `HistoryTableRow` — history page rows (includes `_raw_scrape_datetime` private key)
+- `SpeciesChartData` — species detail page chart data
+- `HistoryChartData` — planned history chart/KPI data (contract only — no UI yet)
+
+### Page entry point conventions
+
+Every stable page entry point follows this pattern:
+
+```typescript
+const rows = ((window as Record<string, unknown>)['page-tableData'] ?? []) as Record<string, unknown>[];
+assertPayload(rows, REQUIRED_COLS);  // dev-only: console.warn if required columns missing
+mount(SortableTable, { target, props: { columns: COLUMNS, rows, filterConfig: FILTER_CONFIG } });
 ```
 
----
+`assertPayload()` is from `client/src/shared/payload-validation.ts`. It is a no-op in production
+(tree-shaken). `history-page/index.ts` passes an empty `REQUIRED_COLS` list — the history row
+shape is transitional.
 
-## CSS conventions
+### CSS architecture (3-layer model)
 
-| Layer | Convention |
-|---|---|
-| `common.css` (global, permanent) | BEM |
-| Page-level CSS (static Python-rendered HTML) | BEM |
-| CSS custom properties | `--category-name` prefix (e.g. `--color-signal-hot`, `--spacing-sm`) |
-| Svelte `<style>` blocks | Simple semantic names (`.header`, `.row`, `.filter-bar`) |
-| Svelte state modifiers | `.is-active`, `.is-sorted`, `.is-expanded` |
-| Svelte `:global()` escapes | BEM (back in global namespace) |
-
-**Three permanent CSS layers:**
-1. `common.css` — browser reset, CSS custom properties (design tokens), base HTML element styles,
-   page chrome layout. Grows only when a new token or chrome element is added.
-2. Page-level CSS files — only for Python-rendered static HTML not inside a Svelte island.
-   Shrinks as islands grow; some may eventually disappear entirely.
-3. Svelte `<style>` blocks — all component styles.
-
----
-
-## Verification gates (apply at every phase boundary)
-
-- `make build-client` — zero TS/Svelte compile errors; expected `dist/*.js` and `dist/*.css` emitted
-- `make test` — Python unit tests green, coverage ≥ 80%
-- `make test-client` — Vitest green (Phase 3 onwards), coverage ≥ 80%
-- `make test-visual` — browser-backed visual contracts green (Phase 5 onwards; required when CSS tokens or Svelte `<style>` blocks change)
-- `make test-e2e` — Playwright green (required for any website-output change)
-
----
-
-## Client-side testing conventions
-
-### Test file location
-
-All Vitest test files are co-located with the module they test. `foo.test.ts` lives in the
-same directory as `foo.ts` or `Foo.svelte`. Examples:
-
-- `shared/csv-utils.test.ts` tests `shared/csv-utils.ts`
-- `shared/components/RangeSlider.test.ts` tests `RangeSlider.svelte`
-- `species-page/charts.test.ts` tests `species-page/charts.ts`
-
-### Vitest import pattern
-
-```ts
-import { render, fireEvent } from '@testing-library/svelte';
-import '@testing-library/jest-dom';
-import MyComponent from './MyComponent.svelte';
-
-test('applies .is-active when active prop is true', async () => {
-  const { getByRole } = render(MyComponent, { label: 'Hot', value: '🔥', active: true });
-  expect(getByRole('button')).toHaveClass('is-active');
-});
-```
-
-Key points:
-- `render(Component, propsObject)` — no `{ props: … }` wrapper (that is Testing Library v4 syntax)
-- `fireEvent.click`, `fireEvent.input` for **native DOM events** (click a button, type in an input)
-- `@testing-library/jest-dom` is imported globally via `src/test-setup.ts` — **not per file**
-
-**Svelte 5 callback props — test pattern:**
-Svelte 5 uses callback props (`onchange`, `oninput`, `onclick`) rather than `createEventDispatcher`.
-For tests that assert a component notifies its parent, pass a `vi.fn()` spy as the callback prop
-and assert it was called after the interaction:
-
-```ts
-import { vi } from 'vitest';
-
-test('calls onchange with {min, max} after clamp', async () => {
-  const onchange = vi.fn();
-  const { getAllByRole } = render(RangeSlider, { min: 0, max: 100, label: 'Price', onchange });
-  const [minInput] = getAllByRole('slider');
-  await fireEvent.input(minInput, { target: { value: '120' } });
-  expect(onchange).toHaveBeenCalledWith({ min: 100, max: 100 });
-});
-```
-
-Native DOM events (`click`, `input`, `change`) still use `fireEvent` on the host element.
-Svelte binds these automatically when the component uses `onclick={...}` / `oninput={...}`.
-
-### When to write Vitest vs visual contracts vs E2E
-
-| Scenario | Vitest (`*.test.ts`) | Visual (`*.visual.test.ts`) | E2E |
+| Layer | Files | Scope | Class naming |
 |---|---|---|---|
-| Pure function (no DOM) | ✅ only | ❌ | ❌ |
-| Svelte component render, props, events | ✅ primary | ❌ | ❌ |
-| Filter / sort logic in `$derived` state | ✅ primary | ❌ | Smoke test only |
-| CSS token value (colour, spacing) | ❌ | ✅ primary | ❌ |
-| Computed style, focus state, overflow | ❌ | ✅ primary | ❌ |
-| URL `pushState` / `?view=` param reads | ❌ | ❌ | ✅ only |
-| Blob download (OS file system) | ❌ | ❌ | ✅ only |
-| Asset 404 / missing CSS or JS files | ❌ | ❌ | ✅ only |
-| Real data shape from Python generator | ❌ | ❌ | ✅ only |
+| **1 — Global chrome** | `templates/common.css` | Reset, `:root` tokens, page chrome | BEM |
+| **2 — Page-level static** | `templates/analysis.css` etc. | Python-rendered HTML outside Svelte | BEM |
+| **3 — Svelte component** | `client/src/**/*.svelte` `<style>` | Elements owned by Svelte | Semantic names (auto-scoped) |
 
-E2E tests are **kept in full** throughout and after the migration — they cover real browser
-behaviour and Python data shape that Vitest cannot replicate. Vitest and E2E test different layers;
-they are not interchangeable. Once Svelte components own filter/sort logic, Vitest covers that logic
-at the unit level and E2E remains the integration safety net for DOM-contract and browser behaviour.
+All design tokens are CSS custom properties in the `:root` block of `common.css`. Never hard-code
+colours or spacing — reference `var(--token-name)` directly.
 
-### Coverage as a feedback loop
+### Visual regression tests
 
-Client-side coverage serves two purposes:
+`*.visual.test.ts` files run in real Chromium (via `@vitest/browser`) to verify CSS token
+resolution — things `happy-dom` cannot model. Run `make test-visual` when:
 
-1. **Migration confidence** — as TypeScript is replaced by Svelte components, coverage confirms
-   the equivalent logic is tested by Vitest. A coverage drop after migrating a module to Svelte
-   means the component's tests are incomplete — not that the code is safe.
-2. **Future feature integrity** — new components added after migration must maintain the threshold.
-   Coverage is a first-pass signal that logic paths have been exercised; it does not replace
-   thinking about edge cases.
+- A CSS custom property in `templates/common.css` changes
+- A `<style>` block in any `.svelte` component changes
+- A new Svelte component with styled elements is added
 
-Coverage is enforced on all `client/src/**/*.{ts,svelte}` files, excluding `test-setup.ts`,
-`global.d.ts`, and `*.test.ts` files. Run `make coverage-client` locally to see the report.
-The same command runs in CI after `make test-client`.
+### client/src/ feature-slice structure
+
+`client/src/` is organised into **page-slice folders**, each with an `index.ts` Vite entry point.
+Shared utilities live in `client/src/shared/` and are never separate Vite entry points.
+
+| Vite entry | File | Purpose |
+|---|---|---|
+| `breeder-page.js` | `breeder-page/index.ts` | Breeder Opportunities page |
+| `dealer-page.js` | `dealer-page/index.ts` | Dealer Supply Risk page |
+| `snapshot-page.js` | `snapshot-page/index.ts` | Latest Snapshot page |
+| `history-page.js` | `history-page/index.ts` | Historical Data page (date filter + CSV download) |
+| `species-page.js` | `species-page/index.ts` + `charts.ts` | Species Detail page |
+
+Key shared modules: `table-utils.ts`, `filter.ts`, `csv-utils.ts`, `payload-validation.ts`,
+and Svelte components (`SortableTable.svelte`, `RangeSlider.svelte`, `FilterButton.svelte`,
+`SearchInput.svelte`, `FiltersPanel.svelte`).
+
+The dist output mirrors the source tree. `generate_website.py` copies the entire dist tree
+with `shutil.copytree`.
+
+---
+
+## History page — future direction
+
+The history page is planned to receive a **chart / KPI redesign** — no timeline is set.
+
+**Do NOT** harden, generalise, or extract shared abstractions from any of:
+
+- `HistoryTable.svelte` — keep local to `history-page/`
+- `DateFilter.svelte` — keep local to `history-page/`
+- `history-utils.ts` — keep local to `history-page/`
+- `history-page/index.ts` — transitional; `assertPayload` called with empty `REQUIRED_COLS`
+
+These files will be **replaced** — not extended — when the redesign is scoped.
+
+The only forward-looking artefact today is the **typed data contract**:
+
+- TypeScript: `HistoryChartData`, `HistoryChartSpecies`, `HistoryChartRun` in `client/src/global.d.ts`
+- Python: `build_history_chart_dto()` in `src/website/history_chart_dto.py`
+
+Before implementing any chart UI, the design must be scoped. The data contract is intentionally
+decoupled from the UI so it can be locked independently of the redesign timeline.
+
+---
+
+## Phase 5 — Species-page charts (future)
+
+**Goal:** Migrate imperative SVG chart rendering into Svelte components.
+
+- [ ] 60. Create `client/src/species-page/LineChart.svelte` and `StockStrip.svelte` using
+          Svelte 5, consuming the existing `window.speciesChartData` global.
+          `<style>` blocks use semantic names; remove equivalent rules from `species-detail.css`.
+
+- [ ] 61. Update `species-page/index.ts` to mount both components.
+          Remove imperative `renderLineChart`/`renderStockStrip` from `charts.ts`.
+
+- [ ] 62. Write Vitest tests for `LineChart.svelte` and `StockStrip.svelte`.
+          Run `make test-client && make coverage-client && make test-e2e`.
+
+          **`LineChart.svelte` — `LineChart.test.ts`:**
+          - Renders an `<svg>` element with the expected width/height from CHART constants
+          - With valid data: emits the correct number of `<circle>` elements (one per non-null run)
+          - With valid data: emits at least one `<polyline>` element
+          - With a single data point: renders one circle and no polyline (no segment of ≥ 2 points)
+          - With all identical prices (`yMin === yMax`): renders without NaN in any attribute
+
+          **`StockStrip.svelte` — `StockStrip.test.ts`:**
+          - Renders one block per run in the input data
+          - Observed runs have a visually distinct class/fill compared to not-observed runs
+          - Total block count matches `chartData.runs.length`
+
+          Delegate pixel-math edge cases to `charts.test.ts` (added in step 59a) —
+          component tests cover structure and rendering, not arithmetic.
+
+- [ ] Doc: Update CONTRIBUTING.md project structure — add `LineChart.svelte`,
+         `StockStrip.svelte` under `species-page/` in the diagram.
+
+---
+
+
+---
+
+## Decisions log
+
+| Decision | Rationale |
+|---|---|
+| **Test files co-located, not in `__tests__/`** | Standard Vite/Vitest convention; `foo.test.ts` lives next to `foo.ts` or `Foo.svelte`, making it trivial to find the test for any file without mirroring a directory tree. |
+| **`_escapeCsvRow` extracted to `shared/csv-utils.ts` in Phase 3** | Provides the first real (non-smoke) Vitest example immediately — establishes the co-located pattern and validates the runner before any Svelte components exist. The function is the highest-value immediate Vitest target: pure string logic, RFC-4180 edge cases, zero DOM. |
+| **Chart pure helpers exported in step 59a (Phase 4e→5 bridge), not earlier** | The helpers are private implementation details of `charts.ts` today. Exporting them before the Phase 5 rewrite adds churn if the API changes. Exporting them at the bridge step gives a safety net exactly when it's needed — just before the Svelte rewrite — without premature exposure. |
+| **E2E tests kept in full after Svelte migration** | Vitest and E2E test different layers. Vitest covers `$derived` filter/sort logic; E2E covers DOM contracts, real browser APIs (`pushState`, blob download), asset loading, Python data shape, and CSS computed styles. Trimming E2E to happy-path after Svelte migration would lose coverage of DOM-contract regressions. |
+| **DOM-contract audit (step 42a) before `SortableTable.svelte`** | The E2E suite depends on specific attributes (`data-sort-direction`, `.hidden`, `.active`, `data-original-index`). Resolving whether Svelte emits the same attribute names — or whether E2E tests update in sync — must be a deliberate decision, not an accidental breakage discovered mid-rollout. |
+| **`FilterButton.svelte` uses `...rest` spread props** (Phase 4c-ii) | Rather than naming every possible data attribute (`data-action`, `data-signal`, `data-limit`, `data-stock-pattern`), `FilterButton` spreads `rest` onto the `<button>`. This is more flexible — `SortableTable` sets whichever data attributes it needs without requiring `FilterButton` to enumerate them. |
+| **`table.html` two-mode rendering** (Phase 4c-ii) | History page JS (`history-page.js`) reads server-rendered `<tbody> <tr>` DOM rows with `data-date`/`data-price`/`data-wishlist` attributes. Adding a `render_server_rows=True` flag preserves this working approach while all other pages use the Svelte mount-div mode. The server-rendered branch becomes dead code once `HistoryTable.svelte` is mounted in Phase 4c-iii. |
+| **`linkViewParam` on `ColumnConfig`** (Phase 4c-ii) | Species detail links (`species/{slug}.html`) need `?view=breeder` or `?view=dealer` appended so the species page initialises the correct tab when navigated to from a context page. Added `linkViewParam?: string` to `ColumnConfig`; `species-link` cells append `?view={param}` when present. Breeder and dealer index.ts pass `'breeder'` / `'dealer'` respectively. |
+| **E2E slider fix: `input_value()` not `get_attribute("value")`** (Phase 4c-ii) | Svelte sets `<input>` value via the DOM `.value` property, not the HTML `value` attribute. `page.get_attribute("value")` reads the HTML attribute (returns `null`). The correct Playwright method is `locator.input_value()`. |
+| **Combined filter: signal "Show All" does not clear stock pattern** (Phase 4c-ii) | `handleSignalFilter('all')` only resets the signal and top-10 limit. Stock pattern is independent state. E2E combined-filter test was updated to click signal Show All then stock-pattern Show All separately before asserting all rows visible. |
+| **Top10 Species desc-sort: "Watch" > "Hot" alphabetically** (Phase 4c-ii) | `localeCompare` sorts `Avoid < Hot < Watch`. Descending alpha order puts `Watch Species 03` first, not `Hot Species 15`. E2E parametrize corrected accordingly. Header locator uses `:text-is("Price")` (exact match) to avoid matching the "Price History" column. |
+| **Svelte scoped CSS must be explicitly linked in page templates** (Phase 4c-iii) | Vite emits per-component CSS files (e.g. `assets/history-page/HistoryTable.css`) but does NOT auto-inject them into HTML. Each page template must have explicit `<link rel="stylesheet">` tags for every component CSS file used on that page. Missing links cause scoped rules to be absent, which manifested as `height: 0px` on the advanced-filters panel (Playwright reported `visible=False` despite `display: block`). `analysis_page.html` already had the correct links; `history_page.html` was missing all five. |
+| **Python unit tests for history page should assert JSON data, not DOM** (Phase 4c-iii) | After migrating `history_page.html` to Svelte mode, `generate_history_page()` only server-renders the Svelte mount div (`<div id="history-table-root">`) and the JSON data `<script>` block. All table/filter UI is Svelte client-rendered. Unit tests were rewritten to assert the JSON payload (via `_table_json(html)`) and the mount target's presence, not `<th>`, `<button>`, `<input>` elements that no longer exist in the server-rendered HTML. |
+| **`DateFilter` uses callback prop `onchange`, not `createEventDispatcher`** (Phase 4c-iii) | Svelte 5 replaces `createEventDispatcher` with callback props. `DateFilter` declares `let { onchange }: { onchange: (dates: string[]) => void } = $props()` and calls `onchange(selectedDates)` directly. `HistoryTable` passes a function reference as `onchange={handleDateChange}`. Tests spy on the callback with `vi.fn()`. |
+| **`_raw_scrape_datetime` injected into JSON rows** (Phase 4c-iii) | `DateFilter.svelte` groups rows by date for its checkbox list. The display-formatted "Scrape Date" column value is ambiguous (two scrapes on the same calendar day would collide). Injecting `_raw_scrape_datetime` (the ISO string directly from the CSV) as a private key gives `DateFilter` a stable, collision-free grouping key without polluting the visible table columns. |
+| **`$state.raw` for Python-injected row data** | `$state()` wraps arrays and objects in deep reactive proxies. Hundreds of table rows injected from Python are static input — they are never mutated cell-by-cell. Using `$state.raw()` avoids the proxy overhead and makes the intent explicit: to trigger a re-render, reassign the whole array, don't mutate inside it. |
+| **`HistoryTable` CSV download implemented in Phase 4c-iii, not 4d** | `buildCsv()` + `downloadCsv()` were implemented alongside `HistoryTable.svelte` since download is an integral part of the history table's action bar. Rather than shipping a disabled/placeholder button, the full implementation was included. Phase 4d therefore only needs to add the same logic to `SortableTable.svelte` and augment the test coverage for both. |
+| **`csvHeader` added to `SortableTable.ColumnConfig` in Phase 4c-iii** | For consistency and to avoid a breaking interface change in Phase 4d, `csvHeader?: string` was added to `ColumnConfig` when `HistoryTable` first used it. `SortableTable` does not yet read this field (no download button), but the property is already declared so no interface churn is needed in Phase 4d. |
+| **`$derived.by` for multi-step filter chains** | The visible-rows computation in `SortableTable` and `HistoryTable` chains 4–5 filter passes before sorting. This cannot fit in a single `$derived(expr)` expression without sacrificing readability. `$derived.by(() => { ... })` is the Svelte 5 canonical form for multi-line derived logic — equivalent to a computed getter body. |
+| **Column `type: 'sparkline'` instead of a `{#snippet cell}` prop** | Svelte 5 snippets (`{#snippet cell(col, val)}{/snippet}`) are idiomatic for custom cell rendering but add complexity to the caller (`index.ts` must pass a snippet) and offer flexibility the codebase doesn't need. All three tables use the same sparkline conversion for the same column types — a simple `type` flag on the column descriptor keeps the rendering logic inside `SortableTable` without exposing a snippet API. Revisit if a genuinely different cell type is needed in a future phase. |
+| **`$props.id()` for `RangeSlider` label/input pairing** | Each `RangeSlider` instance renders two range inputs that must be paired with `<label for>` attributes. `$props.id()` returns a stable unique string per component instance, preventing duplicate IDs when two sliders (price + wishlist) are mounted on the same page. Hard-coded or sequential IDs would break accessibility and are fragile if component ordering changes. |
+| **Coverage threshold global, not per-file** | Per-file thresholds would block the build before any tests exist for a given module. Global thresholds ratchet upward as coverage accumulates across phases — they enforce the migration being tracked without becoming a blocker on the first day a new file is added. |
+| **`build.rollupOptions` + `preserveModules` instead of `build.lib`** (Phase 0) | `build.lib` bundles inter-entry dependencies together, which would break the `priceSlider`/`wishlistSlider` singletons shared between `table-interactions.js` and `table-setup.js` when both are loaded on the same page. `preserveModules: true` keeps each module as a separate file with relative imports intact — output is structurally identical to source. Required `preserveEntrySignatures: 'allow-extension'` to override Vite 6's default `false` (incompatible with `preserveModules`). |
+| **Copy files into `client/src/` instead of re-exports** (Phase 0) | Re-exporting from `../../templates/scripts/*.js` would create cross-directory relative paths in the dist output that would break deployment (only `dist/` files are copied to the website output — `templates/scripts/` is not). Copying makes `client/src/` the self-contained source. |
+| **dist/ not committed** | Built via `make build-client` locally; CI wires `setup-node` (Node 22 LTS) + `make build-client` in `deploy-pages.yml` before the Python generate step. Scrape workflow unchanged. |
+| **Vite, not webpack** | Zero config, native ES modules, no content hashing needed, first-class Svelte 5 plugin. |
+| **Svelte 5 runes throughout** | `$state`, `$derived`, `$props`, snippets — canonical latest API. Not Svelte 4 stores. |
+| **Vitest primary, E2E sanity net** | Sub-100ms Vitest feedback per component — optimal for AI iteration. E2E covers real browser, Python data shape, URL state. |
+| **Feature-slice entry points** | One Vite entry per page (`breeder-page`, etc.). Each page folder owns its Svelte components unless the component is reused across pages. |
+| **`SortableTable` in `shared/components/`** | Breeder, dealer, snapshot are configuration variants of the same component. History is structurally different — `HistoryTable.svelte` lives in `history-page/`, composing the same primitives differently. |
+| **Primitive components in `shared/components/`** | `RangeSlider`, `SearchInput`, `FilterButton` are UI atoms reused by both `SortableTable` and `HistoryTable`. Built and tested in isolation before assembly. |
+| **window globals for data injection** | Same pattern already used by `window.speciesChartData`. Avoids a fetch roundtrip, keeps the site fully static, no API layer needed. |
+| **BEM applied at Phase 4a only, to permanent global CSS only** | Most current CSS classes are being deleted into Svelte scopes — renaming before then is double churn. Applied once, at the audit step, when permanent-vs-migrating is clear. |
+| **CSS three-layer architecture** | `common.css` = reset + tokens + chrome; page-level CSS = static Python HTML only; Svelte `<style>` = all component styles. Vite emits per-entry `.css`; Python copies them; page templates link them. |
+| **Design tokens before components** | Svelte components reference `var(--color-signal-hot)` natively — tokens must exist before component `<style>` blocks are written (Phase 4a before 4c). |
+| **Arrow functions in `table-setup.ts` event listeners** (Phase 1) | Event callbacks in `table-setup.ts` used `function()` + `this` in the original JS. TypeScript strict mode would require `this: HTMLElement` parameters, which conflicts with the `EventListener` interface (`this: EventTarget`). Instead, generic `querySelectorAll<HTMLElement>()` was used and inner callbacks were converted to arrow functions closing over the typed element. No logic change — behavior is identical. |
+| **`window.event` for `enforceConstraints`** (Phase 1) | `filterByPrice` / `filterByWishlist` used the deprecated global `event` to pass to `enforceConstraints`. Replaced with `window.event` (typed `Event \| undefined` in the DOM lib). The `enforceConstraints` parameter changed from `event: Event` to `event?: Event` (optional). No behavior change — the `?.target` optional chain already handled undefined. |
+| **No snapshot purge** | Table-page snapshots shrink to mount-div + data-script in Phase 4b — still guard against server-rendered scaffold regressions. Update, don't delete. |
+| **Phase 4 split into 4a–4e + c-i/ii/iii** | Separates CSS audit/BEM (4a), data contract (4b), primitive foundations (4c-i), `SortableTable` (4c-ii), `HistoryTable` (4c-iii), CSV (4d), cleanup (4e). |
+| **`.table-stats` background missing from Svelte scoped CSS (Section E)** | The global `.table-stats` rule provided `background: var(--color-info-bg)` which the Svelte scoped versions did not replicate. Before deleting the global, the missing properties (`background`, `padding`, `border-radius`) were added to `SortableTable.svelte` and `HistoryTable.svelte` `<style>` blocks, then the project was rebuilt. The E2E test `test_snapshot_page_structure_and_styling` confirmed the background color `rgb(232, 244, 248)` is preserved. |
+
+---
+
+## Migration history (archived)
+
+> The sections below document the step-by-step migration from vanilla JS to TypeScript/Svelte
+> (Phases 0–4h). Not required for day-to-day development.
 
 ---
 
@@ -2169,81 +2189,3 @@ placeholder).
 
 ---
 
-## Phase 5 — Species-page charts (future)
-
-**Goal:** Migrate imperative SVG chart rendering into Svelte components.
-
-- [ ] 60. Create `client/src/species-page/LineChart.svelte` and `StockStrip.svelte` using
-          Svelte 5, consuming the existing `window.speciesChartData` global.
-          `<style>` blocks use semantic names; remove equivalent rules from `species-detail.css`.
-
-- [ ] 61. Update `species-page/index.ts` to mount both components.
-          Remove imperative `renderLineChart`/`renderStockStrip` from `charts.ts`.
-
-- [ ] 62. Write Vitest tests for `LineChart.svelte` and `StockStrip.svelte`.
-          Run `make test-client && make coverage-client && make test-e2e`.
-
-          **`LineChart.svelte` — `LineChart.test.ts`:**
-          - Renders an `<svg>` element with the expected width/height from CHART constants
-          - With valid data: emits the correct number of `<circle>` elements (one per non-null run)
-          - With valid data: emits at least one `<polyline>` element
-          - With a single data point: renders one circle and no polyline (no segment of ≥ 2 points)
-          - With all identical prices (`yMin === yMax`): renders without NaN in any attribute
-
-          **`StockStrip.svelte` — `StockStrip.test.ts`:**
-          - Renders one block per run in the input data
-          - Observed runs have a visually distinct class/fill compared to not-observed runs
-          - Total block count matches `chartData.runs.length`
-
-          Delegate pixel-math edge cases to `charts.test.ts` (added in step 59a) —
-          component tests cover structure and rendering, not arithmetic.
-
-- [ ] Doc: Update CONTRIBUTING.md project structure — add `LineChart.svelte`,
-         `StockStrip.svelte` under `species-page/` in the diagram.
-
----
-
-## Decisions log
-
-| Decision | Rationale |
-|---|---|
-| **Test files co-located, not in `__tests__/`** | Standard Vite/Vitest convention; `foo.test.ts` lives next to `foo.ts` or `Foo.svelte`, making it trivial to find the test for any file without mirroring a directory tree. |
-| **`_escapeCsvRow` extracted to `shared/csv-utils.ts` in Phase 3** | Provides the first real (non-smoke) Vitest example immediately — establishes the co-located pattern and validates the runner before any Svelte components exist. The function is the highest-value immediate Vitest target: pure string logic, RFC-4180 edge cases, zero DOM. |
-| **Chart pure helpers exported in step 59a (Phase 4e→5 bridge), not earlier** | The helpers are private implementation details of `charts.ts` today. Exporting them before the Phase 5 rewrite adds churn if the API changes. Exporting them at the bridge step gives a safety net exactly when it's needed — just before the Svelte rewrite — without premature exposure. |
-| **E2E tests kept in full after Svelte migration** | Vitest and E2E test different layers. Vitest covers `$derived` filter/sort logic; E2E covers DOM contracts, real browser APIs (`pushState`, blob download), asset loading, Python data shape, and CSS computed styles. Trimming E2E to happy-path after Svelte migration would lose coverage of DOM-contract regressions. |
-| **DOM-contract audit (step 42a) before `SortableTable.svelte`** | The E2E suite depends on specific attributes (`data-sort-direction`, `.hidden`, `.active`, `data-original-index`). Resolving whether Svelte emits the same attribute names — or whether E2E tests update in sync — must be a deliberate decision, not an accidental breakage discovered mid-rollout. |
-| **`FilterButton.svelte` uses `...rest` spread props** (Phase 4c-ii) | Rather than naming every possible data attribute (`data-action`, `data-signal`, `data-limit`, `data-stock-pattern`), `FilterButton` spreads `rest` onto the `<button>`. This is more flexible — `SortableTable` sets whichever data attributes it needs without requiring `FilterButton` to enumerate them. |
-| **`table.html` two-mode rendering** (Phase 4c-ii) | History page JS (`history-page.js`) reads server-rendered `<tbody> <tr>` DOM rows with `data-date`/`data-price`/`data-wishlist` attributes. Adding a `render_server_rows=True` flag preserves this working approach while all other pages use the Svelte mount-div mode. The server-rendered branch becomes dead code once `HistoryTable.svelte` is mounted in Phase 4c-iii. |
-| **`linkViewParam` on `ColumnConfig`** (Phase 4c-ii) | Species detail links (`species/{slug}.html`) need `?view=breeder` or `?view=dealer` appended so the species page initialises the correct tab when navigated to from a context page. Added `linkViewParam?: string` to `ColumnConfig`; `species-link` cells append `?view={param}` when present. Breeder and dealer index.ts pass `'breeder'` / `'dealer'` respectively. |
-| **E2E slider fix: `input_value()` not `get_attribute("value")`** (Phase 4c-ii) | Svelte sets `<input>` value via the DOM `.value` property, not the HTML `value` attribute. `page.get_attribute("value")` reads the HTML attribute (returns `null`). The correct Playwright method is `locator.input_value()`. |
-| **Combined filter: signal "Show All" does not clear stock pattern** (Phase 4c-ii) | `handleSignalFilter('all')` only resets the signal and top-10 limit. Stock pattern is independent state. E2E combined-filter test was updated to click signal Show All then stock-pattern Show All separately before asserting all rows visible. |
-| **Top10 Species desc-sort: "Watch" > "Hot" alphabetically** (Phase 4c-ii) | `localeCompare` sorts `Avoid < Hot < Watch`. Descending alpha order puts `Watch Species 03` first, not `Hot Species 15`. E2E parametrize corrected accordingly. Header locator uses `:text-is("Price")` (exact match) to avoid matching the "Price History" column. |
-| **Svelte scoped CSS must be explicitly linked in page templates** (Phase 4c-iii) | Vite emits per-component CSS files (e.g. `assets/history-page/HistoryTable.css`) but does NOT auto-inject them into HTML. Each page template must have explicit `<link rel="stylesheet">` tags for every component CSS file used on that page. Missing links cause scoped rules to be absent, which manifested as `height: 0px` on the advanced-filters panel (Playwright reported `visible=False` despite `display: block`). `analysis_page.html` already had the correct links; `history_page.html` was missing all five. |
-| **Python unit tests for history page should assert JSON data, not DOM** (Phase 4c-iii) | After migrating `history_page.html` to Svelte mode, `generate_history_page()` only server-renders the Svelte mount div (`<div id="history-table-root">`) and the JSON data `<script>` block. All table/filter UI is Svelte client-rendered. Unit tests were rewritten to assert the JSON payload (via `_table_json(html)`) and the mount target's presence, not `<th>`, `<button>`, `<input>` elements that no longer exist in the server-rendered HTML. |
-| **`DateFilter` uses callback prop `onchange`, not `createEventDispatcher`** (Phase 4c-iii) | Svelte 5 replaces `createEventDispatcher` with callback props. `DateFilter` declares `let { onchange }: { onchange: (dates: string[]) => void } = $props()` and calls `onchange(selectedDates)` directly. `HistoryTable` passes a function reference as `onchange={handleDateChange}`. Tests spy on the callback with `vi.fn()`. |
-| **`_raw_scrape_datetime` injected into JSON rows** (Phase 4c-iii) | `DateFilter.svelte` groups rows by date for its checkbox list. The display-formatted "Scrape Date" column value is ambiguous (two scrapes on the same calendar day would collide). Injecting `_raw_scrape_datetime` (the ISO string directly from the CSV) as a private key gives `DateFilter` a stable, collision-free grouping key without polluting the visible table columns. |
-| **`$state.raw` for Python-injected row data** | `$state()` wraps arrays and objects in deep reactive proxies. Hundreds of table rows injected from Python are static input — they are never mutated cell-by-cell. Using `$state.raw()` avoids the proxy overhead and makes the intent explicit: to trigger a re-render, reassign the whole array, don't mutate inside it. |
-| **`HistoryTable` CSV download implemented in Phase 4c-iii, not 4d** | `buildCsv()` + `downloadCsv()` were implemented alongside `HistoryTable.svelte` since download is an integral part of the history table's action bar. Rather than shipping a disabled/placeholder button, the full implementation was included. Phase 4d therefore only needs to add the same logic to `SortableTable.svelte` and augment the test coverage for both. |
-| **`csvHeader` added to `SortableTable.ColumnConfig` in Phase 4c-iii** | For consistency and to avoid a breaking interface change in Phase 4d, `csvHeader?: string` was added to `ColumnConfig` when `HistoryTable` first used it. `SortableTable` does not yet read this field (no download button), but the property is already declared so no interface churn is needed in Phase 4d. |
-| **`$derived.by` for multi-step filter chains** | The visible-rows computation in `SortableTable` and `HistoryTable` chains 4–5 filter passes before sorting. This cannot fit in a single `$derived(expr)` expression without sacrificing readability. `$derived.by(() => { ... })` is the Svelte 5 canonical form for multi-line derived logic — equivalent to a computed getter body. |
-| **Column `type: 'sparkline'` instead of a `{#snippet cell}` prop** | Svelte 5 snippets (`{#snippet cell(col, val)}{/snippet}`) are idiomatic for custom cell rendering but add complexity to the caller (`index.ts` must pass a snippet) and offer flexibility the codebase doesn't need. All three tables use the same sparkline conversion for the same column types — a simple `type` flag on the column descriptor keeps the rendering logic inside `SortableTable` without exposing a snippet API. Revisit if a genuinely different cell type is needed in a future phase. |
-| **`$props.id()` for `RangeSlider` label/input pairing** | Each `RangeSlider` instance renders two range inputs that must be paired with `<label for>` attributes. `$props.id()` returns a stable unique string per component instance, preventing duplicate IDs when two sliders (price + wishlist) are mounted on the same page. Hard-coded or sequential IDs would break accessibility and are fragile if component ordering changes. |
-| **Coverage threshold global, not per-file** | Per-file thresholds would block the build before any tests exist for a given module. Global thresholds ratchet upward as coverage accumulates across phases — they enforce the migration being tracked without becoming a blocker on the first day a new file is added. |
-| **`build.rollupOptions` + `preserveModules` instead of `build.lib`** (Phase 0) | `build.lib` bundles inter-entry dependencies together, which would break the `priceSlider`/`wishlistSlider` singletons shared between `table-interactions.js` and `table-setup.js` when both are loaded on the same page. `preserveModules: true` keeps each module as a separate file with relative imports intact — output is structurally identical to source. Required `preserveEntrySignatures: 'allow-extension'` to override Vite 6's default `false` (incompatible with `preserveModules`). |
-| **Copy files into `client/src/` instead of re-exports** (Phase 0) | Re-exporting from `../../templates/scripts/*.js` would create cross-directory relative paths in the dist output that would break deployment (only `dist/` files are copied to the website output — `templates/scripts/` is not). Copying makes `client/src/` the self-contained source. |
-| **dist/ not committed** | Built via `make build-client` locally; CI wires `setup-node` (Node 22 LTS) + `make build-client` in `deploy-pages.yml` before the Python generate step. Scrape workflow unchanged. |
-| **Vite, not webpack** | Zero config, native ES modules, no content hashing needed, first-class Svelte 5 plugin. |
-| **Svelte 5 runes throughout** | `$state`, `$derived`, `$props`, snippets — canonical latest API. Not Svelte 4 stores. |
-| **Vitest primary, E2E sanity net** | Sub-100ms Vitest feedback per component — optimal for AI iteration. E2E covers real browser, Python data shape, URL state. |
-| **Feature-slice entry points** | One Vite entry per page (`breeder-page`, etc.). Each page folder owns its Svelte components unless the component is reused across pages. |
-| **`SortableTable` in `shared/components/`** | Breeder, dealer, snapshot are configuration variants of the same component. History is structurally different — `HistoryTable.svelte` lives in `history-page/`, composing the same primitives differently. |
-| **Primitive components in `shared/components/`** | `RangeSlider`, `SearchInput`, `FilterButton` are UI atoms reused by both `SortableTable` and `HistoryTable`. Built and tested in isolation before assembly. |
-| **window globals for data injection** | Same pattern already used by `window.speciesChartData`. Avoids a fetch roundtrip, keeps the site fully static, no API layer needed. |
-| **BEM applied at Phase 4a only, to permanent global CSS only** | Most current CSS classes are being deleted into Svelte scopes — renaming before then is double churn. Applied once, at the audit step, when permanent-vs-migrating is clear. |
-| **CSS three-layer architecture** | `common.css` = reset + tokens + chrome; page-level CSS = static Python HTML only; Svelte `<style>` = all component styles. Vite emits per-entry `.css`; Python copies them; page templates link them. |
-| **Design tokens before components** | Svelte components reference `var(--color-signal-hot)` natively — tokens must exist before component `<style>` blocks are written (Phase 4a before 4c). |
-| **Arrow functions in `table-setup.ts` event listeners** (Phase 1) | Event callbacks in `table-setup.ts` used `function()` + `this` in the original JS. TypeScript strict mode would require `this: HTMLElement` parameters, which conflicts with the `EventListener` interface (`this: EventTarget`). Instead, generic `querySelectorAll<HTMLElement>()` was used and inner callbacks were converted to arrow functions closing over the typed element. No logic change — behavior is identical. |
-| **`window.event` for `enforceConstraints`** (Phase 1) | `filterByPrice` / `filterByWishlist` used the deprecated global `event` to pass to `enforceConstraints`. Replaced with `window.event` (typed `Event \| undefined` in the DOM lib). The `enforceConstraints` parameter changed from `event: Event` to `event?: Event` (optional). No behavior change — the `?.target` optional chain already handled undefined. |
-| **No snapshot purge** | Table-page snapshots shrink to mount-div + data-script in Phase 4b — still guard against server-rendered scaffold regressions. Update, don't delete. |
-| **Phase 4 split into 4a–4e + c-i/ii/iii** | Separates CSS audit/BEM (4a), data contract (4b), primitive foundations (4c-i), `SortableTable` (4c-ii), `HistoryTable` (4c-iii), CSV (4d), cleanup (4e). |
-| **`.table-stats` background missing from Svelte scoped CSS (Section E)** | The global `.table-stats` rule provided `background: var(--color-info-bg)` which the Svelte scoped versions did not replicate. Before deleting the global, the missing properties (`background`, `padding`, `border-radius`) were added to `SortableTable.svelte` and `HistoryTable.svelte` `<style>` blocks, then the project was rebuilt. The E2E test `test_snapshot_page_structure_and_styling` confirmed the background color `rgb(232, 244, 248)` is preserved. |
