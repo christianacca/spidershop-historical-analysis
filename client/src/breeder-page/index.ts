@@ -9,6 +9,7 @@ import { mount } from 'svelte';
 import SortableTable from '../shared/components/SortableTable.svelte';
 import type { ColumnConfig, FilterConfig } from '../shared/components/SortableTable.svelte';
 import { wireOpenDetailsLinks } from '../shared/dom-utils.js';
+import { assertPayload } from '../shared/payload-validation.js';
 
 const TABLE_ID = 'breeder-table';
 
@@ -42,6 +43,7 @@ function init(): void {
   if (!target) return;
 
   const rows = ((window as Record<string, unknown>)[`${TABLE_ID}Data`] ?? []) as Record<string, unknown>[];
+  assertPayload(TABLE_ID, rows);
 
   mount(SortableTable, {
     target,

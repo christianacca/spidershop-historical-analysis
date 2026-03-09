@@ -155,29 +155,29 @@ Every stable entry point reads its payload as `(window as Record<string, unknown
 ### Checklist
 
 **Typed window globals:**
-- [ ] 4.1 In `client/src/global.d.ts`, add a `TableRow` type alias (`Record<string, unknown>`) with a JSDoc that explains why it's structurally open (Python owns column names)
-- [ ] 4.2 Add typed window globals: `breederTableData?: TableRow[]`, `dealerTableData?: TableRow[]`, `snapshotTableData?: TableRow[]`
-- [ ] 4.3 Add `HistoryTableRow` interface that includes `_raw_scrape_datetime: string` (required for correct CSV export) alongside the general `TableRow` fields; add `historyTableData?: HistoryTableRow[]`
+- [x] 4.1 In `client/src/global.d.ts`, add a `TableRow` type alias (`Record<string, unknown>`) with a JSDoc that explains why it's structurally open (Python owns column names)
+- [x] 4.2 Add typed window globals: `'breeder-tableData'?: TableRow[]`, `'dealer-tableData'?: TableRow[]`, `'snapshot-tableData'?: TableRow[]` (quoted kebab-case keys as required by TABLE_ID shape)
+- [x] 4.3 Add `HistoryTableRow` interface that includes `_raw_scrape_datetime: string` (required for correct CSV export) alongside the general `TableRow` fields; add `'history-tableData'?: HistoryTableRow[]`
 
 **Validation utility — RED phase first:**
-- [ ] 4.4 Create `client/src/shared/payload-validation.test.ts` and write the following failing tests before writing the implementation:
+- [x] 4.4 Create `client/src/shared/payload-validation.test.ts` and write the following failing tests before writing the implementation:
   - `assertPayload – throws descriptive Error in dev mode when rows is not an array`
   - `assertPayload – throws descriptive Error in dev mode when rows is an empty array`
   - `assertPayload – is a no-op (no throw) in production mode`
   - `assertPayload – passes through a valid non-empty array without throwing`
-- [ ] 4.5 Run `make test-client-fast` — confirm all 4 tests **fail** (RED)
+- [x] 4.5 Run `make test-client-fast` — confirm all 4 tests **fail** (RED)
 
 **Validation utility — GREEN phase:**
-- [ ] 4.6 Create `client/src/shared/payload-validation.ts` and implement `assertPayload(tableId: string, rows: unknown[]): asserts rows is TableRow[]` — throws with a message that names `tableId` and explains what was found; guards behind `import.meta.env.DEV`
-- [ ] 4.7 Run `make test-client-fast` — confirm all 4 tests now **pass**
+- [x] 4.6 Create `client/src/shared/payload-validation.ts` and implement `assertPayload(tableId: string, rows: unknown, isDev?: boolean): asserts rows is TableRow[]` — throws with a message that names `tableId` and explains what was found; guards behind `import.meta.env.DEV` (exposed as optional `isDev` parameter for testability without `vi.stubEnv`)
+- [x] 4.7 Run `make test-client-fast` — confirm all 4 tests now **pass**
 
 **Wire into stable entry points:**
-- [ ] 4.8 In `client/src/breeder-page/index.ts`, import `assertPayload` and call it on the `rows` value before passing to `mount`
-- [ ] 4.9 In `client/src/dealer-page/index.ts`, same
-- [ ] 4.10 In `client/src/snapshot-page/index.ts`, same
-- [ ] 4.11 In `client/src/history-page/index.ts`, add `assertPayload` call — dev warning only, no required-column enforcement (history row shape is about to change significantly)
-- [ ] 4.12 Run `make test-client` — confirm all tests pass
-- [ ] 4.13 **Mark off each completed step. Reflect on any discoveries that will inform future phases. Update the "Findings / Discoveries" section at the top of Phase 5 before starting it.**
+- [x] 4.8 In `client/src/breeder-page/index.ts`, import `assertPayload` and call it on the `rows` value before passing to `mount`
+- [x] 4.9 In `client/src/dealer-page/index.ts`, same
+- [x] 4.10 In `client/src/snapshot-page/index.ts`, same
+- [x] 4.11 In `client/src/history-page/index.ts`, add `assertPayload` call — dev warning only, no required-column enforcement (history row shape is about to change significantly)
+- [x] 4.12 Run `make test-client` — confirm all tests pass
+- [x] 4.13 **Mark off each completed step. Reflect on any discoveries that will inform future phases. Update the "Findings / Discoveries" section at the top of Phase 5 before starting it.**
 
 ---
 
@@ -196,7 +196,12 @@ The history slice (`HistoryTable.svelte`, `DateFilter.svelte`, `history-utils.ts
 - Do **not** add a generic date-picker interface used by other pages
 - Do **not** make any `history-utils.ts` function depend on Svelte context or reactive primitives
 
-> **Findings / Discoveries from Phase 4:** *(fill in after Phase 4 reflection)*
+> **Findings / Discoveries from Phase 4:**
+> - `assertPayload` signature uses `rows: unknown` (not `unknown[]`) so the runtime non-array check is meaningful. The `asserts rows is TableRow[]` narrowing makes the TypeScript cast after the call unnecessary — but all 4 entry points still use the old `as Record<string, unknown>[]` pattern for now. This is deliberate: the cast was left unchanged to keep the diff minimal; Phase 9 doc cleanup can note this as a future simplification.
+> - The `isDev` optional parameter (defaulting to `import.meta.env.DEV`) avoids `vi.stubEnv` in tests, which is unreliable with `import.meta.env` in Vitest. The production-mode test passes `false` explicitly — clean and unambiguous.
+> - `global.d.ts` window properties use quoted kebab-case keys (`'breeder-tableData'`) as expected from the Phase 1 discovery. Entry points continue to use the dynamic `window[\`${TABLE_ID}Data\`]` read (untyped); the globals typing is for IDE tooling and documentation rather than a runtime path change.
+> - Coverage: statements 96.9% | branches 86.21% | functions 94.36% | lines 96.9% — all hold or improve vs. Phase 3 baseline. `payload-validation.ts` is at 100% across all metrics.
+> - No surprises — Phase 5 steps need no changes.
 
 ### Checklist
 

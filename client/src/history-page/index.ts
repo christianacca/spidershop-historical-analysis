@@ -8,6 +8,7 @@
 import { mount } from 'svelte';
 import HistoryTable from './HistoryTable.svelte';
 import type { ColumnConfig } from '../shared/components/SortableTable.svelte';
+import { assertPayload } from '../shared/payload-validation.js';
 
 const TABLE_ID = 'history-table';
 
@@ -34,6 +35,7 @@ function init(): void {
     string,
     unknown
   >[];
+  assertPayload(TABLE_ID, rows);
 
   mount(HistoryTable, {
     target,
