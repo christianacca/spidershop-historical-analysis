@@ -41,8 +41,9 @@ def build_history_chart_dto(history_rows: list[dict]) -> dict:
         A dict with two keys:
 
         - ``species`` — a list of per-species dicts, each containing
-          ``scientific_name``, ``common_name``, and ``runs`` (chronologically
-          ordered list of :class:`HistoryChartRun`-shaped dicts).
+          ``scientific_name``, ``common_name``, and ``runs`` (list of
+          :class:`HistoryChartRun`-shaped dicts sorted chronologically by
+          ``date``).
         - ``scrape_dates`` — a chronologically sorted, deduplicated list of all
           scrape datetime strings across every species.
 
@@ -97,6 +98,9 @@ def build_history_chart_dto(history_rows: list[dict]) -> dict:
 
         species_map[scientific_name]["runs"].append(run)
         all_dates.add(scrape_datetime)
+
+    for entry in species_map.values():
+        entry["runs"].sort(key=lambda r: r["date"])
 
     return {
         "species": list(species_map.values()),

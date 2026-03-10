@@ -13,15 +13,12 @@ def rows_to_json(headers: List[str], rows: List[List[Any]]) -> List[dict]:
     Args:
         headers: Column header strings (display names, not raw CSV names).
         rows: Raw row data as ``List[List[Any]]`` — pre-enumeration and ideally
-              pre-sparkline-conversion.  If a cell value is a string that starts
-              with ``'<svg'`` it is **omitted** from the resulting dict (SVG markup
-              is too large for inline JSON; the Svelte component regenerates SVG
-              on the client from the original Unicode sparkline string).
+              post-sparkline-conversion (sparkline cells should already be DTO
+              dicts produced by ``build_sparkline_dto_rows`` before this call).
 
     Returns:
         ``List[dict]`` — one dict per row, keyed by the corresponding header name.
-        Rows with SVG cells have those keys absent; all other cells are included
-        with their original value (str, int, float, or None converted to ``""``).
+        All cell values are included as-is (str, int, float, dict, or None).
 
     Example::
 

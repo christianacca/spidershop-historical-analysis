@@ -183,3 +183,43 @@ class TestMultipleSpecies:
         result = build_history_chart_dto(rows)
 
         assert result["species"][0]["runs"][0]["date"] == "2026-01-08T06:10:00"
+
+
+# ---------------------------------------------------------------------------
+# Runs ordering
+# ---------------------------------------------------------------------------
+
+class TestRunsOrdering:
+    def test_runs_are_sorted_chronologically_regardless_of_input_order(self):
+        """Runs in the output must be sorted by date even when input rows are unordered."""
+        rows = [
+            _make_row("2026-01-15T06:10:00", "Brachypelma hamorii", price_gbp="15.00"),
+            _make_row("2026-01-01T06:10:00", "Brachypelma hamorii", price_gbp="10.00"),
+            _make_row("2026-01-08T06:10:00", "Brachypelma hamorii", price_gbp="12.00"),
+        ]
+
+        result = build_history_chart_dto(rows)
+
+        run_dates = [r["date"] for r in result["species"][0]["runs"]]
+        assert run_dates == [
+            "2026-01-01T06:10:00",
+            "2026-01-08T06:10:00",
+            "2026-01-15T06:10:00",
+        ]
+
+    def test_each_species_runs_sorted_independently(self):
+        """Each species' runs are sorted independently of other species."""
+        rows = [
+            _make_row("2026-01-15T06:10:00", "Brachypelma hamorii"),
+            _make_row("2026-01-08T06:10:00", "Acanthoscurria geniculata"),
+            _make_row("2026-01-01T06:10:00", "Brachypelma hamorii"),
+            _make_row("2026-01-01T06:10:00", "Acanthoscurria geniculata"),
+        ]
+
+        result = build_history_chart_dto(rows)
+
+        species_by_name = {s["scientific_name"]: s for s in result["species"]}
+        hamorii_dates = [r["date"] for r in species_by_name["Brachypelma hamorii"]["runs"]]
+        geniculata_dates = [r["date"] for r in species_by_name["Acanthoscurria geniculata"]["runs"]]
+        assert hamorii_dates == ["2026-01-01T06:10:00", "2026-01-15T06:10:00"]
+        assert geniculata_dates == ["2026-01-01T06:10:00", "2026-01-08T06:10:00"]

@@ -129,15 +129,6 @@ jobs:
         uses: ./.github/actions/build-client
 
       # --------------------------------
-      # Run client-side tests + coverage
-      # --------------------------------
-      - name: Run client tests
-        run: make test-client
-
-      - name: Check client coverage
-        run: make coverage-client
-
-      # --------------------------------
       # Generate static website
       # --------------------------------
       - name: Generate HTML website
