@@ -1,0 +1,37 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run unit tests",
+			"type": "shell",
+			"command": "make test 2>&1 | tail -40"
+		},
+		{
+			"label": "Run unit tests (2nd attempt)",
+			"type": "shell",
+			"command": "make test 2>&1 | tail -20"
+		},
+		{
+			"label": "Run E2E tests baseline",
+			"type": "shell",
+			"command": "make test-e2e 2>&1 | tail -30"
+		},
+		{
+			"label": "E2E baseline check",
+			"type": "shell",
+			"command": "make test-e2e 2>&1 | tail -20"
+		},
+		{
+			"label": "make test",
+			"type": "shell",
+			"command": "make test",
+			"group": "test"
+		},
+		{
+			"label": "make test-e2e",
+			"type": "shell",
+			"command": "make test-e2e",
+			"group": "test"
+		}
+	]
+}

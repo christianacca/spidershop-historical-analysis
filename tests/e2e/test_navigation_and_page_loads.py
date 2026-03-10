@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import pytest
 
+from e2e.css_tokens import token_rgb
 from e2e.fixtures import e2e_site_minimal
 
 
@@ -38,10 +39,9 @@ def test_all_pages_load_without_errors(e2e_site_minimal) -> None:
 
         header = page.locator('header')
         assert header.count() == 1, f"{page_path} should have header element"
-        # #2c3e50 = rgb(44, 62, 80)
         header_bg = header.evaluate('el => window.getComputedStyle(el).backgroundColor')
-        assert 'rgb(44, 62, 80)' in header_bg, \
-            f"{page_path} header should have dark background, got {header_bg}"
+        assert token_rgb('--color-primary') in header_bg, \
+            f"{page_path} header should have dark background (--color-primary), got {header_bg}"
         header_color = header.evaluate('el => window.getComputedStyle(el).color')
         assert 'rgb(255, 255, 255)' in header_color or 'white' in header_color.lower(), \
             f"{page_path} header should have white text, got {header_color}"
@@ -153,26 +153,23 @@ def test_homepage_styling(e2e_site_minimal) -> None:
     border_radius = cards.first.evaluate('el => window.getComputedStyle(el).borderRadius')
     assert border_radius != '0px', f"Cards should have border-radius, got {border_radius}"
 
-    # #3498db = rgb(52, 152, 219)
     card_link = page.locator('.card a').first
     link_color = card_link.evaluate('el => window.getComputedStyle(el).color')
-    assert 'rgb(52, 152, 219)' in link_color, \
-        f"Card links should be blue rgb(52,152,219), got {link_color}"
-    # #e1e8ed = rgb(225, 232, 237)
+    assert token_rgb('--color-accent') in link_color, \
+        f"Card links should be --color-accent, got {link_color}"
     first_card = page.locator('.card').first
     border_color = first_card.evaluate('el => window.getComputedStyle(el).borderColor')
-    assert 'rgb(225, 232, 237)' in border_color, \
-        f"Card border should be rgb(225,232,237), got {border_color}"
+    assert token_rgb('--color-border-alt') in border_color, \
+        f"Card border should be --color-border-alt, got {border_color}"
 
     info_box = page.locator('.info-box')
     assert info_box.count() >= 1, "Homepage should have at least one .info-box"
-    # #e8f4f8 = rgb(232, 244, 248)
     bg = info_box.first.evaluate('el => window.getComputedStyle(el).backgroundColor')
-    assert 'rgb(232, 244, 248)' in bg, f"Info-box background should be light blue, got {bg}"
-    # #3498db = rgb(52, 152, 219)
+    assert token_rgb('--color-info-bg') in bg, \
+        f"Info-box background should be --color-info-bg, got {bg}"
     border_left = info_box.first.evaluate('el => window.getComputedStyle(el).borderLeftColor')
-    assert 'rgb(52, 152, 219)' in border_left, \
-        f"Info-box left-border should be blue, got {border_left}"
+    assert token_rgb('--color-accent') in border_left, \
+        f"Info-box left-border should be --color-accent, got {border_left}"
 
     disclaimer = page.locator('.disclaimer')
     assert disclaimer.count() >= 1, "Homepage should have .disclaimer element"

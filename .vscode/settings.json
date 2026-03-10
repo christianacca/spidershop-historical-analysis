@@ -1,0 +1,10 @@
+{
+    "diffEditor.renderSideBySide": true,
+    "makefile.configureOnOpen": false,
+    "diffEditor.experimental.useTrueInlineView": true,
+    "chat.tools.terminal.autoApprove": {
+        "make": true,
+        "npx vitest": true
+    },
+    "svelte.enable-ts-plugin": true
+}

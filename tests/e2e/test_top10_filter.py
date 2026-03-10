@@ -36,7 +36,7 @@ def test_hot_top_10_button_limits_visible_rows_to_10(e2e_site_large_table) -> No
     assert visible_rows == 10, f"Expected exactly 10 visible rows after Hot (top 10) filter, got {visible_rows}"
 
     # The button should be active
-    assert "active" in top10_button.get_attribute("class"), "Expected active class on Hot (top 10) button"
+    assert "is-active" in top10_button.get_attribute("class"), "Expected is-active class on Hot (top 10) button"
 
 
 @pytest.mark.e2e
@@ -98,14 +98,14 @@ def test_show_all_resets_after_hot_top_10_filter(e2e_site_large_table) -> None:
 
 @pytest.mark.e2e
 @pytest.mark.parametrize(
-    "header_name,first_visible_after_sort",
+    "header_key,first_visible_after_sort",
     [
-        ("Species ⇅", "Hot Species 15"),
-        ("Price ⇅", "Hot Species 01"),
+        ("Species", "Watch Species 03"),  # desc alpha sort: Watch > Hot > Avoid
+        ("Price Trend", "Hot Species 01"),
     ],
 )
 def test_hot_top_10_shows_same_entries_regardless_of_sort_order(
-    e2e_site_large_table, header_name: str, first_visible_after_sort: str
+    e2e_site_large_table, header_key: str, first_visible_after_sort: str
 ) -> None:
     """'Hot (top 10)' should always show the same 10 species in original CSV order,
     regardless of any active sort.
@@ -117,8 +117,11 @@ def test_hot_top_10_shows_same_entries_regardless_of_sort_order(
 
     page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
 
-    # First click on sortable header should produce descending order.
-    sortable_header = page.get_by_role("columnheader", name=header_name, exact=True)
+    # Two clicks on the header to reach descending order (first click = asc, second = desc)
+    # Use :text-is() for exact match to avoid matching "Price History" when header_key="Price"
+    sortable_header = page.locator(f'#breeder-table thead th:text-is("{header_key}")')
+    sortable_header.click()
+    page.wait_for_timeout(100)
     sortable_header.click()
     page.wait_for_timeout(100)
 

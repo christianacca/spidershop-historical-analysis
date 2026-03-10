@@ -12,7 +12,7 @@
 #   All commands automatically activate the .venv virtual environment
 #   Ensure .venv exists and has dependencies installed first
 
-.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only clean-cache clean-artifacts clean-all build-client test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install coverage check-coverage .check-venv .check-gh
+.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only preview clean-cache clean-artifacts clean-all build-client test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install open-coverage check-coverage test-client test-client-fast test-client-watch open-coverage-client test-visual visual-install .check-venv .check-gh
 
 # Shell configuration
 SHELL := /bin/bash
@@ -47,6 +47,7 @@ help:
 	@echo "  make scrape-only            Run scraper only (no website generation)"
 	@echo "  make generate-website       Generate website from existing CSV files"
 	@echo "  make serve-only             Serve existing website (no regeneration)"
+	@echo "  make preview                Generate website + serve (alias for website-serve)"
 	@echo "  make build-client           Build client-side TS/Svelte assets (auto-run by generate-website)"
 	@echo ""
 	@echo "Testing:"
@@ -61,9 +62,15 @@ help:
 	@echo "  make test-e2e-debug         Run e2e with Playwright Inspector (PWDEBUG)"
 	@echo "  make test-e2e-headed        Run e2e with visible browser window"
 	@echo "  make test-e2e-show-trace    Open trace viewer for last e2e run"
-	@echo "  make coverage               View coverage report in browser
+	@echo "  make open-coverage          Open Python coverage report in browser"
 	@echo "  make check-coverage         Print coverage summary (exits non-zero if below threshold)"
-	@echo "  make check-coverage MODULE=<path>  Check coverage for a specific module""
+	@echo "  make check-coverage MODULE=<path>  Check coverage for a specific module"
+	@echo "  make test-client            Run Vitest unit tests with coverage for client/src/ (enforces 80% threshold)"
+	@echo "  make test-client-fast       Run Vitest unit tests without coverage (fast iteration, no threshold)"
+	@echo "  make test-client-watch      Run Vitest unit tests in watch mode (interactive, no coverage)"
+	@echo "  make open-coverage-client   Open client coverage report in browser"
+	@echo "  make visual-install         Install Playwright browser for visual tests (one-time setup)"
+	@echo "  make test-visual            Run browser-backed visual contract tests (Vitest Browser Mode)"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make test-file FILE=tests/website_module/test_csv.py"
@@ -113,6 +120,9 @@ build-client:
 # ==============================================================================
 
 website-serve: generate-website serve-only
+
+# Thin alias for website-serve; used during interactive DevTools MCP inspection.
+preview: website-serve
 
 scrape-website: scrape-only generate-website
 	@echo "✅ Scrape complete and website generated"
@@ -252,7 +262,7 @@ test-e2e-show-trace: .check-venv e2e-install
 	@echo "🔍 Opening trace viewer..."
 	source $(VENV)/bin/activate && playwright show-trace tmp/e2e-trace.zip
 
-coverage:
+open-coverage:
 	@echo "Opening coverage report in browser..."
 	open tmp/coverage/html/index.html
 
@@ -262,6 +272,47 @@ check-coverage: .check-venv
 	else \
 		$(PYTHON) scripts/check_coverage.py; \
 	fi
+
+# Run Vitest unit tests with coverage for client/src/.
+# Mirrors `make test` (which always includes coverage) but kept separate to
+# avoid adding a Node dependency to the Python-only edit cycle.
+test-client:
+	@echo "🧪 Running Vitest tests..."
+	cd client && npm run coverage
+	@echo "✅ Vitest tests passed"
+
+# Run Vitest unit tests without coverage — fast local iteration loop.
+# Use this during active component development; run `make test-client` before committing.
+test-client-fast:
+	@echo "🧪 Running Vitest tests (no coverage)..."
+	cd client && npm test -- --reporter=dot
+	@echo "✅ Vitest tests passed"
+
+# Run Vitest unit tests in watch mode — interactive development.
+# Re-runs affected tests on every file save. Requires an interactive terminal.
+test-client-watch:
+	cd client && npm run test:watch
+
+# Open Vitest coverage report in browser (run `make test-client` first).
+open-coverage-client:
+	@echo "Opening client coverage report in browser..."
+	open client/coverage/index.html
+
+# Install Playwright Chromium browser for browser-backed visual tests (one-time setup).
+# Uses the Node playwright package installed in client/node_modules, not the
+# Python playwright used by make test-e2e.
+visual-install:
+	@echo "📦 Installing Playwright browser for visual tests..."
+	cd client && node node_modules/playwright/cli.js install chromium
+	@echo "✅ Playwright browser ready for visual tests"
+
+# Run browser-backed visual contract tests in a real Chromium instance.
+# These tests verify computed styles (getComputedStyle) and CSS custom-property
+# resolution — things that happy-dom cannot simulate.
+test-visual: visual-install
+	@echo "🔍 Running browser-backed visual contract tests..."
+	cd client && npm run test:visual
+	@echo "✅ Visual tests passed"
 
 # ==============================================================================
 # Cleanup

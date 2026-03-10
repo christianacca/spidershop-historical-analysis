@@ -1,17 +1,17 @@
 # Copilot Instructions for spidershop-historical-analysis
 
-## TypeScript / Svelte Migration
+## Client-Side Architecture
 
-If the user asks you to work on any of the following, read `docs/MIGRATION_PLAN.md` first:
+The TypeScript/Svelte migration (Phases 0–4h) is complete. `docs/MIGRATION_PLAN.md` is now
+an architecture reference — read it when working on any of:
 - The `client/` directory or anything in it
 - TypeScript or Svelte components
 - Vite build config (`vite.config.ts`, `tsconfig.json`, `client/package.json`)
-- CSS design tokens or the BEM refactor
-- Any phase of the TypeScript/Svelte migration
+- CSS design tokens or layout
+- Species-page chart work (Phase 5 — future)
 
-The plan file contains the authoritative step list, target folder structure, CSS conventions,
-and decisions log. At the end of a migration phase conversation, update the plan file to tick
-off completed steps and record any decisions that deviated from the plan.
+The file documents the current stable architecture, CSS conventions and design tokens,
+the Decisions log, and the planned species-page charts.
 
 ### client/src/ feature-slice structure (Phase 2+)
 
@@ -27,36 +27,102 @@ imports — they are never Vite entry points themselves.
 | `history-page.js` | `history-page/index.ts` | Historical Data page (+ date filter + CSV download) |
 | `species-page.js` | `species-page/index.ts` + `charts.ts` | Species Detail page |
 
-`filterByPrice` and `filterByWishlist` are **page-local** in each slice's `index.ts`
-(they own module-level `RangeSlider` singletons). `filterRows` in `shared/filter.ts`
-accepts the sliders as parameters.
+Key shared modules (all in `client/src/shared/`):
+- `payload-validation.ts` — `assertPayload()` for dev-time window global shape validation
+- `table-utils.ts`, `filter.ts`, `csv-utils.ts` — table sort / filter / download utilities
+- `components/SortableTable.svelte`, `RangeSlider.svelte`, `FilterButton.svelte`, `SearchInput.svelte`, `FiltersPanel.svelte`
 
 The dist output mirrors the source tree (`shared/`, `species-page/` subdirectories).
 `generate_website.py` copies the entire dist tree with `shutil.copytree`.
 
+### CSS Architecture (3-layer model, established Phase 4a)
+
+The project uses a strict 3-layer CSS model. Understand which layer you are in before
+writing or editing any CSS.
+
+| Layer | Files | Scope | Class naming |
+|---|---|---|---|
+| **1 — Global chrome** | `templates/common.css` | Browser reset, `:root` tokens, page chrome (header, nav, footer, buttons) | BEM (`btn--primary`, `nav__link--active`) |
+| **2 — Page-level static** | `templates/analysis.css`, `homepage.css`, `species-detail.css` | Python-rendered HTML that is not inside a Svelte island | BEM (`stat-card--hot`, `badge--watch`) |
+| **3 — Svelte component** | `client/src/**/*.svelte` `<style>` blocks | Elements owned by a Svelte component | Simple semantic names (`.track`, `.thumb`, `.label`) — Svelte scopes them automatically |
+
+#### Design tokens
+
+All design tokens are CSS custom properties defined in the `:root` block at the top of
+`templates/common.css`. **Never hard-code a colour, spacing, or type-scale value in any
+stylesheet** — use the corresponding token.
+
+Naming convention: `--category-name`. All token names are defined in `templates/common.css` (`:root` block) — consult that file for the full list.
+
+Svelte component `<style>` blocks should reference these tokens directly (e.g.
+`color: var(--color-signal-hot)`) without importing anything.
+
+#### BEM conventions
+
+- **Modifier** (variant of a block or element): double dash — `.btn--primary`, `.stat-card--hot`
+- **Element** (child owned by a block): double underscore — `.nav__link--active`
+- Component-bound CSS (Layer 3) does **not** use BEM — Svelte scopes styles automatically.
+
+### Svelte 5 component authoring (Phase 4c+)
+
+All Svelte components live in `client/src/shared/components/` or in a feature-slice folder.
+
+**Runes**
+- Declare props with `let { propA, propB, onEvent }: Props = $props()`.
+- Reactive local state: `let x = $state(initialValue)`.
+- Derived values: `let y = $derived(expression)`.
+- Use `$props.id()` to generate a stable per-instance ID for `<label>` / `<input id>` pairs
+  (required when Multiple instances on one page would otherwise share duplicate IDs).
+
+**Class bindings — always use the object form (Svelte 5 idiomatic):**
+```svelte
+<button class={{ 'filter-btn': true, 'is-active': active }}>…</button>
+```
+Do **not** use ternary string expressions.
+
+**`<style>` blocks**
+- Use simple semantic names (`.track`, `.thumb`, `.label`, `.search-input`).
+- Reference design tokens directly: `color: var(--color-signal-hot)`.
+  No imports needed — tokens are global from `templates/common.css`.
+- No BEM inside a Svelte component (Svelte scopes styles automatically).
+
+**Callback props (Svelte 5 replaces `createEventDispatcher`)**
+Parent-to-child communication uses callback props:
+```svelte
+<!-- Child -->
+let { onclick }: { onclick: () => void } = $props();
+<button {onclick}>…</button>
+```
+Assign a `vi.fn()` spy as the callback prop in tests; assert `toHaveBeenCalled()`.
+
+**Vitest — writing component tests**
+- Co-locate tests: `MyComponent.test.ts` beside `MyComponent.svelte`.
+- Import pattern: `import { render, fireEvent } from '@testing-library/svelte'`
+- `render(Component, propsObject)` — no `{ props: … }` wrapper.
+- `fireEvent.*` **must be awaited** — `@testing-library/svelte` v5 wraps them in `act()`.
+- `@testing-library/jest-dom` matchers are available globally (imported in `test-setup.ts`).
+  Do **not** re-import it per test file.
+- For `input[type="range"]`, check `.value` property directly
+  (`(el as HTMLInputElement).value`) — `toHaveValue()` will fail because happy-dom returns
+  `valueAsNumber` as a string instead of a number.
+
 ---
-
-## Python Code Hygiene Guidelines
-
-**Descriptive Naming**: Use clear, descriptive names for variables and functions (snake_case) and classes (PascalCase). Avoid nonstandard abbreviations or single-letter names.
-
-**Small, Focused Functions**: Write short functions that each serve a single purpose. Avoid deep nesting or high cyclomatic complexity—split complex logic into helper functions if needed.
-
-**Minimize Side Effects**: Prefer pure functions and immutability whenever possible. Avoid global state or hidden side effects that make code harder to reason about.
-
-**Clean OOP Structure**: Design classes with a single responsibility and clear purpose. Favor composition over deep inheritance to reduce tight coupling and keep logic easy to follow.
-
-**Avoid Duplicate Code**: Do not copy-paste or duplicate logic. Refactor common functionality into reusable functions or methods to keep code DRY.
-
-**Use Type Annotations**: Add Python type hints for function parameters, return values, and important variables. This improves code clarity and catches many issues early.
-
-**Consistent Style and Formatting**: Format code with an auto-formatter (e.g. Black) to enforce PEP 8 standards, and use a linter (like Ruff) to detect issues and ensure consistent style.
-
-**Self-Documenting Code**: Write code that is clear by itself, minimizing the need for inline comments.
 
 ## ⚠️ CRITICAL: Testing Workflow (BLOCKING) ⚠️
 
 **A code change is complete only when all tests pass and coverage meets thresholds (80%).**
+
+### The four-layer testing pyramid
+
+| Layer | Command | Speed | Required when |
+|---|---|---|---|
+| Client unit + coverage | `make test-client` | ~7s | Any `client/src/` change |
+| Browser-backed visual | `make test-visual` | ~5s | CSS tokens or Svelte `<style>` blocks change |
+| Python unit | `make test` | ~5s | Any `src/` change |
+| E2E (Playwright) | `make test-e2e` | ~20-85s | `client/src/`, `src/website/`, or `templates/` change |
+
+**CI failure order mirrors this pyramid**: client tests → visual contracts → Python tests → conditional E2E.
+Failures always surface at the cheapest valid layer first.
 
 ### ✅ MANDATORY: Always Use Make Commands
 
@@ -65,6 +131,27 @@ The dist output mirrors the source tree (`shared/`, `species-page/` subdirectori
 **For ANY edit in `src/`:**
 1. `make test` (all tests with coverage)
 2. `.venv/bin/python scripts/check_coverage.py --module=<edited_file>.py`
+
+**For ANY edit in `client/src/`:**
+1. `make test-client-fast` (fast Vitest run without coverage — use during active iteration)
+2. `make test-visual` when you changed CSS tokens, Svelte `<style>` blocks, or any visual contract
+3. `make test-client` (Vitest unit tests with coverage — final check; enforces thresholds:
+   branches 85%, functions 90%, lines 95%, statements 95%)
+4. `make test-e2e` when you have changed JavaScript behaviour or website output (see E2E section below)
+
+**When is `make test-visual` required?**
+- You changed a CSS custom property in `templates/common.css`
+- You changed a `<style>` block in any `.svelte` component
+- You added a new Svelte component with styled elements
+- You changed a BEM modifier that affects computed colours or layout in Phase 2 CSS files
+
+**Vitest vs visual contracts vs E2E — use the right tool:**
+- **Vitest (`*.test.ts`)** covers Svelte component logic (props, events, `$state` / `$derived`), pure utilities, and render output. ~7s including coverage.
+- **Visual contracts (`*.visual.test.ts`)** cover computed styles, CSS token resolution (`var(--token)` → actual colour), focus states, overflow, layout properties — things `happy-dom` cannot model. ~5s in a real Chromium instance.
+- **E2E (Playwright)** covers full-site assembly, URL state, downloads, and real data shape from the Python generator. ~20-85s.
+- Coverage is a **migration confidence gate**, not a substitute for thinking about edge cases.
+  A green coverage number means logic paths were exercised; it does not mean all edge cases
+  are handled. Always think about what the code could do wrong.
 
 ### Playwright E2E Tests (Essential for Website Validation)
 
@@ -244,40 +331,26 @@ Before creating a new test function, ask:
 - Existing test has a fundamentally different setup or fixture
 - New test would make the existing test too complex
 
-**Example — prefer to modify:**
-```python
-# ❌ DON'T create duplicate test
-def test_parse_price_with_pence():
-    assert parse_price("£12.99") == 12.99
-
-def test_parse_price_with_whole_pounds():  # NEW - duplicates above
-    assert parse_price("£15.00") == 15.00
-
-# ✅ DO extend existing parametrized test
-@pytest.mark.parametrize("input,expected", [
-    ("£12.99", 12.99),
-    ("£15.00", 15.00),  # ADD to existing test
-])
-def test_parse_price(input, expected):
-    assert parse_price(input) == expected
-```
-
 ### Running Tests
-
-> **⚠️ Important:** Make sure your virtual environment is activated before running tests!
-> 
-> ```sh
-> # Activate virtual environment first
-> source .venv/bin/activate          # macOS/Linux
-> .venv\Scripts\activate.bat         # Windows (CMD)
-> .venv\Scripts\Activate.ps1         # Windows (PowerShell)
-> ```
-> 
-> Your terminal prompt should show `(.venv)` at the beginning when activated.
 
 ```bash
 # Run all unit tests (fast, ~1 second)
 make test
+
+# Run client-side Vitest tests without coverage (fast iteration during active development)
+make test-client-fast
+
+# Run client-side Vitest tests in watch mode (re-runs on every file save)
+make test-client-watch
+
+# Run client-side Vitest tests with coverage (required before committing any client/src/ change)
+make test-client
+
+# Open client coverage report in browser
+make open-coverage-client
+
+# Run browser-backed visual contract tests (required when CSS tokens or Svelte style blocks change)
+make test-visual
 
 # Run individual test file (REQUIRED when testing specific functionality)
 make test-file FILE=tests/website_module/test_csv.py
@@ -296,25 +369,142 @@ python scripts/check_coverage.py --module=scrape/breeder_matrix.py
 
 ### Test Coverage Requirements
 
-**Process:**
-1. **Write tests FIRST** (TDD: RED → GREEN → optional REFACTOR)
-2. **Choose test style** based on what you're validating (snapshot/CSS/structure/E2E)
-3. **Modify existing tests** when possible instead of creating duplicates
-4. **Use synthetic data** to simulate scraping, not live web scraping
-5. **Cover all branches** and edge cases with descriptive test names
-
 **JavaScript behavior:** E2E tests required for all user interactions. Unit tests verify HTML structure only.
 
-**Verification:**
-```bash
-python scripts/check_coverage.py --module=scrape/breeder_matrix.py --threshold=80
-python scripts/check_coverage.py --module=shared/parsing.py --threshold=80
-python scripts/check_coverage.py --module=website/generate_website.py --threshold=80
-```
+**Verification:** `python scripts/check_coverage.py --module=<module>.py --threshold=80`
 
 **Artifacts:** `tmp/coverage/coverage.json`, `tmp/coverage/html/`, use `scripts/view_coverage.py` for summary
 
 **Threshold:** 80% minimum per module
+
+---
+
+## Interactive Browser Inspection (DevTools MCP)
+
+Chrome DevTools MCP gives the agent live eyes inside a real browser via `evaluate_script`.
+It is a **diagnostic tool, not a CI gate.**
+
+### How DevTools MCP differs from `make test-visual`
+
+| | `make test-visual` | DevTools MCP |
+|---|---|---|
+| **Nature** | Automated — runs pre-defined contracts | Ad-hoc — agent investigates on demand |
+| **When to use** | Assert known-good properties didn't regress | Explore unknown computed values; debug a failure |
+| **Speed** | ~5s unattended | Requires a running local server |
+| **Output** | Pass / fail | Raw values the agent can reason about |
+
+Always run `make test-visual` first. Escalate to DevTools MCP only when existing contracts
+can't answer the question.
+
+### How to invoke DevTools MCP
+
+**The agent will NOT start browser inspection autonomously.** It requires an explicit request or
+a clear signal from the user. The Chrome DevTools MCP server must also be connected in VS Code.
+
+**Phrases that will trigger DevTools MCP:**
+
+- *"Inspect the computed styles on the breeder page filter button"*
+- *"Use DevTools MCP to check why the active colour looks wrong"*
+- *"Open a browser and verify the CSS token resolves correctly"*
+- *"Visually inspect the species page in a real browser"*
+
+The agent will then run `make preview` to serve the site, navigate to the relevant page
+using the DevTools MCP navigation tool, and call `evaluate_script` to read computed values.
+
+### When the agent should propose DevTools MCP (without being asked)
+
+- `make test-visual` fails with a colour/style assertion and the cause is not obvious from code
+- You ask "why does X look wrong" or "does X match the design token" and no automated test covers it
+- You are adding a new Svelte `<style>` block and want ground-truth before writing a visual contract
+
+**Do NOT reach for DevTools MCP first.** Run `make test-client-fast` before escalating to
+interactive inspection. Only use DevTools MCP when the logic layer cannot answer the question.
+
+### Generating and serving the site
+
+```bash
+# One command — generate website from existing CSVs + serve at http://localhost:8000
+make preview
+
+# Or step by step:
+make generate-website   # build client assets + generate HTML → tmp/local-testing/website/
+make serve-only         # start HTTP server at http://localhost:8000 (blocking)
+```
+
+If CSV files are missing from `tmp/local-testing/`:
+
+```bash
+make download-artifacts   # download latest from GitHub Actions
+# or
+make scrape-only          # run the scraper locally
+```
+
+The server binds to `127.0.0.1:8000` only. Pages served:
+- `http://localhost:8000/` — homepage
+- `http://localhost:8000/breeder.html` — Breeder Opportunities
+- `http://localhost:8000/dealer.html` — Dealer Supply Risk
+- `http://localhost:8000/snapshot.html` — Latest Snapshot
+- `http://localhost:8000/history.html` — Historical Data
+- `http://localhost:8000/species/<slug>/index.html` — Species Detail
+
+### Inspecting with Chrome DevTools MCP
+
+Once the site is served, use Chrome DevTools MCP tools to inspect it. Example for checking
+the computed background colour of an active filter button:
+
+```javascript
+// 1. Navigate to the target page
+//    e.g. http://localhost:8000/breeder.html
+
+// 2. Activate a filter button so it has the active state, then:
+evaluate_script(`
+  const el = document.querySelector('.filter-btn.is-active');
+  const style = window.getComputedStyle(el);
+  return {
+    backgroundColor: style.backgroundColor,
+    borderColor:     style.borderColor,
+    color:           style.color,
+  };
+`)
+
+// 3. Compare against the expected token value.
+//    e.g. --color-accent is #3498db → resolves to rgb(52, 152, 219) in getComputedStyle.
+//    Token values are in templates/common.css (:root block).
+//    parseTokens() in client/src/test-utils/design-tokens.ts reads them programmatically.
+```
+
+### DevTools MCP operating playbook
+
+**Inspection order:**
+
+1. `make test-client-fast` — confirm logic layer is clean first
+2. `make test-visual` — run browser-backed visual contracts; many style questions are already answered here
+3. `make preview` — regenerate and serve the site at `http://localhost:8000`
+4. Navigate to the affected page via Chrome DevTools MCP
+5. Use `evaluate_script` to read `getComputedStyle` on the target element
+6. Compare against the token value (read `templates/common.css` or call `parseTokens()`)
+7. If the value is wrong: fix the CSS and re-inspect
+8. If the value is correct: promote the finding into an automated assertion at the
+   lowest valid layer (Vitest browser-backed visual contract, or E2E token helper)
+
+**Safe browser profile guidance:**
+
+- DevTools MCP is read-only inspection during normal use; avoid `evaluate_script` calls
+  that write to storage or modify persistent state
+- The preview server binds to `127.0.0.1` only — it is not reachable from external networks
+- Do not run `make preview` in CI or automated pipelines; it is for local agent use only
+- Shut down the server (`Ctrl+C`) before running `make test-e2e` to avoid port conflicts
+
+**Converting discoveries into durable assertions:**
+
+- Computed style verified correct via `getComputedStyle` → add to `make test-visual` (Phase 5
+  browser-backed visual contracts) so it is enforced automatically on every run
+- Interaction sequence verified → add a targeted E2E test that guards that path
+- Hardcoded colour found in a Svelte `<style>` block → the Phase 3 compliance audit in
+  `client/src/test-utils/design-tokens.test.ts` should detect it; if it does not, extend the
+  scanner
+- **Do not leave inspection results as agent memory only.** Every useful discovery must
+  become an automated assertion before the conversation ends.
 
 ---
 
@@ -373,23 +563,15 @@ Dependencies are defined in:
 - **requirements.txt**: Production dependencies (HTTP client, HTML parsing, browser automation, markdown)
 - **requirements-dev.txt**: Development/testing dependencies (pytest, coverage tools)
 
-Install with:
-```bash
-pip install -r requirements.txt
-pip install -r requirements-dev.txt
-```
-
 ## Coding Conventions
 
-1. **Python Version**: Python 3.11
-2. **Style**: Follow PEP 8 conventions
-3. **Imports**: Use absolute imports from src modules
-4. **String handling**: Use UTF-8 encoding for file operations
-5. **Error handling**: Use assertions for validation with descriptive messages
-6. **CSV format**: Use the CSV_HEADER defined in shared.config for consistency
-7. **Whitespace normalization**: Use the normalize_whitespace() function from shared.parsing
-8. **Regex patterns**: Define regex patterns in shared.config for reusability
-9. **Browser cleanup**: Always use try/finally to ensure driver cleanup
+1. **Imports**: Use absolute imports from src modules
+2. **String handling**: Use UTF-8 encoding for file operations
+3. **Error handling**: Use assertions for validation with descriptive messages
+4. **CSV format**: Use the CSV_HEADER defined in shared.config for consistency
+5. **Whitespace normalization**: Use the normalize_whitespace() function from shared.parsing
+6. **Regex patterns**: Define regex patterns in shared.config for reusability
+7. **Browser cleanup**: Always use try/finally to ensure driver cleanup
 
 ## Test Utilities
 
@@ -494,53 +676,6 @@ scrape_datetime, scientific_name, common_name, size_cm, price_gbp, wishlist_coun
 - **Workflows**:
   - **scrape.yml**: Main scraping and analysis workflow
   - **deploy-pages.yml**: Triggered on successful scrape completion (master branch only), generates and deploys static website to GitHub Pages
-
-### Scrape Workflow Steps
-1. Checkout repository
-2. Set up Python 3.11
-3. Install Chrome (stable)
-4. Install dependencies (requests, beautifulsoup4, selenium)
-5. Resolve branch-scoped artifact names
-6. Download previous history artifact (branch-scoped with fallback to default)
-7. Run scraper and analysis
-8. Save job summary as `analysis_summary.md`
-9. Upload artifacts: snapshot, history, breeder table, dealer table, analysis summary
-
-### Deploy Workflow Steps
-1. Checkout repository
-2. Set up Python 3.11
-3. Download all artifacts from scrape workflow
-4. Generate static HTML website using the `website.generate_website` module
-5. Upload website to GitHub Pages
-6. Deploy to GitHub Pages
-
-## Common Tasks
-
-### Adding a new parsing function
-1. Add the function to src/shared/parsing.py
-2. Add any regex patterns to src/shared/config.py
-3. Use normalize_whitespace() for text processing
-4. Handle edge cases with empty/None values
-
-### Modifying scraper logic
-1. Update src/scrape/scraper.py for extraction changes
-2. Keep functions focused and single-purpose
-3. Test with actual web pages before deploying
-4. If JavaScript is required, use src/scrape/browser_client.py instead of http_client.py
-
-### Adding new analysis
-1. Create a new module in src/scrape/ (e.g., new_analysis.py)
-2. Follow the pattern of src/scrape/breeder_matrix.py or dealer_matrix.py
-3. Import and call from src/scrape/scrape_spidershop_spiderlings.py main()
-4. Update workflow to upload new artifact files
-5. Update `src/website/generate_website.py` if the analysis should appear on the website
-
-### Modifying website generation
-1. Edit `src/website/generate_website.py`
-2. Test locally by running: `python -m website` (with PYTHONPATH set to src/)
-3. Check generated HTML files in `website/` directory
-4. Ensure CSV files are copied to output directory
-5. Verify markdown-to-HTML conversion for analysis sections
 
 ## Domain Context
 

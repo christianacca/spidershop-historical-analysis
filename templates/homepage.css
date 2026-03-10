@@ -10,19 +10,19 @@
 
 .card {
     background: white;
-    border: 1px solid #e1e8ed;
-    border-radius: 8px;
+    border: 1px solid var(--color-border-alt);
+    border-radius: var(--radius-lg);
     padding: 20px;
     transition: box-shadow 0.3s;
 }
 
 .card:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-lg);
 }
 
 .card h3 {
     margin-top: 0;
-    color: #2c3e50;
+    color: var(--color-primary);
 }
 
 .card p {
@@ -31,7 +31,7 @@
 }
 
 .card a {
-    color: #3498db;
+    color: var(--color-accent);
     text-decoration: none;
     font-weight: 600;
 }
@@ -49,9 +49,9 @@
 .disclaimer {
     margin-top: 40px;
     padding: 16px 20px;
-    background: #f8f8f8;
-    border: 1px solid #ddd;
-    border-radius: 6px;
+    background: var(--color-surface-light);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-md);
     font-size: 0.82em;
     color: #666;
     line-height: 1.5;

@@ -37,16 +37,15 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import os
 import shutil
-from collections import Counter
 from datetime import datetime, timezone
-from typing import Optional, Callable, Tuple, List, Any
+from typing import Optional, List, Any
 
 # Handle both direct script execution and module import
 try:
     from website.page_config import BasePageConfig, NAV_ITEMS
-    from website.sparkline_conversion import (
+    from website.sparkline_dto import (
         load_historical_sparkline_data,
-        convert_sparklines_in_rows,
+        build_sparkline_dto_rows,
     )
     from website.markdown_utils import (
         parse_markdown_to_html,
@@ -54,10 +53,10 @@ try:
         extract_analysis_sections,
     )
     from website.html_utils import (
-        generate_table_html,
         jinja_env,
     )
     from website.csv_utils import read_csv_file
+    from website.table_data_helpers import rows_to_json
     from website.species_detail import (
         get_species_list,
         slugify_species,
@@ -70,9 +69,9 @@ try:
     from shared.parsing import format_datetime_smart, snake_to_display_header
 except ModuleNotFoundError:
     from page_config import BasePageConfig, NAV_ITEMS  # type: ignore[assignment]
-    from sparkline_conversion import (
+    from sparkline_dto import (
         load_historical_sparkline_data,
-        convert_sparklines_in_rows,
+        build_sparkline_dto_rows,
     )
     from markdown_utils import (
         parse_markdown_to_html,
@@ -80,10 +79,10 @@ except ModuleNotFoundError:
         extract_analysis_sections,
     )
     from html_utils import (
-        generate_table_html,
         jinja_env,
     )
     from csv_utils import read_csv_file
+    from table_data_helpers import rows_to_json  # type: ignore[import]
     from shared.parsing import format_datetime_smart, snake_to_display_header
 
 # Output directory for the generated website
@@ -98,67 +97,6 @@ def _page_nav_item(active_page: str):
         if item.active_page == active_page:
             return item
     raise ValueError(f"No nav item found for active_page={active_page!r}")
-
-
-def _calculate_column_range(
-    rows: List[List[Any]], 
-    col_idx: Optional[int], 
-    default_min: int, 
-    default_max: int,
-    parser: Callable[[Any], float]
-) -> Tuple[int, int, bool]:
-    """
-    Calculate min/max range for a column in CSV data.
-    
-    Args:
-        rows: CSV rows (list of lists)
-        col_idx: Column index to extract values from
-        default_min: Default minimum if no valid values found
-        default_max: Default maximum if no valid values found
-        parser: Function to parse cell value to float (handles type conversions)
-        
-    Returns:
-        Tuple of (min_value, max_value, found_values) where:
-        - min_value: Minimum value as integer (or default)
-        - max_value: Maximum value as integer (or default)
-        - found_values: Boolean indicating if any valid values were found
-    """
-    if not rows or col_idx is None:
-        return default_min, default_max, False
-    
-    values = []
-    for row in rows:
-        if col_idx < len(row):
-            try:
-                values.append(parser(row[col_idx]))
-            except (ValueError, TypeError):
-                pass
-    
-    if not values:
-        return default_min, default_max, False
-    
-    return int(min(values)), int(max(values)), True
-
-
-def _parse_price_value(value: Any) -> float:
-    """Parse a price value, removing the £ symbol if present."""
-    price_str = str(value).replace('£', '').strip()
-    return float(price_str)
-
-
-def _find_column_indices(
-    headers: Optional[List[str]], *column_names: str
-) -> dict:
-    """Return a mapping of column_name → index (or None if absent) for each requested name."""
-    if not headers:
-        return {name: None for name in column_names}
-    result: dict = {}
-    for name in column_names:
-        try:
-            result[name] = headers.index(name)
-        except ValueError:
-            result[name] = None
-    return result
 
 
 # Mapping from raw CSV column names to human-readable display names used in the
@@ -181,36 +119,6 @@ def _rename_raw_headers(headers: Optional[List[str]]) -> Optional[List[str]]:
     return [snake_to_display_header(h) for h in headers]
 
 
-def _build_slider_ranges(
-    rows: List[List[Any]],
-    price_idx: Optional[int],
-    wishlist_idx: Optional[int],
-) -> Tuple[int, int, int, int]:
-    """Calculate price and wishlist slider min/max values from CSV data.
-
-    Returns:
-        Tuple of (price_min, price_max, wishlist_min, wishlist_max)
-    """
-    price_min, price_max, found_prices = _calculate_column_range(
-        rows=rows,
-        col_idx=price_idx,
-        default_min=5,
-        default_max=400,
-        parser=_parse_price_value,
-    )
-    if found_prices:
-        price_max = price_max + 1
-
-    wishlist_min, wishlist_max, _ = _calculate_column_range(
-        rows=rows,
-        col_idx=wishlist_idx,
-        default_min=0,
-        default_max=300,
-        parser=lambda x: int(x),
-    )
-    return price_min, price_max, wishlist_min, wishlist_max
-
-
 def generate_homepage(last_scrape_time: Optional[str] = None) -> str:
     """Generate the homepage with overview and links using Jinja2 template."""
     template = jinja_env.get_template('homepage.html')
@@ -229,7 +137,6 @@ def generate_snapshot_page(config: BasePageConfig) -> str:
     
     # Format scrape_datetime column (date-only unless collision) and capture for display
     scrape_date = None
-    hidden_col_indices: list[int] = []
     if headers and rows and 'scrape_datetime' in headers:
         datetime_idx = headers.index('scrape_datetime')
         datetimes = [row[datetime_idx] for row in rows]
@@ -237,30 +144,19 @@ def generate_snapshot_page(config: BasePageConfig) -> str:
         for i, row in enumerate(rows):
             row[datetime_idx] = formatted_dates[i]
         scrape_date = rows[0][datetime_idx] if rows else None
-        hidden_col_indices = [datetime_idx]
     
     #Load sparkline data from history CSV for conversion
     sparkline_data = load_historical_sparkline_data()
-    
-    # Convert Unicode sparklines to SVG in rows
+
+    # Convert Unicode sparklines to DTO dicts in sparkline columns
     if headers and rows:
-        rows = convert_sparklines_in_rows(headers, rows, sparkline_data, config.csv_filename)
+        rows = build_sparkline_dto_rows(headers, rows, sparkline_data, config.csv_filename)
     
-    # Find column indices for special rendering
-    col = _find_column_indices(
-        headers, 'page_url', 'scientific_name', 'price_gbp', 'wishlist_count'
-    )
-    page_url_idx = col['page_url']
-    scientific_name_idx = col['scientific_name']
-    price_idx = col['price_gbp']
-    wishlist_idx = col['wishlist_count']
-
-    price_min, price_max, wishlist_min, wishlist_max = _build_slider_ranges(
-        rows, price_idx, wishlist_idx
-    )
-
     # Rename raw CSV header names to proper English for display
     display_headers = _rename_raw_headers(headers)
+
+    # Serialise rows for Svelte data contract
+    json_rows = rows_to_json(display_headers or [], rows)
 
     # Enumerate headers and rows for template
     headers_enum = list(enumerate(display_headers)) if display_headers else []
@@ -274,24 +170,10 @@ def generate_snapshot_page(config: BasePageConfig) -> str:
         table_id=config.table_id,
         active_page=config.active_page,
         path_prefix="",
-        search_filter=getattr(config, 'search_filter', True),
         headers=headers_enum,
-        raw_headers=headers,
         rows=rows_enum,
-        page_url_idx=page_url_idx,
-        price_idx=price_idx,
-        price_min=price_min,
-        price_max=price_max,
-        wishlist_idx=wishlist_idx,
-        wishlist_min=wishlist_min,
-        wishlist_max=wishlist_max,
-        scientific_name_idx=scientific_name_idx,
-        signal_col_idx=None,  # Snapshot has no signal column
-        stock_pattern_col_idx=None,  # Snapshot has no stock pattern column
-        drivers_col_idx=None,  # Snapshot has no drivers column
-        hidden_col_indices=hidden_col_indices,
+        json_rows=json_rows,
         scrape_date=scrape_date,
-        sortable=True,
         timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     )
 
@@ -307,48 +189,32 @@ def generate_history_page(config: BasePageConfig) -> str:
         date_col_idx = headers.index('scrape_datetime')
 
     # Format scrape_datetime column (date-only unless collision)
-    scrape_datetimes: list = []
     raw_datetimes: list[str] = []  # original ISO strings preserved for CSV export
-    row_date_counts: dict = {}
-    total_rows: int = len(rows) if rows else 0
-    num_runs: int = 0
-    min_date: str = ""
-    max_date: str = ""
     if date_col_idx is not None and rows:
         datetimes = [row[date_col_idx] for row in rows]
         raw_datetimes = datetimes  # preserve before formatting
         formatted_dates = format_datetime_smart(datetimes)
         for i, row in enumerate(rows):
             row[date_col_idx] = formatted_dates[i]
-        # Unique dates most-recent-first, with per-date row counts
-        scrape_datetimes = list(dict.fromkeys(reversed(formatted_dates)))
-        row_date_counts = dict(Counter(formatted_dates))
-        num_runs = len(scrape_datetimes)
-        min_date = scrape_datetimes[-1] if scrape_datetimes else ""
-        max_date = scrape_datetimes[0] if scrape_datetimes else ""
 
     # Load sparkline data from history CSV for conversion
     sparkline_data = load_historical_sparkline_data()
-    
-    # Convert Unicode sparklines to SVG in rows
-    if headers and rows:
-        rows = convert_sparklines_in_rows(headers, rows, sparkline_data, config.csv_filename)
-    
-    # Find column indices for special rendering
-    col = _find_column_indices(
-        headers, 'page_url', 'scientific_name', 'price_gbp', 'wishlist_count'
-    )
-    page_url_idx = col['page_url']
-    scientific_name_idx = col['scientific_name']
-    price_idx = col['price_gbp']
-    wishlist_idx = col['wishlist_count']
 
-    price_min, price_max, wishlist_min, wishlist_max = _build_slider_ranges(
-        rows, price_idx, wishlist_idx
-    )
+    # Convert Unicode sparklines to DTO dicts in sparkline columns
+    if headers and rows:
+        rows = build_sparkline_dto_rows(headers, rows, sparkline_data, config.csv_filename)
 
     # Rename raw CSV header names to proper English for display
     display_headers = _rename_raw_headers(headers)
+
+    # Serialise rows for Svelte data contract
+    json_rows = rows_to_json(display_headers or [], rows)
+
+    # Inject raw ISO datetimes into each JSON row so the Svelte component can
+    # restore the original timestamp when building a downloadable CSV export.
+    if date_col_idx is not None and raw_datetimes:
+        for i, json_row in enumerate(json_rows):
+            json_row['_raw_scrape_datetime'] = raw_datetimes[i]
 
     # Enumerate headers and rows for template
     headers_enum = list(enumerate(display_headers)) if display_headers else []
@@ -358,35 +224,13 @@ def generate_history_page(config: BasePageConfig) -> str:
     return template.render(
         page_title=config.title,
         description=config.description,
-        csv_filename=config.csv_filename,
         table_id=config.table_id,
         active_page=config.active_page,
         path_prefix="",
-        search_filter=getattr(config, 'search_filter', True),
         headers=headers_enum,
-        raw_headers=headers,
         rows=rows_enum,
-        page_url_idx=page_url_idx,
-        price_idx=price_idx,
-        price_min=price_min,
-        price_max=price_max,
-        wishlist_idx=wishlist_idx,
-        wishlist_min=wishlist_min,
-        wishlist_max=wishlist_max,
-        scientific_name_idx=scientific_name_idx,
-        signal_col_idx=None,  # History has no signal column
-        stock_pattern_col_idx=None,  # History has no stock pattern column
-        drivers_col_idx=None,  # History has no drivers column
-        sortable=True,
+        json_rows=json_rows,
         timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
-        date_col_idx=date_col_idx,
-        raw_datetimes=raw_datetimes,
-        scrape_datetimes=scrape_datetimes,
-        row_date_counts=row_date_counts,
-        total_rows=total_rows,
-        num_runs=num_runs,
-        min_date=min_date,
-        max_date=max_date,
     )
 
 
@@ -413,20 +257,20 @@ def generate_analysis_page(config: BasePageConfig) -> str:
     assert config.active_page in ("breeder", "dealer"), \
         f"generate_analysis_page only serves breeder/dealer pages, got: {config.active_page}"
     headers, rows = read_csv_file(config.csv_filename)
-    
+
     # Load historical data if available to enrich sparklines with values
     historical_data = load_historical_sparkline_data()
-    
-    # Convert Unicode sparklines to SVG in sparkline columns
+
+    # Convert Unicode sparklines to DTO dicts in sparkline columns
     if headers and rows:
-        rows = convert_sparklines_in_rows(headers, rows, historical_data, config.csv_filename)
+        rows = build_sparkline_dto_rows(headers, rows, historical_data, config.csv_filename)
+
+    # Serialise rows for Svelte data contract (DTOs flow to SparklineBar component)
+    json_rows = rows_to_json(headers or [], rows)
     
     # Extract summary stats from analysis markdown (if config has this attribute)
     analysis_markdown = getattr(config, 'analysis_markdown', None)
     summary_stats = extract_summary_stats(analysis_markdown) if analysis_markdown else None
-    
-    # No markdown to HTML conversion for analysis - no tables to render
-    analysis_html = None
     
     # Determine labels and tooltips based on page type (breeder vs dealer)
     stats_labels = None
@@ -466,65 +310,9 @@ def generate_analysis_page(config: BasePageConfig) -> str:
         legend_with_wrapper = f'<details id="legend-section" markdown="1">\n<summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>\n\n{legend_markdown}\n\n</details>'
         legend_html = parse_markdown_to_html(legend_with_wrapper)
     
-    # Find column indices for special rendering
-    page_url_idx = None
-    scientific_name_idx = None
-    species_idx = None
-    size_idx = None
-    signal_col_idx = None
-    stock_pattern_col_idx = None
-    if headers:
-        try:
-            page_url_idx = headers.index('page_url')
-            scientific_name_idx = headers.index('scientific_name')
-        except ValueError:
-            pass
-        
-        # For breeder/dealer tables with species page linking
-        link_to_species_page = getattr(config, 'link_to_species_page', False)
-        if link_to_species_page:
-            try:
-                species_idx = headers.index('Species')
-                size_idx = headers.index('Size (cm)')
-            except ValueError:
-                pass  # Not a breeder/dealer table
-        
-        # Find Signal or Dealer Risk column for color-coding
-        try:
-            signal_col_idx = headers.index('Signal')
-        except ValueError:
-            try:
-                signal_col_idx = headers.index('Dealer Risk')
-            except ValueError:
-                pass  # No signal column found
-        
-        # Find Stock Pattern column for breeder filtering
-        try:
-            stock_pattern_col_idx = headers.index('Stock Pattern')
-        except ValueError:
-            pass  # No stock pattern column (not breeder table)
-    
-    # Calculate stock pattern counts for filter buttons
-    stock_pattern_counts = None
-    if stock_pattern_col_idx is not None and rows:
-        from collections import Counter
-        patterns = [row[stock_pattern_col_idx] for row in rows if stock_pattern_col_idx < len(row)]
-        pattern_counter = Counter(patterns)
-        stock_pattern_counts = {
-            'total': len(patterns),
-            'sustained': pattern_counter.get('Sustained', 0),
-            'emerging': pattern_counter.get('Emerging', 0),
-            'cyclical': pattern_counter.get('Cyclical', 0),
-            'always': pattern_counter.get('Always', 0)
-        }
-    
     # Enumerate headers and rows for template
     headers_enum = list(enumerate(headers)) if headers else []
     rows_enum = [list(enumerate(row)) for row in rows] if rows else []
-    
-    # Find drivers column index for tooltip rendering
-    # Drivers column exists in breeder/dealer tables but not history/snapshot
-    drivers_col_idx = headers.index('Drivers') if headers and 'Drivers' in headers else None
     
     template = jinja_env.get_template('analysis_page.html')
     return template.render(
@@ -535,8 +323,6 @@ def generate_analysis_page(config: BasePageConfig) -> str:
         active_page=config.active_page,
         page_script=f"{config.active_page}-page.js",
         path_prefix="",
-        search_filter=getattr(config, 'search_filter', True),
-        analysis_html=analysis_html,
         summary_stats=summary_stats,
         stats_labels=stats_labels,
         tooltips=tooltips,
@@ -544,17 +330,7 @@ def generate_analysis_page(config: BasePageConfig) -> str:
         examples_html=examples_html,
         headers=headers_enum,
         rows=rows_enum,
-        drivers_col_idx=drivers_col_idx,
-        sortable=True,
-        page_url_idx=page_url_idx,
-        scientific_name_idx=scientific_name_idx,
-        species_idx=species_idx,
-        size_idx=size_idx,
-        link_to_species_page=getattr(config, 'link_to_species_page', False),
-        table_view=getattr(config, 'table_view', 'breeder'),
-        signal_col_idx=signal_col_idx,
-        stock_pattern_col_idx=stock_pattern_col_idx,
-        stock_pattern_counts=stock_pattern_counts,
+        json_rows=json_rows,
         timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     )
 
@@ -797,7 +573,7 @@ def main() -> None:
         print(f"    WARNING: dist directory not found at {scripts_dir}")
     
     templates_dir = Path(__file__).parent.parent.parent / "templates"
-    css_files = ["common.css", "analysis.css", "species-detail.css", "homepage.css", "history.css"]
+    css_files = ["common.css", "analysis.css", "species-detail.css", "homepage.css"]
     _copy_files(css_files, templates_dir, OUTPUT_DIR, "CSS")
     
     print(f"\n✅ Website generated successfully in '{OUTPUT_DIR}' directory")

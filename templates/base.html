@@ -19,7 +19,7 @@
         <div class="container">
             <ul>
                 {% for item in nav_items %}
-                <li><a href="{{ path_prefix }}{{ item.url }}" class="{% if active_page == item.active_page %}active{% endif %}">{{ item.icon }} {{ item.label }}</a></li>
+                <li><a href="{{ path_prefix }}{{ item.url }}" class="{% if active_page == item.active_page %}nav__link--active{% endif %}">{{ item.icon }} {{ item.label }}</a></li>
                 {% endfor %}
             </ul>
         </div>

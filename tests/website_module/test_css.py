@@ -3,7 +3,6 @@
 import pytest
 from pathlib import Path
 from bs4 import BeautifulSoup
-from website import get_base_html_template
 
 
 def get_css_content(css_filename: str) -> str:

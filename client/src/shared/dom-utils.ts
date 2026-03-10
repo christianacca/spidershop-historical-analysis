@@ -4,8 +4,6 @@
  * Reusable DOM helpers used across page slices.
  */
 
-import { CSS } from './constants.js';
-
 /**
  * Get element by ID with warning if not found
  */
@@ -16,17 +14,17 @@ export function getElement(id: string): HTMLElement | null {
 }
 
 /**
- * Set active state on a button within a group
+ * Wire click listeners on `<a data-action="open-details">` elements so that
+ * clicking them opens the `<details>` element referenced by `data-target`.
  */
-export function setActiveButton(button: HTMLElement): void {
-  const buttons = button.parentElement!.querySelectorAll(`.${CSS.FILTER_BTN}`);
-  buttons.forEach(btn => btn.classList.remove(CSS.ACTIVE));
-  button.classList.add(CSS.ACTIVE);
-}
-
-/**
- * Toggle row visibility using CSS class
- */
-export function toggleRowVisibility(row: HTMLElement, shouldShow: boolean): void {
-  row.classList.toggle(CSS.HIDDEN, !shouldShow);
+export function wireOpenDetailsLinks(): void {
+  document.querySelectorAll<HTMLAnchorElement>('a[data-action="open-details"]').forEach((link) => {
+    link.addEventListener('click', () => {
+      const targetId = link.dataset.target;
+      if (targetId) {
+        const target = document.getElementById(targetId) as HTMLDetailsElement | null;
+        if (target) target.open = true;
+      }
+    });
+  });
 }

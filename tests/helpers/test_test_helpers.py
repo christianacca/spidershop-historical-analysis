@@ -146,7 +146,7 @@ class TestCreateBreederCsvContent:
         """Should create breeder CSV with default values."""
         result = create_breeder_csv_content()
         
-        assert "Species,Size (cm),OOS,OOS Runs,Stock Pattern,Price,Price History,Wishlist Pressure,Wishlist Delta,Wishlist History,Signal,Recommendation" in result
+        assert "Species,Size (cm),OOS,OOS Runs,Stock Pattern,Price,Price History,Wishlist,Wishlist Pressure,Wishlist Delta,Wishlist History,Signal,Recommendation" in result
         assert "Test Species,1.0" in result
         assert "🔥" in result
 

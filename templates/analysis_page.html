@@ -12,7 +12,7 @@
     <p>{{ description }}</p>
     
     <div class="download-links">
-        <a href="{{ csv_filename }}" download class="btn btn-download">⬇️ Download CSV</a>
+        <a href="{{ csv_filename }}" download class="btn btn--download">⬇️ Download CSV</a>
     </div>
     
     {% if summary_stats and stats_labels %}
@@ -21,7 +21,7 @@
             <div class="stat-value">{{ summary_stats.total }}</div>
             <div class="stat-label">Species Analyzed</div>
         </div>
-        <div class="stat-card stat-hot">
+        <div class="stat-card stat-card--hot">
             <div class="stat-value">{{ summary_stats.hot }}</div>
             <div class="stat-label">
                 {{ stats_labels.hot }}
@@ -30,7 +30,7 @@
                 </span>
             </div>
         </div>
-        <div class="stat-card stat-watch">
+        <div class="stat-card stat-card--watch">
             <div class="stat-value">{{ summary_stats.watch }}</div>
             <div class="stat-label">
                 {{ stats_labels.watch }}
@@ -39,7 +39,7 @@
                 </span>
             </div>
         </div>
-        <div class="stat-card stat-avoid">
+        <div class="stat-card stat-card--avoid">
             <div class="stat-value">{{ summary_stats.avoid }}</div>
             <div class="stat-label">
                 {{ stats_labels.avoid }}
@@ -53,41 +53,9 @@
     
     {{ macros.instruction_box(active_page) }}
     
-    {% if analysis_html %}
-    <div class="analysis-section">
-        {{ analysis_html|safe }}
-    </div>
-    {% endif %}
-    
-    {% if headers and rows %}
+    {% if json_rows %}
     <h3>Full Data Table</h3>
-    {% if signal_col_idx is not none %}
-    {{ macros.signal_filter_buttons(
-        table_id=table_id,
-        signal_label="Risk Level" if active_page == "dealer" else "Signal",
-        summary_stats=summary_stats,
-        has_advanced_filters=(stock_pattern_col_idx is not none or search_filter)
-    ) }}
-    {% endif %}
-    {% if stock_pattern_col_idx is not none or search_filter %}
-    <div class="advanced-filters">
-        <div id="advanced-filters-{{ table_id }}" class="advanced-filters-content">
-            {% if stock_pattern_col_idx is not none %}
-            {{ macros.stock_pattern_filter_buttons(table_id=table_id, stock_pattern_counts=stock_pattern_counts) }}
-            {% endif %}
-            {% if search_filter %}
-            {{ macros.search_filter(table_id=table_id) }}
-            {% endif %}
-        </div>
-    </div>
-    {% endif %}
-    
-    <div class="table-scroll">
-        {% with headers=headers, rows=rows, signal_col_idx=signal_col_idx, stock_pattern_col_idx=stock_pattern_col_idx, page_url_idx=page_url_idx, scientific_name_idx=scientific_name_idx, sortable=sortable, table_id=table_id %}
-        {% include 'table.html' %}
-        {% endwith %}
-    </div>
-    <p class="table-row-count"><strong>Total rows:</strong> {{ rows|length }}</p>
+    {% include 'table.html' %}
     {% else %}
     <div class="info-box">
         <p>No data available yet. Please check back after the next scrape run.</p>

@@ -27,18 +27,18 @@ def test_more_filters_toggle_shows_and_hides_panel(e2e_site_multi_species) -> No
 
     page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
 
-    panel = page.locator("#advanced-filters-history-table")
+    panel = page.locator(".advanced-filters-content")
 
     # Panel is hidden initially
     assert not panel.is_visible(), "Filter panel should be hidden before toggle"
 
     # Click toggle — panel opens
-    page.locator(".btn-filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
     assert panel.is_visible(), "Filter panel should be visible after first click"
 
     # Click toggle again — panel closes
-    page.locator(".btn-filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
     assert not panel.is_visible(), "Filter panel should be hidden after second click"
 
@@ -54,7 +54,7 @@ def test_search_input_filters_history_rows(e2e_site_multi_species) -> None:
     assert total_rows > 1, "Expected more than one row to make search filtering meaningful"
 
     # Open the filter panel
-    page.locator(".btn-filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     # Type a species name that matches only one row
@@ -63,11 +63,9 @@ def test_search_input_filters_history_rows(e2e_site_multi_species) -> None:
     page.wait_for_timeout(200)
 
     visible_rows = page.locator("#history-table tbody tr:visible").count()
-    hidden_rows = page.locator("#history-table tbody tr.hidden").count()
 
     assert visible_rows >= 1, "At least one row should remain visible after search"
-    assert hidden_rows > 0, "Some rows should be hidden after search"
-    assert visible_rows + hidden_rows == total_rows
+    assert visible_rows < total_rows, "Search should reduce visible rows"
 
 
 @pytest.mark.e2e
@@ -88,7 +86,7 @@ def test_filter_badge_shows_when_search_active(e2e_site_multi_species) -> None:
 
     page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
 
-    page.locator(".btn-filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     page.locator("input[data-action='search'][data-table-id='history-table']").fill("Aphonopelma")
@@ -106,7 +104,7 @@ def test_filter_badge_hidden_after_search_cleared(e2e_site_multi_species) -> Non
 
     page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
 
-    page.locator(".btn-filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     search_input = page.locator("input[data-action='search'][data-table-id='history-table']")
@@ -137,7 +135,7 @@ def test_visible_count_updates_with_search(e2e_site_multi_species) -> None:
     )
 
     # Open filters and search
-    page.locator(".btn-filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
     page.locator("input[data-action='search'][data-table-id='history-table']").fill("Aphonopelma")
     page.wait_for_timeout(200)
@@ -158,7 +156,7 @@ def test_price_sliders_exist_and_initialise_correctly(e2e_site_multi_species) ->
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
-    page.locator(".btn-filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     price_min_slider = page.locator("#priceMin")
@@ -171,9 +169,9 @@ def test_price_sliders_exist_and_initialise_correctly(e2e_site_multi_species) ->
     assert data_min is not None and data_min.replace(".", "", 1).lstrip("-").isdigit()
     assert data_max is not None and data_max.replace(".", "", 1).lstrip("-").isdigit()
 
-    # Sliders start at their respective extremes
-    assert price_min_slider.get_attribute("value") == data_min
-    assert price_max_slider.get_attribute("value") == data_max
+    # Sliders start at their respective extremes (use input_value — Svelte sets via JS property, not HTML attr)
+    assert price_min_slider.input_value() == data_min
+    assert price_max_slider.input_value() == data_max
 
     # Display text reflects initial range
     display = page.locator("#priceDisplay")
@@ -191,7 +189,7 @@ def test_price_max_slider_hides_rows_above_threshold(e2e_site_multi_species) -> 
     total_rows = page.locator("#history-table tbody tr").count()
     assert total_rows > 1
 
-    page.locator(".btn-filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     # Set max to a value below the most expensive row (£35 in test data; set to £28)
@@ -199,10 +197,8 @@ def test_price_max_slider_hides_rows_above_threshold(e2e_site_multi_species) -> 
     page.wait_for_timeout(200)
 
     visible = page.locator("#history-table tbody tr:visible").count()
-    hidden = page.locator("#history-table tbody tr.hidden").count()
     assert visible > 0, "Some rows should remain visible"
-    assert hidden > 0, "Some rows should be hidden above the threshold"
-    assert visible + hidden == total_rows
+    assert visible < total_rows, "Some rows should be filtered out above the price threshold"
 
     # Every visible row should have data-price <= 28
     for row in page.locator("#history-table tbody tr:visible").all():
@@ -216,7 +212,7 @@ def test_price_filter_badge_shows_one(e2e_site_multi_species) -> None:
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
-    page.locator(".btn-filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     page.locator("#priceMax").fill("28")
@@ -235,7 +231,7 @@ def test_price_filter_reset_shows_all_rows(e2e_site_multi_species) -> None:
     page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
     total_rows = page.locator("#history-table tbody tr").count()
 
-    page.locator(".btn-filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     price_max_slider = page.locator("#priceMax")
@@ -262,7 +258,7 @@ def test_wishlist_sliders_exist_and_initialise_correctly(e2e_site_multi_species)
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
-    page.locator(".btn-filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     wishlist_min_slider = page.locator("#wishlistMin")
@@ -275,9 +271,9 @@ def test_wishlist_sliders_exist_and_initialise_correctly(e2e_site_multi_species)
     assert data_min is not None and data_min.lstrip("-").isdigit()
     assert data_max is not None and data_max.lstrip("-").isdigit()
 
-    # Sliders start at their respective extremes
-    assert wishlist_min_slider.get_attribute("value") == data_min
-    assert wishlist_max_slider.get_attribute("value") == data_max
+    # Sliders start at their respective extremes (use input_value — Svelte sets via JS property, not HTML attr)
+    assert wishlist_min_slider.input_value() == data_min
+    assert wishlist_max_slider.input_value() == data_max
 
     # Display text reflects initial range (no currency symbol)
     display = page.locator("#wishlistDisplay")
@@ -296,17 +292,15 @@ def test_wishlist_min_slider_hides_rows_below_threshold(e2e_site_multi_species) 
     total_rows = page.locator("#history-table tbody tr").count()
     assert total_rows > 1
 
-    page.locator(".btn-filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     page.locator("#wishlistMin").fill("9")
     page.wait_for_timeout(200)
 
     visible = page.locator("#history-table tbody tr:visible").count()
-    hidden = page.locator("#history-table tbody tr.hidden").count()
     assert visible > 0, "Some rows should remain visible"
-    assert hidden > 0, "Some rows should be hidden below the threshold"
-    assert visible + hidden == total_rows
+    assert visible < total_rows, "Some rows should be filtered out below the wishlist threshold"
 
     # Every visible row must have data-wishlist >= 9
     for row in page.locator("#history-table tbody tr:visible").all():
@@ -320,7 +314,7 @@ def test_wishlist_filter_badge_shows_one(e2e_site_multi_species) -> None:
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
-    page.locator(".btn-filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     page.locator("#wishlistMin").fill("9")
@@ -337,7 +331,7 @@ def test_price_and_wishlist_filters_badge_shows_two(e2e_site_multi_species) -> N
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
-    page.locator(".btn-filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     page.locator("#priceMax").fill("28")
@@ -358,7 +352,7 @@ def test_wishlist_filter_reset_shows_all_rows(e2e_site_multi_species) -> None:
     page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
     total_rows = page.locator("#history-table tbody tr").count()
 
-    page.locator(".btn-filters").click()
+    page.locator(".advanced-filters-toggle:not(.date-expand-btn)").click()
     page.wait_for_timeout(200)
 
     wishlist_min_slider = page.locator("#wishlistMin")
@@ -389,7 +383,31 @@ def test_history_summary_info_styling(e2e_site_multi_species) -> None:
     summary_info = page.locator('.summary-info')
     assert summary_info.count() >= 1, "History page should have .summary-info element"
 
-    # #f1f3f5 = rgb(241, 243, 245)
+    # --color-surface-light: #f8f9fa = rgb(248, 249, 250)
     bg = summary_info.first.evaluate('el => window.getComputedStyle(el).backgroundColor')
-    assert 'rgb(241, 243, 245)' in bg, \
+    assert 'rgb(248, 249, 250)' in bg, \
         f"summary-info should have light grey background, got {bg}"
+
+
+@pytest.mark.e2e
+def test_page_url_column_shows_scientific_name_as_link_text(e2e_site_multi_species) -> None:
+    """Page URL column should render the scientific name as anchor text, not the raw URL."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/history.html", wait_until="domcontentloaded")
+    page.locator("#history-table tbody tr").first.wait_for(timeout=5000)
+
+    # Find links in the Page URL column (last column)
+    links = page.locator("#history-table tbody tr td:last-child a")
+    assert links.count() > 0, "Expected at least one link in the Page URL column"
+
+    first_link = links.first
+    link_text = first_link.inner_text()
+    href = first_link.get_attribute("href")
+
+    assert href and href.startswith("http"), f"Expected a valid URL in href, got: {href!r}"
+    assert link_text != href, \
+        f"Link text should be the scientific name, not the raw URL (got {link_text!r})"
+    # Scientific names contain a space between genus and species
+    assert " " in link_text, \
+        f"Link text should be a scientific name (Genus species), got: {link_text!r}"

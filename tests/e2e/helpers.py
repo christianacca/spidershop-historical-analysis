@@ -271,6 +271,24 @@ def write_multi_species_test_data(cwd: Path) -> None:
     )
     
     history_entries = [
+        # Aphonopelma seemanni — three dated entries to produce a rising price trend
+        # (matches the 3-bar sparkline ▁▄▇ in breeder_opportunity_table.csv)
+        HistoryEntry(
+            scrape_datetime="2025-12-18",
+            scientific_name="Aphonopelma seemanni",
+            common_name="Costa Rican Zebra",
+            size_cm="1.5",
+            price_gbp="8.99",
+            wishlist_count="3"
+        ),
+        HistoryEntry(
+            scrape_datetime="2025-12-25",
+            scientific_name="Aphonopelma seemanni",
+            common_name="Costa Rican Zebra",
+            size_cm="1.5",
+            price_gbp="15.00",
+            wishlist_count="4"
+        ),
         HistoryEntry(
             scrape_datetime="2026-01-01",
             scientific_name="Aphonopelma seemanni",
@@ -330,7 +348,12 @@ def write_multi_species_test_data(cwd: Path) -> None:
                 signal="🔥",
                 oos_runs="4",
                 stock_pattern="Sustained",
-                price="£25.00 ↑"
+                price="£25.00 ↑",
+                price_history="▁▄▇",
+                wishlist="5 🔥 ↑",
+                wishlist_pressure="🔥",
+                wishlist_delta="↑",
+                drivers="Stock: Sustained OOS (4 runs); Demand: Wishlist 🔥",
             ),
             BreederEntry(
                 species="Brachypelma hamorii",
@@ -338,7 +361,12 @@ def write_multi_species_test_data(cwd: Path) -> None:
                 signal="⚠️",
                 oos_runs="2",
                 stock_pattern="Emerging",
-                price="£28.00 →"
+                price="£28.00 →",
+                price_history="▇▄▁",
+                wishlist="8 ⚠️ →",
+                wishlist_pressure="⚠️",
+                wishlist_delta="→",
+                drivers="Stock: Emerging OOS (2 runs); Demand: Wishlist ⚠️",
             ),
             BreederEntry(
                 species="Grammostola pulchra",
@@ -346,7 +374,11 @@ def write_multi_species_test_data(cwd: Path) -> None:
                 signal="❌",
                 oos_runs="0",
                 stock_pattern="Always",
-                price="£30.00 ↓"
+                price="£30.00 ↓",
+                wishlist="12 ❌ →",
+                wishlist_pressure="❌",
+                wishlist_delta="→",
+                drivers="",
             ),
             BreederEntry(
                 species="Lasiodora parahybana",
@@ -354,7 +386,11 @@ def write_multi_species_test_data(cwd: Path) -> None:
                 signal="🔥",
                 oos_runs="6",
                 stock_pattern="Cyclical",
-                price="£20.00 ↑"
+                price="£20.00 ↑",
+                wishlist="3 🔥 ↑",
+                wishlist_pressure="🔥",
+                wishlist_delta="↑",
+                drivers="Stock: Cyclical OOS (6 runs); Price: Rising",
             ),
             BreederEntry(
                 species="Pterinochilus murinus",
@@ -362,7 +398,11 @@ def write_multi_species_test_data(cwd: Path) -> None:
                 signal="⚠️",
                 oos_runs="3",
                 stock_pattern="Emerging",
-                price="£15.00 →"
+                price="£15.00 →",
+                wishlist="10 ⚠️ →",
+                wishlist_pressure="⚠️",
+                wishlist_delta="→",
+                drivers="Stock: Emerging OOS (3 runs)",
             ),
         ]),
         encoding="utf-8",
@@ -376,7 +416,8 @@ def write_multi_species_test_data(cwd: Path) -> None:
                 risk="🔥",
                 stock_reliability="Low",
                 restock_speed="Slow",
-                price="£25.00 ↑"
+                price="£25.00 ↑",
+                drivers="Risk: Low reliability; Demand: Rising wishlist",
             ),
             DealerEntry(
                 species="Brachypelma hamorii",
@@ -483,6 +524,8 @@ def write_large_table_test_data(cwd: Path) -> None:
                 signal="🔥",
                 oos_runs="4",
                 stock_pattern="Sustained",
+                price="£25.00 ↑",
+                wishlist="5 🔥 ↑",
             )
             for name in hot_species
         ]
@@ -493,6 +536,8 @@ def write_large_table_test_data(cwd: Path) -> None:
                 signal="⚠️",
                 oos_runs="2",
                 stock_pattern="Emerging",
+                price="£20.00 →",
+                wishlist="2 ⚠️ →",
             )
             for name in watch_species
         ]
@@ -503,6 +548,8 @@ def write_large_table_test_data(cwd: Path) -> None:
                 signal="❌",
                 oos_runs="0",
                 stock_pattern="Always",
+                price="£15.00 ↓",
+                wishlist="1 ❌ →",
             )
             for name in avoid_species
         ]
