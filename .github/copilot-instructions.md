@@ -35,22 +35,6 @@ Key shared modules (all in `client/src/shared/`):
 The dist output mirrors the source tree (`shared/`, `species-page/` subdirectories).
 `generate_website.py` copies the entire dist tree with `shutil.copytree`.
 
-### Page entry point conventions
-
-Every stable page entry point (`breeder-page/index.ts`, `dealer-page/index.ts`,
-`snapshot-page/index.ts`) follows this pattern:
-
-```typescript
-const rows = ((window as Record<string, unknown>)['page-tableData'] ?? []) as Record<string, unknown>[];
-assertPayload(rows, REQUIRED_COLS);  // dev-only: console.warn if required columns missing
-mount(SortableTable, { target, props: { columns: COLUMNS, rows, filterConfig: FILTER_CONFIG } });
-```
-
-`assertPayload()` (from `shared/payload-validation.ts`) is a no-op in production (tree-shaken).
-`history-page/index.ts` passes an empty `REQUIRED_COLS` list — the history row shape is
-transitional (a chart/KPI redesign is planned; see `History page — future direction` in
-`docs/MIGRATION_PLAN.md`).
-
 ### CSS Architecture (3-layer model, established Phase 4a)
 
 The project uses a strict 3-layer CSS model. Understand which layer you are in before
@@ -68,19 +52,7 @@ All design tokens are CSS custom properties defined in the `:root` block at the 
 `templates/common.css`. **Never hard-code a colour, spacing, or type-scale value in any
 stylesheet** — use the corresponding token.
 
-Naming convention: `--category-name`
-
-Key token groups:
-- `--color-primary`, `--color-accent`, `--color-accent-hover`
-- `--color-signal-hot`, `--color-signal-watch`, `--color-signal-avoid`
-- `--color-success`, `--color-danger`
-- `--color-info-accent`, `--color-info-bg`
-- `--color-date-filter`, `--color-date-filter-bg`, `--color-date-filter-hover`
-- `--color-text`, `--color-text-heading`, `--color-text-muted`, `--color-text-dim`
-- `--color-bg`, `--color-surface`, `--color-surface-light`, `--color-surface-alt`
-- `--color-border`, `--color-border-light`, `--color-border-alt`
-- `--shadow-sm`, `--shadow-md`, `--shadow-lg`, `--shadow-card-hover`
-- `--spacing-xs/sm/md/lg/xl`, `--radius-sm/md/lg`, `--font-sm`, `--font-base`
+Naming convention: `--category-name`. All token names are defined in `templates/common.css` (`:root` block) — consult that file for the full list.
 
 Svelte component `<style>` blocks should reference these tokens directly (e.g.
 `color: var(--color-signal-hot)`) without importing anything.
@@ -89,7 +61,7 @@ Svelte component `<style>` blocks should reference these tokens directly (e.g.
 
 - **Modifier** (variant of a block or element): double dash — `.btn--primary`, `.stat-card--hot`
 - **Element** (child owned by a block): double underscore — `.nav__link--active`
-- Component-bound CSS (Layer 3) does **not** use BEM — it will be deleted when Svelte islands are introduced.
+- Component-bound CSS (Layer 3) does **not** use BEM — Svelte scopes styles automatically.
 
 ### Svelte 5 component authoring (Phase 4c+)
 
@@ -135,24 +107,6 @@ Assign a `vi.fn()` spy as the callback prop in tests; assert `toHaveBeenCalled()
   `valueAsNumber` as a string instead of a number.
 
 ---
-
-## Python Code Hygiene Guidelines
-
-**Descriptive Naming**: Use clear, descriptive names for variables and functions (snake_case) and classes (PascalCase). Avoid nonstandard abbreviations or single-letter names.
-
-**Small, Focused Functions**: Write short functions that each serve a single purpose. Avoid deep nesting or high cyclomatic complexity—split complex logic into helper functions if needed.
-
-**Minimize Side Effects**: Prefer pure functions and immutability whenever possible. Avoid global state or hidden side effects that make code harder to reason about.
-
-**Clean OOP Structure**: Design classes with a single responsibility and clear purpose. Favor composition over deep inheritance to reduce tight coupling and keep logic easy to follow.
-
-**Avoid Duplicate Code**: Do not copy-paste or duplicate logic. Refactor common functionality into reusable functions or methods to keep code DRY.
-
-**Use Type Annotations**: Add Python type hints for function parameters, return values, and important variables. This improves code clarity and catches many issues early.
-
-**Consistent Style and Formatting**: Format code with an auto-formatter (e.g. Black) to enforce PEP 8 standards, and use a linter (like Ruff) to detect issues and ensure consistent style.
-
-**Self-Documenting Code**: Write code that is clear by itself, minimizing the need for inline comments.
 
 ## ⚠️ CRITICAL: Testing Workflow (BLOCKING) ⚠️
 
@@ -377,36 +331,7 @@ Before creating a new test function, ask:
 - Existing test has a fundamentally different setup or fixture
 - New test would make the existing test too complex
 
-**Example — prefer to modify:**
-```python
-# ❌ DON'T create duplicate test
-def test_parse_price_with_pence():
-    assert parse_price("£12.99") == 12.99
-
-def test_parse_price_with_whole_pounds():  # NEW - duplicates above
-    assert parse_price("£15.00") == 15.00
-
-# ✅ DO extend existing parametrized test
-@pytest.mark.parametrize("input,expected", [
-    ("£12.99", 12.99),
-    ("£15.00", 15.00),  # ADD to existing test
-])
-def test_parse_price(input, expected):
-    assert parse_price(input) == expected
-```
-
 ### Running Tests
-
-> **⚠️ Important:** Make sure your virtual environment is activated before running tests!
-> 
-> ```sh
-> # Activate virtual environment first
-> source .venv/bin/activate          # macOS/Linux
-> .venv\Scripts\activate.bat         # Windows (CMD)
-> .venv\Scripts\Activate.ps1         # Windows (PowerShell)
-> ```
-> 
-> Your terminal prompt should show `(.venv)` at the beginning when activated.
 
 ```bash
 # Run all unit tests (fast, ~1 second)
@@ -444,21 +369,9 @@ python scripts/check_coverage.py --module=scrape/breeder_matrix.py
 
 ### Test Coverage Requirements
 
-**Process:**
-1. **Write tests FIRST** (TDD: RED → GREEN → optional REFACTOR)
-2. **Choose test style** based on what you're validating (snapshot/CSS/structure/E2E)
-3. **Modify existing tests** when possible instead of creating duplicates
-4. **Use synthetic data** to simulate scraping, not live web scraping
-5. **Cover all branches** and edge cases with descriptive test names
-
 **JavaScript behavior:** E2E tests required for all user interactions. Unit tests verify HTML structure only.
 
-**Verification:**
-```bash
-python scripts/check_coverage.py --module=scrape/breeder_matrix.py --threshold=80
-python scripts/check_coverage.py --module=shared/parsing.py --threshold=80
-python scripts/check_coverage.py --module=website/generate_website.py --threshold=80
-```
+**Verification:** `python scripts/check_coverage.py --module=<module>.py --threshold=80`
 
 **Artifacts:** `tmp/coverage/coverage.json`, `tmp/coverage/html/`, use `scripts/view_coverage.py` for summary
 
@@ -468,13 +381,41 @@ python scripts/check_coverage.py --module=website/generate_website.py --threshol
 
 ## Interactive Browser Inspection (DevTools MCP)
 
-Chrome DevTools MCP gives the agent live eyes inside a real browser. It is a **diagnostic tool,
-not a CI gate.** Use it when:
+Chrome DevTools MCP gives the agent live eyes inside a real browser via `evaluate_script`.
+It is a **diagnostic tool, not a CI gate.**
 
-- Vitest unit tests pass but the question is about computed styles (CSS custom properties, layout)
-- You want to verify visual behaviour before writing or changing an E2E test
-- An E2E failure is unclear and you need to inspect the actual DOM or resolved value
-- You are designing a browser-backed visual contract and need the ground-truth computed value
+### How DevTools MCP differs from `make test-visual`
+
+| | `make test-visual` | DevTools MCP |
+|---|---|---|
+| **Nature** | Automated — runs pre-defined contracts | Ad-hoc — agent investigates on demand |
+| **When to use** | Assert known-good properties didn't regress | Explore unknown computed values; debug a failure |
+| **Speed** | ~5s unattended | Requires a running local server |
+| **Output** | Pass / fail | Raw values the agent can reason about |
+
+Always run `make test-visual` first. Escalate to DevTools MCP only when existing contracts
+can't answer the question.
+
+### How to invoke DevTools MCP
+
+**The agent will NOT start browser inspection autonomously.** It requires an explicit request or
+a clear signal from the user. The Chrome DevTools MCP server must also be connected in VS Code.
+
+**Phrases that will trigger DevTools MCP:**
+
+- *"Inspect the computed styles on the breeder page filter button"*
+- *"Use DevTools MCP to check why the active colour looks wrong"*
+- *"Open a browser and verify the CSS token resolves correctly"*
+- *"Visually inspect the species page in a real browser"*
+
+The agent will then run `make preview` to serve the site, navigate to the relevant page
+using the DevTools MCP navigation tool, and call `evaluate_script` to read computed values.
+
+### When the agent should propose DevTools MCP (without being asked)
+
+- `make test-visual` fails with a colour/style assertion and the cause is not obvious from code
+- You ask "why does X look wrong" or "does X match the design token" and no automated test covers it
+- You are adding a new Svelte `<style>` block and want ground-truth before writing a visual contract
 
 **Do NOT reach for DevTools MCP first.** Run `make test-client-fast` before escalating to
 interactive inspection. Only use DevTools MCP when the logic layer cannot answer the question.
@@ -500,11 +441,11 @@ make scrape-only          # run the scraper locally
 
 The server binds to `127.0.0.1:8000` only. Pages served:
 - `http://localhost:8000/` — homepage
-- `http://localhost:8000/breeder-opportunities/` — Breeder Opportunities
-- `http://localhost:8000/dealer-supply-risk/` — Dealer Supply Risk
-- `http://localhost:8000/latest-snapshot/` — Latest Snapshot
-- `http://localhost:8000/historical-data/` — Historical Data
-- `http://localhost:8000/species/<slug>/` — Species Detail
+- `http://localhost:8000/breeder.html` — Breeder Opportunities
+- `http://localhost:8000/dealer.html` — Dealer Supply Risk
+- `http://localhost:8000/snapshot.html` — Latest Snapshot
+- `http://localhost:8000/history.html` — Historical Data
+- `http://localhost:8000/species/<slug>/index.html` — Species Detail
 
 ### Inspecting with Chrome DevTools MCP
 
@@ -513,7 +454,7 @@ the computed background colour of an active filter button:
 
 ```javascript
 // 1. Navigate to the target page
-//    e.g. http://localhost:8000/breeder-opportunities/
+//    e.g. http://localhost:8000/breeder.html
 
 // 2. Activate a filter button so it has the active state, then:
 evaluate_script(`
@@ -533,13 +474,6 @@ evaluate_script(`
 ```
 
 ### DevTools MCP operating playbook
-
-**Trigger conditions — reach for DevTools MCP when:**
-
-- You changed a CSS token, Svelte `<style>` block, or BEM class in Layer 1 or 2
-- A computed style question cannot be answered by `happy-dom` (css custom props, real layout)
-- An E2E test fails with a style assertion and you need to debug the actual resolved value
-- You are writing a new token-aware assertion and need the ground-truth colour or dimension
 
 **Inspection order:**
 
@@ -629,23 +563,15 @@ Dependencies are defined in:
 - **requirements.txt**: Production dependencies (HTTP client, HTML parsing, browser automation, markdown)
 - **requirements-dev.txt**: Development/testing dependencies (pytest, coverage tools)
 
-Install with:
-```bash
-pip install -r requirements.txt
-pip install -r requirements-dev.txt
-```
-
 ## Coding Conventions
 
-1. **Python Version**: Python 3.11
-2. **Style**: Follow PEP 8 conventions
-3. **Imports**: Use absolute imports from src modules
-4. **String handling**: Use UTF-8 encoding for file operations
-5. **Error handling**: Use assertions for validation with descriptive messages
-6. **CSV format**: Use the CSV_HEADER defined in shared.config for consistency
-7. **Whitespace normalization**: Use the normalize_whitespace() function from shared.parsing
-8. **Regex patterns**: Define regex patterns in shared.config for reusability
-9. **Browser cleanup**: Always use try/finally to ensure driver cleanup
+1. **Imports**: Use absolute imports from src modules
+2. **String handling**: Use UTF-8 encoding for file operations
+3. **Error handling**: Use assertions for validation with descriptive messages
+4. **CSV format**: Use the CSV_HEADER defined in shared.config for consistency
+5. **Whitespace normalization**: Use the normalize_whitespace() function from shared.parsing
+6. **Regex patterns**: Define regex patterns in shared.config for reusability
+7. **Browser cleanup**: Always use try/finally to ensure driver cleanup
 
 ## Test Utilities
 
@@ -750,53 +676,6 @@ scrape_datetime, scientific_name, common_name, size_cm, price_gbp, wishlist_coun
 - **Workflows**:
   - **scrape.yml**: Main scraping and analysis workflow
   - **deploy-pages.yml**: Triggered on successful scrape completion (master branch only), generates and deploys static website to GitHub Pages
-
-### Scrape Workflow Steps
-1. Checkout repository
-2. Set up Python 3.11
-3. Install Chrome (stable)
-4. Install dependencies (requests, beautifulsoup4, selenium)
-5. Resolve branch-scoped artifact names
-6. Download previous history artifact (branch-scoped with fallback to default)
-7. Run scraper and analysis
-8. Save job summary as `analysis_summary.md`
-9. Upload artifacts: snapshot, history, breeder table, dealer table, analysis summary
-
-### Deploy Workflow Steps
-1. Checkout repository
-2. Set up Python 3.11
-3. Download all artifacts from scrape workflow
-4. Generate static HTML website using the `website.generate_website` module
-5. Upload website to GitHub Pages
-6. Deploy to GitHub Pages
-
-## Common Tasks
-
-### Adding a new parsing function
-1. Add the function to src/shared/parsing.py
-2. Add any regex patterns to src/shared/config.py
-3. Use normalize_whitespace() for text processing
-4. Handle edge cases with empty/None values
-
-### Modifying scraper logic
-1. Update src/scrape/scraper.py for extraction changes
-2. Keep functions focused and single-purpose
-3. Test with actual web pages before deploying
-4. If JavaScript is required, use src/scrape/browser_client.py instead of http_client.py
-
-### Adding new analysis
-1. Create a new module in src/scrape/ (e.g., new_analysis.py)
-2. Follow the pattern of src/scrape/breeder_matrix.py or dealer_matrix.py
-3. Import and call from src/scrape/scrape_spidershop_spiderlings.py main()
-4. Update workflow to upload new artifact files
-5. Update `src/website/generate_website.py` if the analysis should appear on the website
-
-### Modifying website generation
-1. Edit `src/website/generate_website.py`
-2. Test locally by running: `python -m website` (with PYTHONPATH set to src/)
-3. Check generated HTML files in `website/` directory
-4. Ensure CSV files are copied to output directory
-5. Verify markdown-to-HTML conversion for analysis sections
 
 ## Domain Context
 
