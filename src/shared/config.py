@@ -46,3 +46,7 @@ WISHLIST_SMALL_N_FLATTEN_THRESHOLD = 1
 # Signal priority for sorting (lower number = higher priority)
 SIGNAL_PRIORITY = {"🔥": 0, "⚠️": 1, "❌": 2}
 TREND_PRIORITY = {"↑": 0, "→": 1, "↓": 2}
+
+# Polite scraping — rate-limit handling
+REQUEST_DELAY_SECONDS = 2.0   # fixed pause before every HTTP request
+REQUEST_MAX_RETRIES = 3       # max retries on 429 before giving up
