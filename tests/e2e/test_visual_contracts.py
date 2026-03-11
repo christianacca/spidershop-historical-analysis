@@ -13,6 +13,7 @@ Guarded contracts (one per fix):
 - G4: Info icon (ℹ️) present inside signal cells that have Drivers data
 - G5: Column headers show ⇅ / ↑ / ↓ sort-indicator glyphs
 - G6: Signal filter buttons include a parenthesised row count
+- G7: Stat card .info-tip__text tooltip is visibility:hidden / position:absolute at rest
 - H2: Price Trend column renders a non-empty value (key 'Price' in JSON)
 """
 
@@ -211,10 +212,10 @@ def test_info_icon_present_for_signal_cells(e2e_site_multi_species) -> None:
     page, base_url, _errors = e2e_site_multi_species
     _go_breeder(page, base_url)
 
-    info_icons = page.locator("#breeder-table .info-icon")
+    info_icons = page.locator("#breeder-table .info-tip")
     assert info_icons.count() > 0, (
-        "No .info-icon found in the breeder table. "
-        "Info-icon / Drivers tooltip feature is broken."
+        "No .info-tip found in the breeder table. "
+        "Info-tip / Drivers tooltip feature is broken."
     )
 
 
@@ -363,4 +364,37 @@ def test_advanced_panel_has_stock_pattern_and_search_emoji_labels(e2e_site_multi
     panel_text = panel.text_content() or ""
     assert "📊" in panel_text, f"Expected '📊' emoji in advanced filters panel, got: {panel_text[:120]!r}"
     assert "🔍" in panel_text, f"Expected '🔍' emoji in advanced filters panel, got: {panel_text[:120]!r}"
+
+
+# ---------------------------------------------------------------------------
+# G7 — Stat card info-tip tooltip is hidden at rest
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.e2e
+@pytest.mark.parametrize("page_path", ["breeder.html", "dealer.html"])
+def test_stat_card_info_tip_hidden_at_rest(page_path, e2e_site_multi_species) -> None:
+    """Stat card .info-tip__text tooltip has visibility:hidden and position:absolute at rest.
+
+    Guards against a regression where the tooltip text rendered visibly inline because the
+    CSS rule (defined in common.css) was not scoped broadly enough to reach Python-template HTML.
+    """
+    page, base_url, _errors = e2e_site_multi_species
+    page.goto(f"{base_url}/{page_path}", wait_until="domcontentloaded")
+
+    tooltip = page.locator(".stat-card .info-tip__text").first
+    assert tooltip.count() > 0 or page.locator(".stat-card .info-tip__text").count() > 0, (
+        f"No .stat-card .info-tip__text found on {page_path}"
+    )
+
+    visibility = tooltip.evaluate("el => window.getComputedStyle(el).visibility")
+    position = tooltip.evaluate("el => window.getComputedStyle(el).position")
+
+    assert visibility == "hidden", (
+        f".stat-card .info-tip__text on {page_path} has visibility={visibility!r}, expected 'hidden'. "
+        "Tooltip text is visible inline — CSS rule may not be applying to Python-template HTML."
+    )
+    assert position == "absolute", (
+        f".stat-card .info-tip__text on {page_path} has position={position!r}, expected 'absolute'."
+    )
 

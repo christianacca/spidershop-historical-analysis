@@ -381,7 +381,7 @@ def test_chart_tooltips_show_on_hover(e2e_site_minimal) -> None:
 
             has_title_element = price_svg.locator("title").count() > 0
             has_title_attr = first_circle.get_attribute("title") is not None
-            has_tooltip_div = page.locator(".tooltip, [role='tooltip']").count() > 0
+            has_tooltip_div = page.locator(".info-tip__text, [role='tooltip']").count() > 0
             
             # At least one tooltip mechanism should be present
             # (Note: implementation details may vary, this is flexible validation)

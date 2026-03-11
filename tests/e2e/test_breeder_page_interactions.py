@@ -229,16 +229,16 @@ def test_signal_cell_with_drivers_has_info_icon(e2e_site_multi_species) -> None:
 
     found_icon = False
     for cell in signal_cells:
-        icon = cell.locator(".info-icon")
+        icon = cell.locator(".info-tip")
         if icon.count() > 0:
-            # Icon uses a child <span class="tooltip"> for accessible tooltip text
-            tooltip_span = icon.first.locator(".tooltip")
+            # Icon uses a child <span class="info-tip__text"> for accessible tooltip text
+            tooltip_span = icon.first.locator(".info-tip__text")
             tooltip_text = (tooltip_span.first.text_content() or "").strip() if tooltip_span.count() > 0 else ""
-            assert tooltip_text, f".info-icon has no tooltip content on cell: {cell.text_content()}"
+            assert tooltip_text, f".info-tip has no tooltip content on cell: {cell.text_content()}"
             found_icon = True
 
     assert found_icon, (
-        "No .info-icon found in any signal cell — "
+        "No .info-tip found in any signal cell — "
         "check that test data has non-empty 'drivers' values"
     )
 
@@ -262,9 +262,9 @@ def test_signal_cell_without_drivers_has_no_info_icon(e2e_site_multi_species) ->
         if "pulchra" not in species:
             continue
         signal_cell = row.locator(f"td:nth-child({col_index + 1})")
-        icon_count = signal_cell.locator(".info-icon").count()
+        icon_count = signal_cell.locator(".info-tip").count()
         assert icon_count == 0, (
-            f"pulchra (empty drivers) should have no .info-icon, found {icon_count}"
+            f"pulchra (empty drivers) should have no .info-tip, found {icon_count}"
         )
         return
 

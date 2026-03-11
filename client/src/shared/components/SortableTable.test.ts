@@ -671,25 +671,25 @@ function renderWithDrivers() {
   });
 }
 
-test('signal cell with non-empty Drivers renders .info-icon', () => {
+test('signal cell with non-empty Drivers renders .info-tip', () => {
   const { container } = renderWithDrivers();
   const rows = Array.from(container.querySelectorAll('tbody tr'));
   const hotRow = rows.find((tr) =>
     tr.querySelector('td:nth-child(2)')?.textContent?.includes('🔥'),
   )!;
   expect(hotRow).not.toBeNull();
-  const infoIcon = hotRow.querySelector('td:nth-child(2) .info-icon');
+  const infoIcon = hotRow.querySelector('td:nth-child(2) .info-tip');
   expect(infoIcon).not.toBeNull();
 });
 
-test('signal cell with empty Drivers does not render .info-icon', () => {
+test('signal cell with empty Drivers does not render .info-tip', () => {
   const { container } = renderWithDrivers();
   const rows = Array.from(container.querySelectorAll('tbody tr'));
   const watchRow = rows.find((tr) =>
     tr.querySelector('td:nth-child(2)')?.textContent?.includes('⚠️'),
   )!;
   expect(watchRow).not.toBeNull();
-  const infoIcon = watchRow.querySelector('td:nth-child(2) .info-icon');
+  const infoIcon = watchRow.querySelector('td:nth-child(2) .info-tip');
   expect(infoIcon).toBeNull();
 });
 

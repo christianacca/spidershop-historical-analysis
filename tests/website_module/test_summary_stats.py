@@ -222,11 +222,11 @@ class TestSummaryStatsInHtml:
             soup = BeautifulSoup(html, 'html.parser')
             
             # Verify info icons are present (one for each stat except total)
-            info_icons = soup.find_all('span', class_='info-icon')
+            info_icons = soup.find_all('span', class_='info-tip')
             assert len(info_icons) == 3  # hot, watch, avoid
             
             # Verify tooltips contain breeder-specific explanations
-            tooltips = soup.find_all('span', class_='tooltip')
+            tooltips = soup.find_all('span', class_='info-tip__text')
             assert len(tooltips) == 3
             
             # Check hot tooltip
@@ -264,7 +264,7 @@ class TestSummaryStatsInHtml:
             soup = BeautifulSoup(html, 'html.parser')
             
             # Verify tooltips contain dealer-specific explanations
-            tooltips = soup.find_all('span', class_='tooltip')
+            tooltips = soup.find_all('span', class_='info-tip__text')
             assert len(tooltips) == 3
             
             # Check high risk tooltip
