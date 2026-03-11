@@ -123,6 +123,24 @@ class TestSlugifySpecies:
 
         assert slugify_species("poecilotheria metallica") == "poecilotheria-metallica"
 
+    def test_strips_single_quotes(self):
+        """Single quotes in sp. names must be removed."""
+        from website.species_detail import slugify_species
+
+        assert slugify_species("Antikuna sp. 'Herradura'") == "antikuna-sp.-herradura"
+
+    def test_strips_double_quotes(self):
+        """Double quotes in variety names must be removed."""
+        from website.species_detail import slugify_species
+
+        assert slugify_species('Chilobrachys sp. "South Thai"') == "chilobrachys-sp.-south-thai"
+
+    def test_strips_forward_slash(self):
+        """Forward slash must be removed — it would be treated as a path separator."""
+        from website.species_detail import slugify_species
+
+        assert slugify_species('Cyriopagopoeus sp. "Big/Black"') == "cyriopagopoeus-sp.-bigblack"
+
 
 class TestGetSpeciesData:
     """Test data extraction for a specific species from all CSVs."""

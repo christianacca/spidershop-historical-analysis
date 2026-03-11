@@ -32,8 +32,12 @@ def slugify_species(scientific_name: str) -> str:
         URL slug (e.g., "aphonopelma-seemanni")
     """
     import re
-    # Replace one or more spaces with a single hyphen
-    return re.sub(r'\s+', '-', scientific_name.lower())
+    slug = scientific_name.lower()
+    # Strip characters that are unsafe in file paths and URLs (quotes, slashes, etc.)
+    slug = re.sub(r"[^a-z0-9\s.]", "", slug)
+    # Collapse whitespace to hyphens
+    slug = re.sub(r"\s+", "-", slug)
+    return slug
 
 
 def _extract_species_from_csv(csv_path: str, species_set: Set[Tuple[str, str]]) -> bool:

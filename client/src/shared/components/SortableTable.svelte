@@ -237,7 +237,8 @@
 
   const formatPrice = (v: number): string => `£${v}`;
 
-  const slugify = (s: string): string => s.toLowerCase().replace(/\s+/g, '-');
+  const slugify = (s: string): string =>
+    s.toLowerCase().replace(/[^a-z0-9\s.]/g, '').replace(/\s+/g, '-');
 </script>
 
 <!-- ── Signal filter row ─────────────────────────────────────────────────── -->
