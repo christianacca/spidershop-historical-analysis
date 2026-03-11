@@ -64,6 +64,26 @@ def test_fetch_retries_on_429_and_succeeds(mock_get, mock_sleep):
 
 @patch("scrape.http_client.time.sleep")
 @patch("scrape.http_client.requests.get")
+def test_fetch_logs_warning_on_429(mock_get, mock_sleep, caplog, capsys):
+    """A 429 response emits a logger.warning and a printed message."""
+    import logging
+    mock_get.side_effect = [
+        _make_response(429, headers={"Retry-After": "5"}),
+        _make_response(200),
+    ]
+
+    with caplog.at_level(logging.WARNING, logger="scrape.http_client"):
+        fetch("https://example.com/")
+
+    assert any("429" in r.message and "example.com" in r.message for r in caplog.records)
+    stdout = capsys.readouterr().out
+    assert "429" in stdout
+    assert "example.com" in stdout
+    assert "Retry-After: 5" in stdout
+
+
+@patch("scrape.http_client.time.sleep")
+@patch("scrape.http_client.requests.get")
 def test_fetch_honours_retry_after_header(mock_get, mock_sleep):
     """Waits exactly Retry-After + 1 second when the header is present."""
     mock_get.side_effect = [
