@@ -6,7 +6,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
-from shared.config import HEADERS
+from shared.config import HEADERS, REQUEST_DELAY_SECONDS
 
 # =====================
 # BROWSER CLIENT
@@ -51,9 +51,8 @@ def fetch_with_browser(url: str, wait_for_selector: str = None, timeout: int = 1
         The page source HTML after JavaScript execution
     """
     driver = get_driver()
+    time.sleep(REQUEST_DELAY_SECONDS)
     driver.get(url)
-    
-    # Wait for the specified element if provided
     if wait_for_selector:
         try:
             WebDriverWait(driver, timeout).until(
