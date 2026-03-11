@@ -6,7 +6,7 @@
    - tabindex: Tab order for keyboard navigation (default: 0 for natural tab order)
 #}
 {% macro driver_tooltip(drivers_text, tabindex=0) -%}
-{% if drivers_text %}<span class="info-icon" tabindex="{{ tabindex }}">ℹ️<span class="tooltip">{{ drivers_text }}</span></span>{% endif %}
+{% if drivers_text %}<span class="info-tip" tabindex="{{ tabindex }}">ℹ️<span class="info-tip__text">{{ drivers_text }}</span></span>{% endif %}
 {%- endmacro %}
 
 {# Render instruction box for breeder or dealer pages

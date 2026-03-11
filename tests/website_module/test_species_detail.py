@@ -695,8 +695,8 @@ class TestSignalTooltipDrivers:
         assert '<div class="stat-label">Opportunity Signal' in html
         
         # Check for info icon with tooltip structure matching table implementation
-        assert '<span class="info-icon" tabindex="0">ℹ️' in html
-        assert '<span class="tooltip">' in html
+        assert '<span class="info-tip" tabindex="0">ℹ️' in html
+        assert '<span class="info-tip__text">' in html
         
         # Check that the drivers text is in the tooltip
         assert "Stock: Sustained (OOS 4 runs; currently OUT)" in html
@@ -734,8 +734,8 @@ class TestSignalTooltipDrivers:
         assert '<div class="stat-label">Supply Risk' in html
         
         # Check for info icon with tooltip structure
-        assert '<span class="info-icon" tabindex="0">ℹ️' in html
-        assert '<span class="tooltip">' in html
+        assert '<span class="info-tip" tabindex="0">ℹ️' in html
+        assert '<span class="info-tip__text">' in html
         
         # Check that the drivers text is in the tooltip
         assert "Stock: Reliability Low (Restock Slow)" in html
@@ -767,7 +767,7 @@ class TestSignalTooltipDrivers:
         )
         
         # Check that the card exists with tooltip
-        assert '<div class="stat-label">Opportunity Signal<span class="info-icon"' in html
+        assert '<div class="stat-label">Opportunity Signal<span class="info-tip"' in html
         assert 'Stock: Sustained (OOS 4 runs; currently OUT)' in html
         
         # Test dealer perspective
@@ -789,5 +789,5 @@ class TestSignalTooltipDrivers:
         )
         
         # Check that the card exists with tooltip
-        assert '<div class="stat-label">Supply Risk<span class="info-icon"' in html
+        assert '<div class="stat-label">Supply Risk<span class="info-tip"' in html
         assert 'Stock: Reliability Medium (Restock Slow)' in html
