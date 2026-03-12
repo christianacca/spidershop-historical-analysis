@@ -147,7 +147,8 @@ Example content for dealers.
             assert "<!DOCTYPE html>" in html
             assert "Test Page" in html
             assert "Description here" in html
-            assert "Download CSV" in html
+            assert 'class="download-links"' not in html
+            assert 'btn--download' not in html
             # Search input is now rendered by Svelte SortableTable (not server-rendered)
             assert "Species 0" in html or "Species 1" in html
             # Svelte SortableTable renders the full table (verified by E2E)

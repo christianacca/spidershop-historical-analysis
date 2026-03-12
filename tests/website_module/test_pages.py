@@ -178,7 +178,7 @@ class TestGenerateSnapshotPage:
             assert 'My description text' in html
 
     def test_includes_download_link(self):
-        """Should include download link for CSV file."""
+        """Should rely on the Svelte table stats strip for CSV download controls."""
         from conftest import temp_csv_file
         
         csv_content = "Name,Price\nSpecies A,25.00\n"  # Include proper CSV with header and data
@@ -186,14 +186,9 @@ class TestGenerateSnapshotPage:
             config = page_config.snapshot(filename).with_title("Test").with_description("Desc").build()
             html = generate_snapshot_page(config)
             soup = BeautifulSoup(html, 'html.parser')
-            
-            # Find download link (now uses btn--download class)
-            download_links = soup.find_all('a', class_='btn--download')
-            assert len(download_links) >= 1, "Should have at least one download link with btn--download class"
-            
-            # Check for "Download CSV" text
-            link_texts = [link.text for link in download_links]
-            assert any('Download CSV' in text for text in link_texts), "Download link should contain 'Download CSV' text"
+
+            assert soup.find('div', class_='action-buttons') is None
+            assert soup.find('a', class_='btn--download') is None
 
     def test_includes_search_filter_when_enabled(self):
         """Should include search filter when search_filter=True (behavior tested by E2E)."""
@@ -268,8 +263,8 @@ class TestGenerateSnapshotPage:
             assert 'Species A' in html
             assert '25.00' in html
 
-    def test_action_buttons_container_with_download_and_filter_buttons(self):
-        """Should have action-buttons container with download button; filter toggle is rendered by Svelte."""
+    def test_snapshot_page_omits_top_level_action_buttons(self):
+        """Should omit the old top-level action-buttons wrapper; controls are rendered by Svelte."""
         csv_content = "Name,Price\nSpecies A,25.00\n"
         with temp_csv_file(csv_content) as filename:
             config = page_config.snapshot(filename) \
@@ -279,24 +274,16 @@ class TestGenerateSnapshotPage:
                 .build()
             html = generate_snapshot_page(config)
             soup = BeautifulSoup(html, 'html.parser')
-            
-            # Find action-buttons container
-            action_buttons = soup.find('div', class_='action-buttons')
-            assert action_buttons is not None, "Should have action-buttons container"
-            
-            # Check download button
-            download_link = action_buttons.find('a', class_='btn--download')
-            assert download_link is not None, "Should have download button with btn--download class"
-            assert 'Download CSV' in download_link.text, "Download button should have text"
-            assert download_link.has_attr('download'), "Download button should have download attribute"
-            assert download_link.has_attr('href'), "Download button should have href"
-            
+
+            assert soup.find('div', class_='action-buttons') is None
+            assert soup.find('a', class_='btn--download') is None
+
             # The filter toggle button is now rendered by Svelte SortableTable
             mount_div = soup.find('div', id='snapshot-table-root')
             assert mount_div is not None, "Svelte mount div should be present (handles filter toggle button)"
 
-    def test_action_buttons_omits_filter_button_when_search_disabled(self):
-        """Should only show download button when search is disabled."""
+    def test_snapshot_page_omits_top_level_download_button_when_search_disabled(self):
+        """Should omit the old top-level download button when search is disabled."""
         csv_content = "Name,Price\nSpecies A,25.00\n"
         with temp_csv_file(csv_content) as filename:
             config = page_config.snapshot(filename) \
@@ -306,11 +293,10 @@ class TestGenerateSnapshotPage:
                 .build()
             html = generate_snapshot_page(config)
             soup = BeautifulSoup(html, 'html.parser')
-            
-            # Download button should exist
-            download_link = soup.find('a', class_='btn--download')
-            assert download_link is not None, "Should have download button"
-            
+
+            assert soup.find('div', class_='action-buttons') is None
+            assert soup.find('a', class_='btn--download') is None
+
             # Filter toggle is Svelte-rendered (not in Python HTML); its presence/absence
             # based on search config is verified by E2E tests.
             filter_button = soup.find('button', class_='btn--filters')
