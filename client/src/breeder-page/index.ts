@@ -5,11 +5,9 @@
  * reading table data from the window global injected by the Python template.
  */
 
-import { mount } from 'svelte';
-import SortableTable from '../shared/components/SortableTable.svelte';
 import type { ColumnConfig, FilterConfig } from '../shared/components/SortableTable.svelte';
 import { wireOpenDetailsLinks } from '../shared/dom-utils.js';
-import { assertPayload } from '../shared/payload-validation.js';
+import { initSortableTablePage, registerPageInit } from '../shared/page-init.js';
 
 const TABLE_ID = 'breeder-table';
 
@@ -38,27 +36,11 @@ const FILTER_CONFIG: FilterConfig = {
   driversKey: 'Drivers',
 };
 
-function init(): void {
-  const target = document.getElementById(`${TABLE_ID}-root`);
-  if (!target) return;
-
-  const rows = ((window as Record<string, unknown>)[`${TABLE_ID}Data`] ?? []) as Record<string, unknown>[];
-  assertPayload(TABLE_ID, rows);
-
-  mount(SortableTable, {
-    target,
-    props: {
-      tableId: TABLE_ID,
-      rows,
-      columns: COLUMNS,
-      filterConfig: FILTER_CONFIG,
-    },
+registerPageInit(() => {
+  initSortableTablePage({
+    tableId: TABLE_ID,
+    columns: COLUMNS,
+    filterConfig: FILTER_CONFIG,
+    postMount: wireOpenDetailsLinks,
   });
-  wireOpenDetailsLinks();
-}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
-}
+});

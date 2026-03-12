@@ -13,6 +13,7 @@
 #   Ensure .venv exists and has dependencies installed first
 
 .PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only preview clean-cache clean-artifacts clean-all build-client test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install open-coverage check-coverage test-client test-client-fast test-client-watch open-coverage-client test-visual visual-install .check-venv .check-gh
+.PHONY: test-client-file
 
 # Shell configuration
 SHELL := /bin/bash
@@ -67,6 +68,7 @@ help:
 	@echo "  make check-coverage MODULE=<path>  Check coverage for a specific module"
 	@echo "  make test-client            Run Vitest unit tests with coverage for client/src/ (enforces 80% threshold)"
 	@echo "  make test-client-fast       Run Vitest unit tests without coverage (fast iteration, no threshold)"
+	@echo "  make test-client-file FILE=<path>  Run a specific client Vitest file (no coverage)"
 	@echo "  make test-client-watch      Run Vitest unit tests in watch mode (interactive, no coverage)"
 	@echo "  make open-coverage-client   Open client coverage report in browser"
 	@echo "  make visual-install         Install Playwright browser for visual tests (one-time setup)"
@@ -103,6 +105,18 @@ help:
 		echo "Run: gh auth login"; \
 		exit 1; \
 	fi
+
+test-client-file:
+	@if [ -z "$(FILE)" ]; then \
+		echo "❌ Please specify a client test file: make test-client-file FILE=src/path/to/test.ts"; \
+		exit 1; \
+	fi
+	@if [ ! -f "client/$(FILE)" ]; then \
+		echo "❌ Client test file not found: client/$(FILE)"; \
+		exit 1; \
+	fi
+	@echo "🧪 Running client test file: $(FILE)"
+	cd client && npm test -- --reporter=verbose $(FILE)
 
 # ==============================================================================
 # Client Build
