@@ -26,17 +26,18 @@ def fetch(url: str) -> str:
         except ValueError:
             wait = 2 ** (attempt + 1)
 
+        retry_info = f" (Retry-After: {retry_after})" if retry_after else ""
         logger.warning(
             "Rate limited (429) fetching %s — attempt %d/%d, waiting %.1fs%s",
             url,
             attempt + 1,
             REQUEST_MAX_RETRIES,
             wait,
-            f" (Retry-After: {retry_after})" if retry_after else "",
+            retry_info,
         )
         print(
             f"⚠️  Rate limited (429): {url} — attempt {attempt + 1}/{REQUEST_MAX_RETRIES},"
-            f" waiting {wait:.1f}s{f' (Retry-After: {retry_after})' if retry_after else ''}",
+            f" waiting {wait:.1f}s{retry_info}",
             flush=True,
         )
         time.sleep(wait)

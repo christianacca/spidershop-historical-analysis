@@ -5,6 +5,7 @@ Generates individual species pages with breeder/dealer perspectives,
 historical charts, and evidence sections following observations-only philosophy.
 """
 
+import re
 from pathlib import Path
 from typing import Optional, Dict, List, Tuple, Set
 from collections import defaultdict
@@ -31,11 +32,8 @@ def slugify_species(scientific_name: str) -> str:
     Returns:
         URL slug (e.g., "aphonopelma-seemanni")
     """
-    import re
     slug = scientific_name.lower()
-    # Strip characters that are unsafe in file paths and URLs (quotes, slashes, etc.)
     slug = re.sub(r"[^a-z0-9\s.]", "", slug)
-    # Collapse whitespace to hyphens
     slug = re.sub(r"\s+", "-", slug)
     return slug
 
