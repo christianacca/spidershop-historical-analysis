@@ -1,12 +1,33 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type UserConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { resolve } from 'path';
 
+function createRollupOutput(isCiBuild: boolean) {
+  if (isCiBuild) {
+    return {
+      format: 'es' as const,
+      entryFileNames: '[name].js',
+      chunkFileNames: 'chunks/[name]-[hash].js',
+      assetFileNames: 'assets/[name]-[hash][extname]',
+    };
+  }
+
+  return {
+    format: 'es' as const,
+    preserveModules: true,
+    preserveModulesRoot: resolve(__dirname, 'src'),
+    entryFileNames: '[name].js',
+    chunkFileNames: '[name].js',
+    assetFileNames: 'assets/[name][extname]',
+  };
+}
+
 // Phase 2: reorganised into feature-slice folders.
 // One entry per page slice; shared/ utilities are internal imports only.
-// preserveModules keeps each module as its own file in dist/,
-// maintaining relative imports — output is structurally identical to source.
-export default defineConfig({
+// Local builds preserve modules for readability.
+// CI builds bundle shared code into chunks to reduce production request fan-out.
+export function createViteConfig(isCiBuild = !!process.env.CI): UserConfig {
+  return {
   // emitCss: false — component styles are injected into <head> at runtime by
   // the JS module that owns them. This means no separate .css files are emitted
   // for Svelte components, so page templates never need to add <link> tags when
@@ -59,10 +80,9 @@ export default defineConfig({
     emptyOutDir: true,
     // Minify and emit source maps only in CI (GitHub Actions sets CI=true automatically).
     // Local builds stay readable for easier debugging.
-    minify: process.env.CI ? 'esbuild' : false,
-    sourcemap: !!process.env.CI,
+    minify: isCiBuild ? 'esbuild' : false,
+    sourcemap: isCiBuild,
     rollupOptions: {
-      preserveEntrySignatures: 'allow-extension',
       input: {
         'breeder-page': resolve(__dirname, 'src/breeder-page/index.ts'),
         'dealer-page': resolve(__dirname, 'src/dealer-page/index.ts'),
@@ -70,14 +90,10 @@ export default defineConfig({
         'history-page': resolve(__dirname, 'src/history-page/index.ts'),
         'species-page': resolve(__dirname, 'src/species-page/index.ts'),
       },
-      output: {
-        format: 'es',
-        preserveModules: true,
-        preserveModulesRoot: resolve(__dirname, 'src'),
-        entryFileNames: '[name].js',
-        chunkFileNames: '[name].js',
-        assetFileNames: 'assets/[name][extname]',
-      },
+      output: createRollupOutput(isCiBuild),
     },
   },
-});
+  };
+}
+
+export default defineConfig(createViteConfig());
