@@ -13,11 +13,7 @@
     
     {% if json_rows %}
     <h3>Data Table</h3>
-    
-    <div class="action-buttons">
-        <a href="{{ csv_filename }}" download class="btn btn--download">⬇️ Download CSV</a>
-    </div>
-    
+
     {% if scrape_date %}<p class="table-stats-date">Scraped: {{ scrape_date }}</p>{% endif %}
     
     {% include 'table.html' %}

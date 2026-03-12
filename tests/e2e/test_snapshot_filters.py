@@ -731,18 +731,21 @@ def test_both_wishlist_sliders_count_as_one_filter(e2e_site_multi_species) -> No
 
 @pytest.mark.e2e
 def test_snapshot_page_structure_and_styling(e2e_site_multi_species) -> None:
-    """Snapshot page should have action buttons, correct brand colors, stats strip, and correct layout."""
+    """Snapshot page should rely on the stats strip download control and keep the expected layout."""
     page, base_url, errors = e2e_site_multi_species
 
     page.goto(f"{base_url}/snapshot.html", wait_until="domcontentloaded")
 
     action_buttons = page.locator('.action-buttons')
-    assert action_buttons.count() == 1, "Snapshot page should have .action-buttons container"
-    display = action_buttons.evaluate('el => window.getComputedStyle(el).display')
-    assert 'flex' in display, f"Action buttons should use flexbox layout, got {display}"
-    download_btn = action_buttons.locator('.btn--download')
+    assert action_buttons.count() == 0, "Snapshot page should not render the old .action-buttons container"
+
+    stats_strip = page.locator('.table-stats')
+    assert stats_strip.count() == 1 and stats_strip.is_visible(), \
+        "Snapshot page should have visible .table-stats strip"
+
+    download_btn = stats_strip.locator('.btn--download')
     assert download_btn.count() == 1 and download_btn.is_visible(), \
-        "Download button should be present and visible"
+        "Stats strip download button should be present and visible"
 
     download_bg = download_btn.evaluate('el => window.getComputedStyle(el).backgroundColor')
     assert token_rgb('--color-success') in download_bg, \
@@ -753,9 +756,6 @@ def test_snapshot_page_structure_and_styling(e2e_site_multi_species) -> None:
     assert advanced_toggle.count() == 1 and advanced_toggle.is_visible(), \
         "Advanced filters toggle should be present and visible inside SortableTable"
 
-    stats_strip = page.locator('.table-stats')
-    assert stats_strip.count() == 1 and stats_strip.is_visible(), \
-        "Snapshot page should have visible .table-stats strip"
     bg_color = stats_strip.evaluate('el => window.getComputedStyle(el).backgroundColor')
     assert token_rgb('--color-info-bg') in bg_color, \
         f"Stats strip should have light blue background, got {bg_color}"

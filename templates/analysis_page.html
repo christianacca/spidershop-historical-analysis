@@ -10,11 +10,7 @@
 <div class="content">
     <h2>{{ page_title }}</h2>
     <p>{{ description }}</p>
-    
-    <div class="download-links">
-        <a href="{{ csv_filename }}" download class="btn btn--download">⬇️ Download CSV</a>
-    </div>
-    
+
     {% if summary_stats and stats_labels %}
     <div class="summary-stats">
         <div class="stat-card">
