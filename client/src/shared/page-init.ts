@@ -4,8 +4,8 @@ import type { ColumnConfig, FilterConfig } from './components/SortableTable.svel
 import { assertPayload } from './payload-validation.js';
 
 type TableRows = Record<string, unknown>[];
-const MIN_SKELETON_DWELL_MS = 320;
-const SKELETON_FADE_DURATION_MS = 220;
+const MIN_SKELETON_DWELL_MS = 520;
+const SKELETON_FADE_DURATION_MS = 260;
 
 export interface SortableTablePageConfig {
   tableId: string;

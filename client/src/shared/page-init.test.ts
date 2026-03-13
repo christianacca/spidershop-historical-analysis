@@ -72,7 +72,7 @@ describe('initSortableTablePage', () => {
       'data-table-ready',
       'false',
     );
-    vi.advanceTimersByTime(279);
+    vi.advanceTimersByTime(479);
     expect(document.querySelector('[data-table-shell="breeder-table"]')).toHaveAttribute(
       'data-table-ready',
       'false',
@@ -82,7 +82,7 @@ describe('initSortableTablePage', () => {
       'data-table-ready',
       'true',
     );
-    vi.advanceTimersByTime(219);
+    vi.advanceTimersByTime(259);
     expect(document.querySelector('[data-table-skeleton-for="breeder-table"]')).not.toBeNull();
     vi.advanceTimersByTime(1);
     expect(document.querySelector('[data-table-skeleton-for="breeder-table"]')).toBeNull();
@@ -149,7 +149,7 @@ describe('completeTableMount', () => {
     );
     expect(document.querySelector('[data-table-skeleton-for="history-table"]')).not.toBeNull();
 
-    vi.advanceTimersByTime(279);
+    vi.advanceTimersByTime(479);
     expect(document.querySelector('[data-table-shell="history-table"]')).toHaveAttribute(
       'data-table-ready',
       'false',
@@ -160,7 +160,7 @@ describe('completeTableMount', () => {
       'true',
     );
 
-    vi.advanceTimersByTime(219);
+    vi.advanceTimersByTime(259);
     expect(document.querySelector('[data-table-skeleton-for="history-table"]')).not.toBeNull();
 
     vi.advanceTimersByTime(1);
@@ -168,7 +168,7 @@ describe('completeTableMount', () => {
   });
 
   it('starts the cross-fade immediately when the skeleton has already been visible long enough', () => {
-    performanceNowSpy.mockReturnValue(500);
+    performanceNowSpy.mockReturnValue(600);
     document.body.innerHTML = `
       <div data-table-shell="snapshot-table" data-table-ready="false">
         <div data-table-skeleton-for="snapshot-table"></div>
@@ -181,7 +181,7 @@ describe('completeTableMount', () => {
       'data-table-ready',
       'true',
     );
-    vi.advanceTimersByTime(219);
+    vi.advanceTimersByTime(259);
     expect(document.querySelector('[data-table-skeleton-for="snapshot-table"]')).not.toBeNull();
     vi.advanceTimersByTime(1);
     expect(document.querySelector('[data-table-skeleton-for="snapshot-table"]')).toBeNull();

@@ -148,6 +148,10 @@ def test_breeder_skeleton_present_before_js_and_removed_after_mount(e2e_site_min
         page.unroute('**/breeder-page.js')
 
     page.goto(f"{base_url}/breeder.html", wait_until="networkidle")
+    page.wait_for_function(
+        """() => !document.querySelector('[data-table-skeleton-for="breeder-table"]')""",
+        timeout=2000,
+    )
     assert page.locator('[data-table-skeleton-for="breeder-table"]').count() == 0, (
         "Skeleton should be removed after the breeder table mounts"
     )
@@ -224,7 +228,7 @@ def test_breeder_skeleton_fades_before_it_is_removed(e2e_site_minimal) -> None:
                         return true;
                     };
           window.setTimeout = (callback, delay, ...args) => {
-                        if (delay === 280 || delay === 220) {
+                                                if (delay === 480 || delay === 260) {
                             queued.push({ delay, callback: () => callback(...args) });
               return queued.length;
             }
@@ -252,7 +256,7 @@ def test_breeder_skeleton_fades_before_it_is_removed(e2e_site_minimal) -> None:
     assert initial['shellReady'] == 'false', "Shell should stay in pre-ready state during minimum dwell"
     assert initial['rootOpacity'] == '0', "Mounted table should stay hidden until the cross-fade begins"
 
-    assert page.evaluate('window.__runNextSkeletonTimeout(280)') is True, (
+    assert page.evaluate('window.__runNextSkeletonTimeout(480)') is True, (
         "Expected queued dwell timer before the cross-fade begins"
     )
     page.evaluate(
@@ -284,20 +288,20 @@ def test_breeder_skeleton_fades_before_it_is_removed(e2e_site_minimal) -> None:
     assert 'opacity' in handoff['transitionProperty'], (
         f"Expected opacity transition during handoff, got {handoff['transitionProperty']}"
     )
-    assert handoff['transitionDuration'] == '0.22s', (
-        f"Expected 0.22s fade duration, got {handoff['transitionDuration']}"
+    assert handoff['transitionDuration'] == '0.26s', (
+        f"Expected 0.26s fade duration, got {handoff['transitionDuration']}"
     )
     assert 'opacity' in handoff['rootTransitionProperty'], (
         f"Expected table root opacity transition during handoff, got {handoff['rootTransitionProperty']}"
     )
-    assert handoff['rootTransitionDuration'] == '0.22s', (
+    assert handoff['rootTransitionDuration'] == '0.26s', (
         f"Expected table root fade-in duration, got {handoff['rootTransitionDuration']}"
     )
     assert 0 <= float(handoff['opacity']) <= 1, (
         f"Expected skeleton opacity to be in transition, got {handoff['opacity']}"
     )
 
-    assert page.evaluate('window.__runNextSkeletonTimeout(220)') is True, (
+    assert page.evaluate('window.__runNextSkeletonTimeout(260)') is True, (
         "Expected queued removal timer after the cross-fade begins"
     )
     assert page.locator('[data-table-skeleton-for="breeder-table"]').count() == 0, (

@@ -236,7 +236,7 @@ h3 {
 .table-mount-root {
     min-height: calc(var(--spacing-xl) * 14);
     opacity: 0;
-    transition: opacity 0.22s ease;
+    transition: opacity 0.26s ease;
 }
 
 .table-mount-shell[data-table-ready='true'],
@@ -262,7 +262,7 @@ h3 {
     box-shadow: var(--shadow-sm);
     pointer-events: none;
     opacity: 1;
-    transition: opacity 0.22s ease;
+    transition: opacity 0.26s ease;
 }
 
 .table-skeleton__header,
