@@ -3,20 +3,23 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { resolve } from 'path';
 
 function createRollupOutput(isCiBuild: boolean) {
+  const baseOutput = {
+    format: 'es' as const,
+    entryFileNames: '[name].js',
+  };
+
   if (isCiBuild) {
     return {
-      format: 'es' as const,
-      entryFileNames: '[name].js',
+      ...baseOutput,
       chunkFileNames: 'chunks/[name]-[hash].js',
       assetFileNames: 'assets/[name]-[hash][extname]',
     };
   }
 
   return {
-    format: 'es' as const,
+    ...baseOutput,
     preserveModules: true,
     preserveModulesRoot: resolve(__dirname, 'src'),
-    entryFileNames: '[name].js',
     chunkFileNames: '[name].js',
     assetFileNames: 'assets/[name][extname]',
   };
