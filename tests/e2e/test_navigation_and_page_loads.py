@@ -132,6 +132,179 @@ def test_data_tables_styled_consistently_all_pages(e2e_site_minimal) -> None:
             f"{page_name} table headers should have background color"
 
 
+@pytest.mark.e2e
+def test_breeder_skeleton_present_before_js_and_removed_after_mount(e2e_site_minimal) -> None:
+    """Breeder page should ship a server-rendered skeleton and remove it after mount."""
+    page, base_url, errors = e2e_site_minimal
+
+    page.route('**/breeder-page.js', lambda route: route.abort())
+    try:
+        page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+        skeleton = page.locator('[data-table-skeleton-for="breeder-table"]')
+        assert skeleton.count() == 1, "Expected breeder skeleton in server-rendered HTML"
+        assert page.locator('#breeder-table').count() == 0, "Table should not mount while page script is blocked"
+    finally:
+        page.unroute('**/breeder-page.js')
+
+    page.goto(f"{base_url}/breeder.html", wait_until="networkidle")
+    assert page.locator('[data-table-skeleton-for="breeder-table"]').count() == 0, (
+        "Skeleton should be removed after the breeder table mounts"
+    )
+    assert page.locator('#breeder-table').count() == 1, "Mounted breeder table should be present"
+
+
+@pytest.mark.e2e
+def test_breeder_skeleton_has_visual_loading_contract_before_js(e2e_site_minimal) -> None:
+    """Blocked-JS first paint should still show a table-shaped animated skeleton."""
+    page, base_url, errors = e2e_site_minimal
+
+    page.route('**/breeder-page.js', lambda route: route.abort())
+    try:
+        page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+        skeleton = page.locator('[data-table-skeleton-for="breeder-table"]')
+        assert skeleton.count() == 1, "Expected breeder skeleton in server-rendered HTML"
+
+        contract = skeleton.evaluate(
+            """(el) => {
+                const firstHeader = el.querySelector('.table-skeleton__cell--header');
+                const firstBody = el.querySelector('.table-skeleton__cell:not(.table-skeleton__cell--header)');
+                const style = window.getComputedStyle(el);
+                const bodyStyle = firstBody ? window.getComputedStyle(firstBody) : null;
+                return {
+                    minHeight: style.minHeight,
+                    headerCount: el.querySelectorAll('.table-skeleton__cell--header').length,
+                    rowCount: el.querySelectorAll('.table-skeleton__row').length,
+                    animationName: bodyStyle?.animationName ?? null,
+                    animationDuration: bodyStyle?.animationDuration ?? null,
+                    backgroundImage: bodyStyle?.backgroundImage ?? null,
+                    borderRadius: style.borderRadius,
+                };
+            }"""
+        )
+
+        assert contract['headerCount'] >= 6, f"Expected table-like header cells, got {contract['headerCount']}"
+        assert contract['rowCount'] >= 8, f"Expected several placeholder rows, got {contract['rowCount']}"
+        assert contract['animationName'] == 'table-skeleton-shimmer', (
+            f"Expected shimmer animation, got {contract['animationName']}"
+        )
+        assert contract['animationDuration'] == '1.8s', (
+            f"Expected 1.8s skeleton shimmer, got {contract['animationDuration']}"
+        )
+        assert contract['backgroundImage'] and contract['backgroundImage'] != 'none', (
+            "Expected gradient background on skeleton cells"
+        )
+        assert contract['minHeight'] != '0px', "Expected reserved skeleton height before mount"
+        assert contract['borderRadius'] != '0px', "Expected softened skeleton card edges"
+    finally:
+        page.unroute('**/breeder-page.js')
+
+
+@pytest.mark.e2e
+def test_breeder_skeleton_fades_before_it_is_removed(e2e_site_minimal) -> None:
+    """The handoff should fade the skeleton out before the DOM node is removed."""
+    page, base_url, errors = e2e_site_minimal
+
+    page.add_init_script(
+        """
+        (() => {
+          const nativeSetTimeout = window.setTimeout.bind(window);
+                    const now = 40;
+                    window.performance.now = () => now;
+                    const queued = [];
+                    window.__runNextSkeletonTimeout = (delay) => {
+                        const index = queued.findIndex((entry) => entry.delay === delay);
+                        if (index === -1) {
+                            return false;
+                        }
+
+                        const [entry] = queued.splice(index, 1);
+                        entry.callback();
+                        return true;
+                    };
+          window.setTimeout = (callback, delay, ...args) => {
+                        if (delay === 280 || delay === 220) {
+                            queued.push({ delay, callback: () => callback(...args) });
+              return queued.length;
+            }
+            return nativeSetTimeout(callback, delay, ...args);
+          };
+        })();
+        """
+    )
+
+    page.goto(f"{base_url}/breeder.html", wait_until="networkidle")
+
+    skeleton = page.locator('[data-table-skeleton-for="breeder-table"]')
+    assert skeleton.count() == 1, "Skeleton should still exist while delayed removal is intercepted"
+
+    initial = page.locator('[data-table-shell="breeder-table"]').evaluate(
+        """(el) => {
+            const root = el.querySelector('#breeder-table-root');
+            return {
+                shellReady: el.getAttribute('data-table-ready'),
+                rootOpacity: root ? window.getComputedStyle(root).opacity : null,
+            };
+        }"""
+    )
+
+    assert initial['shellReady'] == 'false', "Shell should stay in pre-ready state during minimum dwell"
+    assert initial['rootOpacity'] == '0', "Mounted table should stay hidden until the cross-fade begins"
+
+    assert page.evaluate('window.__runNextSkeletonTimeout(280)') is True, (
+        "Expected queued dwell timer before the cross-fade begins"
+    )
+    page.evaluate(
+        """() => new Promise((resolve) => {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(resolve);
+            });
+        })"""
+    )
+
+    handoff = skeleton.evaluate(
+        """(el) => {
+            const style = window.getComputedStyle(el);
+            const shell = document.querySelector('[data-table-shell="breeder-table"]');
+            const root = document.querySelector('#breeder-table-root');
+            return {
+                shellReady: shell?.getAttribute('data-table-ready') ?? null,
+                opacity: style.opacity,
+                transitionProperty: style.transitionProperty,
+                transitionDuration: style.transitionDuration,
+                rootOpacity: root ? window.getComputedStyle(root).opacity : null,
+                rootTransitionProperty: root ? window.getComputedStyle(root).transitionProperty : null,
+                rootTransitionDuration: root ? window.getComputedStyle(root).transitionDuration : null,
+            };
+        }"""
+    )
+
+    assert handoff['shellReady'] == 'true', "Shell should be marked ready before the skeleton is removed"
+    assert 'opacity' in handoff['transitionProperty'], (
+        f"Expected opacity transition during handoff, got {handoff['transitionProperty']}"
+    )
+    assert handoff['transitionDuration'] == '0.22s', (
+        f"Expected 0.22s fade duration, got {handoff['transitionDuration']}"
+    )
+    assert 'opacity' in handoff['rootTransitionProperty'], (
+        f"Expected table root opacity transition during handoff, got {handoff['rootTransitionProperty']}"
+    )
+    assert handoff['rootTransitionDuration'] == '0.22s', (
+        f"Expected table root fade-in duration, got {handoff['rootTransitionDuration']}"
+    )
+    assert 0 <= float(handoff['opacity']) <= 1, (
+        f"Expected skeleton opacity to be in transition, got {handoff['opacity']}"
+    )
+
+    assert page.evaluate('window.__runNextSkeletonTimeout(220)') is True, (
+        "Expected queued removal timer after the cross-fade begins"
+    )
+    assert page.locator('[data-table-skeleton-for="breeder-table"]').count() == 0, (
+        "Skeleton should be removed after the fade-out completes"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Homepage-specific styles
 # ---------------------------------------------------------------------------

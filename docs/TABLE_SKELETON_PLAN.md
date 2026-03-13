@@ -199,12 +199,34 @@ Use the same visual language, but allow a taller variant if needed because histo
 - Run `make test-visual` if the CSS change needs browser-backed visual assertions
 - Run `make test-e2e` because website output and browser load behavior will change
 
+### Chrome DevTools MCP verification
+
+Use Chrome DevTools MCP as part of final verification for both local preview and deployed pages.
+
+Required DevTools MCP checks:
+
+- open breeder and history pages in a real browser
+- inspect the initial DOM before mount and confirm the skeleton is present in server-rendered HTML
+- verify the skeleton disappears after successful Svelte mount
+- capture performance traces and compare LCP, CLS, and request count before and after the change
+- inspect network requests to confirm the skeleton does not introduce unexpected blocking assets
+- inspect layout behavior during initial load to confirm breeder-page CLS improves materially
+
+DevTools MCP is not a substitute for automated tests, but it is required here because the goal is a real-world improvement in first paint, layout stability, and mount handoff.
+
 ### Live validation
 
 After deploy, re-profile:
 
 - breeder page
 - history page
+
+Use Chrome DevTools MCP for the live re-test, not just Lighthouse-style summary numbers. The live verification should include:
+
+- performance trace capture on deployed breeder and history pages
+- network request inspection
+- direct confirmation that the skeleton exists before mount and is gone after mount
+- comparison against the current post-bundling baseline metrics
 
 Primary success metric:
 
@@ -216,6 +238,7 @@ Secondary checks:
 - skeleton removed after mount
 - no regression in table functionality
 - no regression in no-data states
+- no new unexpected render-blocking behavior in DevTools traces
 
 ## Risks
 
@@ -255,6 +278,8 @@ Mitigation:
 ## Summary Recommendation
 
 Implement a **shared server-rendered table skeleton system** in the Jinja/static CSS layers, then add a minimal mount-time handoff in the client entry logic.
+
+The implementation should be verified not only by unit, Python, visual, and E2E tests, but also by **Chrome DevTools MCP inspection and tracing** on both preview and deployed pages, because the main success criteria are user-visible performance and layout stability.
 
 This is the smallest approach that directly addresses the current live problem:
 

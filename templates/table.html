@@ -4,7 +4,12 @@
    - json_rows: JSON rows passed to the Svelte component via window[…Data]
    - headers: list of (index, column_header) tuples — used only for the no-data guard
    - rows: list of rows — used only for the no-data guard
+   - skeleton_variant: lightweight table skeleton variant name
+   - skeleton_column_count: placeholder column count override
+   - skeleton_row_count: placeholder row count override
 #}
+
+{% import 'macros.html' as macros %}
 
 {% if not headers or not rows %}
 <p>No data available.</p>
@@ -12,7 +17,15 @@
 {# ── Svelte-mounted mode ───────────────────────────────────────────────────── #}
 {# The Svelte component reads its data from window[…Data] below and renders    #}
 {# the complete table, including headers, rows, filters, and pagination.        #}
-<div id="{{ table_id }}-root"></div>
+<div class="table-mount-shell" data-table-shell="{{ table_id }}" data-table-ready="false">
+   {{ macros.table_skeleton(
+      table_id=table_id,
+      variant=skeleton_variant | default('analysis'),
+      column_count=skeleton_column_count | default(headers | length),
+      row_count=skeleton_row_count | default(8)
+   ) }}
+   <div id="{{ table_id }}-root" class="table-mount-root" data-table-root="{{ table_id }}"></div>
+</div>
 {% endif %}
 
 <script>window['{{ table_id }}Data'] = {{ json_rows | tojson }};</script>

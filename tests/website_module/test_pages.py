@@ -1061,6 +1061,12 @@ class TestGenerateHistoryPage:
             html = generate_history_page(config)
             soup = BeautifulSoup(html, 'html.parser')
 
+            skeleton = soup.find('div', attrs={'data-table-skeleton-for': config.table_id})
+            assert skeleton is not None, "Should include a server-rendered history skeleton"
+            assert 'table-skeleton--history' in skeleton.get('class', []), (
+                "History page should use the history skeleton variant"
+            )
+
             # Svelte mount target must be present
             mount_div = soup.find('div', id=f'{config.table_id}-root')
             assert mount_div is not None, "Should have Svelte mount-target div"

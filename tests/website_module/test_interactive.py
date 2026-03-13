@@ -41,7 +41,13 @@ class TestInteractiveFilterButtons:
         soup = BeautifulSoup(html, 'html.parser')
         
         # Filter buttons are now rendered by the Svelte SortableTable component.
-        # Verify the Svelte mount point and JSON payload are present.
+        # Verify the server-rendered skeleton, Svelte mount point, and JSON payload are present.
+        skeleton = soup.find('div', attrs={'data-table-skeleton-for': 'breeder-table'})
+        assert skeleton is not None, "Server HTML should include a breeder table skeleton"
+        assert 'table-skeleton--analysis' in skeleton.get('class', []), (
+            "Breeder page should use the analysis skeleton variant"
+        )
+
         mount_div = soup.find('div', id='breeder-table-root')
         assert mount_div is not None, "Svelte mount div should be present for breeder table"
         

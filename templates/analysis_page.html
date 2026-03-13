@@ -51,7 +51,9 @@
     
     {% if json_rows %}
     <h3>Full Data Table</h3>
+    {% with skeleton_variant='analysis', skeleton_row_count=9, skeleton_column_count=headers|length %}
     {% include 'table.html' %}
+    {% endwith %}
     {% else %}
     <div class="info-box">
         <p>No data available yet. Please check back after the next scrape run.</p>
