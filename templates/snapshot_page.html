@@ -16,7 +16,9 @@
 
     {% if scrape_date %}<p class="table-stats-date">Scraped: {{ scrape_date }}</p>{% endif %}
     
+    {% with skeleton_variant='snapshot', skeleton_row_count=8, skeleton_column_count=headers|length %}
     {% include 'table.html' %}
+    {% endwith %}
     {% else %}
     <div class="info-box">
         <p>No data available yet. Please check back after the next scrape run.</p>

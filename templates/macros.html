@@ -48,3 +48,33 @@
     </div>
 </details>
 {%- endmacro %}
+
+{# Render a server-side loading skeleton that reserves table space before Svelte mounts.
+   Parameters:
+   - table_id: unique table ID used for cleanup handoff
+   - variant: visual variant name (analysis, snapshot, history)
+   - column_count: number of placeholder columns to render
+   - row_count: number of placeholder rows to render
+#}
+{% macro table_skeleton(table_id, variant='analysis', column_count=6, row_count=8) -%}
+<div
+    class="table-skeleton table-skeleton--{{ variant }}"
+    data-table-skeleton-for="{{ table_id }}"
+    aria-hidden="true"
+>
+    <div class="table-skeleton__header" style="--table-skeleton-columns: {{ column_count }};">
+        {% for _ in range(column_count) %}
+        <span class="table-skeleton__cell table-skeleton__cell--header"></span>
+        {% endfor %}
+    </div>
+    <div class="table-skeleton__body">
+        {% for _ in range(row_count) %}
+        <div class="table-skeleton__row" style="--table-skeleton-columns: {{ column_count }};">
+            {% for __ in range(column_count) %}
+            <span class="table-skeleton__cell"></span>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{%- endmacro %}

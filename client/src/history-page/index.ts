@@ -9,6 +9,7 @@ import { mount } from 'svelte';
 import HistoryTable from './HistoryTable.svelte';
 import type { ColumnConfig } from '../shared/components/SortableTable.svelte';
 import { assertPayload } from '../shared/payload-validation.js';
+import { completeTableMount, registerPageInit } from '../shared/page-init.js';
 
 const TABLE_ID = 'history-table';
 
@@ -48,10 +49,8 @@ function init(): void {
       wishlistColumn: 'Wishlist Count',
     },
   });
+
+  completeTableMount(TABLE_ID);
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
-}
+registerPageInit(init);

@@ -12,7 +12,7 @@
 
     {% if headers and rows %}
     <h3>Data Table</h3>
-    {% with headers=headers, rows=rows, table_id=table_id, json_rows=json_rows %}
+    {% with headers=headers, rows=rows, table_id=table_id, json_rows=json_rows, skeleton_variant='history', skeleton_row_count=10, skeleton_column_count=headers|length %}
     {% include 'table.html' %}
     {% endwith %}
     {% else %}

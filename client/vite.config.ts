@@ -83,6 +83,7 @@ export function createViteConfig(isCiBuild = !!process.env.CI): UserConfig {
     minify: isCiBuild ? 'esbuild' : false,
     sourcemap: isCiBuild,
     rollupOptions: {
+      preserveEntrySignatures: 'allow-extension',
       input: {
         'breeder-page': resolve(__dirname, 'src/breeder-page/index.ts'),
         'dealer-page': resolve(__dirname, 'src/dealer-page/index.ts'),
