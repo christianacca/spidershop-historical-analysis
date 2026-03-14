@@ -63,6 +63,12 @@ export function initSortableTablePage(config: SortableTablePageConfig): void {
   postMount?.();
 }
 
+export function registerSortableTablePage(config: SortableTablePageConfig): void {
+  registerPageInit(() => {
+    initSortableTablePage(config);
+  });
+}
+
 export function registerPageInit(init: () => void): void {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

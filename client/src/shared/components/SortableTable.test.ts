@@ -58,6 +58,20 @@ test('renders correct column headers', () => {
   expect(headers).toEqual(['Species', 'Signal', 'Stock Pattern', 'Price']);
 });
 
+test('uses key as the header label when label is omitted', () => {
+  const { container } = render(SortableTable, {
+    tableId: 'test-table',
+    rows: ROWS,
+    columns: [{ key: 'Species' }, { key: 'Signal' }],
+  });
+
+  const headers = Array.from(container.querySelectorAll('thead th')).map((th) =>
+    (th.textContent ?? '').replace(/[\u21c5\u2191\u2193]/g, '').trim(),
+  );
+
+  expect(headers).toEqual(['Species', 'Signal']);
+});
+
 test('visible count reflects total rows initially', () => {
   const { container } = renderTable();
   expect(container.querySelector('#visible-count-test-table')?.textContent).toBe('3');

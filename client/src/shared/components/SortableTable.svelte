@@ -17,7 +17,7 @@
 
   export interface ColumnConfig {
     key: string;
-    label: string;
+    label?: string;
     type?: 'sparkline' | 'species-link' | 'page-url';
     linkViewParam?: string;
     /** Row key to use as the visible link text for page-url columns (defaults to the raw URL). */
@@ -375,7 +375,7 @@
               data-sort-direction={sort.key === col.key ? sort.dir : 'none'}
               onclick={() => sort.toggle(col.key)}
             >
-              {col.label}
+              {col.label ?? col.key}
               <span class="sort-indicator">{sort.key === col.key ? (sort.dir === 'asc' ? '↑' : '↓') : '⇅'}</span>
             </th>
           {/if}
