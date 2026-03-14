@@ -83,6 +83,23 @@ test('table element has correct id', () => {
   expect(container.querySelector('#history-table')).not.toBeNull();
 });
 
+test('uses key as the header label when label is omitted', () => {
+  const { container } = renderTable({
+    columns: [
+      { key: 'Scrape Date', csvHeader: 'scrape_datetime', rawValueKey: '_raw_scrape_datetime' },
+      { key: 'Scientific Name' },
+      { key: 'Price (GBP)' },
+      { key: 'Wishlist Count' },
+    ],
+  });
+
+  const headers = Array.from(container.querySelectorAll('thead th')).map((th) =>
+    (th.textContent ?? '').replace(/[\u21c5\u2191\u2193]/g, '').trim(),
+  );
+
+  expect(headers).toEqual(['Scrape Date', 'Scientific Name', 'Price (GBP)', 'Wishlist Count']);
+});
+
 test('summary info strip is rendered when dateColumn is set', () => {
   const { container } = renderTable();
   expect(container.querySelector('#summary-info-history-table')).not.toBeNull();

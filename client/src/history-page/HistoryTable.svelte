@@ -247,7 +247,7 @@
             data-sort-direction={sort.key === col.key ? sort.dir : 'none'}
             onclick={() => sort.toggle(col.key)}
           >
-            {col.label}
+            {col.label ?? col.key}
             <span class="sort-indicator">{sort.key === col.key ? (sort.dir === 'asc' ? '↑' : '↓') : '⇅'}</span>
           </th>
         {/each}
