@@ -53,10 +53,13 @@ export function initSortableTablePage(config: SortableTablePageConfig): void {
   const rows = getWindowRows(tableId);
   assertPayload(tableId, rows);
 
-  const props =
-    primaryToggle === undefined
-      ? { tableId, rows, columns, filterConfig }
-      : { tableId, rows, columns, filterConfig, primaryToggle };
+  const props = {
+    tableId,
+    rows,
+    columns,
+    filterConfig,
+    ...(primaryToggle !== undefined && { primaryToggle }),
+  };
 
   mount(SortableTable, { target, props });
   completeTableMount(tableId);
