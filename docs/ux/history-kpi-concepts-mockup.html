@@ -497,6 +497,27 @@
       color: var(--muted);
     }
 
+    .prototype-panel {
+      background: linear-gradient(180deg, rgba(31, 42, 44, 0.04), rgba(31, 42, 44, 0.02));
+      border-style: dashed;
+      box-shadow: none;
+    }
+
+    .prototype-kicker {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(31, 42, 44, 0.08);
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
     .transition-cue {
       display: inline-flex;
       width: fit-content;
@@ -739,6 +760,18 @@
       font-size: 0.95rem;
     }
 
+    .section-note-shell {
+      display: grid;
+      gap: 8px;
+      max-width: 42ch;
+      justify-items: start;
+    }
+
+    .section-note-shell .section-note {
+      max-width: none;
+      margin: 0;
+    }
+
     .kpi-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -906,11 +939,137 @@
       color: #7b6821;
     }
 
+    .metric-sparkline-shell {
+      display: grid;
+      gap: 8px;
+      margin-top: 6px;
+      padding-top: 10px;
+      border-top: 1px dashed rgba(31, 42, 44, 0.12);
+    }
+
+    .metric-sparkline {
+      border: 1px solid rgba(215, 207, 192, 0.9);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.72);
+      overflow: hidden;
+    }
+
+    .metric-sparkline svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .sparkline-readout {
+      color: var(--muted);
+      font-size: 0.79rem;
+    }
+
+    .sparkline-line-current {
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .sparkline-line-prior {
+      fill: none;
+      stroke-width: 2;
+      stroke-dasharray: 5 4;
+      opacity: 0.38;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .sparkline-point-current,
+    .sparkline-point-prior {
+      transition: r 140ms ease, opacity 140ms ease;
+      pointer-events: none;
+    }
+
+    .sparkline-point-prior {
+      opacity: 0.45;
+    }
+
+    .sparkline-point-current.is-subdued,
+    .sparkline-point-prior.is-subdued {
+      opacity: 0.16;
+    }
+
+    .sparkline-band {
+      fill: rgba(31, 42, 44, 0.08);
+      pointer-events: none;
+    }
+
+    .sparkline-hit {
+      fill: transparent;
+      cursor: pointer;
+    }
+
+    .sparkline-hit:hover {
+      fill: rgba(31, 42, 44, 0.04);
+    }
+
+    .sparkline-run-labels {
+      fill: var(--muted);
+      font-size: 10px;
+      font-family: var(--sans);
+    }
+
+    .sparkline-support {
+      display: grid;
+      gap: 8px;
+      margin: 12px 0 18px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.54);
+    }
+
+    .sparkline-support-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      align-items: center;
+    }
+
+    .sparkline-note {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .sparkline-clear-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: auto;
+      min-width: 126px;
+      border: 1px solid rgba(31, 42, 44, 0.12);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.85);
+      color: var(--ink);
+      padding: 6px 10px;
+      font: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .sparkline-clear-btn[hidden] {
+      display: inline-flex !important;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
     .visual-grid {
       display: grid;
       grid-template-columns: 1.2fr 0.8fr;
       gap: 16px;
       margin-bottom: 18px;
+    }
+
+    .visual-grid.market-health-support-grid {
+      grid-template-columns: 1fr;
     }
 
     .visual-card {
@@ -924,6 +1083,113 @@
 
     .visual-card h3 {
       font-size: 1rem;
+    }
+
+    .chart-compare-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      align-items: center;
+    }
+
+    .chart-compare-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    button.chart-compare-item {
+      border: 1px solid transparent;
+      border-radius: 999px;
+      background: transparent;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    button.chart-compare-item:hover {
+      border-color: rgba(31, 42, 44, 0.12);
+      background: rgba(255, 255, 255, 0.6);
+    }
+
+    button.chart-compare-item:hover:not(.active) {
+      color: var(--ink);
+    }
+
+    button.chart-compare-item.active {
+      border-color: rgba(31, 42, 44, 0.16);
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--ink);
+    }
+
+    .line-swatch {
+      width: 28px;
+      height: 0;
+      border-top: 3px solid var(--ink);
+      border-radius: 999px;
+      opacity: 0.9;
+    }
+
+    .line-swatch.muted {
+      border-top-style: dashed;
+      opacity: 0.42;
+    }
+
+    .pulse-series {
+      cursor: pointer;
+      transition: opacity 140ms ease;
+    }
+
+    .pulse-series:hover {
+      opacity: 0.92;
+      stroke-width: 5;
+    }
+
+    .pulse-series-prior:hover {
+      stroke-width: 4;
+      stroke-opacity: 0.5;
+    }
+
+    .pulse-series.is-muted {
+      opacity: 0.16;
+    }
+
+    .pulse-series.is-active {
+      opacity: 1;
+      stroke-width: 5;
+    }
+
+    .pulse-series-prior.is-active {
+      stroke-width: 4;
+      stroke-opacity: 0.5;
+    }
+
+    .pulse-end-label {
+      font-size: 11px;
+      font-weight: 700;
+      pointer-events: none;
+    }
+
+    .pulse-end-label[hidden] {
+      display: none;
+    }
+
+    .pulse-end-label.prior {
+      opacity: 0.55;
+      font-weight: 600;
+    }
+
+    .pulse-selection-note {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .pulse-scale-note {
+      font-size: 0.78rem;
+      color: var(--muted);
     }
 
     .visual-card svg {
@@ -945,18 +1211,6 @@
       background: rgba(255,255,255,0.76);
       display: grid;
       gap: 6px;
-    }
-
-    .mini-card.note-card {
-      background: rgba(255, 255, 255, 0.5);
-      border-style: dashed;
-      border-color: rgba(31, 42, 44, 0.14);
-    }
-
-    .mini-card.note-card strong,
-    .mini-card.note-card span,
-    .mini-card.note-card .visual-note {
-      color: var(--muted);
     }
 
     .decision-note {
@@ -1142,12 +1396,17 @@
     }
 
     .download {
+      display: inline-flex;
+      align-items: center;
+      flex: 0 0 auto;
       padding: 10px 14px;
       border-radius: 999px;
       background: var(--ink);
       color: #fff;
       font-size: 0.92rem;
+      line-height: 1;
       text-decoration: none;
+      white-space: nowrap;
     }
 
     .sample-table {
@@ -1174,6 +1433,13 @@
       margin-top: 12px;
       color: var(--muted);
       font-size: 0.88rem;
+    }
+
+    .footnote.prototype-footnote {
+      padding: 12px 14px;
+      border: 1px dashed rgba(31, 42, 44, 0.16);
+      border-radius: 14px;
+      background: rgba(31, 42, 44, 0.04);
     }
 
     .mono {
@@ -1220,10 +1486,9 @@
   <div class="shell">
     <section class="hero">
       <div class="hero-panel">
-        <div class="eyebrow">History Page Concept</div>
         <h1>Three ways to assess the market before backing a genus.</h1>
         <p class="hero-copy">
-          This mock treats the history page as a decision surface, not a reporting surface. First you check whether the wider market looks healthy, then you compare a genus against peers or the market, and finally you test whether your preference still holds up.
+          Start with the wider market, then compare a genus against peers or the market, and finally test whether your preference still holds up against the evidence.
         </p>
         <div class="hero-bullets">
           <span><strong>Step 1</strong> Read the broader market first.</span>
@@ -1280,31 +1545,29 @@
               </div>
             </details>
           </div>
-          <p class="micro-note">With dozens of genus labels, this control should stay searchable, support normalized labels, and offer shortcut groups such as lifestyle.</p>
+          <p class="micro-note">Search or use shortcut groups such as lifestyle to narrow the genus list quickly.</p>
         </div>
 
         <div class="filter-group">
           <label>Time window</label>
           <div class="window-row">
-            <span class="window">This month</span>
-            <span class="window">Last month</span>
-            <span class="window active">Current quarter</span>
-            <span class="window">Last quarter</span>
-            <span class="window">This year</span>
-            <span class="window">Last year</span>
-            <span class="window">All time</span>
+            <button type="button" class="window" data-window="this-month">This month</button>
+            <button type="button" class="window" data-window="last-month">Last month</button>
+            <button type="button" class="window active" data-window="current-quarter">Current quarter</button>
+            <button type="button" class="window" data-window="last-quarter">Last quarter</button>
+            <button type="button" class="window" data-window="this-year">This year</button>
+            <button type="button" class="window" data-window="last-year">Last year</button>
+            <button type="button" class="window" data-window="all-time">All time</button>
           </div>
-        </div>
-
-        <div class="filter-group">
-          <label>Business lens</label>
-          <p class="filter-note">A later version could allow weighting demand, scarcity, and operational practicality without hiding the raw component metrics.</p>
+          <p class="micro-note" id="time-window-basis-note">Comparison basis: quarter to date vs prior quarter QTD.</p>
         </div>
       </aside>
     </section>
 
-    <section class="legend">
-      <h2>How to read this mock</h2>
+    <section class="legend prototype-panel">
+      <div class="prototype-kicker">Prototype scaffolding</div>
+      <h2>Reading guide for this mock</h2>
+      <p class="visual-note">Keep this panel in the prototype and handoff materials, but treat it as explanatory chrome rather than a production UI component.</p>
       <div class="legend-grid">
         <div class="legend-item"><span class="swatch" style="background:#1f7a6b"></span> Healthy / favourable commercial signal</div>
         <div class="legend-item"><span class="swatch" style="background:#cc6b49"></span> Focus-genus emphasis or comparison benchmark</div>
@@ -1327,90 +1590,90 @@
         <article class="kpi-card">
           <h3>Observed species</h3>
           <div class="metric-value">184</div>
-          <div class="metric-delta-stack">
-            <span class="metric-delta">+12 this quarter</span>
-            <span class="metric-delta">+21 this year</span>
+          <span class="metric-delta" id="market-observed-delta">+12 vs prior quarter QTD</span>
+          <p class="metric-text" id="market-observed-copy">The number of observed species is slightly expanding rather than contracting.</p>
+          <div class="metric-sparkline-shell">
+            <div class="metric-sparkline" id="market-observed-sparkline"></div>
+            <p class="sparkline-readout" id="market-observed-sparkline-readout">Current vs matched prior-period shape.</p>
           </div>
-          <p class="metric-text">Broad catalog breadth is slightly expanding rather than contracting.</p>
         </article>
         <article class="kpi-card">
-          <h3>Listings in stock</h3>
+          <h3>In-stock rate</h3>
           <div class="metric-value">61%</div>
-          <span class="metric-delta down">-7 pts vs last quarter</span>
-          <p class="metric-text">61% of tracked listings are available now. That is 7 percentage points lower than last quarter, so availability is slipping even while the catalog remains broad.</p>
+          <span class="metric-delta down" id="market-stock-delta">-7 pts vs prior quarter QTD</span>
+          <p class="metric-text" id="market-stock-copy">61% of tracked listings are available now. That is 7 percentage points lower than last quarter, so availability is slipping even while the catalog remains broad.</p>
+          <div class="metric-sparkline-shell">
+            <div class="metric-sparkline" id="market-stock-sparkline"></div>
+            <p class="sparkline-readout" id="market-stock-sparkline-readout">Current vs matched prior-period shape.</p>
+          </div>
         </article>
         <article class="kpi-card">
           <h3>Median wishlist</h3>
           <div class="metric-value">18</div>
-          <span class="metric-delta">+4 vs last quarter</span>
-          <p class="metric-text">Across tracked species, the median wishlist count is 18. That is modestly higher than last quarter and less sensitive to week-to-week stock swings.</p>
+          <span class="metric-delta" id="market-wishlist-delta">+4 vs prior quarter QTD</span>
+          <p class="metric-text" id="market-wishlist-copy">Across tracked species, the median wishlist count is 18. That is modestly higher than last quarter and less sensitive to week-to-week stock swings.</p>
+          <div class="metric-sparkline-shell">
+            <div class="metric-sparkline" id="market-wishlist-sparkline"></div>
+            <p class="sparkline-readout" id="market-wishlist-sparkline-readout">Current vs matched prior-period shape.</p>
+          </div>
         </article>
         <article class="kpi-card">
           <h3>Median price</h3>
           <div class="metric-value">GBP 24</div>
-          <span class="metric-delta flat">Stable</span>
-          <p class="metric-text">Price is steady, so the main movement appears to be availability rather than inflation.</p>
+          <span class="metric-delta flat" id="market-price-delta">+GBP 0 vs prior quarter QTD</span>
+          <p class="metric-text" id="market-price-copy">Price is steady, so the main movement appears to be availability rather than inflation.</p>
+          <div class="metric-sparkline-shell">
+            <div class="metric-sparkline" id="market-price-sparkline"></div>
+            <p class="sparkline-readout" id="market-price-sparkline-readout">Current vs matched prior-period shape.</p>
+          </div>
         </article>
       </div>
 
-      <div class="visual-grid">
-        <article class="visual-card">
-          <h3>Market pulse over time</h3>
-          <svg viewBox="0 0 700 270" role="img" aria-label="Market pulse chart">
-            <rect x="0" y="0" width="700" height="270" fill="#fffaf2" />
-            <g stroke="#d7cfc0" stroke-width="1">
-              <line x1="56" y1="220" x2="670" y2="220" />
-              <line x1="56" y1="50" x2="56" y2="220" />
-              <line x1="56" y1="180" x2="670" y2="180" />
-              <line x1="56" y1="140" x2="670" y2="140" />
-              <line x1="56" y1="100" x2="670" y2="100" />
-            </g>
-            <polyline fill="none" stroke="#1f7a6b" stroke-width="4" points="56,132 112,126 168,120 224,122 280,118 336,108 392,102 448,96 504,100 560,92 616,86 670,82" />
-            <polyline fill="none" stroke="#cc6b49" stroke-width="4" points="56,86 112,92 168,94 224,104 280,110 336,112 392,120 448,128 504,130 560,138 616,144 670,150" />
-            <polyline fill="none" stroke="#a18b35" stroke-width="4" points="56,176 112,172 168,168 224,166 280,160 336,156 392,150 448,146 504,142 560,136 616,132 670,126" />
-            <g fill="#5d6a6d" font-size="12" font-family="Avenir Next, Segoe UI, sans-serif">
-              <text x="56" y="242">Run 1</text>
-              <text x="282" y="242">Run 6</text>
-              <text x="646" y="242">Run 12</text>
-              <text x="20" y="55">High</text>
-              <text x="23" y="223">Low</text>
-            </g>
-            <g font-size="12" font-family="Avenir Next, Segoe UI, sans-serif">
-              <text x="484" y="82" fill="#1f7a6b">catalog breadth</text>
-              <text x="498" y="165" fill="#cc6b49">in-stock rate</text>
-              <text x="530" y="118" fill="#a18b35">wishlist pressure</text>
-            </g>
-          </svg>
-          <p class="visual-note">The intended reading here is: more species are being observed, wishlist pressure is up, but in-stock rate is slipping. That suggests a market that is not shrinking, but is becoming tighter.</p>
-        </article>
+      <div class="sparkline-support">
+        <div class="sparkline-support-row">
+          <span class="chart-compare-item"><span class="line-swatch" style="border-top-color:#1f2a2c"></span><span>Active window</span></span>
+          <span class="chart-compare-item" id="market-sparkline-prior-key"><span class="line-swatch muted"></span><span>Matched prior-period overlay</span></span>
+          <button type="button" class="sparkline-clear-btn" id="market-sparkline-clear" hidden>Clear run focus</button>
+        </div>
+        <p class="sparkline-note" id="market-sparkline-basis-note">Compare within a row. Solid shows the active window; dashed shows the matched prior period.</p>
+        <p class="sparkline-note" id="market-sparkline-selection-note">Optional: click a run to align that moment across all four cards.</p>
+      </div>
 
+      <div class="visual-grid market-health-support-grid">
         <article class="visual-card">
-          <h3>Run-to-run market events</h3>
+          <h3 id="market-events-title">Run-to-run market events</h3>
+          <p class="visual-note" id="market-events-subtitle">Active-window event counts vs the matched prior comparison period.</p>
           <div class="mini-grid">
             <div class="mini-card">
-              <span>New listings</span>
-              <strong>+29</strong>
-              <p class="visual-note">Fresh introductions across the window.</p>
+              <span id="market-events-new-label">Listings added</span>
+              <strong id="market-events-new-value">+29</strong>
+              <p class="visual-note" id="market-events-new-copy">Fresh introductions across the window.</p>
             </div>
             <div class="mini-card">
-              <span>Dropped listings</span>
-              <strong>17</strong>
-              <p class="visual-note">Some churn, but not enough to imply market retreat.</p>
+              <span id="market-events-dropped-label">Listings removed</span>
+              <strong id="market-events-dropped-value">17</strong>
+              <p class="visual-note" id="market-events-dropped-copy">Some churn, but not enough to imply market retreat.</p>
             </div>
             <div class="mini-card">
-              <span>Restocks observed</span>
-              <strong>43</strong>
-              <p class="visual-note">Movement is active; stock is not simply frozen.</p>
+              <span id="market-events-restocks-label">OUT -> IN restocks</span>
+              <strong id="market-events-restocks-value">43</strong>
+              <p class="visual-note" id="market-events-restocks-copy">Movement is active; stock is not simply frozen.</p>
+            </div>
+            <div class="mini-card">
+              <span id="market-events-oos-label">IN -> OUT stockouts</span>
+              <strong id="market-events-oos-value">21</strong>
+                <p class="visual-note" id="market-events-oos-copy">More listings are moving from IN to OUT, reinforcing the weaker in-stock rate.</p>
             </div>
           </div>
         </article>
       </div>
     </section>
 
-    <section class="transition-panel">
+    <section class="transition-panel prototype-panel">
+      <div class="prototype-kicker">Prototype scaffolding</div>
       <span class="transition-cue">Ready to test a genus?</span>
       <strong>Use the comparison controls below to move from market context into genus-specific analysis.</strong>
-      <p>Market Health above stays global. The next section is where you choose a focus genus, define a peer set, and compare it against peers or the broader market.</p>
+      <p>Keep this bridge copy in the mock and handoff materials for now. In the real product it would likely collapse into lighter section intro text once the flow is already learned.</p>
     </section>
 
     <section class="comparison-panel">
@@ -1450,9 +1713,12 @@
         <div class="section-title">
           <div class="eyebrow">2. Breeder Opportunity KPIs</div>
           <h2>Which genera look attractive if you care about selling through faster?</h2>
-          <p id="breeder-section-copy">These visuals privilege the commercial breeder thesis: demand matters, but recurring constrained supply matters more.</p>
+          <p id="breeder-section-copy">These metrics focus on the commercial signals that matter most for sell-through: demand and recurring supply constraints.</p>
         </div>
-        <p class="section-note" id="breeder-section-note">This section should not output a magic score. It should expose the ingredients so you can see why a genus looks compelling.</p>
+        <div class="section-note-shell">
+          <div class="prototype-kicker">Prototype scaffolding</div>
+          <p class="section-note footnote prototype-footnote" id="breeder-section-note">Use the score as a summary, but keep the ingredient metrics visible so the commercial case stays explainable.</p>
+        </div>
       </div>
 
       <div class="section-stage">
@@ -1471,7 +1737,7 @@
       <div class="section-live">
       <div class="kpi-grid">
         <article class="kpi-card">
-          <h3><span id="breeder-focus-name">Avicularia</span> scarcity rate</h3>
+          <h3><span id="breeder-focus-name">Focus genus</span> scarcity rate</h3>
           <div class="metric-value" id="breeder-scarcity-value">38%</div>
           <span class="metric-delta flat" id="breeder-scarcity-label">Middle of pack</span>
           <p class="metric-text" id="breeder-scarcity-copy">Promising, but not dominant if scarcity is your main breeder signal.</p>
@@ -1549,7 +1815,7 @@
               <span class="mono" id="peer-average-score">7.1</span>
             </div>
             <div class="bar-row">
-              <span id="peer-average-focus-name">Avicularia</span>
+              <span id="peer-average-focus-name">Focus genus</span>
               <div class="bar-track"><div class="bar-fill alt" id="peer-average-focus-fill" style="width:74%"></div></div>
               <span class="mono" id="peer-average-focus-score">7.4</span>
             </div>
@@ -1561,7 +1827,7 @@
               <span class="mono">6.2</span>
             </div>
             <div class="bar-row">
-              <span id="market-baseline-focus-name">Avicularia</span>
+              <span id="market-baseline-focus-name">Focus genus</span>
               <div class="bar-track"><div class="bar-fill alt" id="market-baseline-focus-fill" style="width:74%"></div></div>
               <span class="mono" id="market-baseline-focus-score">7.4</span>
             </div>
@@ -1571,7 +1837,7 @@
               <span class="mono" id="market-baseline-peer-score">4 peers saved</span>
             </div>
           </div>
-          <p class="visual-note" id="breeder-chart-note">This mocked chart is saying Avicularia has a credible breeder case, but it is not the strongest purely commercial candidate in the comparison set.</p>
+          <p class="visual-note" id="breeder-chart-note">The focus genus can have a credible breeder case without being the strongest purely commercial candidate in the comparison set.</p>
         </article>
 
         <article class="visual-card">
@@ -1627,10 +1893,10 @@
       <div class="section-header">
         <div class="section-title">
           <div class="eyebrow">3. Bias-Control KPIs</div>
-          <h2>Are you choosing <span id="bias-question-focus">Avicularia</span> because it is good, or because you want it to be good?</h2>
-          <p id="bias-section-copy">This section is meant to make your preference visible and keep the UI from quietly validating it.</p>
+          <h2>Are you choosing <span id="bias-question-focus" hidden></span><span id="bias-question-fallback">the focus genus</span> because it is good, or because you want it to be good?</h2>
+          <p id="bias-section-copy">This section shows whether your preferred genus still holds up once it is compared against the evidence.</p>
         </div>
-        <p class="section-note" id="bias-section-note">The point is not to eliminate preference. It is to show the trade-off you are accepting when preference and commercial data diverge.</p>
+        <p class="section-note" id="bias-section-note">This section makes the trade-off explicit when personal preference and commercial evidence diverge.</p>
       </div>
 
       <div class="section-stage">
@@ -1650,7 +1916,7 @@
       <div class="kpi-grid">
         <article class="kpi-card">
           <div class="metric-title-row">
-            <h3><span id="bias-rank-focus-name">Avicularia</span> commercial rank</h3>
+            <h3><span id="bias-rank-focus-name">Focus genus</span> commercial rank</h3>
             <details class="metric-info">
               <summary class="metric-info-button" aria-label="What is commercial rank?">?</summary>
               <div class="metric-popover">
@@ -1675,7 +1941,7 @@
             </details>
           </div>
           <div class="metric-value" id="bias-gap-value">-1.4</div>
-          <span class="metric-delta down" id="bias-gap-label">vs Psalmopoeus</span>
+          <span class="metric-delta down" id="bias-gap-label">vs benchmark</span>
           <p class="metric-text" id="bias-gap-copy">The gap is meaningful, but not overwhelming.</p>
         </article>
         <article class="kpi-card">
@@ -1718,7 +1984,7 @@
           </div>
           <div class="metric-value" id="bias-premium-value">Yes</div>
           <span class="metric-delta flat" id="bias-premium-label">Still commercially reasonable</span>
-          <p class="metric-text" id="bias-premium-copy">Avicularia is not the leader, but it still looks close enough to the top to remain a commercially defensible choice.</p>
+          <p class="metric-text" id="bias-premium-copy">The focus genus may still look close enough to the top to remain a commercially defensible choice.</p>
           <details class="metric-method">
             <summary>How this works</summary>
             <div class="metric-method-body">
@@ -1768,7 +2034,7 @@
             </g>
             <g font-size="12" font-family="Avenir Next, Segoe UI, sans-serif">
               <text x="512" y="76" fill="#1f7a6b">peer line</text>
-              <text x="540" y="124" fill="#cc6b49" id="bias-svg-focus-none">Avicularia</text>
+              <text x="540" y="124" fill="#cc6b49" id="bias-svg-focus-none">Focus genus</text>
             </g>
           </svg>
           <svg class="compare-view" data-compare-view="peer-average" hidden viewBox="0 0 700 250" role="img" aria-label="Bias control peer average chart">
@@ -1794,7 +2060,7 @@
             </g>
             <g font-size="12" font-family="Avenir Next, Segoe UI, sans-serif">
               <text x="500" y="92" fill="#1f7a6b">peer average</text>
-              <text x="540" y="124" fill="#cc6b49" id="bias-svg-focus-peer">Avicularia</text>
+              <text x="540" y="124" fill="#cc6b49" id="bias-svg-focus-peer">Focus genus</text>
             </g>
           </svg>
           <svg class="compare-view" data-compare-view="market-baseline" hidden viewBox="0 0 700 250" role="img" aria-label="Bias control market baseline chart">
@@ -1820,10 +2086,10 @@
             </g>
             <g font-size="12" font-family="Avenir Next, Segoe UI, sans-serif">
               <text x="474" y="134" fill="#1f7a6b">market baseline</text>
-              <text x="540" y="124" fill="#cc6b49" id="bias-svg-focus-market">Avicularia</text>
+              <text x="540" y="124" fill="#cc6b49" id="bias-svg-focus-market">Focus genus</text>
             </g>
           </svg>
-          <p class="visual-note" id="bias-chart-note">This mock says Avicularia wins on demand and stability, but trails the strongest peer on scarcity and overall commercial attractiveness. That is a trade-off, not a contradiction.</p>
+          <p class="visual-note" id="bias-chart-note">The focus genus can win on some ingredients and still trail the strongest benchmark overall. That is a trade-off, not a contradiction.</p>
         </article>
 
         <article class="visual-card">
@@ -1832,12 +2098,12 @@
             <div class="mini-card">
               <span>If you optimise for</span>
               <strong>Profit first</strong>
-              <p class="visual-note" id="decision-profit-copy">The benchmark genus currently looks stronger.</p>
+              <p class="visual-note" id="decision-profit-copy">The active benchmark currently looks stronger.</p>
             </div>
             <div class="mini-card">
               <span>If you optimise for</span>
               <strong>Defensible preference</strong>
-              <p class="visual-note" id="decision-defensible-copy">Avicularia remains defendable because it is near the top, not near the bottom.</p>
+              <p class="visual-note" id="decision-defensible-copy">The focus genus may still remain defendable if it stays near the top, not near the bottom.</p>
             </div>
           </div>
           <details class="decision-note">
@@ -1857,8 +2123,8 @@
       <div class="table-top">
         <div>
           <div class="eyebrow">Filtered Data Preview</div>
-          <h2>Keep the table as an audit surface, not the main product</h2>
-          <p class="table-copy">This is where you verify what the current charts are based on and export a filtered CSV for deeper analysis.</p>
+          <h2>Inspect the filtered records behind the current view</h2>
+          <p class="table-copy">Use this table to spot-check the rows behind the current KPIs and charts. The preview mirrors the exported CSV columns so the on-page table and download stay aligned.</p>
         </div>
         <a class="download" href="#">Download filtered CSV</a>
       </div>
@@ -1866,51 +2132,56 @@
       <table class="sample-table">
         <thead>
           <tr>
-            <th>Run</th>
-            <th>Genus</th>
-            <th>Species</th>
-            <th>Price</th>
+            <th>Scrape time</th>
+            <th>Scientific name</th>
+            <th>Common name</th>
+            <th>Size (cm)</th>
+            <th>Price (GBP)</th>
             <th>Wishlist</th>
-            <th>Stock</th>
+            <th>Page URL</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>12</td>
-            <td>Avicularia</td>
+            <td>2026-03-12 06:10</td>
             <td>Avicularia avicularia</td>
-            <td>GBP 27</td>
+            <td>Pinktoe Tarantula</td>
+            <td>3.0</td>
+            <td>27.00</td>
             <td>31</td>
-            <td><span class="badge warn">OUT</span></td>
+            <td><span class="mono">/product/avicularia-avicularia</span></td>
           </tr>
           <tr>
-            <td>12</td>
-            <td>Caribena</td>
+            <td>2026-03-12 06:10</td>
             <td>Caribena versicolor</td>
-            <td>GBP 34</td>
+            <td>Antilles Pinktoe</td>
+            <td>2.5</td>
+            <td>34.00</td>
             <td>28</td>
-            <td><span class="badge">IN</span></td>
+            <td><span class="mono">/product/caribena-versicolor</span></td>
           </tr>
           <tr>
-            <td>11</td>
-            <td>Psalmopoeus</td>
+            <td>2026-03-05 06:10</td>
             <td>Psalmopoeus irminia</td>
-            <td>GBP 22</td>
+            <td>Venezuelan Suntiger</td>
+            <td>2.0</td>
+            <td>22.00</td>
             <td>30</td>
-            <td><span class="badge warn">OUT</span></td>
+            <td><span class="mono">/product/psalmopoeus-irminia</span></td>
           </tr>
           <tr>
-            <td>10</td>
-            <td>Avicularia</td>
+            <td>2026-02-26 06:10</td>
             <td>Avicularia purpurea</td>
-            <td>GBP 39</td>
+            <td>Purple Pinktoe</td>
+            <td>2.5</td>
+            <td>39.00</td>
             <td>19</td>
-            <td><span class="badge">IN</span></td>
+            <td><span class="mono">/product/avicularia-purpurea</span></td>
           </tr>
         </tbody>
       </table>
 
-      <p class="footnote">Mock only. Numbers are illustrative and are intended to make the visual language and decision framing concrete, not to represent the current dataset.</p>
+      <p class="footnote prototype-footnote">Prototype only. Numbers are illustrative and meant to make the visual language, state changes, and decision framing concrete. They should not be read as live data or frozen product copy.</p>
     </section>
   </div>
 </body>
@@ -1943,10 +2214,46 @@
     const genusSearchInput = document.getElementById('genus-search-input');
     const globalScopeLabel = document.getElementById('global-scope-label');
     const selectorCountLabel = document.getElementById('selector-count-label');
+    const windowButtons = Array.from(document.querySelectorAll('[data-window]'));
+    const timeWindowBasisNote = document.getElementById('time-window-basis-note');
     const selectedGeneraChips = document.getElementById('selected-genera-chips');
     const collapsedSelectorNote = document.getElementById('collapsed-selector-note');
     const genusSuggestionList = document.getElementById('genus-suggestion-list');
     const quickPickButtons = Array.from(document.querySelectorAll('[data-selection-action]'));
+    const marketObservedDelta = document.getElementById('market-observed-delta');
+    const marketStockDelta = document.getElementById('market-stock-delta');
+    const marketWishlistDelta = document.getElementById('market-wishlist-delta');
+    const marketPriceDelta = document.getElementById('market-price-delta');
+    const marketObservedCopy = document.getElementById('market-observed-copy');
+    const marketStockCopy = document.getElementById('market-stock-copy');
+    const marketWishlistCopy = document.getElementById('market-wishlist-copy');
+    const marketPriceCopy = document.getElementById('market-price-copy');
+    const marketObservedSparkline = document.getElementById('market-observed-sparkline');
+    const marketObservedSparklineReadout = document.getElementById('market-observed-sparkline-readout');
+    const marketStockSparkline = document.getElementById('market-stock-sparkline');
+    const marketStockSparklineReadout = document.getElementById('market-stock-sparkline-readout');
+    const marketWishlistSparkline = document.getElementById('market-wishlist-sparkline');
+    const marketWishlistSparklineReadout = document.getElementById('market-wishlist-sparkline-readout');
+    const marketPriceSparkline = document.getElementById('market-price-sparkline');
+    const marketPriceSparklineReadout = document.getElementById('market-price-sparkline-readout');
+    const marketSparklineBasisNote = document.getElementById('market-sparkline-basis-note');
+    const marketSparklineSelectionNote = document.getElementById('market-sparkline-selection-note');
+    const marketSparklineClear = document.getElementById('market-sparkline-clear');
+    const marketSparklinePriorKey = document.getElementById('market-sparkline-prior-key');
+    const marketEventsTitle = document.getElementById('market-events-title');
+    const marketEventsSubtitle = document.getElementById('market-events-subtitle');
+    const marketEventsNewLabel = document.getElementById('market-events-new-label');
+    const marketEventsNewValue = document.getElementById('market-events-new-value');
+    const marketEventsNewCopy = document.getElementById('market-events-new-copy');
+    const marketEventsDroppedLabel = document.getElementById('market-events-dropped-label');
+    const marketEventsDroppedValue = document.getElementById('market-events-dropped-value');
+    const marketEventsDroppedCopy = document.getElementById('market-events-dropped-copy');
+    const marketEventsRestocksLabel = document.getElementById('market-events-restocks-label');
+    const marketEventsRestocksValue = document.getElementById('market-events-restocks-value');
+    const marketEventsRestocksCopy = document.getElementById('market-events-restocks-copy');
+    const marketEventsOosLabel = document.getElementById('market-events-oos-label');
+    const marketEventsOosValue = document.getElementById('market-events-oos-value');
+    const marketEventsOosCopy = document.getElementById('market-events-oos-copy');
     const focusGenusOptions = document.getElementById('focus-genus-options');
     const compareFocusPicker = document.getElementById('compare-focus-picker');
     const peerSetSubhead = document.getElementById('peer-set-subhead');
@@ -2002,6 +2309,7 @@
       read: document.getElementById(`ingredients-read-${index}`),
     }));
     const biasQuestionFocus = document.getElementById('bias-question-focus');
+    const biasQuestionFallback = document.getElementById('bias-question-fallback');
     const biasRankFocusName = document.getElementById('bias-rank-focus-name');
     const biasGapValue = document.getElementById('bias-gap-value');
     const biasGapLabel = document.getElementById('bias-gap-label');
@@ -2026,6 +2334,401 @@
     const decisionDefensibleCopy = document.getElementById('decision-defensible-copy');
 
     const marketAverageScore = 6.2;
+    const sparklineShapes = {
+      steadyRise: [0, 0.4, 0.6, 0.4, 0.5, 0.8, 1, 1.2, 1, 1.1, 0.8, 0],
+      gentleRise: [0, 0.2, 0.4, 0.3, 0.5, 0.6, 0.8, 0.9, 0.8, 0.9, 0.6, 0],
+      gentleFall: [0, -0.2, -0.4, -0.3, -0.5, -0.6, -0.8, -0.9, -0.8, -0.9, -0.6, 0],
+      lateLift: [0, -0.2, -0.4, -0.5, -0.4, -0.1, 0.2, 0.5, 0.8, 1, 1.2, 0],
+      lateDrop: [0, 0.2, 0.4, 0.5, 0.4, 0.1, -0.2, -0.5, -0.8, -1, -1.2, 0],
+      flatDrift: [0, 0.05, 0.1, 0.05, 0.08, 0.02, 0.06, 0.1, 0.05, 0.08, 0.03, 0],
+    };
+
+    function buildSeries(start, end, shapeName, amplitude) {
+      const shape = sparklineShapes[shapeName];
+      return shape.map((offset, index) => {
+        const progress = index / (shape.length - 1);
+        const linear = start + ((end - start) * progress);
+        return Number((linear + (offset * amplitude)).toFixed(1));
+      });
+    }
+
+    const marketSparklineCards = {
+      observed: {
+        container: marketObservedSparkline,
+        readout: marketObservedSparklineReadout,
+        label: 'Observed species',
+        color: '#1f7a6b',
+        format: (value) => `${Math.round(value)}`,
+      },
+      stock: {
+        container: marketStockSparkline,
+        readout: marketStockSparklineReadout,
+        label: 'In-stock rate',
+        color: '#cc6b49',
+        format: (value) => `${Math.round(value)}%`,
+      },
+      wishlist: {
+        container: marketWishlistSparkline,
+        readout: marketWishlistSparklineReadout,
+        label: 'Median wishlist',
+        color: '#a18b35',
+        format: (value) => `${Math.round(value)}`,
+      },
+      price: {
+        container: marketPriceSparkline,
+        readout: marketPriceSparklineReadout,
+        label: 'Median price',
+        color: '#5d6a6d',
+        format: (value) => `GBP ${Math.round(value)}`,
+      },
+    };
+
+    const marketSparklineSeries = {
+      'this-month': {
+        observed: { current: buildSeries(180, 184, 'steadyRise', 0.6), prior: buildSeries(179, 183, 'gentleRise', 0.45) },
+        stock: { current: buildSeries(63, 61, 'lateDrop', 0.35), prior: buildSeries(64, 62, 'gentleFall', 0.25) },
+        wishlist: { current: buildSeries(16, 18, 'lateLift', 0.35), prior: buildSeries(15, 17, 'gentleRise', 0.25) },
+        price: { current: buildSeries(24, 24, 'flatDrift', 0.08), prior: buildSeries(24, 24, 'flatDrift', 0.05) },
+      },
+      'last-month': {
+        observed: { current: buildSeries(176, 182, 'gentleRise', 0.9), prior: buildSeries(173, 179, 'steadyRise', 0.7) },
+        stock: { current: buildSeries(65, 62, 'lateDrop', 0.55), prior: buildSeries(66, 64, 'gentleFall', 0.4) },
+        wishlist: { current: buildSeries(15, 17, 'steadyRise', 0.35), prior: buildSeries(14, 16, 'gentleRise', 0.3) },
+        price: { current: buildSeries(23, 23, 'flatDrift', 0.1), prior: buildSeries(23, 23, 'flatDrift', 0.08) },
+      },
+      'current-quarter': {
+        observed: { current: buildSeries(170, 184, 'steadyRise', 1.4), prior: buildSeries(165, 177, 'gentleRise', 1.1) },
+        stock: { current: buildSeries(67, 61, 'lateDrop', 0.9), prior: buildSeries(69, 65, 'gentleFall', 0.7) },
+        wishlist: { current: buildSeries(14, 18, 'lateLift', 0.55), prior: buildSeries(12, 15, 'gentleRise', 0.45) },
+        price: { current: buildSeries(23, 24, 'flatDrift', 0.18), prior: buildSeries(22, 23, 'flatDrift', 0.12) },
+      },
+      'last-quarter': {
+        observed: { current: buildSeries(168, 181, 'gentleRise', 1.2), prior: buildSeries(163, 175, 'steadyRise', 1) },
+        stock: { current: buildSeries(68, 63, 'gentleFall', 0.75), prior: buildSeries(70, 66, 'gentleFall', 0.55) },
+        wishlist: { current: buildSeries(13, 17, 'steadyRise', 0.5), prior: buildSeries(12, 15, 'gentleRise', 0.4) },
+        price: { current: buildSeries(22.5, 24, 'gentleRise', 0.14), prior: buildSeries(22, 23, 'flatDrift', 0.1) },
+      },
+      'this-year': {
+        observed: { current: buildSeries(158, 184, 'steadyRise', 1.6), prior: buildSeries(148, 169, 'gentleRise', 1.3) },
+        stock: { current: buildSeries(69, 61, 'lateDrop', 1), prior: buildSeries(71, 66, 'gentleFall', 0.7) },
+        wishlist: { current: buildSeries(12, 18, 'steadyRise', 0.6), prior: buildSeries(10, 14, 'gentleRise', 0.5) },
+        price: { current: buildSeries(22, 24, 'gentleRise', 0.18), prior: buildSeries(21, 22, 'flatDrift', 0.12) },
+      },
+      'last-year': {
+        observed: { current: buildSeries(154, 180, 'gentleRise', 1.4), prior: buildSeries(145, 169, 'steadyRise', 1.2) },
+        stock: { current: buildSeries(69, 63, 'gentleFall', 0.85), prior: buildSeries(71, 66, 'gentleFall', 0.6) },
+        wishlist: { current: buildSeries(11, 17, 'steadyRise', 0.6), prior: buildSeries(10, 14, 'gentleRise', 0.45) },
+        price: { current: buildSeries(22, 24, 'flatDrift', 0.14), prior: buildSeries(21.5, 23, 'flatDrift', 0.12) },
+      },
+      'all-time': {
+        observed: { current: buildSeries(130, 184, 'steadyRise', 2), prior: [] },
+        stock: { current: buildSeries(72, 61, 'gentleFall', 1.2), prior: [] },
+        wishlist: { current: buildSeries(8, 18, 'steadyRise', 0.75), prior: [] },
+        price: { current: buildSeries(19, 24, 'gentleRise', 0.18), prior: [] },
+      },
+    };
+    const timeWindowOptions = {
+      'this-month': {
+        label: 'This month',
+        scopeLabel: 'this month',
+        basisNote: 'Comparison basis: month to date vs prior month MTD.',
+        deltas: {
+          observed: { text: '+1 vs prior month MTD', kind: '' },
+          stock: { text: '-1 pt vs prior month MTD', kind: 'down' },
+          wishlist: { text: '+1 vs prior month MTD', kind: '' },
+          price: { text: '+GBP 0 vs prior month MTD', kind: 'flat' },
+        },
+        copy: {
+          observed: 'Breadth is only slightly ahead of the same point last month, so the catalog still looks broad without signaling a step-change in assortment.',
+          stock: 'Availability is a touch weaker than the same point last month. That reads more like a near-term tightening than a structural collapse.',
+          wishlist: 'Median wishlist demand is a little firmer than the same point last month, which suggests interest is holding while stock softens.',
+          price: 'Pricing is effectively unchanged month to date, so the immediate pressure still looks operational rather than inflation-led.',
+        },
+        pulse: {
+          title: 'Market pulse this month',
+          subtitle: 'This month view: a short-horizon read on whether the market is tightening faster than demand is moving.',
+          currentLabel: 'This month absolute level',
+          priorLabel: 'Prior month MTD absolute level',
+          compareNote: 'Compare within a row. Solid shows this month; dashed shows the matched point last month.',
+          showPrior: true,
+          endValues: {
+            breadthCurrent: '184',
+            breadthPrior: '183',
+            stockCurrent: '61%',
+            stockPrior: '62%',
+            wishlistCurrent: '18',
+            wishlistPrior: '17',
+          },
+        },
+        events: {
+          title: 'Run-to-run market events this month',
+          subtitle: 'This month event totals against the same point last month.',
+          newListings: { label: 'Listings added', value: '+6 vs prior month MTD', copy: 'Fresh introductions are only slightly ahead of the same point last month, so the catalog is still expanding but not surging.' },
+          droppedListings: { label: 'Listings removed', value: '4 vs prior month MTD', copy: 'Some churn is present, but the removal count is still too small to imply retreat.' },
+          restocks: { label: 'OUT -> IN restocks', value: '9 vs prior month MTD', copy: 'Restocks are still happening, which argues against a frozen market even while availability is a touch softer.' },
+          oosFlips: { label: 'IN -> OUT stockouts', value: '+5 vs prior month MTD', copy: 'A few more listings have moved from IN to OUT than at the same point last month, which fits the softer availability read without implying a severe shock.' },
+          basis: { label: 'Comparison basis', value: 'vs prior month MTD', copy: 'Read these event totals the same way as the pulse chart: active month-to-date totals versus the matched point last month.' },
+        },
+      },
+      'last-month': {
+        label: 'Last month',
+        scopeLabel: 'last month',
+        basisNote: 'Comparison basis: full last month vs the prior full month.',
+        deltas: {
+          observed: { text: '+3 vs Jan', kind: '' },
+          stock: { text: '-2 pts vs Jan', kind: 'down' },
+          wishlist: { text: '+1 vs Jan', kind: '' },
+          price: { text: '+GBP 0 vs Jan', kind: 'flat' },
+        },
+        copy: {
+          observed: 'Last month carried a few more species than Jan, which points to modest breadth expansion rather than a one-off catalog reset.',
+          stock: 'Even with a broader catalog, the share actually available was a little lower than Jan, so supply stayed somewhat constrained.',
+          wishlist: 'Median wishlist counts were only slightly above Jan, which suggests demand stayed healthy without obviously overheating.',
+          price: 'Prices were flat versus Jan. The story is still breadth up, stock down, and only mild demand pressure.',
+        },
+        pulse: {
+          title: 'Market pulse last month',
+          subtitle: 'Last month view: a completed-month read against the prior full month.',
+          currentLabel: 'Last month absolute level',
+          priorLabel: 'Prior full month absolute level',
+          compareNote: 'Compare within a row. Solid shows last month; dashed shows the prior full month.',
+          showPrior: true,
+          endValues: {
+            breadthCurrent: '182',
+            breadthPrior: '179',
+            stockCurrent: '62%',
+            stockPrior: '64%',
+            wishlistCurrent: '17',
+            wishlistPrior: '16',
+          },
+        },
+        events: {
+          title: 'Run-to-run market events last month',
+          subtitle: 'Last month event totals against the prior full month.',
+          newListings: { label: 'Listings added', value: '+11 vs prior month', copy: 'Fresh introductions outpaced the prior full month, which supports the broader-breadth reading.' },
+          droppedListings: { label: 'Listings removed', value: '7 vs prior month', copy: 'Listings did drop out, but not at a rate that cancels the higher inflow.' },
+          restocks: { label: 'OUT -> IN restocks', value: '15 vs prior month', copy: 'Restocks remained active, so weaker availability still looks like friction rather than paralysis.' },
+          oosFlips: { label: 'IN -> OUT stockouts', value: '+8 vs prior month', copy: 'More listings turned OUT than in the prior full month, which helps explain why stock coverage softened even as breadth improved.' },
+          basis: { label: 'Comparison basis', value: 'vs prior full month', copy: 'These are completed-month totals compared with the immediately preceding month.' },
+        },
+      },
+      'current-quarter': {
+        label: 'Current quarter',
+        scopeLabel: 'current quarter',
+        basisNote: 'Comparison basis: quarter to date vs prior quarter QTD.',
+        deltas: {
+          observed: { text: '+7 vs prior quarter QTD', kind: '' },
+          stock: { text: '-4 pts vs prior quarter QTD', kind: 'down' },
+          wishlist: { text: '+3 vs prior quarter QTD', kind: '' },
+          price: { text: '+GBP 1 vs prior quarter QTD', kind: 'flat' },
+        },
+        copy: {
+          observed: 'Breadth is ahead of the same point last quarter, so the market still looks alive on assortment even while actual stock is getting tighter.',
+          stock: '61% of tracked listings are available now. That is below the same point last quarter, which is consistent with more friction on supply than on market interest.',
+          wishlist: 'Across tracked species, median wishlist demand is ahead of the same point last quarter, reinforcing the idea that interest is improving while availability slips.',
+          price: 'Median price is only modestly firmer than the same point last quarter. Demand looks healthier, but prices are not yet signaling a broad inflation cycle.',
+        },
+        pulse: {
+          title: 'Market pulse this quarter',
+          subtitle: 'Current quarter view: a live read on market breadth, availability, and demand relative to the same point last quarter.',
+          currentLabel: 'Current quarter absolute level',
+          priorLabel: 'Prior quarter QTD absolute level',
+          compareNote: 'Compare within a row. Solid shows the current quarter; dashed shows the matched point last quarter.',
+          showPrior: true,
+          endValues: {
+            breadthCurrent: '184',
+            breadthPrior: '177',
+            stockCurrent: '61%',
+            stockPrior: '65%',
+            wishlistCurrent: '18',
+            wishlistPrior: '15',
+          },
+        },
+        events: {
+          title: 'Run-to-run market events this quarter',
+          subtitle: 'Current-quarter event totals against the same point last quarter.',
+          newListings: { label: 'Listings added', value: '+29 vs prior quarter QTD', copy: 'Introductions are materially ahead of the matched point last quarter, which supports the breadth expansion visible in the chart.' },
+          droppedListings: { label: 'Listings removed', value: '17 vs prior quarter QTD', copy: 'There is real churn, but not enough to erase the stronger inflow.' },
+          restocks: { label: 'OUT -> IN restocks', value: '43 vs prior quarter QTD', copy: 'Movement is active; stock is not simply frozen, even though the in-stock rate is weaker than last quarter.' },
+          oosFlips: { label: 'IN -> OUT stockouts', value: '+21 vs prior quarter QTD', copy: 'More listings are moving from IN to OUT than at the same point last quarter, which helps explain why availability is softer even while breadth is still expanding.' },
+          basis: { label: 'Comparison basis', value: 'vs prior quarter QTD', copy: 'Read these event totals the same way as the pulse chart: active quarter-to-date totals versus the matched point last quarter.' },
+        },
+      },
+      'last-quarter': {
+        label: 'Last quarter',
+        scopeLabel: 'last quarter',
+        basisNote: 'Comparison basis: full last quarter vs the prior full quarter.',
+        deltas: {
+          observed: { text: '+6 vs Q3 \'25', kind: '' },
+          stock: { text: '-3 pts vs Q3 \'25', kind: 'down' },
+          wishlist: { text: '+2 vs Q3 \'25', kind: '' },
+          price: { text: '+GBP 1 vs Q3 \'25', kind: 'flat' },
+        },
+        copy: {
+          observed: 'Last quarter covered more species than Q3 \'25, which suggests breadth improved on a full-period basis as well as quarter to date.',
+          stock: 'That broader reach still came with slightly weaker in-stock rates than Q3 \'25, so supply lagged behind catalog breadth.',
+          wishlist: 'Median wishlist counts were up versus Q3 \'25, but not dramatically. The market looks firmer rather than euphoric.',
+          price: 'Prices edged up a little relative to Q3 \'25, which fits a market that is tightening gradually rather than repricing sharply.',
+        },
+        pulse: {
+          title: 'Market pulse last quarter',
+          subtitle: 'Last quarter view: a completed-quarter read against the previous full quarter.',
+          currentLabel: 'Last quarter absolute level',
+          priorLabel: 'Prior full quarter absolute level',
+          compareNote: 'Compare within a row. Solid shows last quarter; dashed shows the prior full quarter.',
+          showPrior: true,
+          endValues: {
+            breadthCurrent: '181',
+            breadthPrior: '175',
+            stockCurrent: '63%',
+            stockPrior: '66%',
+            wishlistCurrent: '17',
+            wishlistPrior: '15',
+          },
+        },
+        events: {
+          title: 'Run-to-run market events last quarter',
+          subtitle: 'Last-quarter event totals against the prior full quarter.',
+          newListings: { label: 'Listings added', value: '+34 vs prior quarter', copy: 'The quarter delivered a visibly stronger inflow of new listings than the prior quarter.' },
+          droppedListings: { label: 'Listings removed', value: '19 vs prior quarter', copy: 'Churn also rose, but the balance still favors broader assortment rather than retreat.' },
+          restocks: { label: 'OUT -> IN restocks', value: '49 vs prior quarter', copy: 'Restocks stayed active, reinforcing the view that tighter supply is about reliability rather than a dead market.' },
+          oosFlips: { label: 'IN -> OUT stockouts', value: '+24 vs prior quarter', copy: 'More listings moved from IN to OUT than in the prior full quarter, reinforcing the weaker stock picture despite healthy catalog expansion.' },
+          basis: { label: 'Comparison basis', value: 'vs prior full quarter', copy: 'These are completed-quarter totals compared with the immediately preceding quarter.' },
+        },
+      },
+      'this-year': {
+        label: 'This year',
+        scopeLabel: 'this year',
+        basisNote: 'Comparison basis: year to date vs prior year YTD.',
+        deltas: {
+          observed: { text: '+15 vs prior year YTD', kind: '' },
+          stock: { text: '-5 pts vs prior year YTD', kind: 'down' },
+          wishlist: { text: '+4 vs prior year YTD', kind: '' },
+          price: { text: '+GBP 2 vs prior year YTD', kind: 'flat' },
+        },
+        copy: {
+          observed: 'Year to date, the catalog is materially broader than the same point last year. The market does not look like it is shrinking.',
+          stock: 'Availability is weaker than the same point last year, which implies breadth has expanded faster than dependable supply.',
+          wishlist: 'Median wishlist demand is ahead of the same point last year, so the market is attracting interest rather than simply carrying more low-attention listings.',
+          price: 'Prices are somewhat firmer year to date, but the move is still smaller than the availability shift. Supply pressure remains the more important signal.',
+        },
+        pulse: {
+          title: 'Market pulse this year',
+          subtitle: 'This year view: a live year-to-date read against the same point last year.',
+          currentLabel: 'This year absolute level',
+          priorLabel: 'Prior year YTD absolute level',
+          compareNote: 'Compare within a row. Solid shows this year to date; dashed shows the matched point last year.',
+          showPrior: true,
+          axisLabels: ['Jan', 'Jun', 'Dec'],
+          pointLabels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+          endValues: {
+            breadthCurrent: '184',
+            breadthPrior: '169',
+            stockCurrent: '61%',
+            stockPrior: '66%',
+            wishlistCurrent: '18',
+            wishlistPrior: '14',
+          },
+        },
+        events: {
+          title: 'Run-to-run market events this year',
+          subtitle: 'Year-to-date event totals against the same point last year.',
+          newListings: { label: 'Listings added', value: '+58 vs prior year YTD', copy: 'Introductions are running well ahead of the same point last year, which fits the broader catalog picture.' },
+          droppedListings: { label: 'Listings removed', value: '33 vs prior year YTD', copy: 'Churn is higher too, but it is still smaller than the stronger inflow.' },
+          restocks: { label: 'OUT -> IN restocks', value: '74 vs prior year YTD', copy: 'Restocks remain active across the year, so weaker availability is about persistence and reliability rather than inactivity.' },
+          oosFlips: { label: 'IN -> OUT stockouts', value: '+37 vs prior year YTD', copy: 'More listings have moved OUT than at the same point last year, reinforcing the idea that dependable supply has not kept pace with demand and breadth.' },
+          basis: { label: 'Comparison basis', value: 'vs prior year YTD', copy: 'These are year-to-date totals against the matched point last year.' },
+        },
+      },
+      'last-year': {
+        label: 'Last year',
+        scopeLabel: 'last year',
+        basisNote: 'Comparison basis: full last year vs the prior full year.',
+        deltas: {
+          observed: { text: '+11 vs 2024', kind: '' },
+          stock: { text: '-3 pts vs 2024', kind: 'down' },
+          wishlist: { text: '+3 vs 2024', kind: '' },
+          price: { text: '+GBP 1 vs 2024', kind: 'flat' },
+        },
+        copy: {
+          observed: 'Last year finished with more observed species than 2024, which supports the view that assortment has been building, not narrowing.',
+          stock: 'That broader catalog still converted into slightly worse in-stock coverage than 2024, so dependable supply did not keep pace.',
+          wishlist: 'Median wishlist demand also finished above 2024, which makes the softer availability harder to dismiss as random noise.',
+          price: 'Prices only moved a little higher than 2024, again pointing to tightening availability before any broad price repricing.',
+        },
+        pulse: {
+          title: 'Market pulse last year',
+          subtitle: 'Last year view: a completed-year read against the prior full year.',
+          currentLabel: 'Last year absolute level',
+          priorLabel: 'Prior full year absolute level',
+          compareNote: 'Compare within a row. Solid shows last year; dashed shows the prior full year.',
+          showPrior: true,
+          axisLabels: ['Jan', 'Jun', 'Dec'],
+          pointLabels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+          endValues: {
+            breadthCurrent: '180',
+            breadthPrior: '169',
+            stockCurrent: '63%',
+            stockPrior: '66%',
+            wishlistCurrent: '17',
+            wishlistPrior: '14',
+          },
+        },
+        events: {
+          title: 'Run-to-run market events last year',
+          subtitle: 'Last-year event totals against the prior full year.',
+          newListings: { label: 'Listings added', value: '+91 vs 2024', copy: 'The year closed with meaningfully more new listings than 2024, supporting the stronger breadth reading.' },
+          droppedListings: { label: 'Listings removed', value: '52 vs 2024', copy: 'Listings still churned out of scope, but not enough to offset the larger inflow.' },
+          restocks: { label: 'OUT -> IN restocks', value: '118 vs 2024', copy: 'Restocking stayed active across the year, reinforcing the view that the market remained live even while stock was harder to keep in.' },
+          oosFlips: { label: 'IN -> OUT stockouts', value: '+46 vs 2024', copy: 'More listings turned OUT across the year than in 2024, which supports the broader story of tighter supply without suggesting market collapse.' },
+          basis: { label: 'Comparison basis', value: 'vs 2024', copy: 'These are full-year totals compared against the prior full year.' },
+        },
+      },
+      'all-time': {
+        label: 'All time',
+        scopeLabel: 'all time',
+        basisNote: 'Comparison basis: structural context only, with no prior-period delta.',
+        deltas: {
+          observed: { text: 'No prior comparison', kind: 'flat' },
+          stock: { text: 'No prior comparison', kind: 'flat' },
+          wishlist: { text: 'No prior comparison', kind: 'flat' },
+          price: { text: 'No prior comparison', kind: 'flat' },
+        },
+        copy: {
+          observed: 'All-time view is best read as structural context: the catalog is broad enough to support opportunity hunting, but this lens is not about recent acceleration.',
+          stock: 'All-time availability smooths out short-term swings, so it is useful for background context rather than telling you what changed recently.',
+          wishlist: 'All-time wishlist levels show the long-run demand floor across the market, not whether interest just strengthened this month or quarter.',
+          price: 'All-time price mainly describes the market baseline. It is less useful than shorter windows when you are deciding whether recent conditions have shifted.',
+        },
+        pulse: {
+          title: 'Market pulse across all time',
+          subtitle: 'All-time view: structural context rather than a change-detection lens.',
+          currentLabel: 'All-time absolute level',
+          priorLabel: 'No prior baseline',
+          compareNote: 'All-time view has no dashed overlay. Compare within a row; each metric keeps its own vertical scale.',
+          showPrior: false,
+          axisLabels: ['Start', 'Middle', 'Now'],
+          pointLabels: ['Start', 'Early', 'Build', 'Lift', 'Expansion', 'Midpoint', 'Breadth', 'Tightening', 'Demand firming', 'Late cycle', 'Recent', 'Now'],
+          endValues: {
+            breadthCurrent: '184',
+            breadthPrior: '',
+            stockCurrent: '61%',
+            stockPrior: '',
+            wishlistCurrent: '18',
+            wishlistPrior: '',
+          },
+        },
+        events: {
+          title: 'Market events across all time',
+          subtitle: 'All-time event totals as structural context only.',
+          newListings: { label: 'Listings added', value: '286 total', copy: 'Use this as background volume, not as a directional comparison.' },
+          droppedListings: { label: 'Listings removed', value: '172 total', copy: 'All-time churn is useful for scale, but weak for saying what changed recently.' },
+          restocks: { label: 'OUT -> IN restocks', value: '391 total', copy: 'This shows how much movement exists in the market overall, not whether it is improving now.' },
+          oosFlips: { label: 'IN -> OUT stockouts', value: '214 total', copy: 'Use this as structural supply-friction context, not as a directional signal about what changed recently.' },
+          basis: { label: 'Comparison basis', value: 'structural context only', copy: 'All-time totals are not compared to a prior-period baseline.' },
+        },
+      },
+    };
     const coreGenusData = {
       Avicularia: {
         opportunity: 7.4,
@@ -2110,6 +2813,8 @@
     };
 
     let selectedGenera = [...initialSelection];
+    let selectedTimeWindow = 'current-quarter';
+    let selectedSparklineRun = null;
     let searchQuery = '';
     let compareFocusQuery = '';
     let focusGenus = null;
@@ -2131,6 +2836,146 @@
     function setDelta(node, text, kind) {
       node.className = classForDelta(kind);
       node.textContent = text;
+    }
+
+    function toggleSparklineRun(runIndex) {
+      selectedSparklineRun = selectedSparklineRun === runIndex ? null : runIndex;
+      renderMarketSparklines();
+    }
+
+    function createSvgElement(tagName, attributes = {}) {
+      const element = document.createElementNS('http://www.w3.org/2000/svg', tagName);
+      Object.entries(attributes).forEach(([name, value]) => {
+        element.setAttribute(name, value);
+      });
+      return element;
+    }
+
+    function renderMetricSparkline(metricKey, metricConfig, cardConfig, windowConfig, showPrior) {
+      const { container, readout, color, format, label } = cardConfig;
+      const currentSeries = metricConfig.current;
+      const priorSeries = metricConfig.prior || [];
+      const axisLabels = windowConfig.pulse.axisLabels || ['Run 1', 'Run 6', 'Run 12'];
+      const pointLabels = windowConfig.pulse.pointLabels || currentSeries.map((_, index) => `Run ${index + 1}`);
+      const allValues = showPrior ? [...currentSeries, ...priorSeries] : [...currentSeries];
+      const minValue = Math.min(...allValues);
+      const maxValue = Math.max(...allValues);
+      const range = Math.max(maxValue - minValue, 1);
+      const width = 268;
+      const height = 82;
+      const left = 14;
+      const right = 14;
+      const top = 10;
+      const bottom = 18;
+      const innerWidth = width - left - right;
+      const innerHeight = height - top - bottom;
+      const step = innerWidth / (currentSeries.length - 1);
+      const xFor = (index) => left + (index * step);
+      const yFor = (value) => top + ((maxValue - value) / range) * innerHeight;
+      const pointsFor = (series) => series.map((value, index) => `${xFor(index)},${yFor(value)}`).join(' ');
+      const selected = selectedSparklineRun;
+
+      const svg = createSvgElement('svg', {
+        viewBox: `0 0 ${width} ${height}`,
+        role: 'img',
+        'aria-label': showPrior
+          ? `${label} sparkline comparing the active window with the matched prior period.`
+          : `${label} sparkline showing the shape of ${windowConfig.scopeLabel} with no prior-period overlay.`,
+      });
+
+      svg.appendChild(createSvgElement('rect', { x: '0', y: '0', width: `${width}`, height: `${height}`, fill: '#fffaf2' }));
+      svg.appendChild(createSvgElement('line', { x1: `${left}`, y1: `${height - bottom}`, x2: `${width - right}`, y2: `${height - bottom}`, stroke: '#d7cfc0', 'stroke-width': '1' }));
+
+      if (selected !== null) {
+        svg.appendChild(createSvgElement('rect', {
+          x: `${xFor(selected) - (step / 2)}`,
+          y: '0',
+          width: `${step}`,
+          height: `${height - bottom}`,
+          class: 'sparkline-band',
+        }));
+      }
+
+      if (showPrior) {
+        svg.appendChild(createSvgElement('polyline', {
+          points: pointsFor(priorSeries),
+          stroke: color,
+          class: 'sparkline-line-prior',
+        }));
+      }
+
+      svg.appendChild(createSvgElement('polyline', {
+        points: pointsFor(currentSeries),
+        stroke: color,
+        class: 'sparkline-line-current',
+      }));
+
+      currentSeries.forEach((value, index) => {
+        const currentPoint = createSvgElement('circle', {
+          cx: `${xFor(index)}`,
+          cy: `${yFor(value)}`,
+          r: `${selected === index ? 4.4 : 2.7}`,
+          fill: color,
+          class: `sparkline-point-current${selected !== null && selected !== index ? ' is-subdued' : ''}`,
+        });
+        svg.appendChild(currentPoint);
+
+        if (showPrior) {
+          svg.appendChild(createSvgElement('circle', {
+            cx: `${xFor(index)}`,
+            cy: `${yFor(priorSeries[index])}`,
+            r: `${selected === index ? 3.4 : 2.2}`,
+            fill: color,
+            class: `sparkline-point-prior${selected !== null && selected !== index ? ' is-subdued' : ''}`,
+          }));
+        }
+
+        const hit = createSvgElement('rect', {
+          x: `${xFor(index) - (step / 2)}`,
+          y: '0',
+          width: `${step}`,
+          height: `${height - bottom}`,
+          class: 'sparkline-hit',
+          'data-sparkline-run': `${index}`,
+        });
+        hit.addEventListener('click', () => toggleSparklineRun(index));
+        svg.appendChild(hit);
+      });
+
+      svg.appendChild(createSvgElement('text', { x: `${left}`, y: `${height - 4}`, class: 'sparkline-run-labels' })).textContent = axisLabels[0];
+      svg.appendChild(createSvgElement('text', { x: `${xFor(5) - 10}`, y: `${height - 4}`, class: 'sparkline-run-labels' })).textContent = axisLabels[1];
+      svg.appendChild(createSvgElement('text', { x: `${xFor(11) - 22}`, y: `${height - 4}`, class: 'sparkline-run-labels' })).textContent = axisLabels[2];
+
+      container.replaceChildren(svg);
+
+      if (selected === null) {
+        readout.textContent = showPrior
+          ? `${label} shown as active window vs matched prior-period overlay.`
+          : `${label} shown as ${windowConfig.scopeLabel} context with no prior-period overlay.`;
+      } else {
+        const pointLabel = pointLabels[selected] || `Run ${selected + 1}`;
+        const currentValue = format(currentSeries[selected]);
+        const priorValue = showPrior ? format(priorSeries[selected]) : 'no matched baseline';
+        readout.textContent = showPrior
+          ? `${pointLabel}: ${currentValue} current vs ${priorValue} matched prior period.`
+          : `${pointLabel}: ${currentValue} within ${windowConfig.scopeLabel}, with no prior-period overlay.`;
+      }
+    }
+
+    function renderMarketSparklines() {
+      const windowConfig = timeWindowOptions[selectedTimeWindow];
+      const sparklineConfig = marketSparklineSeries[selectedTimeWindow];
+      const showPrior = windowConfig.pulse.showPrior;
+      marketSparklinePriorKey.hidden = !showPrior;
+      marketSparklineBasisNote.textContent = windowConfig.pulse.compareNote;
+      marketSparklineSelectionNote.textContent = selectedSparklineRun === null
+        ? 'Optional: click a run to align that moment across all four cards.'
+        : `Run ${selectedSparklineRun + 1} selected. The same moment is now highlighted across all four KPI cards.`;
+      marketSparklineClear.hidden = selectedSparklineRun === null;
+
+      Object.entries(marketSparklineCards).forEach(([metricKey, cardConfig]) => {
+        renderMetricSparkline(metricKey, sparklineConfig[metricKey], cardConfig, windowConfig, showPrior);
+      });
     }
 
     function normalizeSelection(values) {
@@ -2316,14 +3161,51 @@
       }
 
       globalScopeLabel.textContent = selectedGenera.length
-        ? `Current market scope: ${selectedGenera.length} genera • current quarter`
-        : 'Current market scope: no genera • current quarter';
+        ? `Current market scope: ${selectedGenera.length} genera • ${timeWindowOptions[selectedTimeWindow].scopeLabel}`
+        : `Current market scope: no genera • ${timeWindowOptions[selectedTimeWindow].scopeLabel}`;
       selectorCountLabel.textContent = `${selectedGenera.length} selected • ${allGenera.length} available`;
       collapsedSelectorNote.textContent = !selectedGenera.length
         ? 'Expand to search the market and add genera back into scope.'
         : selectedGenera.length > editableComparisonLimit
         ? 'Scope is broad. Comparison controls will treat peers as one implicit benchmark until you narrow the genus set.'
         : 'Expand to search all genera, adjust the selection, or use lifestyle shortcuts.';
+    }
+
+    function updateMarketHealthDeltas() {
+      const windowConfig = timeWindowOptions[selectedTimeWindow];
+      const { deltas, copy, events } = windowConfig;
+      setDelta(marketObservedDelta, deltas.observed.text, deltas.observed.kind);
+      setDelta(marketStockDelta, deltas.stock.text, deltas.stock.kind);
+      setDelta(marketWishlistDelta, deltas.wishlist.text, deltas.wishlist.kind);
+      setDelta(marketPriceDelta, deltas.price.text, deltas.price.kind);
+      marketObservedCopy.textContent = copy.observed;
+      marketStockCopy.textContent = copy.stock;
+      marketWishlistCopy.textContent = copy.wishlist;
+      marketPriceCopy.textContent = copy.price;
+      renderMarketSparklines();
+      marketEventsTitle.textContent = events.title;
+      marketEventsSubtitle.textContent = events.subtitle;
+      marketEventsNewLabel.textContent = events.newListings.label;
+      marketEventsNewValue.textContent = events.newListings.value;
+      marketEventsNewCopy.textContent = events.newListings.copy;
+      marketEventsDroppedLabel.textContent = events.droppedListings.label;
+      marketEventsDroppedValue.textContent = events.droppedListings.value;
+      marketEventsDroppedCopy.textContent = events.droppedListings.copy;
+      marketEventsRestocksLabel.textContent = events.restocks.label;
+      marketEventsRestocksValue.textContent = events.restocks.value;
+      marketEventsRestocksCopy.textContent = events.restocks.copy;
+      marketEventsOosLabel.textContent = events.oosFlips.label;
+      marketEventsOosValue.textContent = events.oosFlips.value;
+      marketEventsOosCopy.textContent = events.oosFlips.copy;
+    }
+
+    function renderTimeWindow() {
+      windowButtons.forEach((button) => {
+        button.classList.toggle('active', button.dataset.window === selectedTimeWindow);
+        button.setAttribute('aria-pressed', button.dataset.window === selectedTimeWindow ? 'true' : 'false');
+      });
+      timeWindowBasisNote.textContent = timeWindowOptions[selectedTimeWindow].basisNote;
+      updateMarketHealthDeltas();
     }
 
     function renderSuggestions() {
@@ -2404,10 +3286,26 @@
 
     function updateSectionFraming() {
       if (!focusGenus) {
-        breederSectionCopy.textContent = 'These visuals privilege the commercial breeder thesis: demand matters, but recurring constrained supply matters more.';
-        breederSectionNote.textContent = 'This section should not output a magic score. It should expose the ingredients so you can see why a genus looks compelling.';
-        biasSectionCopy.textContent = 'This section is meant to make your preference visible and keep the UI from quietly validating it.';
-        biasSectionNote.textContent = 'The point is not to eliminate preference. It is to show the trade-off you are accepting when preference and commercial data diverge.';
+        breederFocusName.textContent = 'Focus genus';
+        peerAverageFocusName.textContent = 'Focus genus';
+        marketBaselineFocusName.textContent = 'Focus genus';
+        breederChartNote.textContent = 'The focus genus can have a credible breeder case without being the strongest purely commercial candidate in the comparison set.';
+        biasQuestionFocus.textContent = '';
+        biasQuestionFocus.hidden = true;
+        biasQuestionFallback.hidden = false;
+        biasRankFocusName.textContent = 'Focus genus';
+        biasGapLabel.textContent = 'vs benchmark';
+        biasPremiumCopy.textContent = 'The focus genus may still look close enough to the top to remain a commercially defensible choice.';
+        biasSvgFocusNone.textContent = 'Focus genus';
+        biasSvgFocusPeer.textContent = 'Focus genus';
+        biasSvgFocusMarket.textContent = 'Focus genus';
+        biasChartNote.textContent = 'The focus genus can win on some ingredients and still trail the strongest benchmark overall. That is a trade-off, not a contradiction.';
+        decisionProfitCopy.textContent = 'The active benchmark currently looks stronger.';
+        decisionDefensibleCopy.textContent = 'The focus genus may still remain defendable if it stays near the top, not near the bottom.';
+        breederSectionCopy.textContent = 'These metrics focus on the commercial signals that matter most for sell-through: demand and recurring supply constraints.';
+        breederSectionNote.textContent = 'Use the score as a summary, but keep the ingredient metrics visible so the commercial case stays explainable.';
+        biasSectionCopy.textContent = 'This section shows whether your preferred genus still holds up once it is compared against the evidence.';
+        biasSectionNote.textContent = 'This section makes the trade-off explicit when personal preference and commercial evidence diverge.';
         return;
       }
 
@@ -2415,7 +3313,7 @@
         breederSectionCopy.textContent = `${focusGenus} is now being read against the broader market, not against a hand-built peer set. This keeps the question simple: does it still look commercially strong once the whole market is the benchmark?`;
         breederSectionNote.textContent = 'Because the global genus scope is broad, this section becomes a market-relative read. The ingredient cards still explain why the focus genus looks strong or weak, but peer curation is not part of the interaction.';
         biasSectionCopy.textContent = `This section now tests whether your preference for ${focusGenus} still holds up against the wider market rather than against a manually chosen peer group.`;
-        biasSectionNote.textContent = 'In broad scope, the bias check becomes stricter: you are not asking whether your favourite genus beats the peers you picked, but whether it still stands up when the market is the benchmark.';
+        biasSectionNote.textContent = 'This section shows whether your preference still holds up when the market, not a hand-picked peer set, becomes the benchmark.';
         return;
       }
 
@@ -2423,7 +3321,7 @@
         breederSectionCopy.textContent = `${focusGenus} is currently being read against the market baseline. This answers a broader question than peer editing: does it still look attractive once the whole market becomes the benchmark?`;
         breederSectionNote.textContent = 'The ingredient cards still matter, but the benchmark has changed. Read this view as a market-relative stress test rather than as a peer showdown.';
         biasSectionCopy.textContent = `This section tests whether your preference for ${focusGenus} still looks commercially defendable when the benchmark is the broader market.`;
-        biasSectionNote.textContent = 'The point is not to eliminate preference. It is to show whether that preference still survives a market-level comparison rather than a peer-level one.';
+        biasSectionNote.textContent = 'This section shows whether your preference still holds up when the broader market, not a peer set, becomes the benchmark.';
         return;
       }
 
@@ -2431,14 +3329,14 @@
         breederSectionCopy.textContent = `${focusGenus} is being read against a collapsed peer-average benchmark. This reduces noise from one standout competitor and asks whether the focus genus beats the peer set overall.`;
         breederSectionNote.textContent = 'This section still exposes the ingredients. The benchmark is just more compact now: one peer-average line instead of several separate peer comparisons.';
         biasSectionCopy.textContent = `This section now asks whether your preference for ${focusGenus} still holds up against the peer set overall, not just against one favourite rival.`;
-        biasSectionNote.textContent = 'The trade-off is easier to read here because the peer set is collapsed into one average benchmark. Preference has less room to hide behind one convenient comparison.';
+        biasSectionNote.textContent = 'This section makes the trade-off easier to read by comparing your preference against the peer set overall, not one convenient rival.';
         return;
       }
 
-      breederSectionCopy.textContent = `${focusGenus} is being read against the selected peer set. These visuals still privilege the commercial breeder thesis: demand matters, but recurring constrained supply matters more.`;
-      breederSectionNote.textContent = 'This section should not output a magic score. It should expose the ingredients so you can see why the focus genus beats some peers and trails others.';
-      biasSectionCopy.textContent = `This section makes your preference for ${focusGenus} visible against the peer set you currently have in scope, instead of quietly validating it.`;
-      biasSectionNote.textContent = 'The point is not to eliminate preference. It is to show the trade-off you are accepting when your chosen genus is compared directly against the peers you kept in scope.';
+      breederSectionCopy.textContent = `${focusGenus} is being compared against the selected peer set on the commercial signals that matter most: demand and recurring supply constraints.`;
+      breederSectionNote.textContent = 'Use the score as a summary, but keep the ingredient metrics visible so you can see why the focus genus beats some peers and trails others.';
+      biasSectionCopy.textContent = `This section compares your preference for ${focusGenus} against the peer set you kept in scope, so the trade-off stays visible.`;
+      biasSectionNote.textContent = 'This section makes the trade-off explicit when your chosen genus is compared directly with the peers you kept in scope.';
     }
 
     function renderFocusOptions() {
@@ -2698,6 +3596,8 @@
       const peers = effectivePeerSet();
 
       biasQuestionFocus.textContent = focusGenus;
+      biasQuestionFocus.hidden = false;
+      biasQuestionFallback.hidden = true;
       biasRankFocusName.textContent = focusGenus;
       biasStabilityValue.textContent = focusData.stability;
       biasStabilityLabel.textContent = focusData.stabilityLabel;
@@ -2824,10 +3724,10 @@
           : `Composite breeder-opportunity score. Higher means stronger demand relative to supply. With no comparison mode selected, the section reads ${focusGenus} against each selected peer individually.`;
         breederChartTitle.textContent = 'Opportunity score by genus';
         breederChartNote.textContent = !peers.length
-          ? `This mocked chart cannot compare ${focusGenus} yet because there is no peer benchmark in scope.`
+          ? `${focusGenus} cannot be compared yet because there is no peer benchmark in scope.`
           : leader && leader !== focusGenus
-          ? `This mocked chart is saying ${focusGenus} has a credible breeder case, but ${leader} is still the strongest purely commercial candidate in the comparison set.`
-          : `This mocked chart is saying ${focusGenus} currently looks strongest in the selected comparison set.`;
+          ? `${focusGenus} has a credible breeder case, but ${leader} is still the strongest purely commercial candidate in the comparison set.`
+          : `${focusGenus} currently looks strongest in the selected comparison set.`;
       } else if (currentMode === 'peer-average') {
         const diff = focusScore - peerAverage;
         breederTurnoverDelta.textContent = `${diff >= 0 ? '+' : ''}${scoreText(diff)} vs peer average`;
@@ -2880,6 +3780,7 @@
     }
 
     function renderAll() {
+      renderTimeWindow();
       renderSelectedGenera();
       renderSuggestions();
       renderQuickPicks();
@@ -2906,6 +3807,18 @@
         syncStateAfterSelectionChange();
         renderAll();
       });
+    });
+
+    windowButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        selectedTimeWindow = button.dataset.window;
+        renderAll();
+      });
+    });
+
+    marketSparklineClear.addEventListener('click', () => {
+      selectedSparklineRun = null;
+      renderMarketSparklines();
     });
 
     syncStateAfterSelectionChange();
