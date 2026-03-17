@@ -1,0 +1,2915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>History Page KPI Concepts Mockup</title>
+  <style>
+    :root {
+      --bg: #f3efe7;
+      --surface: #fffaf2;
+      --panel: #fffdf8;
+      --ink: #1f2a2c;
+      --muted: #5d6a6d;
+      --line: #d7cfc0;
+      --accent: #1f7a6b;
+      --accent-2: #cc6b49;
+      --accent-3: #a18b35;
+      --good: #1f7a6b;
+      --warn: #c9861a;
+      --risk: #b24c3d;
+      --shadow: 0 20px 40px rgba(65, 54, 33, 0.08);
+      --radius: 20px;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --sans: "Avenir Next", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(204, 107, 73, 0.15), transparent 28%),
+        radial-gradient(circle at right 20%, rgba(31, 122, 107, 0.16), transparent 24%),
+        linear-gradient(180deg, #f7f2e8 0%, var(--bg) 100%);
+      color: var(--ink);
+      font-family: var(--sans);
+      line-height: 1.45;
+    }
+
+    .shell {
+      max-width: 1380px;
+      margin: 0 auto;
+      padding: 32px 24px 56px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.35fr 0.9fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .hero-panel,
+    .filters-panel,
+    .section,
+    .legend,
+    .table-panel {
+      background: rgba(255, 253, 248, 0.92);
+      border: 1px solid rgba(215, 207, 192, 0.95);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .hero-panel {
+      padding: 28px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-panel::after {
+      content: "";
+      position: absolute;
+      inset: auto -80px -80px auto;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(31, 122, 107, 0.18), transparent 68%);
+    }
+
+    .eyebrow {
+      display: inline-block;
+      margin-bottom: 14px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(31, 122, 107, 0.1);
+      color: var(--accent);
+      font-size: 0.82rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 4vw, 3.6rem);
+      line-height: 0.98;
+      max-width: 12ch;
+      margin-bottom: 14px;
+    }
+
+    .hero-copy {
+      max-width: 66ch;
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+
+    .hero-bullets {
+      display: grid;
+      gap: 8px;
+      color: var(--ink);
+      font-size: 0.98rem;
+    }
+
+    .hero-bullets span {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hero-bullets strong {
+      min-width: 140px;
+    }
+
+    .filters-panel {
+      padding: 24px;
+      display: grid;
+      gap: 18px;
+      align-content: start;
+    }
+
+    .filters-panel h2 {
+      font-size: 1.2rem;
+      margin-bottom: 4px;
+    }
+
+    .filter-group {
+      display: grid;
+      gap: 10px;
+    }
+
+    .filter-group label {
+      color: var(--muted);
+      font-size: 0.86rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+    }
+
+    .search-shell {
+      display: grid;
+      gap: 10px;
+    }
+
+    .selector-shell {
+      display: grid;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .selector-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .selector-title {
+      display: grid;
+      gap: 6px;
+    }
+
+    .selector-meta {
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .selector-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font-size: 0.86rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .selector-details {
+      display: grid;
+      gap: 12px;
+    }
+
+    .selector-details summary {
+      list-style: none;
+    }
+
+    .selector-details summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .selector-details[open] .selector-toggle::after {
+      content: "Hide genus selector";
+    }
+
+    .selector-details:not([open]) .selector-toggle::after {
+      content: "Show genus selector";
+    }
+
+    .selector-details[open] .selector-toggle .toggle-icon {
+      transform: rotate(90deg);
+    }
+
+    .toggle-icon {
+      display: inline-block;
+      transition: transform 0.2s ease;
+    }
+
+    .collapsed-shell {
+      display: grid;
+      gap: 10px;
+    }
+
+    .collapsed-note {
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+    }
+
+    .search-icon {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .search-input {
+      flex: 1;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--ink);
+      font: inherit;
+    }
+
+    .suggestion-list,
+    .expanded-preview {
+      display: grid;
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.84);
+    }
+
+    .expanded-preview {
+      background: rgba(247, 242, 232, 0.72);
+    }
+
+    .expanded-preview strong {
+      font-size: 0.9rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .suggestion-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(247, 242, 232, 0.7);
+      font-size: 0.92rem;
+    }
+
+    button.suggestion-row {
+      width: 100%;
+      border: 1px solid transparent;
+      color: inherit;
+      font-family: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    button.suggestion-row:hover {
+      border-color: rgba(31, 122, 107, 0.22);
+      background: rgba(31, 122, 107, 0.08);
+    }
+
+    .suggestion-row strong {
+      font-size: 0.94rem;
+      font-weight: 700;
+    }
+
+    .suggestion-meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .suggestion-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(31, 122, 107, 0.12);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 0.76rem;
+    }
+
+    .suggestion-status.selected {
+      background: rgba(204, 107, 73, 0.14);
+      color: var(--accent-2);
+    }
+
+    .chips,
+    .window-row,
+    .compare-row,
+    .quick-pick-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip,
+    .window,
+    .compare-pill {
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font-size: 0.92rem;
+      font-family: inherit;
+    }
+
+    button.chip,
+    button.quick-pick {
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    button.compare-pill {
+      cursor: pointer;
+    }
+
+    button.compare-pill:disabled {
+      cursor: not-allowed;
+    }
+
+    .chip.active,
+    .window.active,
+    .compare-pill.active {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: #fff;
+    }
+
+    .chip.selected {
+      background: rgba(204, 107, 73, 0.14);
+      border-color: rgba(204, 107, 73, 0.28);
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .chip .dismiss {
+      margin-left: 6px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .quick-pick {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px dashed rgba(31, 42, 44, 0.18);
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--ink);
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+
+    .quick-pick.active {
+      border-style: solid;
+      border-color: rgba(31, 122, 107, 0.24);
+      background: rgba(31, 122, 107, 0.12);
+      color: var(--accent);
+    }
+
+    .selector-empty {
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px dashed rgba(31, 42, 44, 0.16);
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.72);
+      font-size: 0.9rem;
+    }
+
+    .compare-pill.focus {
+      background: rgba(204, 107, 73, 0.14);
+      border-color: rgba(204, 107, 73, 0.35);
+    }
+
+    .compare-pill.active.focus {
+      background: var(--accent-2);
+      border-color: var(--accent-2);
+      color: #fff;
+    }
+
+    .compare-pill.empty {
+      border-style: dashed;
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--muted);
+    }
+
+    .compare-pill.context-muted {
+      background: rgba(255, 255, 255, 0.62);
+      border-color: rgba(31, 42, 44, 0.12);
+      color: var(--muted);
+      opacity: 0.72;
+    }
+
+    .compare-pill.disabled-control {
+      background: rgba(255, 255, 255, 0.62);
+      border-color: rgba(31, 42, 44, 0.12);
+      color: var(--muted);
+      opacity: 0.62;
+    }
+
+    .compare-pill.inactive-context {
+      background: rgba(247, 242, 232, 0.5);
+      border-color: rgba(31, 42, 44, 0.14);
+      border-style: dashed;
+      color: var(--muted);
+      opacity: 0.52;
+    }
+
+    .filter-note {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .micro-note {
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .comparison-panel {
+      background: rgba(255, 248, 236, 0.94);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px 16px;
+      margin-bottom: 18px;
+    }
+
+    .transition-panel {
+      margin: 0 0 18px;
+      padding: 18px 20px;
+      border-radius: 18px;
+      border: 1px solid rgba(31, 122, 107, 0.16);
+      background: linear-gradient(180deg, rgba(31, 122, 107, 0.08), rgba(255, 253, 248, 0.92));
+      display: grid;
+      gap: 10px;
+    }
+
+    .transition-panel strong {
+      font-size: 1rem;
+    }
+
+    .transition-panel p {
+      color: var(--muted);
+    }
+
+    .transition-cue {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(31, 122, 107, 0.12);
+      color: var(--accent);
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+
+    .scope-summary,
+    .scope-inline {
+      display: grid;
+      gap: 8px;
+    }
+
+    .scope-inline {
+      margin-top: 2px;
+    }
+
+    .scope-label {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(31, 122, 107, 0.12);
+      color: var(--accent);
+      font-size: 0.86rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .scope-summary strong,
+    .comparison-panel strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 0.95rem;
+    }
+
+    .scope-summary p,
+    .comparison-panel p {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .comparison-panel {
+      display: grid;
+      gap: 12px;
+    }
+
+    .compare-role-block {
+      display: grid;
+      gap: 8px;
+    }
+
+    .compare-focus-picker {
+      display: grid;
+      gap: 10px;
+      padding: 10px;
+      border: 1px solid rgba(31, 42, 44, 0.12);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .compare-state-card {
+      display: grid;
+      gap: 8px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(31, 42, 44, 0.12);
+      background: rgba(255, 255, 255, 0.78);
+    }
+
+    .compare-state-badge {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: rgba(31, 122, 107, 0.12);
+      color: var(--accent);
+    }
+
+    .compare-state-badge.broad {
+      background: rgba(204, 107, 73, 0.14);
+      color: var(--accent-2);
+    }
+
+    .compare-state-copy {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .compare-subhead {
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .compare-help {
+      min-height: 1.45em;
+      transition: opacity 0.22s ease;
+    }
+
+    .section-stage {
+      display: grid;
+      gap: 18px;
+    }
+
+    .section-placeholder,
+    .section-live {
+      overflow: hidden;
+      transform-origin: top;
+      transition: max-height 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.28s ease, transform 0.45s ease;
+    }
+
+    .section-placeholder {
+      max-height: 260px;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .section-live {
+      max-height: 0;
+      opacity: 0;
+      transform: translateY(18px);
+      pointer-events: none;
+    }
+
+    .section.is-ready .section-placeholder {
+      max-height: 0;
+      opacity: 0;
+      transform: translateY(-10px);
+      pointer-events: none;
+    }
+
+    .section.is-ready .section-live {
+      max-height: 2200px;
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .empty-state {
+      padding: 22px;
+      border-radius: 18px;
+      border: 1px dashed rgba(31, 42, 44, 0.18);
+      background: rgba(255, 255, 255, 0.72);
+      display: grid;
+      gap: 10px;
+    }
+
+    .empty-state strong {
+      font-size: 1rem;
+    }
+
+    .empty-state p {
+      color: var(--muted);
+      max-width: 64ch;
+    }
+
+    .empty-state-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    .empty-chip {
+      padding: 8px 11px;
+      border-radius: 999px;
+      background: rgba(31, 122, 107, 0.08);
+      border: 1px solid rgba(31, 122, 107, 0.15);
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    .comparison-panel-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .compare-help {
+      color: var(--muted);
+      font-size: 0.84rem;
+      margin-top: 8px;
+    }
+
+    .compare-view[hidden] {
+      display: none !important;
+    }
+
+    .section {
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .section-title {
+      display: grid;
+      gap: 6px;
+    }
+
+    .section-title h2 {
+      font-size: 1.45rem;
+    }
+
+    .section-title p,
+    .section-note,
+    .metric-text,
+    .visual-note,
+    .table-copy {
+      color: var(--muted);
+    }
+
+    .section-note {
+      max-width: 42ch;
+      font-size: 0.95rem;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .kpi-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(247,242,232,0.92));
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      min-height: 140px;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .kpi-card h3 {
+      font-size: 0.92rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+
+    .metric-title-row {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .metric-info {
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .metric-info summary,
+    .metric-method summary {
+      list-style: none;
+    }
+
+    .metric-info summary::-webkit-details-marker,
+    .metric-method summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .metric-info-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      border: 1px solid rgba(31, 42, 44, 0.16);
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 800;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .metric-info[open] .metric-info-button {
+      border-color: rgba(31, 122, 107, 0.24);
+      color: var(--accent);
+      background: rgba(31, 122, 107, 0.08);
+    }
+
+    .metric-popover {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: min(280px, 70vw);
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255, 253, 248, 0.98);
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 6px;
+      z-index: 10;
+    }
+
+    .metric-popover strong {
+      font-size: 0.88rem;
+    }
+
+    .metric-popover p,
+    .metric-method-body p,
+    .metric-method-body li {
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.45;
+    }
+
+    .metric-method {
+      border-top: 1px dashed rgba(31, 42, 44, 0.12);
+      padding-top: 8px;
+    }
+
+    .metric-method summary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--accent);
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .metric-method summary::before {
+      content: '+';
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    .metric-method[open] summary::before {
+      content: '-';
+    }
+
+    .metric-method-body {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .metric-method-body ol {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .metric-value {
+      font-size: 2rem;
+      font-weight: 750;
+      letter-spacing: -0.03em;
+    }
+
+    .metric-delta {
+      display: inline-flex;
+      width: fit-content;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      background: rgba(31, 122, 107, 0.12);
+      color: var(--good);
+    }
+
+    .metric-delta-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .metric-delta.down {
+      background: rgba(178, 76, 61, 0.12);
+      color: var(--risk);
+    }
+
+    .metric-delta.flat {
+      background: rgba(161, 139, 53, 0.14);
+      color: #7b6821;
+    }
+
+    .visual-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .visual-card {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 16px;
+      background: var(--panel);
+      display: grid;
+      gap: 10px;
+    }
+
+    .visual-card h3 {
+      font-size: 1rem;
+    }
+
+    .visual-card svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .mini-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      background: rgba(255,255,255,0.76);
+      display: grid;
+      gap: 6px;
+    }
+
+    .mini-card.note-card {
+      background: rgba(255, 255, 255, 0.5);
+      border-style: dashed;
+      border-color: rgba(31, 42, 44, 0.14);
+    }
+
+    .mini-card.note-card strong,
+    .mini-card.note-card span,
+    .mini-card.note-card .visual-note {
+      color: var(--muted);
+    }
+
+    .decision-note {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed rgba(31, 42, 44, 0.12);
+    }
+
+    .decision-note summary {
+      list-style: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+      opacity: 0.8;
+    }
+
+    .decision-note summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .decision-note summary::before {
+      content: '+';
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    .decision-note[open] summary::before {
+      content: '-';
+    }
+
+    .decision-note-body {
+      margin-top: 10px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px dashed rgba(31, 42, 44, 0.12);
+      background: rgba(255, 255, 255, 0.34);
+      display: grid;
+      gap: 6px;
+    }
+
+    .decision-note-body strong,
+    .decision-note-body p {
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .decision-note-body strong {
+      font-size: 0.92rem;
+    }
+
+    .mini-card strong {
+      font-size: 1.35rem;
+    }
+
+    .bar-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 170px 1fr 56px;
+      gap: 12px;
+      align-items: center;
+      font-size: 0.94rem;
+    }
+
+    .bar-track {
+      height: 14px;
+      border-radius: 999px;
+      background: #efe7d9;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), #5aa898);
+    }
+
+    .bar-fill.alt {
+      background: linear-gradient(90deg, var(--accent-2), #df8e72);
+    }
+
+    .bar-fill.warn {
+      background: linear-gradient(90deg, var(--accent-3), #d2bd59);
+    }
+
+    .rank-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.94rem;
+    }
+
+    .rank-table th,
+    .rank-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+    }
+
+    .rank-table th {
+      color: var(--muted);
+      font-size: 0.82rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .rank-table tr.highlight {
+      background: rgba(204, 107, 73, 0.08);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      background: rgba(31, 122, 107, 0.1);
+      color: var(--good);
+    }
+
+    .badge.warn {
+      background: rgba(201, 134, 26, 0.12);
+      color: var(--warn);
+    }
+
+    .badge.risk {
+      background: rgba(178, 76, 61, 0.12);
+      color: var(--risk);
+    }
+
+    .legend {
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .legend h2 {
+      font-size: 1.1rem;
+    }
+
+    .legend-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .legend-item {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      flex: none;
+    }
+
+    .table-panel {
+      padding: 22px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .table-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .download {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: var(--ink);
+      color: #fff;
+      font-size: 0.92rem;
+      text-decoration: none;
+    }
+
+    .sample-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.93rem;
+    }
+
+    .sample-table th,
+    .sample-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+    }
+
+    .sample-table th {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.8rem;
+    }
+
+    .footnote {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .mono {
+      font-family: var(--mono);
+    }
+
+    @media (max-width: 1100px) {
+      .hero,
+      .visual-grid,
+      .legend-grid,
+      .kpi-grid,
+      .mini-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .shell {
+        padding: 18px 14px 40px;
+      }
+
+      .hero-panel,
+      .filters-panel,
+      .section,
+      .legend,
+      .table-panel {
+        padding: 18px;
+      }
+
+      .bar-row {
+        grid-template-columns: 1fr;
+      }
+
+      .table-top,
+      .section-header,
+      .comparison-panel-header {
+        align-items: start;
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div class="hero-panel">
+        <div class="eyebrow">History Page Concept</div>
+        <h1>Three ways to assess the market before backing a genus.</h1>
+        <p class="hero-copy">
+          This mock treats the history page as a decision surface, not a reporting surface. First you check whether the wider market looks healthy, then you compare a genus against peers or the market, and finally you test whether your preference still holds up.
+        </p>
+        <div class="hero-bullets">
+          <span><strong>Step 1</strong> Read the broader market first.</span>
+          <span><strong>Step 2</strong> Then compare a focus genus against peers or the market.</span>
+          <span><strong>Step 3</strong> Finally check whether preference is still defensible.</span>
+        </div>
+      </div>
+
+      <aside class="filters-panel">
+        <div>
+          <h2>Global filters</h2>
+          <p class="filter-note">Use these filters to define the base market slice for the whole page. Later comparison controls add genus-specific analysis for sections 2 and 3.</p>
+        </div>
+
+        <div class="scope-inline">
+          <span class="scope-label" id="global-scope-label">Current market scope: 4 genera • current quarter</span>
+          <p class="filter-note">All KPIs, charts, preview rows, and CSV export reflect this scope.</p>
+        </div>
+
+        <div class="filter-group">
+          <label>Genus multi-select</label>
+          <div class="selector-shell">
+            <details class="selector-details">
+              <summary class="selector-header">
+                <div class="selector-title">
+                  <span class="scope-label" id="selector-count-label">4 selected • 68 available</span>
+                  <span class="selector-meta">Selected genera stay visible here so you can see the current market slice at a glance.</span>
+                </div>
+                <span class="selector-toggle"><span class="toggle-icon">▶</span></span>
+              </summary>
+
+              <div class="collapsed-shell">
+                <div class="chips" id="selected-genera-chips"></div>
+                <p class="collapsed-note" id="collapsed-selector-note">Expand to search all genera, adjust the selection, or use lifestyle shortcuts.</p>
+              </div>
+
+              <div class="expanded-preview">
+                <strong>Selector contents</strong>
+                <div class="search-shell">
+                  <div class="search-box">
+                    <span class="search-icon">Search</span>
+                    <input class="search-input" id="genus-search-input" type="text" value="" aria-label="Search genus" />
+                  </div>
+                  <div class="suggestion-list" id="genus-suggestion-list"></div>
+                </div>
+                <div class="quick-pick-row">
+                  <button type="button" class="quick-pick" data-selection-action="most-observed">Most observed</button>
+                  <button type="button" class="quick-pick" data-selection-action="arboreal">Arboreal</button>
+                  <button type="button" class="quick-pick" data-selection-action="terrestrial">Terrestrial</button>
+                  <button type="button" class="quick-pick" data-selection-action="fossorial">Fossorial</button>
+                  <button type="button" class="quick-pick" data-selection-action="selected-only">Selected only</button>
+                  <button type="button" class="quick-pick" data-selection-action="clear-all">Clear all</button>
+                </div>
+              </div>
+            </details>
+          </div>
+          <p class="micro-note">With dozens of genus labels, this control should stay searchable, support normalized labels, and offer shortcut groups such as lifestyle.</p>
+        </div>
+
+        <div class="filter-group">
+          <label>Time window</label>
+          <div class="window-row">
+            <span class="window">This month</span>
+            <span class="window">Last month</span>
+            <span class="window active">Current quarter</span>
+            <span class="window">Last quarter</span>
+            <span class="window">This year</span>
+            <span class="window">Last year</span>
+            <span class="window">All time</span>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label>Business lens</label>
+          <p class="filter-note">A later version could allow weighting demand, scarcity, and operational practicality without hiding the raw component metrics.</p>
+        </div>
+      </aside>
+    </section>
+
+    <section class="legend">
+      <h2>How to read this mock</h2>
+      <div class="legend-grid">
+        <div class="legend-item"><span class="swatch" style="background:#1f7a6b"></span> Healthy / favourable commercial signal</div>
+        <div class="legend-item"><span class="swatch" style="background:#cc6b49"></span> Focus-genus emphasis or comparison benchmark</div>
+        <div class="legend-item"><span class="swatch" style="background:#a18b35"></span> Caution or mixed interpretation</div>
+        <div class="legend-item"><span class="swatch" style="background:#b24c3d"></span> Potential risk or weak breeder case</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <div class="section-title">
+          <div class="eyebrow">1. Market Health KPIs</div>
+          <h2>Is the hobby growing, becoming harder to source, or leveling off?</h2>
+          <p>These visuals ignore your genus preference and ask whether the wider market looks alive enough to justify breeding investment.</p>
+        </div>
+        <p class="section-note">If the market looks flat overall, even a visually attractive genus comparison should be treated cautiously.</p>
+      </div>
+
+      <div class="kpi-grid">
+        <article class="kpi-card">
+          <h3>Observed species</h3>
+          <div class="metric-value">184</div>
+          <div class="metric-delta-stack">
+            <span class="metric-delta">+12 this quarter</span>
+            <span class="metric-delta">+21 this year</span>
+          </div>
+          <p class="metric-text">Broad catalog breadth is slightly expanding rather than contracting.</p>
+        </article>
+        <article class="kpi-card">
+          <h3>Listings in stock</h3>
+          <div class="metric-value">61%</div>
+          <span class="metric-delta down">-7 pts vs last quarter</span>
+          <p class="metric-text">61% of tracked listings are available now. That is 7 percentage points lower than last quarter, so availability is slipping even while the catalog remains broad.</p>
+        </article>
+        <article class="kpi-card">
+          <h3>Median wishlist</h3>
+          <div class="metric-value">18</div>
+          <span class="metric-delta">+4 vs last quarter</span>
+          <p class="metric-text">Across tracked species, the median wishlist count is 18. That is modestly higher than last quarter and less sensitive to week-to-week stock swings.</p>
+        </article>
+        <article class="kpi-card">
+          <h3>Median price</h3>
+          <div class="metric-value">GBP 24</div>
+          <span class="metric-delta flat">Stable</span>
+          <p class="metric-text">Price is steady, so the main movement appears to be availability rather than inflation.</p>
+        </article>
+      </div>
+
+      <div class="visual-grid">
+        <article class="visual-card">
+          <h3>Market pulse over time</h3>
+          <svg viewBox="0 0 700 270" role="img" aria-label="Market pulse chart">
+            <rect x="0" y="0" width="700" height="270" fill="#fffaf2" />
+            <g stroke="#d7cfc0" stroke-width="1">
+              <line x1="56" y1="220" x2="670" y2="220" />
+              <line x1="56" y1="50" x2="56" y2="220" />
+              <line x1="56" y1="180" x2="670" y2="180" />
+              <line x1="56" y1="140" x2="670" y2="140" />
+              <line x1="56" y1="100" x2="670" y2="100" />
+            </g>
+            <polyline fill="none" stroke="#1f7a6b" stroke-width="4" points="56,132 112,126 168,120 224,122 280,118 336,108 392,102 448,96 504,100 560,92 616,86 670,82" />
+            <polyline fill="none" stroke="#cc6b49" stroke-width="4" points="56,86 112,92 168,94 224,104 280,110 336,112 392,120 448,128 504,130 560,138 616,144 670,150" />
+            <polyline fill="none" stroke="#a18b35" stroke-width="4" points="56,176 112,172 168,168 224,166 280,160 336,156 392,150 448,146 504,142 560,136 616,132 670,126" />
+            <g fill="#5d6a6d" font-size="12" font-family="Avenir Next, Segoe UI, sans-serif">
+              <text x="56" y="242">Run 1</text>
+              <text x="282" y="242">Run 6</text>
+              <text x="646" y="242">Run 12</text>
+              <text x="20" y="55">High</text>
+              <text x="23" y="223">Low</text>
+            </g>
+            <g font-size="12" font-family="Avenir Next, Segoe UI, sans-serif">
+              <text x="484" y="82" fill="#1f7a6b">catalog breadth</text>
+              <text x="498" y="165" fill="#cc6b49">in-stock rate</text>
+              <text x="530" y="118" fill="#a18b35">wishlist pressure</text>
+            </g>
+          </svg>
+          <p class="visual-note">The intended reading here is: more species are being observed, wishlist pressure is up, but in-stock rate is slipping. That suggests a market that is not shrinking, but is becoming tighter.</p>
+        </article>
+
+        <article class="visual-card">
+          <h3>Run-to-run market events</h3>
+          <div class="mini-grid">
+            <div class="mini-card">
+              <span>New listings</span>
+              <strong>+29</strong>
+              <p class="visual-note">Fresh introductions across the window.</p>
+            </div>
+            <div class="mini-card">
+              <span>Dropped listings</span>
+              <strong>17</strong>
+              <p class="visual-note">Some churn, but not enough to imply market retreat.</p>
+            </div>
+            <div class="mini-card">
+              <span>Restocks observed</span>
+              <strong>43</strong>
+              <p class="visual-note">Movement is active; stock is not simply frozen.</p>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="transition-panel">
+      <span class="transition-cue">Ready to test a genus?</span>
+      <strong>Use the comparison controls below to move from market context into genus-specific analysis.</strong>
+      <p>Market Health above stays global. The next section is where you choose a focus genus, define a peer set, and compare it against peers or the broader market.</p>
+    </section>
+
+    <section class="comparison-panel">
+      <div class="comparison-panel">
+        <div class="comparison-panel-header">
+          <div>
+            <strong>Comparison controls for the sections below</strong>
+            <p id="comparison-panel-copy">These controls assign roles within the globally selected genera. Choose one selected genus as the focus, then decide which of the other selected genera belong in the peer set.</p>
+          </div>
+          <span class="scope-label">For Breeder Opportunity and Bias-Control only</span>
+        </div>
+        <div class="compare-state-card">
+          <span class="compare-state-badge" id="compare-state-badge">Narrow scope</span>
+          <strong id="compare-state-title">Peer-editing comparison</strong>
+          <p class="compare-state-copy" id="compare-state-copy">With a tighter global genus scope, you can assign a focus genus and edit the peer set directly.</p>
+        </div>
+        <div class="compare-role-block">
+          <span class="compare-subhead">Focus genus</span>
+          <div class="compare-row" id="focus-genus-options"></div>
+          <div id="compare-focus-picker"></div>
+        </div>
+        <div class="compare-role-block">
+          <span class="compare-subhead" id="peer-set-subhead">Peer set</span>
+          <div class="compare-row" id="peer-set-options"></div>
+        </div>
+        <div class="compare-row" id="compare-mode-row">
+          <button type="button" class="compare-pill compare-mode-btn disabled-control" data-mode="peer-average" aria-pressed="false" disabled>Compare against: Peer average</button>
+          <button type="button" class="compare-pill compare-mode-btn disabled-control" data-mode="market-baseline" aria-pressed="false" disabled>Or: Market baseline</button>
+        </div>
+        <p class="compare-help" id="compare-help">Choose one of the globally selected genera as the focus. The peer set defaults to the remaining selected genera.</p>
+      </div>
+
+    </section>
+
+    <section class="section conditional-section" id="breeder-section">
+      <div class="section-header">
+        <div class="section-title">
+          <div class="eyebrow">2. Breeder Opportunity KPIs</div>
+          <h2>Which genera look attractive if you care about selling through faster?</h2>
+          <p id="breeder-section-copy">These visuals privilege the commercial breeder thesis: demand matters, but recurring constrained supply matters more.</p>
+        </div>
+        <p class="section-note" id="breeder-section-note">This section should not output a magic score. It should expose the ingredients so you can see why a genus looks compelling.</p>
+      </div>
+
+      <div class="section-stage">
+      <div class="section-placeholder">
+        <div class="empty-state">
+          <strong>Choose a focus genus to unlock breeder-opportunity KPIs.</strong>
+          <p>This section stays visible so you can see what becomes available, but it only fills with scorecards and comparison charts after you pick a genus to test.</p>
+          <div class="empty-state-row">
+            <span class="empty-chip">Commercial opportunity score</span>
+            <span class="empty-chip">Peer vs market comparison</span>
+            <span class="empty-chip">Scarcity, demand, restock ingredients</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-live">
+      <div class="kpi-grid">
+        <article class="kpi-card">
+          <h3><span id="breeder-focus-name">Avicularia</span> scarcity rate</h3>
+          <div class="metric-value" id="breeder-scarcity-value">38%</div>
+          <span class="metric-delta flat" id="breeder-scarcity-label">Middle of pack</span>
+          <p class="metric-text" id="breeder-scarcity-copy">Promising, but not dominant if scarcity is your main breeder signal.</p>
+        </article>
+        <article class="kpi-card">
+          <h3>Median wishlist in stock</h3>
+          <div class="metric-value" id="breeder-wishlist-value">26</div>
+          <span class="metric-delta" id="breeder-wishlist-label">High</span>
+          <p class="metric-text" id="breeder-wishlist-copy">Interest remains healthy even when listings are actually available.</p>
+        </article>
+        <article class="kpi-card">
+          <h3>Restock cadence</h3>
+          <div class="metric-value" id="breeder-restock-value">11d</div>
+          <span class="metric-delta down" id="breeder-restock-label">Slow</span>
+          <p class="metric-text" id="breeder-restock-copy">Once missing, these listings do not snap back immediately.</p>
+        </article>
+        <article class="kpi-card">
+          <div class="metric-title-row">
+            <h3>Opportunity score</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is Opportunity score?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>This is the main commercial comparison score in this section. Higher means the genus looks more attractive to breed because demand is stronger relative to supply.</p>
+              </div>
+            </details>
+          </div>
+          <div class="metric-value" id="breeder-score-value">7.4</div>
+          <span class="metric-delta" id="breeder-turnover-delta">Best peer is higher</span>
+          <p class="metric-text" id="breeder-turnover-copy">Shows how commercially attractive the focus genus looks once demand and constrained supply are read together.</p>
+          <details class="metric-method">
+            <summary>How this works</summary>
+            <div class="metric-method-body">
+              <p>Opportunity score is a composite signal. It is there to help compare genera on one commercial scale, not to replace the ingredient metrics.</p>
+              <ol>
+                <li>We combine the main commercial ingredients, including scarcity, demand, and how quickly stock tends to return.</li>
+                <li>We calculate the result for the focus genus and the active benchmark, whether that is each peer, a peer average, or the market baseline.</li>
+                <li>We use the score as a comparison aid, then keep the ingredient table below visible so you can still see why one genus is ahead.</li>
+              </ol>
+              <p>A higher score means demand looks stronger relative to supply. A small gap means the comparison is competitive rather than decisive.</p>
+            </div>
+          </details>
+        </article>
+      </div>
+
+      <div class="visual-grid">
+        <article class="visual-card">
+          <h3 id="breeder-chart-title">Opportunity score by genus</h3>
+          <div class="bar-list compare-view" data-compare-view="none">
+            <div class="bar-row" id="none-row-0">
+              <span id="none-name-0">Psalmopoeus</span>
+              <div class="bar-track"><div class="bar-fill" id="none-fill-0" style="width:88%"></div></div>
+              <span class="mono" id="none-score-0">8.8</span>
+            </div>
+            <div class="bar-row" id="none-row-1">
+              <span id="none-name-1">Avicularia</span>
+              <div class="bar-track"><div class="bar-fill alt" id="none-fill-1" style="width:74%"></div></div>
+              <span class="mono" id="none-score-1">7.4</span>
+            </div>
+            <div class="bar-row" id="none-row-2">
+              <span id="none-name-2">Caribena</span>
+              <div class="bar-track"><div class="bar-fill" id="none-fill-2" style="width:69%"></div></div>
+              <span class="mono" id="none-score-2">6.9</span>
+            </div>
+            <div class="bar-row" id="none-row-3">
+              <span id="none-name-3">Chromatopelma</span>
+              <div class="bar-track"><div class="bar-fill warn" id="none-fill-3" style="width:57%"></div></div>
+              <span class="mono" id="none-score-3">5.7</span>
+            </div>
+          </div>
+          <div class="bar-list compare-view" data-compare-view="peer-average" hidden>
+            <div class="bar-row">
+              <span>Peer average</span>
+              <div class="bar-track"><div class="bar-fill" id="peer-average-fill" style="width:71%"></div></div>
+              <span class="mono" id="peer-average-score">7.1</span>
+            </div>
+            <div class="bar-row">
+              <span id="peer-average-focus-name">Avicularia</span>
+              <div class="bar-track"><div class="bar-fill alt" id="peer-average-focus-fill" style="width:74%"></div></div>
+              <span class="mono" id="peer-average-focus-score">7.4</span>
+            </div>
+          </div>
+          <div class="bar-list compare-view" data-compare-view="market-baseline" hidden>
+            <div class="bar-row">
+              <span>Market average</span>
+              <div class="bar-track"><div class="bar-fill" style="width:62%"></div></div>
+              <span class="mono">6.2</span>
+            </div>
+            <div class="bar-row">
+              <span id="market-baseline-focus-name">Avicularia</span>
+              <div class="bar-track"><div class="bar-fill alt" id="market-baseline-focus-fill" style="width:74%"></div></div>
+              <span class="mono" id="market-baseline-focus-score">7.4</span>
+            </div>
+            <div class="bar-row">
+              <span id="market-baseline-peer-label">Saved peer set</span>
+              <div class="bar-track"><div class="bar-fill" id="market-baseline-peer-fill" style="width:71%; opacity:0.35"></div></div>
+              <span class="mono" id="market-baseline-peer-score">4 peers saved</span>
+            </div>
+          </div>
+          <p class="visual-note" id="breeder-chart-note">This mocked chart is saying Avicularia has a credible breeder case, but it is not the strongest purely commercial candidate in the comparison set.</p>
+        </article>
+
+        <article class="visual-card">
+          <h3>Opportunity ingredients by genus</h3>
+          <table class="rank-table">
+            <thead>
+              <tr>
+                <th>Genus</th>
+                <th>Scarcity</th>
+                <th>Demand</th>
+                <th>Restock</th>
+                <th>Read</th>
+              </tr>
+            </thead>
+            <tbody id="ingredients-body">
+              <tr id="ingredients-row-0">
+                <td id="ingredients-genus-0">Psalmopoeus</td>
+                <td><span class="badge" id="ingredients-scarcity-0">High</span></td>
+                <td><span class="badge" id="ingredients-demand-0">High</span></td>
+                <td><span class="badge warn" id="ingredients-restock-0">Slow</span></td>
+                <td id="ingredients-read-0">Commercially strongest</td>
+              </tr>
+              <tr class="highlight" id="ingredients-row-1">
+                <td id="ingredients-genus-1">Avicularia</td>
+                <td><span class="badge warn" id="ingredients-scarcity-1">Medium</span></td>
+                <td><span class="badge" id="ingredients-demand-1">High</span></td>
+                <td><span class="badge warn" id="ingredients-restock-1">Slow</span></td>
+                <td id="ingredients-read-1">Good, not clear winner</td>
+              </tr>
+              <tr id="ingredients-row-2">
+                <td id="ingredients-genus-2">Caribena</td>
+                <td><span class="badge warn" id="ingredients-scarcity-2">Medium</span></td>
+                <td><span class="badge" id="ingredients-demand-2">Good</span></td>
+                <td><span class="badge" id="ingredients-restock-2">Healthy</span></td>
+                <td id="ingredients-read-2">More balanced</td>
+              </tr>
+              <tr id="ingredients-row-3">
+                <td id="ingredients-genus-3">Chromatopelma</td>
+                <td><span class="badge risk" id="ingredients-scarcity-3">Low</span></td>
+                <td><span class="badge" id="ingredients-demand-3">Good</span></td>
+                <td><span class="badge" id="ingredients-restock-3">Fast</span></td>
+                <td id="ingredients-read-3">Demand, but less scarcity</td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+      </div>
+      </div>
+      </div>
+    </section>
+
+    <section class="section conditional-section" id="bias-section">
+      <div class="section-header">
+        <div class="section-title">
+          <div class="eyebrow">3. Bias-Control KPIs</div>
+          <h2>Are you choosing <span id="bias-question-focus">Avicularia</span> because it is good, or because you want it to be good?</h2>
+          <p id="bias-section-copy">This section is meant to make your preference visible and keep the UI from quietly validating it.</p>
+        </div>
+        <p class="section-note" id="bias-section-note">The point is not to eliminate preference. It is to show the trade-off you are accepting when preference and commercial data diverge.</p>
+      </div>
+
+      <div class="section-stage">
+      <div class="section-placeholder">
+        <div class="empty-state">
+          <strong>Choose a focus genus to unlock bias-control checks.</strong>
+          <p>Once a genus is selected, this section shows whether your preference is still commercially defendable or whether the comparison is flattering it too much.</p>
+          <div class="empty-state-row">
+            <span class="empty-chip">Commercial rank</span>
+            <span class="empty-chip">Gap to leader</span>
+            <span class="empty-chip">Defensible preference</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-live">
+      <div class="kpi-grid">
+        <article class="kpi-card">
+          <div class="metric-title-row">
+            <h3><span id="bias-rank-focus-name">Avicularia</span> commercial rank</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is commercial rank?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>This shows where the focus genus sits within the active comparison frame. The frame changes depending on whether you are comparing against selected peers, peer average, or the broader market.</p>
+              </div>
+            </details>
+          </div>
+          <div class="metric-value" id="bias-rank-value">#2</div>
+          <span class="metric-delta flat" id="bias-rank-label">of 4 selected genera</span>
+          <p class="metric-text" id="bias-rank-copy">Your focus genus performs well, but the data does not put it at the top.</p>
+        </article>
+        <article class="kpi-card">
+          <div class="metric-title-row">
+            <h3>Gap to leader</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is Gap to leader?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>This is the distance between the focus genus and the current strongest benchmark on the same opportunity scale. Smaller gaps mean your preferred genus is closer to the commercial front-runner.</p>
+              </div>
+            </details>
+          </div>
+          <div class="metric-value" id="bias-gap-value">-1.4</div>
+          <span class="metric-delta down" id="bias-gap-label">vs Psalmopoeus</span>
+          <p class="metric-text" id="bias-gap-copy">The gap is meaningful, but not overwhelming.</p>
+        </article>
+        <article class="kpi-card">
+          <div class="metric-title-row">
+            <h3>Stability score</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is Stability score?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>We look across several recent time windows and check whether this genus stays commercially strong or jumps around. Higher stability means the signal looks repeatable, not just driven by one unusually strong period.</p>
+              </div>
+            </details>
+          </div>
+          <div class="metric-value" id="bias-stability-value">82%</div>
+          <span class="metric-delta" id="bias-stability-label">Consistent</span>
+          <p class="metric-text" id="bias-stability-copy">Shows whether this genus stays commercially strong across multiple recent windows, not just one recent spike.</p>
+          <details class="metric-method">
+            <summary>How this works</summary>
+            <div class="metric-method-body">
+              <p>Stability score is not a demand or stock metric on its own. It is a confidence-style signal about whether the genus keeps looking commercially strong over time.</p>
+              <ol>
+                <li>We calculate the genus's commercial result over several recent windows.</li>
+                <li>We check whether its rank and score stay fairly consistent from one window to the next.</li>
+                <li>We reduce the score when the result swings around a lot or when there is not enough history.</li>
+              </ol>
+              <p>High stability means the result looks repeatable. Lower stability means the commercial case may depend too much on one recent period or limited history.</p>
+            </div>
+          </details>
+        </article>
+        <article class="kpi-card">
+          <div class="metric-title-row">
+            <h3>Defensible preference</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is Defensible preference?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>This tells you whether your preferred genus still looks commercially reasonable once the comparison is applied. It is the plain-English judgment layer on top of the raw gap to the benchmark.</p>
+              </div>
+            </details>
+          </div>
+          <div class="metric-value" id="bias-premium-value">Yes</div>
+          <span class="metric-delta flat" id="bias-premium-label">Still commercially reasonable</span>
+          <p class="metric-text" id="bias-premium-copy">Avicularia is not the leader, but it still looks close enough to the top to remain a commercially defensible choice.</p>
+          <details class="metric-method">
+            <summary>How this works</summary>
+            <div class="metric-method-body">
+              <p>Defensible preference is a judgment layer. It turns the raw comparison into a plain-English answer to a practical question: does your preferred genus still hold up commercially, or are you forcing the data to flatter it?</p>
+              <ol>
+                <li>We compare the focus genus with the current benchmark on the same opportunity scale.</li>
+                <li>We look at how far behind it is, or whether it stays close enough to remain commercially credible.</li>
+                <li>We translate that gap into a judgment such as yes, borderline, or no.</li>
+              </ol>
+              <p>A positive read means preference and market logic are still fairly aligned. A negative read means the commercial case is now meaningfully weaker than the leading alternative.</p>
+            </div>
+          </details>
+        </article>
+      </div>
+
+      <div class="visual-grid">
+        <article class="visual-card">
+          <h3 id="bias-chart-title">Focus genus vs benchmark</h3>
+          <svg class="compare-view" data-compare-view="none" viewBox="0 0 700 250" role="img" aria-label="Bias control comparison chart">
+            <rect x="0" y="0" width="700" height="250" fill="#fffaf2" />
+            <g stroke="#d7cfc0" stroke-width="1">
+              <line x1="70" y1="200" x2="660" y2="200" />
+              <line x1="70" y1="55" x2="70" y2="200" />
+            </g>
+            <g fill="#5d6a6d" font-size="12" font-family="Avenir Next, Segoe UI, sans-serif">
+              <text x="118" y="220">Demand</text>
+              <text x="238" y="220">Scarcity</text>
+              <text x="362" y="220">Restock drag</text>
+              <text x="486" y="220">Stability</text>
+              <text x="604" y="220">Overall</text>
+            </g>
+            <polyline fill="none" stroke="#cc6b49" stroke-width="5" points="130,104 250,128 374,116 498,88 620,114" />
+            <polyline fill="none" stroke="#1f7a6b" stroke-width="5" points="130,92 250,86 374,98 498,82 620,92" />
+            <g fill="#cc6b49">
+              <circle cx="130" cy="104" r="6"></circle>
+              <circle cx="250" cy="128" r="6"></circle>
+              <circle cx="374" cy="116" r="6"></circle>
+              <circle cx="498" cy="88" r="6"></circle>
+              <circle cx="620" cy="114" r="6"></circle>
+            </g>
+            <g fill="#1f7a6b">
+              <circle cx="130" cy="92" r="6"></circle>
+              <circle cx="250" cy="86" r="6"></circle>
+              <circle cx="374" cy="98" r="6"></circle>
+              <circle cx="498" cy="82" r="6"></circle>
+              <circle cx="620" cy="92" r="6"></circle>
+            </g>
+            <g font-size="12" font-family="Avenir Next, Segoe UI, sans-serif">
+              <text x="512" y="76" fill="#1f7a6b">peer line</text>
+              <text x="540" y="124" fill="#cc6b49" id="bias-svg-focus-none">Avicularia</text>
+            </g>
+          </svg>
+          <svg class="compare-view" data-compare-view="peer-average" hidden viewBox="0 0 700 250" role="img" aria-label="Bias control peer average chart">
+            <rect x="0" y="0" width="700" height="250" fill="#fffaf2" />
+            <g stroke="#d7cfc0" stroke-width="1">
+              <line x1="70" y1="200" x2="660" y2="200" />
+              <line x1="70" y1="55" x2="70" y2="200" />
+            </g>
+            <g fill="#5d6a6d" font-size="12" font-family="Avenir Next, Segoe UI, sans-serif">
+              <text x="118" y="220">Demand</text>
+              <text x="238" y="220">Scarcity</text>
+              <text x="362" y="220">Restock drag</text>
+              <text x="486" y="220">Stability</text>
+              <text x="604" y="220">Overall</text>
+            </g>
+            <polyline fill="none" stroke="#cc6b49" stroke-width="5" points="130,104 250,128 374,116 498,88 620,114" />
+            <polyline fill="none" stroke="#1f7a6b" stroke-width="5" points="130,112 250,122 374,120 498,96 620,118" />
+            <g fill="#cc6b49">
+              <circle cx="130" cy="104" r="6"></circle><circle cx="250" cy="128" r="6"></circle><circle cx="374" cy="116" r="6"></circle><circle cx="498" cy="88" r="6"></circle><circle cx="620" cy="114" r="6"></circle>
+            </g>
+            <g fill="#1f7a6b">
+              <circle cx="130" cy="112" r="6"></circle><circle cx="250" cy="122" r="6"></circle><circle cx="374" cy="120" r="6"></circle><circle cx="498" cy="96" r="6"></circle><circle cx="620" cy="118" r="6"></circle>
+            </g>
+            <g font-size="12" font-family="Avenir Next, Segoe UI, sans-serif">
+              <text x="500" y="92" fill="#1f7a6b">peer average</text>
+              <text x="540" y="124" fill="#cc6b49" id="bias-svg-focus-peer">Avicularia</text>
+            </g>
+          </svg>
+          <svg class="compare-view" data-compare-view="market-baseline" hidden viewBox="0 0 700 250" role="img" aria-label="Bias control market baseline chart">
+            <rect x="0" y="0" width="700" height="250" fill="#fffaf2" />
+            <g stroke="#d7cfc0" stroke-width="1">
+              <line x1="70" y1="200" x2="660" y2="200" />
+              <line x1="70" y1="55" x2="70" y2="200" />
+            </g>
+            <g fill="#5d6a6d" font-size="12" font-family="Avenir Next, Segoe UI, sans-serif">
+              <text x="118" y="220">Demand</text>
+              <text x="238" y="220">Scarcity</text>
+              <text x="362" y="220">Restock drag</text>
+              <text x="486" y="220">Stability</text>
+              <text x="604" y="220">Overall</text>
+            </g>
+            <polyline fill="none" stroke="#cc6b49" stroke-width="5" points="130,104 250,128 374,116 498,88 620,114" />
+            <polyline fill="none" stroke="#1f7a6b" stroke-width="5" points="130,150 250,152 374,146 498,138 620,142" />
+            <g fill="#cc6b49">
+              <circle cx="130" cy="104" r="6"></circle><circle cx="250" cy="128" r="6"></circle><circle cx="374" cy="116" r="6"></circle><circle cx="498" cy="88" r="6"></circle><circle cx="620" cy="114" r="6"></circle>
+            </g>
+            <g fill="#1f7a6b">
+              <circle cx="130" cy="150" r="6"></circle><circle cx="250" cy="152" r="6"></circle><circle cx="374" cy="146" r="6"></circle><circle cx="498" cy="138" r="6"></circle><circle cx="620" cy="142" r="6"></circle>
+            </g>
+            <g font-size="12" font-family="Avenir Next, Segoe UI, sans-serif">
+              <text x="474" y="134" fill="#1f7a6b">market baseline</text>
+              <text x="540" y="124" fill="#cc6b49" id="bias-svg-focus-market">Avicularia</text>
+            </g>
+          </svg>
+          <p class="visual-note" id="bias-chart-note">This mock says Avicularia wins on demand and stability, but trails the strongest peer on scarcity and overall commercial attractiveness. That is a trade-off, not a contradiction.</p>
+        </article>
+
+        <article class="visual-card">
+          <h3>Decision readout</h3>
+          <div class="mini-grid">
+            <div class="mini-card">
+              <span>If you optimise for</span>
+              <strong>Profit first</strong>
+              <p class="visual-note" id="decision-profit-copy">The benchmark genus currently looks stronger.</p>
+            </div>
+            <div class="mini-card">
+              <span>If you optimise for</span>
+              <strong>Defensible preference</strong>
+              <p class="visual-note" id="decision-defensible-copy">Avicularia remains defendable because it is near the top, not near the bottom.</p>
+            </div>
+          </div>
+          <details class="decision-note">
+            <summary>What this page does not answer</summary>
+            <div class="decision-note-body">
+              <strong>Operational practicality</strong>
+              <p>This comparison may show commercial attractiveness, but it does not tell you whether the genus is practical to breed, rear, and sell reliably.</p>
+            </div>
+          </details>
+        </article>
+      </div>
+      </div>
+      </div>
+    </section>
+
+    <section class="table-panel">
+      <div class="table-top">
+        <div>
+          <div class="eyebrow">Filtered Data Preview</div>
+          <h2>Keep the table as an audit surface, not the main product</h2>
+          <p class="table-copy">This is where you verify what the current charts are based on and export a filtered CSV for deeper analysis.</p>
+        </div>
+        <a class="download" href="#">Download filtered CSV</a>
+      </div>
+
+      <table class="sample-table">
+        <thead>
+          <tr>
+            <th>Run</th>
+            <th>Genus</th>
+            <th>Species</th>
+            <th>Price</th>
+            <th>Wishlist</th>
+            <th>Stock</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>12</td>
+            <td>Avicularia</td>
+            <td>Avicularia avicularia</td>
+            <td>GBP 27</td>
+            <td>31</td>
+            <td><span class="badge warn">OUT</span></td>
+          </tr>
+          <tr>
+            <td>12</td>
+            <td>Caribena</td>
+            <td>Caribena versicolor</td>
+            <td>GBP 34</td>
+            <td>28</td>
+            <td><span class="badge">IN</span></td>
+          </tr>
+          <tr>
+            <td>11</td>
+            <td>Psalmopoeus</td>
+            <td>Psalmopoeus irminia</td>
+            <td>GBP 22</td>
+            <td>30</td>
+            <td><span class="badge warn">OUT</span></td>
+          </tr>
+          <tr>
+            <td>10</td>
+            <td>Avicularia</td>
+            <td>Avicularia purpurea</td>
+            <td>GBP 39</td>
+            <td>19</td>
+            <td><span class="badge">IN</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="footnote">Mock only. Numbers are illustrative and are intended to make the visual language and decision framing concrete, not to represent the current dataset.</p>
+    </section>
+  </div>
+</body>
+<script>
+  (() => {
+    const allGenera = [
+      'Acanthoscurria', 'Aphonopelma', 'Avicularia', 'Brachypelma', 'Bumba', 'Caribena',
+      'Ceratogyrus', 'Chaetopelma', 'Chilobrachys', 'Chromatopelma', 'Coremiocnemis',
+      'Crassicrus', 'Cyclosternum', 'Cyriocosmus', 'Cyriopagopus', 'Davus', 'Dolichothele',
+      'Encyocratella', 'Euathlus', 'Eupalaestrus', 'Grammostola', 'Hapalopus', 'Haploclastus',
+      'Haplocosmia', 'Harpactira', 'Heteroscodra', 'Heterothele', 'Holothele', 'Homoeomma',
+      'Idiothele', 'Iridopelma', 'Kochiana', 'Lasiodora', 'Megaphobema', 'Monocentropus',
+      'Neoholothele', 'Nhandu', 'Omothymus', 'Orphnaecus', 'Pamphobeteus', 'Pelinobius',
+      'Phlogiellus', 'Phormictopus', 'Phrixotrichus', 'Poecilotheria', 'Psalmopoeus',
+      'Pterinochilus', 'Pterinopelma', 'Sahydroaraneus', 'Selenobrachys', 'Sericopelma',
+      'Stromatopelma', 'Tapinauchenius', 'Theraphosa', 'Thrixopelma', 'Tliltocatl',
+      'Typhochlaena', 'Vitalius', 'Xenesthis', 'Ybyrapora', 'Ami', 'Birupes', 'Bonnetina',
+      'Bumbaia', 'Catumiri', 'Citharacanthus', 'Hapalotremus', 'Kankuamo'
+    ];
+    const editableComparisonLimit = 8;
+    const initialSelection = ['Avicularia', 'Caribena', 'Psalmopoeus', 'Chromatopelma'];
+    const selectionPresets = {
+      'most-observed': ['Grammostola', 'Aphonopelma', 'Tliltocatl', 'Brachypelma', 'Nhandu', 'Avicularia', 'Psalmopoeus', 'Chromatopelma', 'Caribena', 'Poecilotheria', 'Lasiodora', 'Pamphobeteus'],
+      arboreal: ['Avicularia', 'Caribena', 'Psalmopoeus', 'Poecilotheria', 'Tapinauchenius', 'Ybyrapora', 'Iridopelma'],
+      terrestrial: ['Grammostola', 'Aphonopelma', 'Brachypelma', 'Tliltocatl', 'Nhandu', 'Chromatopelma', 'Euathlus'],
+      fossorial: ['Chilobrachys', 'Cyriopagopus', 'Haplocosmia', 'Pelinobius', 'Ceratogyrus', 'Idiothele'],
+      'selected-only': initialSelection,
+      'clear-all': [],
+    };
+    const genusSearchInput = document.getElementById('genus-search-input');
+    const globalScopeLabel = document.getElementById('global-scope-label');
+    const selectorCountLabel = document.getElementById('selector-count-label');
+    const selectedGeneraChips = document.getElementById('selected-genera-chips');
+    const collapsedSelectorNote = document.getElementById('collapsed-selector-note');
+    const genusSuggestionList = document.getElementById('genus-suggestion-list');
+    const quickPickButtons = Array.from(document.querySelectorAll('[data-selection-action]'));
+    const focusGenusOptions = document.getElementById('focus-genus-options');
+    const compareFocusPicker = document.getElementById('compare-focus-picker');
+    const peerSetSubhead = document.getElementById('peer-set-subhead');
+    const peerSetOptions = document.getElementById('peer-set-options');
+    const compareStateBadge = document.getElementById('compare-state-badge');
+    const compareStateTitle = document.getElementById('compare-state-title');
+    const compareStateCopy = document.getElementById('compare-state-copy');
+    const comparisonPanelCopy = document.getElementById('comparison-panel-copy');
+    const compareModeRow = document.getElementById('compare-mode-row');
+    const modeButtons = Array.from(document.querySelectorAll('.compare-mode-btn'));
+    const compareHelp = document.getElementById('compare-help');
+    const conditionalSections = Array.from(document.querySelectorAll('.conditional-section'));
+    const breederFocusName = document.getElementById('breeder-focus-name');
+    const breederScarcityValue = document.getElementById('breeder-scarcity-value');
+    const breederScarcityLabel = document.getElementById('breeder-scarcity-label');
+    const breederScarcityCopy = document.getElementById('breeder-scarcity-copy');
+    const breederWishlistValue = document.getElementById('breeder-wishlist-value');
+    const breederWishlistLabel = document.getElementById('breeder-wishlist-label');
+    const breederWishlistCopy = document.getElementById('breeder-wishlist-copy');
+    const breederRestockValue = document.getElementById('breeder-restock-value');
+    const breederRestockLabel = document.getElementById('breeder-restock-label');
+    const breederRestockCopy = document.getElementById('breeder-restock-copy');
+    const breederScoreValue = document.getElementById('breeder-score-value');
+    const breederTurnoverDelta = document.getElementById('breeder-turnover-delta');
+    const breederTurnoverCopy = document.getElementById('breeder-turnover-copy');
+    const breederChartTitle = document.getElementById('breeder-chart-title');
+    const breederChartNote = document.getElementById('breeder-chart-note');
+    const breederSectionCopy = document.getElementById('breeder-section-copy');
+    const breederSectionNote = document.getElementById('breeder-section-note');
+    const noneRowEls = Array.from({ length: 4 }, (_, index) => ({
+      row: document.getElementById(`none-row-${index}`),
+      name: document.getElementById(`none-name-${index}`),
+      fill: document.getElementById(`none-fill-${index}`),
+      score: document.getElementById(`none-score-${index}`),
+    }));
+    const peerAverageFill = document.getElementById('peer-average-fill');
+    const peerAverageScore = document.getElementById('peer-average-score');
+    const peerAverageFocusName = document.getElementById('peer-average-focus-name');
+    const peerAverageFocusFill = document.getElementById('peer-average-focus-fill');
+    const peerAverageFocusScore = document.getElementById('peer-average-focus-score');
+    const marketBaselineFocusName = document.getElementById('market-baseline-focus-name');
+    const marketBaselineFocusFill = document.getElementById('market-baseline-focus-fill');
+    const marketBaselineFocusScore = document.getElementById('market-baseline-focus-score');
+    const marketBaselinePeerLabel = document.getElementById('market-baseline-peer-label');
+    const marketBaselinePeerFill = document.getElementById('market-baseline-peer-fill');
+    const marketBaselinePeerScore = document.getElementById('market-baseline-peer-score');
+    const ingredientsRows = Array.from({ length: 4 }, (_, index) => ({
+      row: document.getElementById(`ingredients-row-${index}`),
+      genus: document.getElementById(`ingredients-genus-${index}`),
+      scarcity: document.getElementById(`ingredients-scarcity-${index}`),
+      demand: document.getElementById(`ingredients-demand-${index}`),
+      restock: document.getElementById(`ingredients-restock-${index}`),
+      read: document.getElementById(`ingredients-read-${index}`),
+    }));
+    const biasQuestionFocus = document.getElementById('bias-question-focus');
+    const biasRankFocusName = document.getElementById('bias-rank-focus-name');
+    const biasGapValue = document.getElementById('bias-gap-value');
+    const biasGapLabel = document.getElementById('bias-gap-label');
+    const biasGapCopy = document.getElementById('bias-gap-copy');
+    const biasRankValue = document.getElementById('bias-rank-value');
+    const biasRankLabel = document.getElementById('bias-rank-label');
+    const biasRankCopy = document.getElementById('bias-rank-copy');
+    const biasStabilityValue = document.getElementById('bias-stability-value');
+    const biasStabilityLabel = document.getElementById('bias-stability-label');
+    const biasStabilityCopy = document.getElementById('bias-stability-copy');
+    const biasPremiumValue = document.getElementById('bias-premium-value');
+    const biasPremiumLabel = document.getElementById('bias-premium-label');
+    const biasPremiumCopy = document.getElementById('bias-premium-copy');
+    const biasChartTitle = document.getElementById('bias-chart-title');
+    const biasChartNote = document.getElementById('bias-chart-note');
+    const biasSectionCopy = document.getElementById('bias-section-copy');
+    const biasSectionNote = document.getElementById('bias-section-note');
+    const biasSvgFocusNone = document.getElementById('bias-svg-focus-none');
+    const biasSvgFocusPeer = document.getElementById('bias-svg-focus-peer');
+    const biasSvgFocusMarket = document.getElementById('bias-svg-focus-market');
+    const decisionProfitCopy = document.getElementById('decision-profit-copy');
+    const decisionDefensibleCopy = document.getElementById('decision-defensible-copy');
+
+    const marketAverageScore = 6.2;
+    const coreGenusData = {
+      Avicularia: {
+        opportunity: 7.4,
+        scarcityRate: '38%',
+        scarcityLabel: 'Middle of pack',
+        scarcityClass: 'flat',
+        scarcityCopy: 'Promising, but not dominant if scarcity is your main breeder signal.',
+        wishlist: '26',
+        wishlistLabel: 'High',
+        wishlistCopy: 'Interest remains healthy even when listings are actually available.',
+        restock: '11d',
+        restockLabel: 'Slow',
+        restockClass: 'down',
+        restockCopy: 'Once missing, these listings do not snap back immediately.',
+        stability: '82%',
+        stabilityLabel: 'Consistent',
+        stabilityCopy: 'Shows whether this genus stays commercially strong across multiple recent windows, not just one recent spike.',
+        tableScarcity: { text: 'Medium', className: 'warn' },
+        tableDemand: { text: 'High', className: '' },
+        tableRestock: { text: 'Slow', className: 'warn' },
+      },
+      Caribena: {
+        opportunity: 6.9,
+        scarcityRate: '34%',
+        scarcityLabel: 'Balanced',
+        scarcityClass: 'flat',
+        scarcityCopy: 'A workable scarcity signal, but not enough on its own to dominate the set.',
+        wishlist: '24',
+        wishlistLabel: 'Good',
+        wishlistCopy: 'Interest is solid, but less intense than the strongest genera in scope.',
+        restock: '8d',
+        restockLabel: 'Healthy',
+        restockClass: '',
+        restockCopy: 'Stock tends to come back at a healthier pace than the slowest genera.',
+        stability: '76%',
+        stabilityLabel: 'Mostly steady',
+        stabilityCopy: 'Shows whether this genus stays commercially strong across multiple recent windows, not just one recent spike.',
+        tableScarcity: { text: 'Medium', className: 'warn' },
+        tableDemand: { text: 'Good', className: '' },
+        tableRestock: { text: 'Healthy', className: '' },
+      },
+      Psalmopoeus: {
+        opportunity: 8.8,
+        scarcityRate: '49%',
+        scarcityLabel: 'High',
+        scarcityClass: '',
+        scarcityCopy: 'Recurring scarcity keeps this genus near the front of the commercial case.',
+        wishlist: '30',
+        wishlistLabel: 'High',
+        wishlistCopy: 'Demand stays strong even when the genus does appear in stock.',
+        restock: '12d',
+        restockLabel: 'Slow',
+        restockClass: 'down',
+        restockCopy: 'Longer return times reinforce the scarcity signal rather than diluting it.',
+        stability: '78%',
+        stabilityLabel: 'Consistent',
+        stabilityCopy: 'Shows whether this genus stays commercially strong across multiple recent windows, not just one recent spike.',
+        tableScarcity: { text: 'High', className: '' },
+        tableDemand: { text: 'High', className: '' },
+        tableRestock: { text: 'Slow', className: 'warn' },
+      },
+      Chromatopelma: {
+        opportunity: 5.7,
+        scarcityRate: '22%',
+        scarcityLabel: 'Lower',
+        scarcityClass: 'down',
+        scarcityCopy: 'Demand is there, but the supply picture looks easier and less commercially tight.',
+        wishlist: '21',
+        wishlistLabel: 'Good',
+        wishlistCopy: 'Interest is still healthy, but the supply side weakens the overall breeder case.',
+        restock: '6d',
+        restockLabel: 'Fast',
+        restockClass: '',
+        restockCopy: 'Fast returns make this genus easier to find and less commercially scarce.',
+        stability: '68%',
+        stabilityLabel: 'More variable',
+        stabilityCopy: 'Shows whether this genus stays commercially strong across multiple recent windows, not just one recent spike.',
+        tableScarcity: { text: 'Low', className: 'risk' },
+        tableDemand: { text: 'Good', className: '' },
+        tableRestock: { text: 'Fast', className: '' },
+      },
+    };
+
+    let selectedGenera = [...initialSelection];
+    let searchQuery = '';
+    let compareFocusQuery = '';
+    let focusGenus = null;
+    let manualPeerSet = [];
+    let currentMode = 'none';
+
+    function scoreWidth(score) {
+      return `${Math.round(score * 10)}%`;
+    }
+
+    function scoreText(score) {
+      return score.toFixed(1);
+    }
+
+    function classForDelta(kind) {
+      return kind === 'down' ? 'metric-delta down' : kind === 'flat' ? 'metric-delta flat' : 'metric-delta';
+    }
+
+    function setDelta(node, text, kind) {
+      node.className = classForDelta(kind);
+      node.textContent = text;
+    }
+
+    function normalizeSelection(values) {
+      return allGenera.filter((genus) => values.includes(genus));
+    }
+
+    function manualPeerEditingEnabled() {
+      return selectedGenera.length >= 2 && selectedGenera.length <= editableComparisonLimit;
+    }
+
+    function broadComparisonScope() {
+      return selectedGenera.length > editableComparisonLimit;
+    }
+
+    function effectivePeerSet() {
+      if (!focusGenus) {
+        return [];
+      }
+
+      const availablePeers = selectedGenera.filter((genus) => genus !== focusGenus);
+      if (!manualPeerEditingEnabled()) {
+        return availablePeers;
+      }
+
+      const filteredPeers = manualPeerSet.filter((genus) => availablePeers.includes(genus));
+      return filteredPeers.length ? filteredPeers : availablePeers;
+    }
+
+    function metadataForGenus(genus) {
+      const index = allGenera.indexOf(genus);
+      return {
+        speciesSeen: 1 + (index % 6),
+        observations: 18 + ((index * 13) % 47),
+      };
+    }
+
+    function fallbackGenusData(genus) {
+      const index = allGenera.indexOf(genus);
+      const opportunity = 5.2 + (((index * 17) % 36) / 10);
+      const scarcityPercent = 20 + ((index * 11) % 31);
+      const wishlist = 14 + ((index * 7) % 18);
+      const restockDays = 5 + ((index * 5) % 9);
+      const stabilityPercent = 64 + ((index * 9) % 19);
+      const scarcityLabel = scarcityPercent >= 42 ? 'High' : scarcityPercent >= 30 ? 'Middle of pack' : 'Lower';
+      const scarcityClass = scarcityPercent < 30 ? 'down' : scarcityPercent < 42 ? 'flat' : '';
+      const wishlistLabel = wishlist >= 26 ? 'High' : wishlist >= 20 ? 'Good' : 'Mixed';
+      const restockLabel = restockDays >= 11 ? 'Slow' : restockDays >= 8 ? 'Healthy' : 'Fast';
+      const restockClass = restockDays >= 11 ? 'down' : '';
+      const stabilityLabel = stabilityPercent >= 79 ? 'Consistent' : stabilityPercent >= 71 ? 'Mostly steady' : 'More variable';
+
+      return {
+        opportunity,
+        scarcityRate: `${scarcityPercent}%`,
+        scarcityLabel,
+        scarcityClass,
+        scarcityCopy: scarcityPercent >= 42
+          ? 'Recurring scarcity keeps this genus commercially interesting.'
+          : scarcityPercent >= 30
+          ? 'Scarcity is present, but it shares the stage with more balanced supply.'
+          : 'Supply looks easier here, so the breeder case leans more on demand than scarcity.',
+        wishlist: `${wishlist}`,
+        wishlistLabel,
+        wishlistCopy: wishlist >= 26
+          ? 'Interest remains strong whenever stock is actually available.'
+          : wishlist >= 20
+          ? 'Interest is healthy, but not unusually elevated for this scope.'
+          : 'Demand is present, but less forceful than the front-runners in scope.',
+        restock: `${restockDays}d`,
+        restockLabel,
+        restockClass,
+        restockCopy: restockDays >= 11
+          ? 'When this genus disappears, it tends to stay missing for longer.'
+          : restockDays >= 8
+          ? 'Restock cadence looks balanced rather than unusually slow or fast.'
+          : 'Fast returns make this genus easier to source and less commercially tight.',
+        stability: `${stabilityPercent}%`,
+        stabilityLabel,
+        stabilityCopy: 'Shows whether this genus stays commercially strong across multiple recent windows, not just one recent spike.',
+        tableScarcity: { text: scarcityPercent >= 42 ? 'High' : scarcityPercent >= 30 ? 'Medium' : 'Low', className: scarcityPercent >= 42 ? '' : scarcityPercent >= 30 ? 'warn' : 'risk' },
+        tableDemand: { text: wishlist >= 26 ? 'High' : wishlist >= 20 ? 'Good' : 'Mixed', className: '' },
+        tableRestock: { text: restockLabel, className: restockDays >= 11 ? 'warn' : '' },
+      };
+    }
+
+    function genusMetrics(genus) {
+      return coreGenusData[genus] || fallbackGenusData(genus);
+    }
+
+    function matchesPreset(action) {
+      const preset = selectionPresets[action];
+      if (!preset) {
+        return false;
+      }
+      if (preset.length !== selectedGenera.length) {
+        return false;
+      }
+      return preset.every((genus, index) => selectedGenera[index] === genus);
+    }
+
+    function syncStateAfterSelectionChange() {
+      selectedGenera = normalizeSelection(selectedGenera);
+
+      if (focusGenus && !selectedGenera.includes(focusGenus)) {
+        focusGenus = null;
+        currentMode = 'none';
+      }
+
+      const availablePeers = selectedGenera.filter((genus) => genus !== focusGenus);
+      manualPeerSet = manualPeerSet.filter((genus) => availablePeers.includes(genus));
+
+      if (focusGenus && manualPeerEditingEnabled() && !manualPeerSet.length && availablePeers.length) {
+        manualPeerSet = [...availablePeers];
+      }
+
+      if (focusGenus && broadComparisonScope()) {
+        currentMode = 'market-baseline';
+      }
+
+      if (currentMode === 'peer-average' && !effectivePeerSet().length) {
+        currentMode = 'none';
+      }
+    }
+
+    function sortedPeerSet() {
+      return [...effectivePeerSet()].sort((left, right) => genusMetrics(right).opportunity - genusMetrics(left).opportunity);
+    }
+
+    function leaderGenus() {
+      return sortedPeerSet()[0] || null;
+    }
+
+    function peerAverageScoreValue() {
+      const peers = effectivePeerSet();
+      if (!peers.length) {
+        return 0;
+      }
+
+      const total = peers.reduce((sum, genus) => sum + genusMetrics(genus).opportunity, 0);
+      return total / peers.length;
+    }
+
+    function rankWithinSelection() {
+      const ranked = [...new Set([focusGenus, ...effectivePeerSet()])].sort((left, right) => genusMetrics(right).opportunity - genusMetrics(left).opportunity);
+      return ranked.indexOf(focusGenus) + 1;
+    }
+
+    function readForGenus(genus, focus, leader) {
+      if (genus === leader) {
+        return 'Commercially strongest';
+      }
+      if (genus === focus) {
+        return genusMetrics(genus).opportunity >= 7 ? 'Good, not clear winner' : 'Viable, but behind leader';
+      }
+      if (genusMetrics(genus).opportunity >= 6.5) {
+        return 'More balanced';
+      }
+      return 'Demand, but less scarcity';
+    }
+
+    function renderSelectedGenera() {
+      selectedGeneraChips.innerHTML = '';
+
+      if (!selectedGenera.length) {
+        const empty = document.createElement('div');
+        empty.className = 'selector-empty';
+        empty.textContent = 'No genera are currently in scope. Add some from the selector below to unlock comparison work.';
+        selectedGeneraChips.appendChild(empty);
+      } else {
+        selectedGenera.forEach((genus) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'chip selected';
+          button.dataset.genus = genus;
+          button.setAttribute('aria-label', `Remove ${genus} from global filters`);
+          button.innerHTML = `${genus} <span class="dismiss">x</span>`;
+          button.addEventListener('click', () => {
+            selectedGenera = selectedGenera.filter((item) => item !== genus);
+            syncStateAfterSelectionChange();
+            renderAll();
+          });
+          selectedGeneraChips.appendChild(button);
+        });
+      }
+
+      globalScopeLabel.textContent = selectedGenera.length
+        ? `Current market scope: ${selectedGenera.length} genera • current quarter`
+        : 'Current market scope: no genera • current quarter';
+      selectorCountLabel.textContent = `${selectedGenera.length} selected • ${allGenera.length} available`;
+      collapsedSelectorNote.textContent = !selectedGenera.length
+        ? 'Expand to search the market and add genera back into scope.'
+        : selectedGenera.length > editableComparisonLimit
+        ? 'Scope is broad. Comparison controls will treat peers as one implicit benchmark until you narrow the genus set.'
+        : 'Expand to search all genera, adjust the selection, or use lifestyle shortcuts.';
+    }
+
+    function renderSuggestions() {
+      genusSuggestionList.innerHTML = '';
+
+      const filtered = allGenera.filter((genus) => genus.toLowerCase().includes(searchQuery));
+      const visible = filtered.slice(0, 6);
+
+      if (!visible.length) {
+        const empty = document.createElement('div');
+        empty.className = 'selector-empty';
+        empty.textContent = 'No genera match that search.';
+        genusSuggestionList.appendChild(empty);
+        return;
+      }
+
+      visible.forEach((genus) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'suggestion-row';
+        button.dataset.genus = genus;
+        const metadata = metadataForGenus(genus);
+        const isSelected = selectedGenera.includes(genus);
+        button.innerHTML = `
+          <strong>${genus}</strong>
+          <span class="suggestion-meta">
+            ${metadata.speciesSeen} species seen • ${metadata.observations} observations
+            <span class="suggestion-status${isSelected ? ' selected' : ''}">${isSelected ? 'Selected' : 'Add'}</span>
+          </span>
+        `;
+        button.addEventListener('click', () => {
+          if (isSelected) {
+            selectedGenera = selectedGenera.filter((item) => item !== genus);
+          } else {
+            selectedGenera = normalizeSelection([...selectedGenera, genus]);
+          }
+          syncStateAfterSelectionChange();
+          renderAll();
+        });
+        genusSuggestionList.appendChild(button);
+      });
+    }
+
+    function renderQuickPicks() {
+      quickPickButtons.forEach((button) => {
+        button.classList.toggle('active', matchesPreset(button.dataset.selectionAction));
+      });
+    }
+
+    function renderComparisonState() {
+      if (!selectedGenera.length) {
+        compareStateBadge.className = 'compare-state-badge';
+        compareStateBadge.textContent = 'No scope';
+        compareStateTitle.textContent = 'Comparison is waiting on global filters';
+        compareStateCopy.textContent = 'Add at least one genus in Global filters before you can choose a focus genus or benchmark.';
+        comparisonPanelCopy.textContent = 'These controls depend on the global genus scope. Start by putting at least one genus into scope.';
+        compareModeRow.style.opacity = '0.72';
+        return;
+      }
+
+      if (broadComparisonScope()) {
+        compareStateBadge.className = 'compare-state-badge broad';
+        compareStateBadge.textContent = 'Broad scope';
+        compareStateTitle.textContent = 'Market-baseline comparison';
+        compareStateCopy.textContent = `The global genus scope is broad at ${selectedGenera.length} genera. You can still choose one focus genus, but peer editing is replaced by a market-baseline comparison.`;
+        comparisonPanelCopy.textContent = 'With a broad global genus scope, this panel still lets you choose a focus genus, but it switches to a market-relative read instead of peer curation.';
+        compareModeRow.style.opacity = '1';
+        return;
+      }
+
+      compareStateBadge.className = 'compare-state-badge';
+      compareStateBadge.textContent = 'Narrow scope';
+      compareStateTitle.textContent = 'Peer-editing comparison';
+      compareStateCopy.textContent = 'With a tighter global genus scope, you can assign a focus genus, edit the peer set directly, or collapse those peers into one average benchmark.';
+      comparisonPanelCopy.textContent = 'These controls assign roles within the globally selected genera. Choose one selected genus as the focus, then decide which of the other selected genera belong in the peer set.';
+      compareModeRow.style.opacity = '1';
+    }
+
+    function updateSectionFraming() {
+      if (!focusGenus) {
+        breederSectionCopy.textContent = 'These visuals privilege the commercial breeder thesis: demand matters, but recurring constrained supply matters more.';
+        breederSectionNote.textContent = 'This section should not output a magic score. It should expose the ingredients so you can see why a genus looks compelling.';
+        biasSectionCopy.textContent = 'This section is meant to make your preference visible and keep the UI from quietly validating it.';
+        biasSectionNote.textContent = 'The point is not to eliminate preference. It is to show the trade-off you are accepting when preference and commercial data diverge.';
+        return;
+      }
+
+      if (broadComparisonScope()) {
+        breederSectionCopy.textContent = `${focusGenus} is now being read against the broader market, not against a hand-built peer set. This keeps the question simple: does it still look commercially strong once the whole market is the benchmark?`;
+        breederSectionNote.textContent = 'Because the global genus scope is broad, this section becomes a market-relative read. The ingredient cards still explain why the focus genus looks strong or weak, but peer curation is not part of the interaction.';
+        biasSectionCopy.textContent = `This section now tests whether your preference for ${focusGenus} still holds up against the wider market rather than against a manually chosen peer group.`;
+        biasSectionNote.textContent = 'In broad scope, the bias check becomes stricter: you are not asking whether your favourite genus beats the peers you picked, but whether it still stands up when the market is the benchmark.';
+        return;
+      }
+
+      if (currentMode === 'market-baseline') {
+        breederSectionCopy.textContent = `${focusGenus} is currently being read against the market baseline. This answers a broader question than peer editing: does it still look attractive once the whole market becomes the benchmark?`;
+        breederSectionNote.textContent = 'The ingredient cards still matter, but the benchmark has changed. Read this view as a market-relative stress test rather than as a peer showdown.';
+        biasSectionCopy.textContent = `This section tests whether your preference for ${focusGenus} still looks commercially defendable when the benchmark is the broader market.`;
+        biasSectionNote.textContent = 'The point is not to eliminate preference. It is to show whether that preference still survives a market-level comparison rather than a peer-level one.';
+        return;
+      }
+
+      if (currentMode === 'peer-average') {
+        breederSectionCopy.textContent = `${focusGenus} is being read against a collapsed peer-average benchmark. This reduces noise from one standout competitor and asks whether the focus genus beats the peer set overall.`;
+        breederSectionNote.textContent = 'This section still exposes the ingredients. The benchmark is just more compact now: one peer-average line instead of several separate peer comparisons.';
+        biasSectionCopy.textContent = `This section now asks whether your preference for ${focusGenus} still holds up against the peer set overall, not just against one favourite rival.`;
+        biasSectionNote.textContent = 'The trade-off is easier to read here because the peer set is collapsed into one average benchmark. Preference has less room to hide behind one convenient comparison.';
+        return;
+      }
+
+      breederSectionCopy.textContent = `${focusGenus} is being read against the selected peer set. These visuals still privilege the commercial breeder thesis: demand matters, but recurring constrained supply matters more.`;
+      breederSectionNote.textContent = 'This section should not output a magic score. It should expose the ingredients so you can see why the focus genus beats some peers and trails others.';
+      biasSectionCopy.textContent = `This section makes your preference for ${focusGenus} visible against the peer set you currently have in scope, instead of quietly validating it.`;
+      biasSectionNote.textContent = 'The point is not to eliminate preference. It is to show the trade-off you are accepting when your chosen genus is compared directly against the peers you kept in scope.';
+    }
+
+    function renderFocusOptions() {
+      focusGenusOptions.innerHTML = '';
+      compareFocusPicker.innerHTML = '';
+
+      if (!selectedGenera.length) {
+        const placeholder = document.createElement('span');
+        placeholder.className = 'compare-pill context-muted';
+        placeholder.textContent = 'Select genera in Global filters first';
+        focusGenusOptions.appendChild(placeholder);
+        return;
+      }
+
+      if (broadComparisonScope()) {
+        const statusPill = document.createElement('span');
+        statusPill.className = focusGenus ? 'compare-pill active focus' : 'compare-pill context-muted';
+        statusPill.textContent = focusGenus
+          ? `Focus genus: ${focusGenus}`
+          : `Pick one focus genus from ${selectedGenera.length} in-scope genera`;
+        focusGenusOptions.appendChild(statusPill);
+
+        const pickerShell = document.createElement('div');
+        pickerShell.className = 'compare-focus-picker';
+        pickerShell.innerHTML = `
+          <div class="search-box">
+            <span class="search-icon">Search</span>
+            <input class="search-input" id="compare-focus-search" type="text" value="${compareFocusQuery}" aria-label="Search focus genus within global scope" />
+          </div>
+          <div class="suggestion-list" id="compare-focus-results"></div>
+        `;
+        compareFocusPicker.appendChild(pickerShell);
+
+        const compareFocusSearch = document.getElementById('compare-focus-search');
+        const compareFocusResults = document.getElementById('compare-focus-results');
+        compareFocusSearch.addEventListener('input', (event) => {
+          compareFocusQuery = event.target.value.trim().toLowerCase();
+          renderFocusOptions();
+        });
+
+        const filtered = selectedGenera.filter((genus) => genus.toLowerCase().includes(compareFocusQuery)).slice(0, 6);
+        if (!filtered.length) {
+          const empty = document.createElement('div');
+          empty.className = 'selector-empty';
+          empty.textContent = 'No in-scope genera match that focus search.';
+          compareFocusResults.appendChild(empty);
+        } else {
+          filtered.forEach((genus) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'suggestion-row';
+            const metadata = metadataForGenus(genus);
+            const selected = genus === focusGenus;
+            button.innerHTML = `
+              <strong>${genus}</strong>
+              <span class="suggestion-meta">
+                ${metadata.speciesSeen} species seen • ${metadata.observations} observations
+                <span class="suggestion-status${selected ? ' selected' : ''}">${selected ? 'Focus' : 'Set focus'}</span>
+              </span>
+            `;
+            button.addEventListener('click', () => {
+              focusGenus = genus;
+              currentMode = 'market-baseline';
+              syncStateAfterSelectionChange();
+              applyFocusState(true);
+            });
+            compareFocusResults.appendChild(button);
+          });
+        }
+        return;
+      }
+
+      selectedGenera.forEach((genus) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'compare-pill';
+        if (focusGenus === genus) {
+          button.classList.add('active', 'focus');
+        }
+        button.textContent = genus;
+        button.dataset.genus = genus;
+        button.setAttribute('aria-pressed', focusGenus === genus ? 'true' : 'false');
+        button.addEventListener('click', () => {
+          focusGenus = genus;
+          manualPeerSet = selectedGenera.filter((item) => item !== focusGenus);
+          syncStateAfterSelectionChange();
+          applyFocusState(Boolean(focusGenus));
+        });
+        focusGenusOptions.appendChild(button);
+      });
+    }
+
+    function renderPeerOptions() {
+      peerSetOptions.innerHTML = '';
+      const peerContextInactive = currentMode === 'market-baseline' && !broadComparisonScope();
+      peerSetSubhead.textContent = peerContextInactive ? 'Saved peer set' : 'Peer set';
+
+      if (!selectedGenera.length) {
+        const placeholder = document.createElement('span');
+        placeholder.className = 'compare-pill context-muted';
+        placeholder.textContent = 'Peer benchmark is unavailable until some genera are in scope';
+        peerSetOptions.appendChild(placeholder);
+        return;
+      }
+
+      if (!focusGenus) {
+        const placeholder = document.createElement('span');
+        placeholder.className = 'compare-pill context-muted';
+        placeholder.textContent = broadComparisonScope()
+          ? `After you choose a focus genus, all other ${selectedGenera.length - 1} in-scope genera become market context only`
+          : 'Choose a focus genus first';
+        peerSetOptions.appendChild(placeholder);
+        return;
+      }
+
+      const options = selectedGenera.filter((genus) => genus !== focusGenus);
+      if (!options.length) {
+        const placeholder = document.createElement('span');
+        placeholder.className = 'compare-pill context-muted';
+        placeholder.textContent = 'Add at least one more genus in Global filters to create a peer benchmark';
+        peerSetOptions.appendChild(placeholder);
+        return;
+      }
+
+      if (!manualPeerEditingEnabled()) {
+        const summary = document.createElement('span');
+        summary.className = 'compare-pill active';
+        summary.textContent = `Peer set is inactive: all other in-scope genera stay as background context (${options.length})`;
+        peerSetOptions.appendChild(summary);
+
+        const helper = document.createElement('span');
+        helper.className = 'compare-pill context-muted';
+        helper.textContent = `Only market baseline is available while the global genus scope is broader than ${editableComparisonLimit}`;
+        peerSetOptions.appendChild(helper);
+        return;
+      }
+
+      options.forEach((genus) => {
+        const selected = effectivePeerSet().includes(genus);
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'compare-pill';
+        if (selected && !peerContextInactive) {
+          button.classList.add('active');
+        }
+        if (peerContextInactive) {
+          button.classList.add('inactive-context');
+        }
+        button.textContent = genus;
+        button.dataset.genus = genus;
+        button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        button.disabled = peerContextInactive;
+        button.addEventListener('click', () => {
+          if (manualPeerSet.includes(genus)) {
+            if (manualPeerSet.length === 1) {
+              return;
+            }
+            manualPeerSet = manualPeerSet.filter((item) => item !== genus);
+          } else {
+            manualPeerSet = [...manualPeerSet, genus];
+          }
+          syncStateAfterSelectionChange();
+          applyFocusState(Boolean(focusGenus));
+        });
+        peerSetOptions.appendChild(button);
+      });
+    }
+
+    function updateBreederMetrics() {
+      const focusData = genusMetrics(focusGenus);
+      breederFocusName.textContent = focusGenus;
+      breederScarcityValue.textContent = focusData.scarcityRate;
+      setDelta(breederScarcityLabel, focusData.scarcityLabel, focusData.scarcityClass);
+      breederScarcityCopy.textContent = focusData.scarcityCopy;
+      breederWishlistValue.textContent = focusData.wishlist;
+      breederWishlistLabel.textContent = focusData.wishlistLabel;
+      breederWishlistCopy.textContent = focusData.wishlistCopy;
+      breederRestockValue.textContent = focusData.restock;
+      setDelta(breederRestockLabel, focusData.restockLabel, focusData.restockClass);
+      breederRestockCopy.textContent = focusData.restockCopy;
+      breederScoreValue.textContent = scoreText(focusData.opportunity);
+    }
+
+    function updateBreederCharts() {
+      const ranked = [...new Set([focusGenus, ...effectivePeerSet()])].sort((left, right) => genusMetrics(right).opportunity - genusMetrics(left).opportunity);
+      const focusScore = genusMetrics(focusGenus).opportunity;
+
+      noneRowEls.forEach((slot, index) => {
+        const genus = ranked[index];
+        if (!genus) {
+          slot.row.hidden = true;
+          slot.row.style.display = 'none';
+          return;
+        }
+        slot.row.hidden = false;
+        slot.row.style.display = 'grid';
+        slot.name.textContent = genus;
+        slot.fill.className = genus === focusGenus ? 'bar-fill alt' : 'bar-fill';
+        slot.fill.style.width = scoreWidth(genusMetrics(genus).opportunity);
+        slot.score.textContent = scoreText(genusMetrics(genus).opportunity);
+      });
+
+      const peerAverage = peerAverageScoreValue();
+      peerAverageFill.style.width = scoreWidth(peerAverage);
+      peerAverageScore.textContent = scoreText(peerAverage);
+      peerAverageFocusName.textContent = focusGenus;
+      peerAverageFocusFill.style.width = scoreWidth(focusScore);
+      peerAverageFocusScore.textContent = scoreText(focusScore);
+
+      marketBaselineFocusName.textContent = focusGenus;
+      marketBaselineFocusFill.style.width = scoreWidth(focusScore);
+      marketBaselineFocusScore.textContent = scoreText(focusScore);
+      marketBaselinePeerFill.style.width = scoreWidth(peerAverage);
+      if (broadComparisonScope()) {
+        marketBaselinePeerLabel.textContent = 'In-scope context';
+        marketBaselinePeerScore.textContent = `${effectivePeerSet().length} genera in context`;
+      } else {
+        marketBaselinePeerLabel.textContent = 'Saved peer set';
+        marketBaselinePeerScore.textContent = `${effectivePeerSet().length} peers saved`;
+      }
+    }
+
+    function updateIngredientsTable() {
+      const ranked = [...new Set([focusGenus, ...effectivePeerSet()])].sort((left, right) => genusMetrics(right).opportunity - genusMetrics(left).opportunity);
+      const leader = ranked[0];
+      ingredientsRows.forEach((slot, index) => {
+        const genus = ranked[index];
+        if (!genus) {
+          slot.row.hidden = true;
+          return;
+        }
+
+        slot.row.hidden = false;
+        slot.row.classList.toggle('highlight', genus === focusGenus);
+        slot.genus.textContent = genus;
+
+        const scarcity = genusMetrics(genus).tableScarcity;
+        const demand = genusMetrics(genus).tableDemand;
+        const restock = genusMetrics(genus).tableRestock;
+        slot.scarcity.textContent = scarcity.text;
+        slot.scarcity.className = `badge${scarcity.className ? ` ${scarcity.className}` : ''}`;
+        slot.demand.textContent = demand.text;
+        slot.demand.className = `badge${demand.className ? ` ${demand.className}` : ''}`;
+        slot.restock.textContent = restock.text;
+        slot.restock.className = `badge${restock.className ? ` ${restock.className}` : ''}`;
+        slot.read.textContent = readForGenus(genus, focusGenus, leader);
+      });
+    }
+
+    function updateBiasSection() {
+      const focusData = genusMetrics(focusGenus);
+      const leader = leaderGenus();
+      const leaderScore = leader ? genusMetrics(leader).opportunity : focusData.opportunity;
+      const gap = focusData.opportunity - leaderScore;
+      const peerAverage = peerAverageScoreValue();
+      const rank = rankWithinSelection();
+      const peers = effectivePeerSet();
+
+      biasQuestionFocus.textContent = focusGenus;
+      biasRankFocusName.textContent = focusGenus;
+      biasStabilityValue.textContent = focusData.stability;
+      biasStabilityLabel.textContent = focusData.stabilityLabel;
+      biasStabilityCopy.textContent = focusData.stabilityCopy;
+      biasSvgFocusNone.textContent = focusGenus;
+      biasSvgFocusPeer.textContent = focusGenus;
+      biasSvgFocusMarket.textContent = focusGenus;
+      decisionProfitCopy.textContent = leader && leader !== focusGenus
+        ? `${leader} currently looks stronger.`
+        : `${focusGenus} currently looks strongest in this peer set.`;
+      decisionDefensibleCopy.textContent = focusData.opportunity >= leaderScore - 1.2
+        ? `${focusGenus} remains defendable because it is near the top, not near the bottom.`
+        : `${focusGenus} now needs a stronger preference case because the commercial gap is widening.`;
+
+      if (currentMode === 'none') {
+        biasRankValue.textContent = `#${rank}`;
+        biasRankLabel.textContent = `of ${peers.length + 1} selected genera`;
+        biasRankCopy.textContent = rank === 1
+          ? `${focusGenus} currently leads this selected peer set.`
+          : `${focusGenus} performs well, but the data does not put it at the top.`;
+        biasGapValue.textContent = leader ? gap.toFixed(1) : 'No peers';
+        setDelta(biasGapLabel, leader ? `vs ${leader}` : 'no active peer benchmark', gap < 0 ? 'down' : 'flat');
+        biasGapCopy.textContent = leader
+          ? gap < -1
+            ? `The gap to ${leader} is meaningful, but not overwhelming.`
+            : `${focusGenus} stays close enough to ${leader} that the choice still looks competitive.`
+          : 'There is no second genus in scope, so this readout cannot judge relative strength yet.';
+        biasPremiumValue.textContent = gap < -1.2 ? 'Borderline' : 'Yes';
+        setDelta(biasPremiumLabel, gap < -1.2 ? 'Needs a stronger preference case' : 'Still commercially reasonable', 'flat');
+        biasPremiumCopy.textContent = gap < -1.2
+          ? `${focusGenus} is still viable, but the current leader has opened a more noticeable commercial gap.`
+          : `${focusGenus} is not the leader, but it still looks close enough to the top to remain a commercially defensible choice.`;
+        biasChartTitle.textContent = 'Focus genus vs selected peers';
+        biasChartNote.textContent = `${focusGenus} wins on some ingredients, but ${leader} still leads the strongest overall commercial case in this peer set.`;
+        return;
+      }
+
+      if (currentMode === 'peer-average') {
+        const aboveAverage = focusData.opportunity - peerAverage;
+        biasRankValue.textContent = aboveAverage >= 0 ? 'Above avg' : 'Below avg';
+        biasRankLabel.textContent = 'vs peer-average benchmark';
+        biasRankCopy.textContent = aboveAverage >= 0
+          ? `${focusGenus} stays above the peer-average benchmark once the selected peers are collapsed together.`
+          : `${focusGenus} falls below the peer-average benchmark once the selected peers are collapsed together.`;
+        biasGapValue.textContent = `${aboveAverage >= 0 ? '+' : ''}${Math.round((aboveAverage / peerAverage) * 100)}%`;
+        setDelta(biasGapLabel, 'vs peer average', aboveAverage < 0 ? 'down' : '');
+        biasGapCopy.textContent = aboveAverage >= 0
+          ? `${focusGenus} is slightly above the selected peer set overall.`
+          : `${focusGenus} trails the selected peer set overall once it is averaged.`;
+        biasPremiumValue.textContent = aboveAverage >= 0 ? 'Yes' : 'Borderline';
+        setDelta(biasPremiumLabel, aboveAverage >= 0 ? 'Preference still holds up' : 'Now harder to justify', 'flat');
+        biasPremiumCopy.textContent = aboveAverage >= 0
+          ? `${focusGenus} stays slightly above the peer average here, so backing it still looks commercially easy to justify.`
+          : `${focusGenus} now sits below the peer average, so preference needs more justification than before.`;
+        biasChartTitle.textContent = 'Focus genus vs peer average';
+        biasChartNote.textContent = `Bias-control becomes cleaner here: ${focusGenus} is compared against one aggregated peer benchmark instead of several separate peer lines.`;
+        return;
+      }
+
+      const marketGap = focusData.opportunity - marketAverageScore;
+      biasRankValue.textContent = marketGap >= 1 ? '#1' : marketGap >= 0 ? 'Above mkt' : 'Below mkt';
+      biasRankLabel.textContent = 'vs market baseline';
+      biasRankCopy.textContent = marketGap >= 0
+        ? `Against the broader market, ${focusGenus} still looks like a commercially strong candidate.`
+        : `Against the broader market, ${focusGenus} looks weaker than the baseline even before preference is considered.`;
+      biasGapValue.textContent = marketGap >= 0 ? 'Above market' : 'Below market';
+      setDelta(biasGapLabel, 'vs market baseline', marketGap < 0 ? 'down' : '');
+      biasGapCopy.textContent = marketGap >= 0
+        ? `${focusGenus} looks stronger than the wider market overall, even if the selected peer set stays competitive.`
+        : `${focusGenus} looks weaker than the wider market, which makes a preference-led choice harder to defend.`;
+      biasPremiumValue.textContent = marketGap >= 1 ? 'Strong yes' : marketGap >= 0 ? 'Yes' : 'No';
+      setDelta(biasPremiumLabel, marketGap >= 0 ? 'Preference aligns with market' : 'Preference fights the market', 'flat');
+      biasPremiumCopy.textContent = marketGap >= 1
+        ? `Against the broader market, ${focusGenus} looks strong enough that choosing it barely needs a commercial apology.`
+        : marketGap >= 0
+        ? `${focusGenus} still clears the broader market bar, so preference and market logic remain fairly aligned.`
+        : `${focusGenus} falls below the market baseline, so preference is now doing most of the work.`;
+      biasChartTitle.textContent = 'Focus genus vs market baseline';
+      biasChartNote.textContent = `Here the peer set is visually de-emphasized. The chart is about whether ${focusGenus} beats the broader market, not just the peers you hand-picked.`;
+    }
+
+    function applyMode(mode) {
+      currentMode = focusGenus ? mode : 'none';
+      if (focusGenus && broadComparisonScope()) {
+        currentMode = 'market-baseline';
+      }
+      if (currentMode === 'peer-average' && (!effectivePeerSet().length || !manualPeerEditingEnabled())) {
+        currentMode = 'none';
+      }
+
+      modeButtons.forEach((button) => {
+        const needsPeers = button.dataset.mode === 'peer-average';
+        const available = Boolean(focusGenus) && (!needsPeers ? true : manualPeerEditingEnabled() && Boolean(effectivePeerSet().length));
+        const active = available && button.dataset.mode === currentMode;
+        button.classList.toggle('active', active);
+        button.classList.toggle('disabled-control', !available);
+        button.disabled = !available;
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+
+      document.querySelectorAll('.compare-view').forEach((node) => {
+        node.hidden = node.dataset.compareView !== currentMode;
+      });
+
+      renderPeerOptions();
+
+      if (!focusGenus) {
+        updateSectionFraming();
+        return;
+      }
+
+      updateBreederCharts();
+      updateIngredientsTable();
+
+      const focusScore = genusMetrics(focusGenus).opportunity;
+      const leader = leaderGenus();
+      const peerAverage = peerAverageScoreValue();
+      const peers = effectivePeerSet();
+
+      if (currentMode === 'none') {
+        breederTurnoverDelta.textContent = leader && leader !== focusGenus ? `Best peer is ${leader}` : peers.length ? 'Strongest in selected set' : 'No peer benchmark yet';
+        breederTurnoverCopy.textContent = selectedGenera.length > editableComparisonLimit
+          ? `Composite breeder-opportunity score. Higher means stronger demand relative to supply. Because the global genus scope is still broad, this section reads ${focusGenus} against one implicit benchmark built from the other in-scope genera.`
+          : `Composite breeder-opportunity score. Higher means stronger demand relative to supply. With no comparison mode selected, the section reads ${focusGenus} against each selected peer individually.`;
+        breederChartTitle.textContent = 'Opportunity score by genus';
+        breederChartNote.textContent = !peers.length
+          ? `This mocked chart cannot compare ${focusGenus} yet because there is no peer benchmark in scope.`
+          : leader && leader !== focusGenus
+          ? `This mocked chart is saying ${focusGenus} has a credible breeder case, but ${leader} is still the strongest purely commercial candidate in the comparison set.`
+          : `This mocked chart is saying ${focusGenus} currently looks strongest in the selected comparison set.`;
+      } else if (currentMode === 'peer-average') {
+        const diff = focusScore - peerAverage;
+        breederTurnoverDelta.textContent = `${diff >= 0 ? '+' : ''}${scoreText(diff)} vs peer average`;
+        breederTurnoverCopy.textContent = `Composite breeder-opportunity score. Higher means stronger demand relative to supply. In peer-average mode, ${focusGenus} is compared against one aggregated benchmark built from the selected peer set.`;
+        breederChartTitle.textContent = `Opportunity score: ${focusGenus} vs peer average`;
+        breederChartNote.textContent = `This view collapses the selected peers into one benchmark, making it easier to judge whether ${focusGenus} is above or below the peer set overall.`;
+      } else {
+        const diff = focusScore - marketAverageScore;
+        breederTurnoverDelta.textContent = `${diff >= 0 ? '+' : ''}${scoreText(diff)} vs market average`;
+        breederTurnoverCopy.textContent = `Composite breeder-opportunity score. Higher means stronger demand relative to supply. In market-baseline mode, the selected peer set is kept only as context while the broader market becomes the active benchmark.`;
+        breederChartTitle.textContent = `Opportunity score: ${focusGenus} vs market baseline`;
+        breederChartNote.textContent = `This view answers a different question: whether ${focusGenus} is outperforming the broader market, not just the peers you hand-picked.`;
+      }
+
+      updateSectionFraming();
+      updateBiasSection();
+    }
+
+    function applyFocusState(selected) {
+      if (!selectedGenera.length) {
+        compareHelp.textContent = 'Add genera in Global filters first. Comparison controls stay empty until the market slice contains at least one genus.';
+      } else if (!selected) {
+        compareHelp.textContent = broadComparisonScope()
+          ? `Global scope is broad at ${selectedGenera.length} genera. You can still choose a focus genus, but the only comparison mode available will be market baseline.`
+          : 'Choose one of the globally selected genera as the focus. The peer set defaults to the remaining selected genera.';
+      } else if (!manualPeerEditingEnabled()) {
+        compareHelp.textContent = `Focus genus is ${focusGenus}. Because the global scope is ${selectedGenera.length} genera wide, peer editing is disabled and the section stays in market-baseline mode.`;
+      } else if (currentMode === 'market-baseline') {
+        compareHelp.textContent = `Focus genus is ${focusGenus}. The saved peer set is muted because market baseline is now the active benchmark.`;
+      } else {
+        compareHelp.textContent = `Focus genus is ${focusGenus}. Peer set defaults to the other selected genera, and you can toggle peers on or off below.`;
+      }
+
+      conditionalSections.forEach((section) => {
+        section.classList.toggle('is-ready', selected);
+      });
+
+      if (!selected) {
+        currentMode = 'none';
+      } else {
+        updateBreederMetrics();
+        updateBreederCharts();
+        updateIngredientsTable();
+      }
+
+      renderFocusOptions();
+      renderPeerOptions();
+      updateSectionFraming();
+      applyMode(currentMode);
+    }
+
+    function renderAll() {
+      renderSelectedGenera();
+      renderSuggestions();
+      renderQuickPicks();
+      renderComparisonState();
+      updateSectionFraming();
+      applyFocusState(Boolean(focusGenus));
+    }
+
+    modeButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const isActive = button.classList.contains('active');
+        applyMode(isActive ? 'none' : button.dataset.mode);
+      });
+    });
+
+    genusSearchInput.addEventListener('input', (event) => {
+      searchQuery = event.target.value.trim().toLowerCase();
+      renderSuggestions();
+    });
+
+    quickPickButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        selectedGenera = normalizeSelection(selectionPresets[button.dataset.selectionAction] || []);
+        syncStateAfterSelectionChange();
+        renderAll();
+      });
+    });
+
+    syncStateAfterSelectionChange();
+    renderAll();
+  })();
+</script>
+</html>
