@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 from shared.history_utils import k2, compare_prices
-from shared.config import (
-    DEALER_TABLE_FILE,
-    OOS_CARRYOVER_LOOKBACK,
-)
-from scrape.wishlist_analysis import compute_wishlist_pressure
+from shared.config import DEALER_TABLE_FILE
 from shared.sparkline_helpers import generate_stock_availability_sparkline
 from shared.driver_text_helpers import build_drivers_text
 from shared.price_text_helpers import format_price_cell
 from shared.summary_utils import MatrixOutputConfig, write_matrix_outputs
 from scrape.matrix_workflow import (
+    collect_lookback_values_for_key,
     generate_price_wishlist_sparklines,
     get_wishlist_display_metrics,
+    prepare_matrix_analysis,
     prepare_matrix_runs,
     sort_matrix_table,
 )
@@ -41,15 +39,12 @@ def _generate_dealer_drivers_text(reliability: str, speed: str, price_pressure: 
 
 
 def build_dealer_supply_risk_table(history_rows):
-    prepared = prepare_matrix_runs(history_rows)
+    prepared = prepare_matrix_analysis(history_rows)
     if prepared is None:
         return []
 
-    by_run, runs, cur_run, prev_run, cur_rows = prepared
+    by_run, runs, cur_run, prev_run, cur_rows, run_index, wishlist_pressure_map = prepared
     total_runs = len(runs)
-
-    # Compute wishlist pressure for current run
-    wishlist_pressure_map = compute_wishlist_pressure(cur_rows)
 
     prev_prices = {k2(r): r.get("price_gbp", "") for r in by_run[prev_run] if r.get("price_gbp")}
     cur_prices = {k2(r): r.get("price_gbp", "") for r in by_run[cur_run] if r.get("price_gbp")}
@@ -61,17 +56,17 @@ def build_dealer_supply_risk_table(history_rows):
 
     table = []
 
-    run_index = {rt: idx for idx, rt in enumerate(runs)}
-
     def last_seen_price_for_key(key):
-        cur_idx = run_index[cur_run]
-        lookback_start = max(0, cur_idx - OOS_CARRYOVER_LOOKBACK)
-        for i in range(cur_idx - 1, lookback_start - 1, -1):
-            rt = runs[i]
-            for row in by_run[rt]:
-                if k2(row) == key and row.get("price_gbp", ""):
-                    return row.get("price_gbp", "")
-        return ""
+        values = collect_lookback_values_for_key(
+            key,
+            by_run,
+            runs,
+            cur_run,
+            run_index,
+            lambda row: row.get("price_gbp", ""),
+            max_values=1,
+        )
+        return values[0] if values else ""
 
     for (sci, size), present_runs in present_runs_map.items():
         present_pct = len(present_runs) / total_runs
