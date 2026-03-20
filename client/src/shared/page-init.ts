@@ -4,15 +4,18 @@ import type { ColumnConfig, FilterConfig } from './components/SortableTable.svel
 import { assertPayload } from './payload-validation.js';
 
 type TableRows = Record<string, unknown>[];
+type TableComponent = Parameters<typeof mount>[0];
 const MIN_SKELETON_DWELL_MS = 520;
 const SKELETON_FADE_DURATION_MS = 260;
 
 export interface SortableTablePageConfig {
   tableId: string;
   columns: ColumnConfig[];
-  filterConfig: FilterConfig;
+  filterConfig?: FilterConfig;
   primaryToggle?: boolean;
   postMount?: () => void;
+  component?: TableComponent;
+  additionalProps?: Record<string, unknown>;
 }
 
 function getWindowRows(tableId: string): TableRows {
@@ -46,19 +49,37 @@ export function completeTableMount(tableId: string): void {
 }
 
 export function initSortableTablePage(config: SortableTablePageConfig): void {
-  const { tableId, columns, filterConfig, primaryToggle, postMount } = config;
+  const {
+    tableId,
+    columns,
+    filterConfig,
+    primaryToggle,
+    postMount,
+    component = SortableTable,
+    additionalProps = {},
+  } = config;
   const target = document.getElementById(`${tableId}-root`);
   if (!target) return;
 
   const rows = getWindowRows(tableId);
   assertPayload(tableId, rows);
 
-  const props =
-    primaryToggle === undefined
-      ? { tableId, rows, columns, filterConfig }
-      : { tableId, rows, columns, filterConfig, primaryToggle };
+  const props: Record<string, unknown> = {
+    tableId,
+    rows,
+    columns,
+    ...additionalProps,
+  };
 
-  mount(SortableTable, { target, props });
+  if (filterConfig !== undefined) {
+    props.filterConfig = filterConfig;
+  }
+
+  if (primaryToggle !== undefined) {
+    props.primaryToggle = primaryToggle;
+  }
+
+  mount(component, { target, props });
   completeTableMount(tableId);
   postMount?.();
 }

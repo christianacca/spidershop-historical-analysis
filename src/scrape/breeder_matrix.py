@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 from shared.history_utils import k2, compare_prices
-from shared.config import (
-    BREEDER_TABLE_FILE,
-    OOS_CARRYOVER_LOOKBACK,
-)
-from scrape.wishlist_analysis import compute_wishlist_pressure
+from shared.config import BREEDER_TABLE_FILE
 from shared.driver_text_helpers import build_drivers_text
 from shared.price_text_helpers import format_price_cell
 from shared.summary_utils import MatrixOutputConfig, write_matrix_outputs
 from scrape.matrix_workflow import (
+    collect_lookback_values_for_key,
     generate_price_wishlist_sparklines,
     get_wishlist_display_metrics,
+    iter_lookback_rows_for_key,
+    prepare_matrix_analysis,
     prepare_matrix_runs,
     sort_matrix_table,
 )
@@ -52,19 +51,16 @@ def _generate_breeder_drivers_text(oos_status: str, oos_runs: int, pattern: str,
 
 
 def build_breeder_opportunity_table(history_rows):
-    prepared = prepare_matrix_runs(history_rows)
+    prepared = prepare_matrix_analysis(history_rows)
     if prepared is None:
         return []
 
-    by_run, runs, cur_run, prev_run, cur_rows = prepared
+    by_run, runs, cur_run, prev_run, cur_rows, run_index, wishlist_pressure_map = prepared
     prev_rows = by_run[prev_run]
 
     # Index rows by (species,size) for quick lookup
     cur_map = {k2(r): r for r in cur_rows}
     prev_map = {k2(r): r for r in prev_rows}
-
-    # Compute wishlist pressure for current run only
-    wishlist_pressure_map = compute_wishlist_pressure(cur_rows)
 
     # Union of keys across ALL history so OUT items can appear in the breeder table
     all_keys = set()
@@ -73,17 +69,8 @@ def build_breeder_opportunity_table(history_rows):
             all_keys.add(k2(r))
 
     # For display of OUT items: bounded last-seen row
-    run_index = {rt: idx for idx, rt in enumerate(runs)}
-
     def get_last_seen_row_within_lookback(key):
-        cur_idx = run_index[cur_run]
-        lookback_start = max(0, cur_idx - OOS_CARRYOVER_LOOKBACK)
-        for i in range(cur_idx - 1, lookback_start - 1, -1):
-            rt = runs[i]
-            for candidate in by_run[rt]:
-                if k2(candidate) == key:
-                    return candidate
-        return None
+        return next(iter_lookback_rows_for_key(key, by_run, runs, cur_run, run_index), None)
 
     # Helper: last 2 price points for a key before/at current
     def price_trend_for_key(key):
@@ -102,17 +89,17 @@ def build_breeder_opportunity_table(history_rows):
             if current_value:
                 prices.append(current_value)
 
-        cur_idx = run_index[cur_run]
-        lookback_start = max(0, cur_idx - OOS_CARRYOVER_LOOKBACK)
-        for i in range(cur_idx - 1, lookback_start - 1, -1):
-            rt = runs[i]
-            m = {k2(r): r for r in by_run[rt]}
-            if key in m:
-                val = m[key].get("price_gbp", "")
-                if val:
-                    prices.append(val)
-                if len(prices) >= 2:
-                    break
+        prices.extend(
+            collect_lookback_values_for_key(
+                key,
+                by_run,
+                runs,
+                cur_run,
+                run_index,
+                lambda row: row.get("price_gbp", ""),
+                max_values=2 - len(prices),
+            )
+        )
 
         if len(prices) >= 2:
             return compare_prices(prices[0], prices[1])

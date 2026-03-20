@@ -3,9 +3,13 @@
 
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from scrape.wishlist_analysis import get_wishlist_count, get_wishlist_metrics
-from shared.config import SIGNAL_PRIORITY
-from shared.history_utils import group_by_run
+from scrape.wishlist_analysis import (
+    compute_wishlist_pressure,
+    get_wishlist_count,
+    get_wishlist_metrics,
+)
+from shared.config import OOS_CARRYOVER_LOOKBACK, SIGNAL_PRIORITY
+from shared.history_utils import group_by_run, k2
 from shared.sparkline_helpers import extract_historical_values_with_carryforward
 
 
@@ -25,6 +29,82 @@ def prepare_matrix_runs(
     previous_run = runs[-2]
     current_rows = by_run[current_run]
     return by_run, runs, current_run, previous_run, current_rows
+
+
+def prepare_matrix_analysis(
+    history_rows: List[Dict[str, Any]],
+) -> Optional[
+    Tuple[
+        Dict[str, List[Dict[str, Any]]],
+        List[str],
+        str,
+        str,
+        List[Dict[str, Any]],
+        Dict[str, int],
+        Dict[Tuple[str, str], str],
+    ]
+]:
+    """Prepare shared matrix builder context including run indices and wishlist pressure."""
+    prepared = prepare_matrix_runs(history_rows)
+    if prepared is None:
+        return None
+
+    by_run, runs, current_run, previous_run, current_rows = prepared
+    run_index = {run_timestamp: idx for idx, run_timestamp in enumerate(runs)}
+    wishlist_pressure_map = compute_wishlist_pressure(current_rows)
+    return (
+        by_run,
+        runs,
+        current_run,
+        previous_run,
+        current_rows,
+        run_index,
+        wishlist_pressure_map,
+    )
+
+
+def iter_lookback_rows_for_key(
+    key: Tuple[str, str],
+    by_run: Dict[str, List[Dict[str, Any]]],
+    runs: List[str],
+    current_run: str,
+    run_index: Dict[str, int],
+    lookback_window: int = OOS_CARRYOVER_LOOKBACK,
+):
+    """Yield matching historical rows newest-first within the bounded lookback window."""
+    current_index = run_index[current_run]
+    lookback_start = max(0, current_index - lookback_window)
+
+    for idx in range(current_index - 1, lookback_start - 1, -1):
+        run_timestamp = runs[idx]
+        for row in by_run[run_timestamp]:
+            if k2(row) == key:
+                yield row
+
+
+def collect_lookback_values_for_key(
+    key: Tuple[str, str],
+    by_run: Dict[str, List[Dict[str, Any]]],
+    runs: List[str],
+    current_run: str,
+    run_index: Dict[str, int],
+    value_getter: Callable[[Dict[str, Any]], Any],
+    max_values: int,
+    lookback_window: int = OOS_CARRYOVER_LOOKBACK,
+) -> List[Any]:
+    """Collect recent non-empty values for a key from the bounded lookback window."""
+    values: List[Any] = []
+
+    for row in iter_lookback_rows_for_key(
+        key, by_run, runs, current_run, run_index, lookback_window=lookback_window
+    ):
+        value = value_getter(row)
+        if value:
+            values.append(value)
+            if len(values) >= max_values:
+                break
+
+    return values
 
 
 def get_wishlist_display_metrics(

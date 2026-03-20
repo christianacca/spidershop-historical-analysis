@@ -5,6 +5,8 @@ const { mountMock, assertPayloadMock } = vi.hoisted(() => ({
   assertPayloadMock: vi.fn(),
 }));
 
+const HistoryTableMock = { name: 'HistoryTableMock' };
+
 vi.mock('svelte', () => ({
   mount: mountMock,
 }));
@@ -20,6 +22,7 @@ vi.mock('./components/SortableTable.svelte', () => ({
 import SortableTable from './components/SortableTable.svelte';
 import { BREEDER_PAGE_CONFIG } from '../breeder-page/config.js';
 import { DEALER_PAGE_CONFIG } from '../dealer-page/config.js';
+import { HISTORY_PAGE_CONFIG } from '../history-page/config.js';
 import { SNAPSHOT_PAGE_CONFIG } from '../snapshot-page/config.js';
 import {
   completeTableMount,
@@ -125,6 +128,41 @@ describe('initSortableTablePage', () => {
     expect(assertPayloadMock).not.toHaveBeenCalled();
     expect(mountMock).not.toHaveBeenCalled();
     expect(postMount).not.toHaveBeenCalled();
+  });
+
+  it('mounts a supplied component with additional props for non-standard table pages', () => {
+    const rows = [{ 'Scientific Name': 'Aphonopelma seemanni' }];
+    document.body.innerHTML = `
+      <div data-table-shell="history-table" data-table-ready="false">
+        <div data-table-skeleton-for="history-table"></div>
+        <div id="history-table-root"></div>
+      </div>
+    `;
+    (window as Window & Record<string, unknown>)['history-tableData'] = rows;
+
+    initSortableTablePage({
+      tableId: 'history-table',
+      columns: [{ key: 'Scientific Name', label: 'Scientific Name' }],
+      component: HistoryTableMock,
+      additionalProps: {
+        dateColumn: 'Scrape Date',
+        priceColumn: 'Price (GBP)',
+        wishlistColumn: 'Wishlist Count',
+      },
+    });
+
+    expect(assertPayloadMock).toHaveBeenCalledWith('history-table', rows);
+    expect(mountMock).toHaveBeenCalledWith(HistoryTableMock, {
+      target: document.getElementById('history-table-root'),
+      props: {
+        tableId: 'history-table',
+        rows,
+        columns: [{ key: 'Scientific Name', label: 'Scientific Name' }],
+        dateColumn: 'Scrape Date',
+        priceColumn: 'Price (GBP)',
+        wishlistColumn: 'Wishlist Count',
+      },
+    });
   });
 });
 
@@ -331,5 +369,32 @@ describe('stable page configs', () => {
       },
       primaryToggle: true,
     });
+  });
+
+  it('preserves the history page component configuration', () => {
+    expect(HISTORY_PAGE_CONFIG.tableId).toBe('history-table');
+    expect(HISTORY_PAGE_CONFIG.component).toBeDefined();
+    expect(HISTORY_PAGE_CONFIG.additionalProps).toEqual({
+      dateColumn: 'Scrape Date',
+      priceColumn: 'Price (GBP)',
+      wishlistColumn: 'Wishlist Count',
+    });
+    expect(HISTORY_PAGE_CONFIG.columns).toEqual(
+      expect.arrayContaining([
+        {
+          key: 'Scrape Date',
+          label: 'Scrape Date',
+          csvHeader: 'scrape_datetime',
+          rawValueKey: '_raw_scrape_datetime',
+        },
+        {
+          key: 'Page URL',
+          label: 'Page URL',
+          type: 'page-url',
+          linkLabelKey: 'Scientific Name',
+          csvHeader: 'page_url',
+        },
+      ]),
+    );
   });
 });
