@@ -5,12 +5,11 @@ from shared.driver_text_helpers import build_drivers_text
 from shared.price_text_helpers import format_price_cell
 from shared.summary_utils import MatrixOutputConfig, write_matrix_outputs
 from scrape.matrix_workflow import (
+    MatrixContext,
     collect_lookback_values_for_key,
     generate_price_wishlist_sparklines,
     get_wishlist_display_metrics,
     iter_lookback_rows_for_key,
-    prepare_matrix_analysis,
-    prepare_matrix_runs,
     sort_matrix_table,
 )
 
@@ -51,16 +50,18 @@ def _generate_breeder_drivers_text(oos_status: str, oos_runs: int, pattern: str,
 
 
 def build_breeder_opportunity_table(history_rows):
-    prepared = prepare_matrix_analysis(history_rows)
-    if prepared is None:
+    context = MatrixContext.from_history(history_rows)
+    if context is None:
         return []
 
-    by_run, runs, cur_run, prev_run, cur_rows, run_index, wishlist_pressure_map = prepared
-    prev_rows = by_run[prev_run]
-
-    # Index rows by (species,size) for quick lookup
-    cur_map = {k2(r): r for r in cur_rows}
-    prev_map = {k2(r): r for r in prev_rows}
+    by_run = context.by_run
+    runs = context.runs
+    cur_run = context.current_run
+    prev_run = context.previous_run
+    run_index = context.run_index
+    wishlist_pressure_map = context.wishlist_pressure_map
+    cur_map = context.current_map
+    prev_map = context.previous_map
 
     # Union of keys across ALL history so OUT items can appear in the breeder table
     all_keys = set()

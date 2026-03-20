@@ -6,11 +6,10 @@ from shared.driver_text_helpers import build_drivers_text
 from shared.price_text_helpers import format_price_cell
 from shared.summary_utils import MatrixOutputConfig, write_matrix_outputs
 from scrape.matrix_workflow import (
+    MatrixContext,
     collect_lookback_values_for_key,
     generate_price_wishlist_sparklines,
     get_wishlist_display_metrics,
-    prepare_matrix_analysis,
-    prepare_matrix_runs,
     sort_matrix_table,
 )
 
@@ -39,11 +38,16 @@ def _generate_dealer_drivers_text(reliability: str, speed: str, price_pressure: 
 
 
 def build_dealer_supply_risk_table(history_rows):
-    prepared = prepare_matrix_analysis(history_rows)
-    if prepared is None:
+    context = MatrixContext.from_history(history_rows)
+    if context is None:
         return []
 
-    by_run, runs, cur_run, prev_run, cur_rows, run_index, wishlist_pressure_map = prepared
+    by_run = context.by_run
+    runs = context.runs
+    cur_run = context.current_run
+    prev_run = context.previous_run
+    run_index = context.run_index
+    wishlist_pressure_map = context.wishlist_pressure_map
     total_runs = len(runs)
 
     prev_prices = {k2(r): r.get("price_gbp", "") for r in by_run[prev_run] if r.get("price_gbp")}

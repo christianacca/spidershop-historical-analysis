@@ -2,6 +2,7 @@
 """Tests for shared matrix workflow helpers used by breeder/dealer builders."""
 
 from scrape.matrix_workflow import (
+    MatrixContext,
     collect_lookback_values_for_key,
     generate_price_wishlist_sparklines,
     get_wishlist_display_metrics,
@@ -61,6 +62,40 @@ class TestPrepareMatrixAnalysis:
         assert current_rows == by_run[current_run]
         assert run_index == {"2025-01-01": 0, "2025-01-08": 1}
         assert wishlist_pressure_map[("Aphonopelma seemanni", "1.0")] in {"🔥", "⚠️", "❌"}
+
+
+class TestMatrixContext:
+    """Dataclass wrapper for shared matrix builder context."""
+
+    def test_from_history_returns_none_for_insufficient_runs(self):
+        history = [make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "5")]
+
+        assert MatrixContext.from_history(history) is None
+
+    def test_from_history_builds_previous_and_current_maps(self):
+        history = [
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "5"),
+            make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "2"),
+            make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "26.00", "11"),
+            make_row("2025-01-08", "Brachypelma hamorii", "3.0", "55.00", "3"),
+        ]
+
+        context = MatrixContext.from_history(history)
+
+        assert context is not None
+        assert context.runs == ["2025-01-01", "2025-01-08"]
+        assert context.current_run == "2025-01-08"
+        assert context.previous_run == "2025-01-01"
+        assert context.run_index == {"2025-01-01": 0, "2025-01-08": 1}
+        assert set(context.current_map) == {
+            ("Aphonopelma seemanni", "1.0"),
+            ("Brachypelma hamorii", "3.0"),
+        }
+        assert set(context.previous_map) == {
+            ("Aphonopelma seemanni", "1.0"),
+            ("Grammostola pulchra", "2.0"),
+        }
+        assert context.wishlist_pressure_map[("Aphonopelma seemanni", "1.0")] in {"🔥", "⚠️", "❌"}
 
 
 class TestWishlistDisplayMetrics:

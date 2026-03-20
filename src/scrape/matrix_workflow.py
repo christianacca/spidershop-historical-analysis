@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Shared workflow helpers for scrape matrix builders."""
 
+from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from scrape.wishlist_analysis import (
@@ -11,6 +12,44 @@ from scrape.wishlist_analysis import (
 from shared.config import OOS_CARRYOVER_LOOKBACK, SIGNAL_PRIORITY
 from shared.history_utils import group_by_run, k2
 from shared.sparkline_helpers import extract_historical_values_with_carryforward
+
+
+@dataclass(frozen=True)
+class MatrixContext:
+    """Shared context prepared once for matrix table builders."""
+
+    by_run: Dict[str, List[Dict[str, Any]]]
+    runs: List[str]
+    current_run: str
+    previous_run: str
+    current_rows: List[Dict[str, Any]]
+    previous_rows: List[Dict[str, Any]]
+    run_index: Dict[str, int]
+    wishlist_pressure_map: Dict[Tuple[str, str], str]
+    current_map: Dict[Tuple[str, str], Dict[str, Any]]
+    previous_map: Dict[Tuple[str, str], Dict[str, Any]]
+
+    @classmethod
+    def from_history(cls, history_rows: List[Dict[str, Any]]) -> Optional["MatrixContext"]:
+        """Build shared matrix context from historical rows."""
+        prepared = prepare_matrix_runs(history_rows)
+        if prepared is None:
+            return None
+
+        by_run, runs, current_run, previous_run, current_rows = prepared
+        previous_rows = by_run[previous_run]
+        return cls(
+            by_run=by_run,
+            runs=runs,
+            current_run=current_run,
+            previous_run=previous_run,
+            current_rows=current_rows,
+            previous_rows=previous_rows,
+            run_index={run_timestamp: idx for idx, run_timestamp in enumerate(runs)},
+            wishlist_pressure_map=compute_wishlist_pressure(current_rows),
+            current_map={k2(row): row for row in current_rows},
+            previous_map={k2(row): row for row in previous_rows},
+        )
 
 
 def prepare_matrix_runs(
@@ -45,21 +84,18 @@ def prepare_matrix_analysis(
     ]
 ]:
     """Prepare shared matrix builder context including run indices and wishlist pressure."""
-    prepared = prepare_matrix_runs(history_rows)
-    if prepared is None:
+    context = MatrixContext.from_history(history_rows)
+    if context is None:
         return None
 
-    by_run, runs, current_run, previous_run, current_rows = prepared
-    run_index = {run_timestamp: idx for idx, run_timestamp in enumerate(runs)}
-    wishlist_pressure_map = compute_wishlist_pressure(current_rows)
     return (
-        by_run,
-        runs,
-        current_run,
-        previous_run,
-        current_rows,
-        run_index,
-        wishlist_pressure_map,
+        context.by_run,
+        context.runs,
+        context.current_run,
+        context.previous_run,
+        context.current_rows,
+        context.run_index,
+        context.wishlist_pressure_map,
     )
 
 
