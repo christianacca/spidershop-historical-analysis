@@ -238,6 +238,8 @@ class TestSummaryStatsInHtml:
             watch_tooltip = tooltips[1].get_text()
             assert 'emerging' in watch_tooltip.lower()
             assert 'monitor' in watch_tooltip.lower() or 'watch' in watch_tooltip.lower()
+            assert 'newly observed' in watch_tooltip.lower()
+            assert 'limited history' in watch_tooltip.lower()
             
             # Check avoid tooltip
             avoid_tooltip = tooltips[2].get_text()

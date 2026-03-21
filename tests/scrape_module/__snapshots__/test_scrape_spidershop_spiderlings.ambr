@@ -34,7 +34,7 @@
   | Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price | Price History | Wishlist | Wishlist History | Stock Availability | Dealer Risk | Dealer Recommendation |
   |---|---:|---|---:|---|---|---|---|---|---|---|---|
   | Cyriocosmus elegans | 0.5 | Low | 4.0 | Slow | £25.00 → | ▄▄▄▄▄ | 15 🔥 → | ▄▄▄▄▄ | █     | 🔥 | Actively seek breeders — high demand, poor supply |
-  | Grammostola pulchra | 2.0 | Low | 4.0 | Slow | £40.00 → | ▄ | 15 🔥 → | ▄ |     █ | 🔥 | Actively seek breeders — high demand, poor supply |
+  | Grammostola pulchra | 2.0 | Low | 4.0 | Slow | £40.00 → | ▄ | 15 🔥 → | ▄ |     █ | 🔥 | Actively seek breeders — high demand, poor supply — limited history (observed 1/5 runs) |
   | Aphonopelma seemanni | 1.0 | High | 0 | Fast | £25.00 ↑ | ▁▄▅▇█ | 5 ❌ → | ▁▄▄██ | █████ | ❌ | No urgency / oversupplied |
   
   <details>
@@ -55,6 +55,7 @@
   - With weekly runs, `4+` weeks indicates persistent scarcity
   - **Resets to 0 when species returns to stock** — focuses on current opportunity window
   - Example: A species OUT for 5 weeks, then IN, then OUT for 2 weeks shows `OOS Runs = 2`
+  - Runs before a species is first observed are **ambiguous** and do not count as breeder scarcity evidence
   - **Key Difference from Dealer Matrix:** Breeder OOS Runs measures current scarcity window (forward-looking opportunity), while Dealer Avg OOS Duration measures historical supply reliability (backward-looking risk assessment)
   
   **Stock Pattern** (Primary Signal)
@@ -63,6 +64,7 @@
   - `Emerging` — Missing for multiple consecutive runs (early scarcity)
   - `Sustained` — Missing for many runs (strong breeding signal)
   - `Cyclical` — Repeated disappear / reappear pattern (batch supply)
+  - `Newly Observed` — Currently in stock, but only observed in the latest 1-2 runs; limited history means pre-first-seen absence is ambiguous
   - This is the **foundation** of all recommendations — modifiers can only refine, not override
   
   **Price** (Value + Trend)
@@ -105,6 +107,7 @@
   - `🔥` — Strong breeding opportunity signal
   - `⚠️` — Monitor closely; opportunity may be forming
   - `❌` — Oversupplied or no meaningful scarcity
+  - `Newly Observed` stays in the `⚠️` bucket until more runs exist; it is a limited-history hold state, not confirmed scarcity or abundance
   
   **Recommendation** (Final Assessment)
   
@@ -113,6 +116,7 @@
   - Modifiers can escalate signals but never override the base pattern category
   - Example: `Sustained` scarcity cannot be downgraded by falling prices
   - Example: `Always` available cannot reach 🔥 regardless of wishlist interest
+  - Example: `Newly Observed` remains ⚠️ while history is sparse, even if current demand is strong
   - Designed to be conservative to avoid reacting to short-term noise
   
   ---

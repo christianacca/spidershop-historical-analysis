@@ -222,6 +222,29 @@ class TestExampleStructure:
 
 class TestSparklineLegendDocumentation:
     """Test that sparkline columns are properly documented in the legend."""
+
+    def test_breeder_legend_documents_newly_observed_and_ambiguity(self):
+        """Legend should explain Newly Observed and ambiguous pre-first-seen absence."""
+        from scrape.legend import write_summary_legend
+        import tempfile
+        import os
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            summary_file = os.path.join(tmpdir, "summary.md")
+            os.environ["GITHUB_STEP_SUMMARY"] = summary_file
+
+            write_summary_legend()
+
+            with open(summary_file, "r", encoding="utf-8") as f:
+                legend_content = f.read()
+
+            breeder_start = legend_content.find("### 🧬 Breeder Opportunity Matrix")
+            dealer_start = legend_content.find("### 🏪 Dealer Supply Risk Matrix")
+            breeder_section = legend_content[breeder_start:dealer_start]
+
+            assert "`Newly Observed`" in breeder_section
+            assert "pre-first-seen absence is ambiguous" in breeder_section.lower()
+            assert "limited history" in breeder_section.lower()
     
     def test_breeder_legend_documents_price_history(self):
         """Breeder legend should document Price History sparkline column."""

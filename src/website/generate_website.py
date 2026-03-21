@@ -295,7 +295,7 @@ def generate_analysis_page(config: BasePageConfig) -> str:
             }
             tooltips = {
                 'hot': 'Strong breeding opportunity. Sustained or emerging scarcity patterns (4+ weeks out of stock) with rising prices or high demand signals.',
-                'watch': 'Emerging opportunity forming. Species showing early scarcity (2-3 weeks) or cyclical patterns. Monitor for escalating signals.',
+                'watch': 'Emerging opportunity forming. Species showing early scarcity (2-3 weeks), cyclical patterns, or newly observed limited history supply. Monitor for escalating signals.',
                 'avoid': 'Oversupplied or always available. No meaningful scarcity pattern detected, regardless of demand spikes.'
             }
     
