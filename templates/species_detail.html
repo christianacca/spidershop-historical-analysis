@@ -37,6 +37,33 @@
     <div class="meta-note">Pages generated for <strong>current tables only</strong> (Breeder/Dealer CSV outputs), not all historical species.</div>
   </div>
 
+  {% if observation_metadata %}
+  <div class="panel">
+    <h3>Observation Coverage</h3>
+    <div class="panel-sub">Dataset context for interpreting sparse-history supply signals.</div>
+    <div class="summary-stats">
+      <div class="stat-card">
+        <div class="stat-value">{{ observation_metadata.first_observed }}</div>
+        <div class="stat-label">First observed in dataset</div>
+        <div class="stat-note">Earliest confirmed listing</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ observation_metadata.latest_observed }}</div>
+        <div class="stat-label">Latest observed</div>
+        <div class="stat-note">Most recent confirmed listing</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ observation_metadata.observed_runs_display }}</div>
+        <div class="stat-label">Observed in {{ observation_metadata.observed_runs_display }}</div>
+        <div class="stat-note">Uses the full dataset run count</div>
+      </div>
+    </div>
+    {% if observation_metadata.has_ambiguous_pre_first_seen_runs %}
+    <div class="meta-note">Pre-first-seen absence is ambiguous: the species may have been unlisted, renamed, or simply not yet observed in the dataset.</div>
+    {% endif %}
+  </div>
+  {% endif %}
+
   <div class="badge-row">
     <div class="segment" role="tablist" aria-label="Perspective selector">
       <button id="tab-breeder" role="tab" aria-controls="panel-breeder" 
@@ -63,6 +90,8 @@
       <strong>Breeder perspective:</strong>
       {% if species_data.breeder.signal == '🔥' %}
         Sustained scarcity signal detected. Consider breeding potential if pattern persists.
+      {% elif species_data.breeder.stock_pattern == 'Newly Observed' %}
+        Newly observed in the dataset; limited history means supply is not yet proven stable or scarce.
       {% elif species_data.breeder.signal == '⚠️' %}
         Emerging opportunity signal. Monitor for sustained scarcity pattern.
       {% else %}

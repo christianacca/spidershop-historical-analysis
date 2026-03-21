@@ -14,6 +14,7 @@ from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 
 from website.csv_utils import read_csv_file
+from shared.history_utils import create_observation_coverage
 from shared.parsing import format_datetime_smart
 
 
@@ -333,12 +334,58 @@ def get_page_url(
     return matching_observations[0][1]
 
 
+def get_observation_metadata(
+    scientific_name: str,
+    size: str,
+    history_csv_path: str,
+) -> Optional[Dict[str, object]]:
+    """Return full-history observation metadata for a species detail page."""
+    def _to_date_string(value: str) -> str:
+        return value.split(" ", 1)[0]
+
+    headers, rows = read_csv_file(history_csv_path)
+
+    if not rows:
+        return None
+
+    datetime_idx = headers.index("scrape_datetime")
+    all_run_dates = sorted(set(row[datetime_idx] for row in rows))
+    formatted_dates = format_datetime_smart(all_run_dates)
+    date_to_formatted = {
+        raw_date: _to_date_string(formatted_date)
+        for raw_date, formatted_date in zip(all_run_dates, formatted_dates)
+    }
+    history_rows = [dict(zip(headers, row)) for row in rows]
+
+    observation_coverage = create_observation_coverage(history_rows, (scientific_name, size))
+    if observation_coverage["observed_run_count"] == 0:
+        return None
+
+    first_observed_run = observation_coverage["first_observed_run"]
+    latest_observed_run = observation_coverage["latest_observed_run"]
+
+    return {
+        "first_observed": date_to_formatted.get(first_observed_run, first_observed_run),
+        "latest_observed": date_to_formatted.get(latest_observed_run, latest_observed_run),
+        "observed_run_count": observation_coverage["observed_run_count"],
+        "total_run_count": observation_coverage["total_run_count"],
+        "observed_runs_display": (
+            f"{observation_coverage['observed_run_count']}"
+            f"/{observation_coverage['total_run_count']} runs"
+        ),
+        "has_ambiguous_pre_first_seen_runs": (
+            observation_coverage["ambiguous_pre_first_seen_run_count"] > 0
+        ),
+    }
+
+
 def generate_species_page(
     scientific_name: str,
     common_name: str,
     size: str,
     species_data: dict,
     chart_data: dict,
+    observation_metadata: Optional[Dict[str, object]] = None,
     page_url: Optional[str] = None,
     default_view: str = "breeder"
 ) -> str:
@@ -364,6 +411,7 @@ def generate_species_page(
         size=size,
         species_data=species_data,
         chart_data=chart_data,
+        observation_metadata=observation_metadata,
         page_url=page_url,
         default_view=default_view,
         path_prefix="../",
