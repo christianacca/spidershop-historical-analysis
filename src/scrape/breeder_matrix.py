@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-from shared.history_utils import k2, compare_prices
-from shared.config import BREEDER_TABLE_FILE
+from shared.history_utils import create_observation_coverage, k2, compare_prices
+from shared.config import BREEDER_TABLE_FILE, SIGNAL_PRIORITY
 from shared.driver_text_helpers import build_drivers_text
 from shared.price_text_helpers import format_price_cell
 from shared.summary_utils import MatrixOutputConfig, write_matrix_outputs
@@ -11,23 +11,57 @@ from scrape.matrix_workflow import (
     iter_lookback_rows_for_key,
     prepare_matrix_analysis,
     prepare_matrix_runs,
-    sort_matrix_table,
 )
 
 # =====================
 # BREEDER MATRIX (PRICE AWARE) — FIXED TO INCLUDE OUT-OF-STOCK ITEMS
 # =====================
 
-def _generate_breeder_drivers_text(oos_status: str, oos_runs: int, pattern: str, price_trend: str, wishlist_pressure: str, wishlist_delta: str) -> str:
+BREEDER_WARNING_PATTERN_PRIORITY = {
+    "Emerging": 0,
+    "Cyclical": 1,
+    "Newly Observed": 2,
+}
+
+
+def _format_observation_coverage(observation_coverage: dict[str, int]) -> str:
+    """Return compact observation coverage text for sparse-history species."""
+    return (
+        f"observed {observation_coverage['observed_run_count']}"
+        f"/{observation_coverage['total_run_count']} runs"
+    )
+
+
+def _extract_wishlist_count(row: dict[str, str]) -> int:
+    """Extract wishlist count from the combined wishlist display cell."""
+    wishlist_value = str(row.get("Wishlist", "")).split()
+    if not wishlist_value:
+        return 0
+    try:
+        return int(wishlist_value[0])
+    except (ValueError, IndexError):
+        return 0
+
+
+def _generate_breeder_drivers_text(
+    oos_status: str,
+    oos_runs: int,
+    pattern: str,
+    price_trend: str,
+    wishlist_pressure: str,
+    wishlist_delta: str,
+    observation_coverage_text: str = "",
+) -> str:
     """Generate structured explanation of signal drivers using semicolon separators.
     
     Args:
         oos_status: Current stock status (IN/OUT/IN/OUT)
         oos_runs: Number of consecutive OOS runs
-        pattern: Stock pattern (Sustained/Emerging/Cyclical/Always)
+        pattern: Stock pattern (Sustained/Emerging/Cyclical/Always/Newly Observed)
         price_trend: Price direction (↑/→/↓)
         wishlist_pressure: Demand level (🔥/⚠️/❌)
         wishlist_delta: Momentum (↑/→/↓)
+        observation_coverage_text: Optional sparse-history coverage text
         
     Returns:
         Semicolon-separated string explaining the signal drivers
@@ -46,6 +80,9 @@ def _generate_breeder_drivers_text(oos_status: str, oos_runs: int, pattern: str,
         stock_section = f"Stock: {pattern} ({'; '.join(stock_details)})"
     else:
         stock_section = f"Stock: {pattern}"
+
+    if observation_coverage_text:
+        stock_section = f"{stock_section}; Coverage: {observation_coverage_text}"
     
     return build_drivers_text(stock_section, price_trend, wishlist_pressure, wishlist_delta)
 
@@ -113,6 +150,8 @@ def build_breeder_opportunity_table(history_rows):
     for key in sorted(all_keys):
         in_current = key in keys_by_run[cur_run]
         in_prev = key in keys_by_run[prev_run]
+        observation_coverage = create_observation_coverage(history_rows, key)
+        observation_coverage_text = ""
 
         # Use current row if present, otherwise bounded last-seen row for display
         row = cur_map.get(key) or get_last_seen_row_within_lookback(key) or {
@@ -140,8 +179,18 @@ def build_breeder_opportunity_table(history_rows):
                     break
                 oos_runs += 1
 
-        # Pattern derived from OOS evidence
-        if oos_runs >= 4:
+        # Pattern derived from OOS evidence, with a conservative sparse-history hold state.
+        is_newly_observed = (
+            in_current
+            and observation_coverage["observed_run_count"] <= 2
+            and observation_coverage["current_consecutive_observation_runs"]
+            == observation_coverage["observed_run_count"]
+        )
+
+        if is_newly_observed:
+            pattern = "Newly Observed"
+            observation_coverage_text = _format_observation_coverage(observation_coverage)
+        elif oos_runs >= 4:
             pattern = "Sustained"
         elif oos_runs >= 2:
             pattern = "Emerging"
@@ -162,8 +211,14 @@ def build_breeder_opportunity_table(history_rows):
         # Wishlist can upgrade confidence or escalate emerging signals
         # Wishlist Delta acts as momentum modifier
         
+        if pattern == "Newly Observed":
+            signal = "⚠️"
+            rec = (
+                "Monitor closely — newly observed, limited history "
+                f"({observation_coverage_text})"
+            )
         # Sustained scarcity with strong buyer interest
-        if pattern == "Sustained" and price_trend in ("↑", "→") and wishlist_pressure == "🔥":
+        elif pattern == "Sustained" and price_trend in ("↑", "→") and wishlist_pressure == "🔥":
             signal = "🔥"
             rec = "Pair soon — sustained scarcity with strong buyer interest"
         # Sustained scarcity (standard case)
@@ -216,7 +271,8 @@ def build_breeder_opportunity_table(history_rows):
             pattern=pattern,
             price_trend=price_trend,
             wishlist_pressure=wishlist_pressure,
-            wishlist_delta=wishlist_delta
+            wishlist_delta=wishlist_delta,
+            observation_coverage_text=observation_coverage_text,
         )
 
         table.append({
@@ -234,8 +290,17 @@ def build_breeder_opportunity_table(history_rows):
             "Drivers": drivers
         })
 
-    # Sort: Signal priority (🔥 > ⚠️ > ❌), then Wishlist count (desc), then OOS Runs (desc)
-    sort_matrix_table(table, "Signal", lambda row: float(row["OOS Runs"]))
+    # Sort: Signal priority, breeder watch-bucket precedence, then Wishlist count and OOS runs.
+    table.sort(
+        key=lambda row: (
+            SIGNAL_PRIORITY.get(str(row.get("Signal", "")), 99),
+            BREEDER_WARNING_PATTERN_PRIORITY.get(str(row.get("Stock Pattern", "")), -1)
+            if row.get("Signal") == "⚠️"
+            else -1,
+            -_extract_wishlist_count(row),
+            -float(row["OOS Runs"]),
+        )
+    )
     return table
 
 def write_breeder_outputs(table):

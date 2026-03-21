@@ -129,6 +129,121 @@ class TestBuildBreederOpportunityTable:
         # Without high wishlist pressure, should be ❌
         assert seemanni_entry["Signal"] == "❌"
 
+    def test_newly_observed_pattern_for_single_current_observation(self):
+        """A current-run first observation should not be misclassified as Always."""
+        history = [
+            make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "3"),
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "3"),
+            make_row("2025-01-15", "Aphonopelma seemanni", "1.0", "25.00", "6"),
+            make_row("2025-01-15", "Grammostola pulchra", "2.0", "41.00", "3"),
+        ]
+
+        table = build_breeder_opportunity_table(history)
+        seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+
+        assert seemanni_entry["OOS"] == "IN"
+        assert seemanni_entry["OOS Runs"] == "0"
+        assert seemanni_entry["Stock Pattern"] == "Newly Observed"
+        assert seemanni_entry["Signal"] == "⚠️"
+        assert "limited history" in seemanni_entry["Recommendation"].lower()
+        assert "observed 1/3 runs" in seemanni_entry["Recommendation"].lower()
+        assert "observed 1/3 runs" in seemanni_entry["Drivers"].lower()
+
+    def test_newly_observed_pattern_for_latest_two_consecutive_runs(self):
+        """Two latest consecutive observations should still qualify as Newly Observed."""
+        history = [
+            make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "3"),
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "3"),
+            make_row("2025-01-15", "Aphonopelma seemanni", "1.0", "25.00", "8"),
+            make_row("2025-01-15", "Grammostola pulchra", "2.0", "41.00", "3"),
+            make_row("2025-01-22", "Aphonopelma seemanni", "1.0", "26.00", "10"),
+            make_row("2025-01-22", "Grammostola pulchra", "2.0", "42.00", "3"),
+        ]
+
+        table = build_breeder_opportunity_table(history)
+        seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+
+        assert seemanni_entry["Stock Pattern"] == "Newly Observed"
+        assert seemanni_entry["Signal"] == "⚠️"
+        assert "observed 2/4 runs" in seemanni_entry["Recommendation"].lower()
+
+    def test_newly_observed_exits_after_three_observed_runs(self):
+        """Three observed runs should fall back to the normal taxonomy."""
+        history = [
+            make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "3"),
+            make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "25.00", "6"),
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "3"),
+            make_row("2025-01-15", "Aphonopelma seemanni", "1.0", "25.00", "7"),
+            make_row("2025-01-15", "Grammostola pulchra", "2.0", "41.00", "3"),
+            make_row("2025-01-22", "Aphonopelma seemanni", "1.0", "25.00", "8"),
+            make_row("2025-01-22", "Grammostola pulchra", "2.0", "42.00", "3"),
+        ]
+
+        table = build_breeder_opportunity_table(history)
+        seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+
+        assert seemanni_entry["Stock Pattern"] == "Always"
+        assert seemanni_entry["Stock Pattern"] != "Newly Observed"
+
+    def test_newly_observed_does_not_infer_pre_first_seen_oos_runs(self):
+        """Runs before first appearance must stay ambiguous, not count as OOS evidence."""
+        history = [
+            make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "3"),
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "3"),
+            make_row("2025-01-15", "Aphonopelma seemanni", "1.0", "25.00", "7"),
+            make_row("2025-01-15", "Grammostola pulchra", "2.0", "41.00", "3"),
+        ]
+
+        table = build_breeder_opportunity_table(history)
+        seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+
+        assert seemanni_entry["OOS"] == "IN"
+        assert seemanni_entry["OOS Runs"] == "0"
+        assert seemanni_entry["Stock Pattern"] == "Newly Observed"
+
+    def test_newly_observed_does_not_escalate_above_watch_with_strong_wishlist(self):
+        """Strong wishlist signals must not upgrade Newly Observed above ⚠️."""
+        history = [
+            make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "1"),
+            make_row("2025-01-01", "Brachypelma hamorii", "1.5", "30.00", "1"),
+            make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "25.00", "40"),
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "1"),
+            make_row("2025-01-08", "Brachypelma hamorii", "1.5", "30.00", "1"),
+            make_row("2025-01-15", "Aphonopelma seemanni", "1.0", "26.00", "50"),
+            make_row("2025-01-15", "Grammostola pulchra", "2.0", "41.00", "1"),
+            make_row("2025-01-15", "Brachypelma hamorii", "1.5", "31.00", "1"),
+        ]
+
+        table = build_breeder_opportunity_table(history)
+        seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+
+        assert seemanni_entry["Stock Pattern"] == "Newly Observed"
+        assert seemanni_entry["Wishlist"].split()[1] == "🔥"
+        assert seemanni_entry["Signal"] == "⚠️"
+
+    def test_newly_observed_sorts_below_evidence_backed_watch_rows_and_above_avoid(self):
+        """Newly Observed should be last within ⚠️ rows, but still above ❌ rows."""
+        history = [
+            make_row("2025-01-01", "Cyclical Watch", "1.0", "25.00", "2"),
+            make_row("2025-01-01", "Always Avoid", "1.0", "20.00", "2"),
+            make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "2"),
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "2"),
+            make_row("2025-01-08", "Always Avoid", "1.0", "20.00", "2"),
+            make_row("2025-01-15", "Always Avoid", "1.0", "20.00", "2"),
+            make_row("2025-01-15", "Newly Observed Watch", "1.0", "30.00", "30"),
+            make_row("2025-01-15", "Grammostola pulchra", "2.0", "41.00", "2"),
+            make_row("2025-01-22", "Cyclical Watch", "1.0", "27.00", "2"),
+            make_row("2025-01-22", "Newly Observed Watch", "1.0", "31.00", "35"),
+            make_row("2025-01-22", "Always Avoid", "1.0", "20.00", "2"),
+            make_row("2025-01-22", "Grammostola pulchra", "2.0", "42.00", "2"),
+        ]
+
+        table = build_breeder_opportunity_table(history)
+        species_order = [row["Species"] for row in table]
+
+        assert species_order.index("Cyclical Watch") < species_order.index("Newly Observed Watch")
+        assert species_order.index("Newly Observed Watch") < species_order.index("Always Avoid")
+
     def test_price_trend_rising(self):
         """Should detect rising price trend."""
         history = [
@@ -425,7 +540,7 @@ class TestBuildBreederOpportunityTable:
         assert isinstance(entry["Species"], str)
         assert isinstance(entry["OOS Runs"], str)  # Stored as string
         assert entry["Signal"] in ["🔥", "⚠️", "❌"]
-        assert entry["Stock Pattern"] in ["Sustained", "Emerging", "Cyclical", "Always"]
+        assert entry["Stock Pattern"] in ["Sustained", "Emerging", "Cyclical", "Always", "Newly Observed"]
         assert entry["Price"].endswith(("↑", "↓", "→"))
 
     def test_complex_multi_species_scenario(self):
