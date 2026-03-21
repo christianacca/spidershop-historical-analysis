@@ -523,6 +523,8 @@ class TestGenerateSpeciesPage:
 
         assert coverage_pos > evidence_pos
         assert coverage_pos > tabs_pos
+        assert html.count("coverage-metric--key-date") == 2
+        assert "coverage-metric--context" in html
 
     def test_generates_html_with_breeder_and_dealer_sections(self):
         """Should generate HTML with both perspective sections and required CSS.

@@ -157,17 +157,17 @@
     <h3>Observation Coverage</h3>
     <div class="panel-sub">Dataset context for interpreting sparse-history supply signals.</div>
     <div class="coverage-metrics">
-      <div class="coverage-metric">
+      <div class="coverage-metric coverage-metric--key-date">
         <div class="coverage-label">First observed in dataset</div>
         <div class="coverage-value">{{ observation_metadata.first_observed }}</div>
         <div class="coverage-note">Earliest confirmed listing</div>
       </div>
-      <div class="coverage-metric">
+      <div class="coverage-metric coverage-metric--key-date">
         <div class="coverage-label">Latest observed</div>
         <div class="coverage-value">{{ observation_metadata.latest_observed }}</div>
         <div class="coverage-note">Most recent confirmed listing</div>
       </div>
-      <div class="coverage-metric">
+      <div class="coverage-metric coverage-metric--context">
         <div class="coverage-label">Observed in {{ observation_metadata.observed_runs_display }}</div>
         <div class="coverage-value">{{ observation_metadata.observed_runs_display }}</div>
         <div class="coverage-note">Uses the full dataset run count</div>

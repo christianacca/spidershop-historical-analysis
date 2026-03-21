@@ -540,3 +540,34 @@ def test_species_detail_table_footnote_styling(e2e_site_minimal) -> None:
     margin_top = footnote.first.evaluate('el => window.getComputedStyle(el).marginTop')
     assert margin_top == '10px', \
         f".table-footnote should have margin-top: 10px, got {margin_top}"
+
+
+@pytest.mark.e2e
+def test_species_detail_observation_coverage_emphasizes_key_dates(e2e_site_minimal) -> None:
+    """Observation coverage should stay subtle overall while first/latest dates get the visual emphasis."""
+    page, base_url, errors = e2e_site_minimal
+
+    _navigate_to_species_page(page, base_url)
+
+    coverage_panel = page.locator('.panel--observation-coverage')
+    assert coverage_panel.count() == 1, "Species detail should have a compact observation coverage panel"
+
+    panel_bg = coverage_panel.first.evaluate('el => window.getComputedStyle(el).backgroundColor')
+    assert token_rgb('--color-surface-light') in panel_bg, \
+        f"Observation coverage panel should use {token_rgb('--color-surface-light')}, got {panel_bg}"
+
+    key_metrics = page.locator('.coverage-metric--key-date')
+    assert key_metrics.count() == 2, "First/latest observed metrics should use key-date emphasis styling"
+
+    first_border = key_metrics.nth(0).evaluate('el => window.getComputedStyle(el).borderLeftColor')
+    latest_border = key_metrics.nth(1).evaluate('el => window.getComputedStyle(el).borderLeftColor')
+    assert token_rgb('--color-accent') in first_border, \
+        f"First observed metric should emphasize with accent border, got {first_border}"
+    assert token_rgb('--color-accent') in latest_border, \
+        f"Latest observed metric should emphasize with accent border, got {latest_border}"
+
+    context_metric = page.locator('.coverage-metric--context')
+    assert context_metric.count() == 1, "Observed runs metric should use lower-emphasis context styling"
+    context_border = context_metric.first.evaluate('el => window.getComputedStyle(el).borderLeftWidth')
+    assert context_border == '1px', \
+        f"Context metric should not use the stronger key-date border treatment, got {context_border}"
