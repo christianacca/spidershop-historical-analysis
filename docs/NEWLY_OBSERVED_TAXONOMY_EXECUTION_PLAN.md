@@ -4,6 +4,36 @@ This document converts the recommendation in [NEWLY_OBSERVED_TAXONOMY_RECOMMENDA
 
 It is intentionally conservative, repo-specific, and phased for reviewability.
 
+## 0. Implementation Reconciliation
+
+This plan has now been executed on branch `breeder-newly-observed` and is retained as both:
+
+- the original execution script, and
+- a reconciled record of what actually landed.
+
+### Actual Implementation Status
+
+- Completed through all six planned phases.
+- PR opened: `#132` - `Add newly observed breeder taxonomy`.
+- Follow-up review cleanup completed after Phase 6 to reconcile stale guidance docs, remove low-signal test duplication, and harden browser fixtures against stale client assets.
+
+### Phase Commit Record
+
+- Phase 1: `adf431f` - `Add observation coverage helper`
+- Phase 2: `d36ec19` - `Add breeder newly observed taxonomy`
+- Phase 3: `07c41fa` - `Align sparse-history copy`
+- Phase 4: `75b339a` - `Add species observation coverage metadata`
+- Phase 5: `c95400e` - `Expose newly observed breeder filter`
+- Post-phase review cleanup: `a7e7c8b` - `Harden taxonomy follow-up docs and tests`
+
+### Repo-Specific Discoveries Confirmed During Implementation
+
+- Canonical stock-pattern payload value remains `Always`; the client normalises legacy `Always Available` values for backward-compatible filtering.
+- Optional qualitative coverage labels (`low` / `medium` / `high`) were not added.
+- Historical CSV timestamps use space-separated datetimes as well as date-only strings, so shared parsing had to be extended during the follow-up review pass.
+- Browser fixtures that call Python website generation directly can otherwise serve stale `templates/scripts/dist` assets; the follow-up review pass added an explicit client build step in E2E helpers.
+- The repo instruction set treats `docs/MIGRATION_PLAN.md` as active client architecture guidance, so that file and other active guidance docs were updated after implementation even though this execution-plan document originally tried to minimise doc edits.
+
 ## 1. Mission
 
 - Implement a conservative `Newly Observed` treatment for sparse-history species so first-seen or very recently first-seen species are not mislabeled as stable `Always` supply.
@@ -49,7 +79,8 @@ It is intentionally conservative, repo-specific, and phased for reviewability.
 - Update Python unit, website unit, client unit, visual, E2E, and affected snapshot/legend tests in the same phases as the behavior changes.
 - `docs`
 - The recommendation doc remains the source of truth.
-- Only update docs if implementation discovers a repo-specific constraint that needs to be recorded after the code is settled.
+- Update active guidance docs when implementation reveals stale operational guidance or repo-specific constraints.
+- Reconcile this execution-plan document after implementation so it records the final branch outcome, repo-specific discoveries, and any follow-up review work.
 
 ## 4. File Target List
 
@@ -113,6 +144,21 @@ It is intentionally conservative, repo-specific, and phased for reviewability.
   - Update only if summary tooltip wording changes.
 - `/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/docs/NEWLY_OBSERVED_TAXONOMY_RECOMMENDATION.md`
   - Treat as read-only source of truth unless a final implementation note is explicitly needed.
+
+### Actually changed on the branch
+
+- `/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/src/shared/parsing.py`
+  - Follow-up fix: support space-separated historical timestamps so observation metadata formatting matches real CSV inputs.
+- `/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/tests/shared_module/test_parsing.py`
+  - Regression tests for space-separated timestamp parsing and same-day collision formatting.
+- `/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/tests/e2e/fixtures.py`
+  - Follow-up hardening: rebuild client assets before generating browser fixtures so E2E cannot serve stale bundles.
+- `/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/README.md`
+  - Updated public-facing taxonomy explanation from four breeder patterns to five and clarified dealer scope.
+- `/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/docs/MIGRATION_PLAN.md`
+  - Updated active client architecture guidance to match canonical `Always` payload semantics and include `Newly Observed`.
+- `/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/.github/copilot-instructions.md`
+  - Recorded the E2E asset-freshness rule discovered during implementation.
 
 ## 5. Execution Rules For The Coding Agent
 
@@ -641,6 +687,15 @@ It is intentionally conservative, repo-specific, and phased for reviewability.
 - Re-check the acceptance contract against the final generated outputs, not just unit tests.
 - Prepare the branch in a review-ready state before opening the PR.
 
+### Actual Final Validation Outcome
+
+- `make test`: passed
+- `make test-client`: passed
+- `make test-e2e`: passed
+- Edited-module coverage checks passed during phase execution and final integration.
+- Snapshot changes were reviewed before acceptance.
+- The follow-up review pass re-ran the full validation stack after doc, parsing, fixture, and test-quality cleanup.
+
 ## 12. Final Acceptance Checklist
 
 - A species first observed in the current run or latest 2 consecutive runs is no longer mislabeled as breeder `Always`.
@@ -668,3 +723,8 @@ It is intentionally conservative, repo-specific, and phased for reviewability.
 - Ensure each phase remains committed separately and the branch is clean.
 - Prepare a concise PR summary covering: the false-`Always` problem, the `Newly Observed` qualification/exit rules, breeder/dealer/species-page behavior changes, test coverage added, and any confirmed repo-specific decisions such as canonical `Always` filter values.
 - Open a pull request only after the final acceptance checklist is fully satisfied.
+
+### Actual PR State
+
+- PR opened after the six planned phases were validated: `#132` - `Add newly observed breeder taxonomy`.
+- Follow-up review work was pushed to the same branch afterward in commit `a7e7c8b`.
