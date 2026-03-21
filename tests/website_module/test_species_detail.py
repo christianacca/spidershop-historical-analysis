@@ -517,6 +517,13 @@ class TestGenerateSpeciesPage:
         assert "Newly observed in the dataset" in html
         assert "limited history means supply is not yet proven stable or scarce" in html
 
+        evidence_pos = html.index("<div class=\"section-title\">Evidence")
+        coverage_pos = html.index("Observation Coverage")
+        tabs_pos = html.index("Breeder view")
+
+        assert coverage_pos > evidence_pos
+        assert coverage_pos > tabs_pos
+
     def test_generates_html_with_breeder_and_dealer_sections(self):
         """Should generate HTML with both perspective sections and required CSS.
         
