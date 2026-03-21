@@ -55,37 +55,37 @@ def build_breeder_opportunity_table(history_rows):
     if prepared is None:
         return []
 
-    by_run, runs, cur_run, prev_run, cur_rows, run_index, wishlist_pressure_map = prepared
-    prev_rows = by_run[prev_run]
+    by_run, runs, current_run, previous_run, current_rows, run_index, wishlist_pressure_map = prepared
+    previous_rows = by_run[previous_run]
 
     # Index rows by (species,size) for quick lookup
-    cur_map = {k2(r): r for r in cur_rows}
-    prev_map = {k2(r): r for r in prev_rows}
+    current_map = {k2(row): row for row in current_rows}
+    previous_map = {k2(row): row for row in previous_rows}
 
     # Union of keys across ALL history so OUT items can appear in the breeder table
     all_keys = set()
-    for rt in runs:
-        for r in by_run[rt]:
-            all_keys.add(k2(r))
+    for run_timestamp in runs:
+        for row in by_run[run_timestamp]:
+            all_keys.add(k2(row))
 
     # For display of OUT items: bounded last-seen row
     def get_last_seen_row_within_lookback(key):
-        return next(iter_lookback_rows_for_key(key, by_run, runs, cur_run, run_index), None)
+        return next(iter_lookback_rows_for_key(key, by_run, runs, current_run, run_index), None)
 
     # Helper: last 2 price points for a key before/at current
     def price_trend_for_key(key):
         # If present now and present previous -> compare those
-        if key in cur_map and key in prev_map:
+        if key in current_map and key in previous_map:
             return compare_prices(
-                cur_map[key].get("price_gbp", ""),
-                prev_map[key].get("price_gbp", "")
+                current_map[key].get("price_gbp", ""),
+                previous_map[key].get("price_gbp", "")
             )
 
         # Compare the last two known prices within bounded lookback.
         # If IN now but missing previous run (flapping), include current price.
         prices = []
-        if key in cur_map:
-            current_value = cur_map[key].get("price_gbp", "")
+        if key in current_map:
+            current_value = current_map[key].get("price_gbp", "")
             if current_value:
                 prices.append(current_value)
 
@@ -94,7 +94,7 @@ def build_breeder_opportunity_table(history_rows):
                 key,
                 by_run,
                 runs,
-                cur_run,
+                current_run,
                 run_index,
                 lambda row: row.get("price_gbp", ""),
                 max_values=2 - len(prices),
@@ -108,14 +108,14 @@ def build_breeder_opportunity_table(history_rows):
     table = []
 
     # Precompute membership sets per run for faster OOS counting
-    keys_by_run = {rt: {k2(r) for r in by_run[rt]} for rt in runs}
+    keys_by_run = {run_timestamp: {k2(row) for row in by_run[run_timestamp]} for run_timestamp in runs}
 
     for key in sorted(all_keys):
-        in_current = key in keys_by_run[cur_run]
-        in_prev = key in keys_by_run[prev_run]
+        in_current = key in keys_by_run[current_run]
+        in_previous = key in keys_by_run[previous_run]
 
         # Use current row if present, otherwise bounded last-seen row for display
-        row = cur_map.get(key) or get_last_seen_row_within_lookback(key) or {
+        row = current_map.get(key) or get_last_seen_row_within_lookback(key) or {
             "scientific_name": key[0],
             "size_cm": key[1],
         }
@@ -126,17 +126,17 @@ def build_breeder_opportunity_table(history_rows):
             oos_runs = 0
 
             # If it was missing last run but exists now (or flapped recently), show IN/OUT
-            if not in_prev and len(runs) >= 3:
+            if not in_previous and len(runs) >= 3:
                 # If seen before, it truly flapped
-                seen_before = any(key in keys_by_run[rt] for rt in runs[:-1])
+                seen_before = any(key in keys_by_run[run_timestamp] for run_timestamp in runs[:-1])
                 if seen_before:
                     oos_status = "IN/OUT"
         else:
             oos_status = "OUT"
             # Count consecutive missing runs ending at current, including current as 1
             oos_runs = 1
-            for rt in reversed(runs[:-1]):  # start from prev run backward
-                if key in keys_by_run[rt]:
+            for run_timestamp in reversed(runs[:-1]):  # start from previous run backward
+                if key in keys_by_run[run_timestamp]:
                     break
                 oos_runs += 1
 
@@ -154,7 +154,7 @@ def build_breeder_opportunity_table(history_rows):
         price_cell = format_price_cell(row.get("price_gbp", ""), price_trend)
 
         wishlist_pressure, wishlist_delta, wishlist_count, wishlist_display = get_wishlist_display_metrics(
-            key, by_run, runs, cur_run, wishlist_pressure_map
+            key, by_run, runs, current_run, wishlist_pressure_map
         )
 
         # Recommendation logic (conservative wishlist integration with delta)

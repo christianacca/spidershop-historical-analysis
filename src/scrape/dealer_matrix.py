@@ -43,16 +43,16 @@ def build_dealer_supply_risk_table(history_rows):
     if prepared is None:
         return []
 
-    by_run, runs, cur_run, prev_run, cur_rows, run_index, wishlist_pressure_map = prepared
+    by_run, runs, current_run, previous_run, current_rows, run_index, wishlist_pressure_map = prepared
     total_runs = len(runs)
 
-    prev_prices = {k2(r): r.get("price_gbp", "") for r in by_run[prev_run] if r.get("price_gbp")}
-    cur_prices = {k2(r): r.get("price_gbp", "") for r in by_run[cur_run] if r.get("price_gbp")}
+    previous_prices = {k2(row): row.get("price_gbp", "") for row in by_run[previous_run] if row.get("price_gbp")}
+    current_prices = {k2(row): row.get("price_gbp", "") for row in by_run[current_run] if row.get("price_gbp")}
 
     present_runs_map = {}
-    for rt in runs:
-        for r in by_run[rt]:
-            present_runs_map.setdefault(k2(r), set()).add(rt)
+    for run_timestamp in runs:
+        for row in by_run[run_timestamp]:
+            present_runs_map.setdefault(k2(row), set()).add(run_timestamp)
 
     table = []
 
@@ -61,7 +61,7 @@ def build_dealer_supply_risk_table(history_rows):
             key,
             by_run,
             runs,
-            cur_run,
+            current_run,
             run_index,
             lambda row: row.get("price_gbp", ""),
             max_values=1,
@@ -70,13 +70,19 @@ def build_dealer_supply_risk_table(history_rows):
 
     for (sci, size), present_runs in present_runs_map.items():
         present_pct = len(present_runs) / total_runs
-        reliability = "High" if present_pct >= 0.8 else "Medium" if present_pct >= 0.4 else "Low"
+        
+        if present_pct >= 0.8:
+            reliability = "High"
+        elif present_pct >= 0.4:
+            reliability = "Medium"
+        else:
+            reliability = "Low"
 
         # Safe OOS event counting even if the series starts with "absent"
         oos_events = []
         last_present = None
-        for rt in runs:
-            present = rt in present_runs
+        for run_timestamp in runs:
+            present = run_timestamp in present_runs
             if not present:
                 if last_present is True:
                     oos_events.append(1)
@@ -87,18 +93,24 @@ def build_dealer_supply_risk_table(history_rows):
             last_present = present
 
         avg_oos = round(sum(oos_events) / len(oos_events), 1) if oos_events else 0
-        speed = "Slow" if avg_oos >= 3 else "Moderate" if avg_oos == 2 else "Fast"
+        
+        if avg_oos >= 3:
+            speed = "Slow"
+        elif avg_oos == 2:
+            speed = "Moderate"
+        else:
+            speed = "Fast"
 
-        pp = compare_prices(
-            cur_prices.get((sci, size), ""),
-            prev_prices.get((sci, size), "")
+        price_pressure = compare_prices(
+            current_prices.get((sci, size), ""),
+            previous_prices.get((sci, size), "")
         )
-        current_or_last_price = cur_prices.get((sci, size), "") or last_seen_price_for_key((sci, size))
-        price_cell = format_price_cell(current_or_last_price, pp)
+        current_or_last_price = current_prices.get((sci, size), "") or last_seen_price_for_key((sci, size))
+        price_cell = format_price_cell(current_or_last_price, price_pressure)
 
         key = (sci, size)
         wishlist_pressure, wishlist_delta, wishlist_count, wishlist_display = get_wishlist_display_metrics(
-            key, by_run, runs, cur_run, wishlist_pressure_map
+            key, by_run, runs, current_run, wishlist_pressure_map
         )
 
         # Dealer risk logic: Supply-first hierarchy with demand as modifier
@@ -162,7 +174,7 @@ def build_dealer_supply_risk_table(history_rows):
         drivers = _generate_dealer_drivers_text(
             reliability=reliability,
             speed=speed,
-            price_pressure=pp,
+            price_pressure=price_pressure,
             wishlist_pressure=wishlist_pressure,
             wishlist_delta=wishlist_delta
         )
