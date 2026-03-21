@@ -261,7 +261,7 @@ def write_multi_species_test_data(cwd: Path) -> None:
     
     This data set includes:
     - Mix of signals (🔥, ⚠️, ❌) and risks
-    - Mix of stock patterns (Sustained, Emerging, Cyclical, Always)
+    - Mix of stock patterns (Sustained, Emerging, Cyclical, Always, Newly Observed)
     - Variety of numeric values (OOS runs, prices, wishlist counts) for sorting
     - Different name patterns for search testing
     """
@@ -403,6 +403,18 @@ def write_multi_species_test_data(cwd: Path) -> None:
                 wishlist_pressure="⚠️",
                 wishlist_delta="→",
                 drivers="Stock: Emerging OOS (3 runs)",
+            ),
+            BreederEntry(
+                species="Psalmopoeus irminia",
+                size_cm="1.2",
+                signal="⚠️",
+                oos_runs="0",
+                stock_pattern="Newly Observed",
+                price="£18.00 →",
+                wishlist="6 ⚠️ ↑",
+                wishlist_pressure="⚠️",
+                wishlist_delta="↑",
+                drivers="Stock: Newly Observed (currently IN); Coverage: observed 2/5 runs",
             ),
         ]),
         encoding="utf-8",
