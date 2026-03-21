@@ -81,14 +81,15 @@ The goal is **decision support**, not prediction.
 
 ### Out-of-Stock Patterns (Supply)
 
-Each species is classified into one of four patterns:
+Each species is classified into one of five patterns:
 
 - **Always** — normally available; short absences treated as noise
+- **Newly Observed** — currently in stock but only observed in the latest 1-2 runs; limited history means earlier absence is ambiguous
 - **Emerging** — missing for multiple consecutive runs
 - **Sustained** — missing for many weeks (strong scarcity signal)
 - **Cyclical** — repeated disappear / reappear behaviour (batch supply)
 
-These patterns are the foundation of all analysis.
+These patterns are the foundation of breeder analysis. Dealer analysis remains supply-first and uses sparse-history coverage only as a confidence qualifier.
 
 ### Price Trend
 

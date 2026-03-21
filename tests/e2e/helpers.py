@@ -20,6 +20,7 @@ import functools
 import http.server
 import os
 import socketserver
+import subprocess
 import threading
 from contextlib import contextmanager
 from pathlib import Path
@@ -34,6 +35,40 @@ class _SilentHandler(http.server.SimpleHTTPRequestHandler):
     
     def log_message(self, format: str, *args) -> None:  # noqa: A002
         return
+
+
+@functools.lru_cache(maxsize=1)
+def ensure_client_bundle_built() -> None:
+    """Build the client bundle once so E2E fixtures never serve stale assets."""
+    repo_root = Path(__file__).resolve().parents[2]
+    client_dir = repo_root / "client"
+
+    if not (client_dir / "node_modules").exists():
+        install = subprocess.run(
+            ["npm", "ci"],
+            cwd=client_dir,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if install.returncode != 0:
+            raise RuntimeError(
+                "Failed to install client dependencies for E2E tests.\n"
+                f"STDOUT:\n{install.stdout}\nSTDERR:\n{install.stderr}"
+            )
+
+    build = subprocess.run(
+        ["npm", "run", "build"],
+        cwd=client_dir,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if build.returncode != 0:
+        raise RuntimeError(
+            "Failed to build client assets for E2E tests.\n"
+            f"STDOUT:\n{build.stdout}\nSTDERR:\n{build.stderr}"
+        )
 
 
 @contextmanager

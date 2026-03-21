@@ -340,9 +340,6 @@ def get_observation_metadata(
     history_csv_path: str,
 ) -> Optional[Dict[str, object]]:
     """Return full-history observation metadata for a species detail page."""
-    def _to_date_string(value: str) -> str:
-        return value.split(" ", 1)[0]
-
     headers, rows = read_csv_file(history_csv_path)
 
     if not rows:
@@ -351,10 +348,7 @@ def get_observation_metadata(
     datetime_idx = headers.index("scrape_datetime")
     all_run_dates = sorted(set(row[datetime_idx] for row in rows))
     formatted_dates = format_datetime_smart(all_run_dates)
-    date_to_formatted = {
-        raw_date: _to_date_string(formatted_date)
-        for raw_date, formatted_date in zip(all_run_dates, formatted_dates)
-    }
+    date_to_formatted = dict(zip(all_run_dates, formatted_dates))
     history_rows = [dict(zip(headers, row)) for row in rows]
 
     observation_coverage = create_observation_coverage(history_rows, (scientific_name, size))

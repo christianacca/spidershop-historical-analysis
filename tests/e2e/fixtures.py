@@ -35,6 +35,7 @@ def e2e_site_minimal(request):
     
     from website.generate_website import OUTPUT_DIR, main
     from e2e.helpers import (
+        ensure_client_bundle_built,
         write_minimal_test_data,
         test_server,
         create_browser_with_error_capture,
@@ -43,6 +44,7 @@ def e2e_site_minimal(request):
 
     # Setup
     cwd = Path.cwd()
+    ensure_client_bundle_built()
     write_minimal_test_data(cwd)
     main()
 
@@ -110,6 +112,7 @@ def e2e_site_multi_species(request):
     
     from website.generate_website import OUTPUT_DIR, main
     from e2e.helpers import (
+        ensure_client_bundle_built,
         write_multi_species_test_data,
         test_server,
         create_browser_with_error_capture,
@@ -118,6 +121,7 @@ def e2e_site_multi_species(request):
 
     # Setup
     cwd = Path.cwd()
+    ensure_client_bundle_built()
     write_multi_species_test_data(cwd)
     main()
 
@@ -175,6 +179,7 @@ def e2e_site_large_table(request):
 
     from website.generate_website import OUTPUT_DIR, main
     from e2e.helpers import (
+        ensure_client_bundle_built,
         write_large_table_test_data,
         test_server,
         create_browser_with_error_capture,
@@ -182,6 +187,7 @@ def e2e_site_large_table(request):
     )
 
     cwd = Path.cwd()
+    ensure_client_bundle_built()
     write_large_table_test_data(cwd)
     main()
 
@@ -237,6 +243,7 @@ def e2e_site_history_multi_date(request):
 
     from website.generate_website import OUTPUT_DIR, main
     from e2e.helpers import (
+        ensure_client_bundle_built,
         write_history_multi_date_test_data,
         test_server,
         create_browser_with_error_capture,
@@ -244,6 +251,7 @@ def e2e_site_history_multi_date(request):
     )
 
     cwd = Path.cwd()
+    ensure_client_bundle_built()
     write_history_multi_date_test_data(cwd)
     main()
 

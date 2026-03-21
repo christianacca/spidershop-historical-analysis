@@ -114,11 +114,17 @@ def _parse_datetime(dt_str: str):
     try:
         if 'T' in dt_str:
             dt = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
+        elif ' ' in dt_str:
+            dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
         else:
             dt = datetime.strptime(dt_str, "%Y-%m-%d")
         return dt, dt.strftime("%Y-%m-%d")
     except (ValueError, AttributeError):
-        return None, dt_str
+        try:
+            dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
+            return dt, dt.strftime("%Y-%m-%d")
+        except (ValueError, AttributeError):
+            return None, dt_str
 
 
 def _format_parsed_datetime(dt, date_str: str, date_to_times: dict) -> str:

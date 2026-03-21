@@ -271,31 +271,6 @@ test('clicking a stock pattern filter button filters rows', async () => {
   expect(container.querySelector('tbody tr td')?.textContent?.trim()).toBe('Beta Spider');
 });
 
-test('stock pattern buttons include canonical Always and Newly Observed options', async () => {
-  const rows = [
-    { Species: 'Alpha Spider', Signal: '🔥', 'Stock Pattern': 'Sustained', Price: '15.00' },
-    { Species: 'Beta Spider', Signal: '⚠️', 'Stock Pattern': 'Newly Observed', Price: '25.00' },
-    { Species: 'Gamma Spider', Signal: '❌', 'Stock Pattern': 'Always', Price: '35.00' },
-  ];
-  const { container } = render(SortableTable, {
-    tableId: 'stock-options-table',
-    rows,
-    columns: COLUMNS,
-    filterConfig: {
-      signalFilter: { column: 'Signal' },
-      stockPatternFilter: { column: 'Stock Pattern' },
-    },
-  });
-
-  await openAdvancedFilters(container);
-
-  const values = Array.from(container.querySelectorAll('[data-action="filter-stock-pattern"]'))
-    .map((button) => button.getAttribute('data-stock-pattern'));
-
-  expect(values).toContain('Always');
-  expect(values).toContain('Newly Observed');
-});
-
 test('clicking Newly Observed stock pattern filter shows only matching rows', async () => {
   const rows = [
     { Species: 'Alpha Spider', Signal: '🔥', 'Stock Pattern': 'Sustained', Price: '15.00' },
@@ -892,7 +867,7 @@ test('"🔥 Hot (top 10)" button label and appears before "🔥 Hot (n)" in the 
 
 // ── H5: Stock pattern buttons include per-pattern row counts ────────────────
 
-test('stock pattern buttons include per-pattern row counts', async () => {
+test('stock pattern buttons include canonical values and per-pattern row counts', async () => {
   const rows = [
     { Species: 'A', Signal: '🔥', 'Stock Pattern': 'Sustained', Price: '10.00' },
     { Species: 'B', Signal: '🔥', 'Stock Pattern': 'Sustained', Price: '20.00' },
@@ -913,8 +888,12 @@ test('stock pattern buttons include per-pattern row counts', async () => {
   const toggle = container.querySelector('.advanced-filters-toggle') as HTMLElement;
   await fireEvent.click(toggle);
 
-  const labels = Array.from(container.querySelectorAll('[data-action="filter-stock-pattern"]'))
-    .map(b => b.textContent?.trim() ?? '');
+  const buttons = Array.from(container.querySelectorAll('[data-action="filter-stock-pattern"]'));
+  const labels = buttons.map((button) => button.textContent?.trim() ?? '');
+  const values = buttons.map((button) => button.getAttribute('data-stock-pattern'));
+
+  expect(values).toContain('Always');
+  expect(values).toContain('Newly Observed');
   expect(labels.some(l => l.includes('Show All (5)'))).toBe(true);
   expect(labels.some(l => l.includes('Sustained (2)'))).toBe(true);
   expect(labels.some(l => l.includes('Emerging (1)'))).toBe(true);

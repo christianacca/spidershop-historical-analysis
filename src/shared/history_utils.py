@@ -71,7 +71,12 @@ def create_observation_coverage(
     by_run = group_by_run(rows)
     runs = sorted(by_run)
 
-    observed_runs = [run_timestamp for run_timestamp in runs if any(create_species_key(row) == key for row in by_run[run_timestamp])]
+    observed_runs = [
+        run_timestamp
+        for run_timestamp in runs
+        if any(create_species_key(row) == key for row in by_run[run_timestamp])
+    ]
+    observed_run_set = set(observed_runs)
     first_observed_run: Optional[str] = observed_runs[0] if observed_runs else None
     latest_observed_run: Optional[str] = observed_runs[-1] if observed_runs else None
     total_run_count = len(runs)
@@ -79,7 +84,7 @@ def create_observation_coverage(
 
     current_consecutive_observation_runs = 0
     for run_timestamp in reversed(runs):
-        if run_timestamp in observed_runs:
+        if run_timestamp in observed_run_set:
             current_consecutive_observation_runs += 1
             continue
         break

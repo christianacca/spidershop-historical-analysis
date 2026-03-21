@@ -188,6 +188,8 @@ make test-e2e
 
 **Note:** E2E tests are separate from `make test` (for speed: ~1s unit tests vs ~10-20s E2E), but they are **not optional** for website work or PR validation.
 
+**Asset freshness note:** The Playwright fixtures generate the site from Python inside `tmp/local-testing/` and now rebuild the client bundle before serving pages. This keeps `templates/scripts/dist/` aligned with current `client/src/` code even when running targeted E2E files directly.
+
 **Individual test files:**
 ```bash
 # Unit tests
