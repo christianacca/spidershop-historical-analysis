@@ -20,6 +20,7 @@ from scrape.legend_examples import (
     generate_breeder_example_4,
     generate_breeder_example_5,
     generate_breeder_example_6,
+    generate_breeder_example_8,
     generate_dealer_example_1,
     generate_dealer_example_2,
     generate_dealer_example_3,
@@ -86,6 +87,16 @@ class TestGeneratedBreederExamples:
         assert "**Stock Pattern:** Always" in example
         assert "**Wishlist:**" in example
         assert "**Signal:** ❌" in example
+
+    def test_breeder_example_8_newly_observed(self):
+        """Example 8 should demonstrate the limited-history hold state."""
+        example = generate_breeder_example_8()
+        assert "#### Example 8: Newly Observed (Limited History Hold State)" in example
+        assert "**OOS:** IN" in example
+        assert "**OOS Runs:** 0" in example
+        assert "**Stock Pattern:** Newly Observed" in example
+        assert "**Signal:** ⚠️" in example
+        assert "limited history" in example.lower()
 
 
 class TestGeneratedDealerExamples:
@@ -162,7 +173,7 @@ class TestExampleStructure:
         examples = generate_breeder_examples()
         example_count = examples.count("#### Example")
         scenario_count = examples.count("**Scenario:**")
-        assert scenario_count == 7, f"Expected 7 scenarios, found {scenario_count}"
+        assert scenario_count == 8, f"Expected 8 scenarios, found {scenario_count}"
     
     def test_all_dealer_examples_have_scenarios(self):
         """All dealer examples should have scenario descriptions."""
@@ -183,8 +194,8 @@ class TestExampleStructure:
         breeder_analysis_count = breeder_examples.count("**Breeder Analysis:**")
         dealer_analysis_in_breeder_count = breeder_examples.count("**Dealer Analysis:**")
         
-        # 6 standard examples + 1 special example with 2 analysis sections
-        assert breeder_count == 6, f"Expected 6 standard analysis sections, found {breeder_count}"
+        # 7 standard examples + 1 special example with 2 analysis sections
+        assert breeder_count == 7, f"Expected 7 standard analysis sections, found {breeder_count}"
         assert breeder_analysis_count == 1, f"Expected 1 Breeder Analysis section, found {breeder_analysis_count}"
         assert dealer_analysis_in_breeder_count == 1, f"Expected 1 Dealer Analysis section in breeder examples, found {dealer_analysis_in_breeder_count}"
         assert dealer_count == 7, f"Expected 7 dealer analysis sections, found {dealer_count}"
@@ -198,7 +209,7 @@ class TestExampleStructure:
         dealer_count = dealer_examples.count("**Why:**")
         
         # Breeder example 7 has a different structure (Why the Different Metrics?)
-        assert breeder_count == 6, f"Expected 6 breeder why sections, found {breeder_count}"
+        assert breeder_count == 7, f"Expected 7 breeder why sections, found {breeder_count}"
         assert dealer_count == 7, f"Expected 7 dealer why sections, found {dealer_count}"
     
     def test_examples_include_markdown_tables(self):
