@@ -2032,7 +2032,7 @@ with the `"▶ More Filters"` toggle button inline at the **right end of the Sig
 When `▶ More Filters` is expanded:
 
 ```
-[📊 Stock Pattern:] [Show All (118)] [Sustained (48)] [Emerging (10)] [Cyclical (6)] [Always (54)]
+[📊 Stock Pattern:] [Show All (118)] [Sustained (48)] [Emerging (10)] [Cyclical (6)] [Always (54)] [Newly Observed (0)]
 [🔍 Search:] [Type to filter species, names, etc…]
 [Price (£) slider]   [Wishlist Count slider]          ← only when priceColumn / wishlistColumn set
 ```
@@ -2125,9 +2125,13 @@ const stockPatternButtons = $derived([
   { value: 'Sustained',        label: `Sustained (${stockPatternCounts['Sustained'] ?? 0})` },
   { value: 'Emerging',         label: `Emerging (${stockPatternCounts['Emerging'] ?? 0})` },
   { value: 'Cyclical',         label: `Cyclical (${stockPatternCounts['Cyclical'] ?? 0})` },
-  { value: 'Always Available', label: `Always (${stockPatternCounts['Always Available'] ?? 0})` },
+  { value: 'Always',           label: `Always (${stockPatternCounts['Always'] ?? 0})` },
+  { value: 'Newly Observed',   label: `Newly Observed (${stockPatternCounts['Newly Observed'] ?? 0})` },
 ]);
 ```
+
+The canonical payload value is `Always`; the component normalises legacy `Always Available`
+values only for backward-compatible filtering.
 
 Replace the `{#each STOCK_PATTERN_BUTTONS …}` loop with `{#each stockPatternButtons …}`.
 

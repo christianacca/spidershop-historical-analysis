@@ -145,6 +145,7 @@ class TestStockPatternFiltering:
             "Test Species 2,2,OUT,3,Emerging,⚠️\n"
             "Test Species 3,1,IN/OUT,0,Cyclical,⚠️\n"
             "Test Species 4,1,IN,0,Always,❌\n"
+            "Test Species 5,1,IN,0,Newly Observed,⚠️\n"
         )
         
         os.chdir(tmp_path)
@@ -164,6 +165,7 @@ class TestStockPatternFiltering:
         assert 'Emerging' in patterns, "JSON payload should include Emerging stock pattern"
         assert 'Cyclical' in patterns, "JSON payload should include Cyclical stock pattern"
         assert 'Always' in patterns, "JSON payload should include Always stock pattern"
+        assert 'Newly Observed' in patterns, "JSON payload should include Newly Observed stock pattern"
 
     def test_breeder_table_rows_have_stock_pattern_data_attribute(self, tmp_path):
         """Breeder table rows should have data-stock-pattern attribute for filtering."""
@@ -293,6 +295,7 @@ class TestStockPatternFiltering:
             "Species 5,1,Emerging,⚠️\n"
             "Species 6,1,Cyclical,⚠️\n"
             "Species 7,1,Always,❌\n"
+            "Species 8,1,Newly Observed,⚠️\n"
         )
         
         os.chdir(tmp_path)
@@ -304,11 +307,12 @@ class TestStockPatternFiltering:
         from collections import Counter
         data = _table_json(html)
         counts = Counter(row.get('Stock Pattern') for row in data)
-        assert len(data) == 7, f"JSON should have all 7 rows, got {len(data)}"
+        assert len(data) == 8, f"JSON should have all 8 rows, got {len(data)}"
         assert counts['Sustained'] == 2, "Should have 2 Sustained rows in JSON"
         assert counts['Emerging'] == 3, "Should have 3 Emerging rows in JSON"
         assert counts['Cyclical'] == 1, "Should have 1 Cyclical row in JSON"
         assert counts['Always'] == 1, "Should have 1 Always row in JSON"
+        assert counts['Newly Observed'] == 1, "Should have 1 Newly Observed row in JSON"
 
     def test_stock_pattern_filter_has_clear_label(self, tmp_path):
         """Stock pattern filters should have a clear label indicating what they filter."""

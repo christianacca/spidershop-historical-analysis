@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from shared.history_utils import k2, compare_prices
+from shared.history_utils import create_observation_coverage, k2, compare_prices
 from shared.config import DEALER_TABLE_FILE
 from shared.sparkline_helpers import generate_stock_availability_sparkline
 from shared.driver_text_helpers import build_drivers_text
@@ -18,7 +18,22 @@ from scrape.matrix_workflow import (
 # DEALER MATRIX (Option B: Price Pressure informational)
 # =====================
 
-def _generate_dealer_drivers_text(reliability: str, speed: str, price_pressure: str, wishlist_pressure: str, wishlist_delta: str) -> str:
+def _format_observation_coverage(observation_coverage: dict[str, int]) -> str:
+    """Return compact observation coverage text for sparse-history dealer rows."""
+    return (
+        f"observed {observation_coverage['observed_run_count']}"
+        f"/{observation_coverage['total_run_count']} runs"
+    )
+
+
+def _generate_dealer_drivers_text(
+    reliability: str,
+    speed: str,
+    price_pressure: str,
+    wishlist_pressure: str,
+    wishlist_delta: str,
+    observation_coverage_text: str = "",
+) -> str:
     """Generate structured explanation of risk drivers using semicolon separators.
     
     Args:
@@ -27,6 +42,7 @@ def _generate_dealer_drivers_text(reliability: str, speed: str, price_pressure: 
         price_pressure: Price direction (↑/→/↓)
         wishlist_pressure: Demand level (🔥/⚠️/❌)
         wishlist_delta: Momentum (↑/→/↓)
+        observation_coverage_text: Optional sparse-history coverage text
         
     Returns:
         Semicolon-separated string explaining the risk drivers
@@ -35,6 +51,8 @@ def _generate_dealer_drivers_text(reliability: str, speed: str, price_pressure: 
         "Stock: Reliability Low (Restock Slow); Demand: Wishlist 🔥 + rising; Price: Rising"
     """
     stock_section = f"Stock: Reliability {reliability} (Restock {speed})"
+    if observation_coverage_text:
+        stock_section = f"{stock_section}; Coverage: {observation_coverage_text}"
     return build_drivers_text(stock_section, price_pressure, wishlist_pressure, wishlist_delta)
 
 
@@ -69,6 +87,12 @@ def build_dealer_supply_risk_table(history_rows):
         return values[0] if values else ""
 
     for (sci, size), present_runs in present_runs_map.items():
+        observation_coverage = create_observation_coverage(history_rows, (sci, size))
+        limited_history = (
+            observation_coverage["observed_run_count"] <= 2
+            and observation_coverage["ambiguous_pre_first_seen_run_count"] > 0
+        )
+        observation_coverage_text = ""
         present_pct = len(present_runs) / total_runs
         reliability = "High" if present_pct >= 0.8 else "Medium" if present_pct >= 0.4 else "Low"
 
@@ -150,6 +174,10 @@ def build_dealer_supply_risk_table(history_rows):
             risk = "❌"
             rec = "No urgency / oversupplied"
 
+        if limited_history:
+            observation_coverage_text = _format_observation_coverage(observation_coverage)
+            rec = f"{rec} — limited history ({observation_coverage_text})"
+
         # Generate sparklines for historical trends (last 8 weeks)
         # Use carry-forward to show persistent values when OUT (price/wishlist don't disappear)
         price_history_sparkline, wishlist_history_sparkline = generate_price_wishlist_sparklines(
@@ -164,7 +192,8 @@ def build_dealer_supply_risk_table(history_rows):
             speed=speed,
             price_pressure=pp,
             wishlist_pressure=wishlist_pressure,
-            wishlist_delta=wishlist_delta
+            wishlist_delta=wishlist_delta,
+            observation_coverage_text=observation_coverage_text,
         )
 
         table.append({

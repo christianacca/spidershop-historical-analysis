@@ -415,8 +415,210 @@ class TestGetDefaultSize:
             assert result is None
 
 
+class TestGetObservationMetadata:
+    """Test extraction of full-history observation metadata for species pages."""
+
+    def test_uses_full_dataset_run_count_and_reports_first_and_latest_observed(self):
+        """Observation metadata should use the full run timeline, not only observed rows."""
+        from website.species_detail import get_observation_metadata
+
+        history_entries = [
+            HistoryEntry(
+                scrape_datetime="2025-01-01 06:00:00",
+                scientific_name="Other Species",
+                size_cm="2.0",
+            ),
+            HistoryEntry(
+                scrape_datetime="2025-01-08 06:00:00",
+                scientific_name="Other Species",
+                size_cm="2.0",
+            ),
+            HistoryEntry(
+                scrape_datetime="2025-01-15 06:00:00",
+                scientific_name="Aphonopelma seemanni",
+                size_cm="1.5",
+            ),
+            HistoryEntry(
+                scrape_datetime="2025-01-22 06:00:00",
+                scientific_name="Other Species",
+                size_cm="2.0",
+            ),
+            HistoryEntry(
+                scrape_datetime="2025-01-29 06:00:00",
+                scientific_name="Aphonopelma seemanni",
+                size_cm="1.5",
+            ),
+        ]
+
+        history_csv = create_temp_csv_file(create_history_csv_content(history_entries))
+
+        try:
+            metadata = get_observation_metadata("Aphonopelma seemanni", "1.5", history_csv)
+
+            assert metadata["first_observed"] == "2025-01-15"
+            assert metadata["latest_observed"] == "2025-01-29"
+            assert metadata["observed_run_count"] == 2
+            assert metadata["total_run_count"] == 5
+            assert metadata["observed_runs_display"] == "2/5 runs"
+            assert metadata["has_ambiguous_pre_first_seen_runs"] is True
+        finally:
+            Path(history_csv).unlink()
+
+    def test_flags_new_first_observed_and_low_coverage(self):
+        """Latest-2-run species should be flagged as newly added with low coverage."""
+        from website.species_detail import get_observation_metadata
+
+        history_entries = [
+            HistoryEntry(scrape_datetime="2025-01-01 06:00:00", scientific_name="Other Species", size_cm="2.0"),
+            HistoryEntry(scrape_datetime="2025-01-08 06:00:00", scientific_name="Other Species", size_cm="2.0"),
+            HistoryEntry(scrape_datetime="2025-01-15 06:00:00", scientific_name="Other Species", size_cm="2.0"),
+            HistoryEntry(scrape_datetime="2025-01-22 06:00:00", scientific_name="Other Species", size_cm="2.0"),
+            HistoryEntry(scrape_datetime="2025-01-29 06:00:00", scientific_name="Other Species", size_cm="2.0"),
+            HistoryEntry(scrape_datetime="2025-02-05 06:00:00", scientific_name="Other Species", size_cm="2.0"),
+            HistoryEntry(scrape_datetime="2025-02-12 06:00:00", scientific_name="Other Species", size_cm="2.0"),
+            HistoryEntry(scrape_datetime="2025-02-19 06:00:00", scientific_name="Other Species", size_cm="2.0"),
+            HistoryEntry(scrape_datetime="2025-02-26 06:00:00", scientific_name="Other Species", size_cm="2.0"),
+            HistoryEntry(scrape_datetime="2025-03-05 06:00:00", scientific_name="Other Species", size_cm="2.0"),
+            HistoryEntry(scrape_datetime="2025-03-12 06:00:00", scientific_name="Other Species", size_cm="2.0"),
+            HistoryEntry(scrape_datetime="2025-03-19 06:00:00", scientific_name="Other Species", size_cm="2.0"),
+            HistoryEntry(scrape_datetime="2025-03-26 06:00:00", scientific_name="Psalmopoeus irminia", size_cm="1.2"),
+            HistoryEntry(scrape_datetime="2025-04-02 06:00:00", scientific_name="Psalmopoeus irminia", size_cm="1.2"),
+        ]
+
+        history_csv = create_temp_csv_file(create_history_csv_content(history_entries))
+
+        try:
+            metadata = get_observation_metadata("Psalmopoeus irminia", "1.2", history_csv)
+
+            assert metadata["first_observed_status"] == "new"
+            assert metadata["first_observed_flag"] == "New"
+            assert metadata["latest_observed_status"] == "current"
+            assert metadata["latest_observed_flag"] is None
+            assert metadata["coverage_status"] == "low"
+            assert metadata["coverage_flag"] == "Low coverage"
+        finally:
+            Path(history_csv).unlink()
+
+    def test_flags_stale_latest_observed(self):
+        """Species not seen for 4+ runs should be flagged as stale evidence."""
+        from website.species_detail import get_observation_metadata
+
+        history_entries = [
+            HistoryEntry(scrape_datetime="2025-01-01 06:00:00", scientific_name="Other Species", size_cm="2.0"),
+            HistoryEntry(scrape_datetime="2025-01-08 06:00:00", scientific_name="Other Species", size_cm="2.0"),
+            HistoryEntry(scrape_datetime="2025-01-15 06:00:00", scientific_name="Aphonopelma seemanni", size_cm="1.5"),
+            HistoryEntry(scrape_datetime="2025-01-22 06:00:00", scientific_name="Other Species", size_cm="2.0"),
+            HistoryEntry(scrape_datetime="2025-01-29 06:00:00", scientific_name="Aphonopelma seemanni", size_cm="1.5"),
+            HistoryEntry(scrape_datetime="2025-02-05 06:00:00", scientific_name="Other Species", size_cm="2.0"),
+            HistoryEntry(scrape_datetime="2025-02-12 06:00:00", scientific_name="Other Species", size_cm="2.0"),
+            HistoryEntry(scrape_datetime="2025-02-19 06:00:00", scientific_name="Other Species", size_cm="2.0"),
+            HistoryEntry(scrape_datetime="2025-02-26 06:00:00", scientific_name="Other Species", size_cm="2.0"),
+        ]
+
+        history_csv = create_temp_csv_file(create_history_csv_content(history_entries))
+
+        try:
+            metadata = get_observation_metadata("Aphonopelma seemanni", "1.5", history_csv)
+
+            assert metadata["latest_observed_status"] == "stale"
+            assert metadata["latest_observed_flag"] == "Stale"
+        finally:
+            Path(history_csv).unlink()
+
+    def test_does_not_flag_non_consecutive_sparse_history_as_new(self):
+        """Sparse history alone should not imply the breeder Newly Observed state."""
+        from website.species_detail import get_observation_metadata
+
+        history_entries = [
+            HistoryEntry(scrape_datetime="2025-01-01 06:00:00", scientific_name="Aphonopelma seemanni", size_cm="1.5"),
+            HistoryEntry(scrape_datetime="2025-01-08 06:00:00", scientific_name="Other Species", size_cm="2.0"),
+            HistoryEntry(scrape_datetime="2025-01-15 06:00:00", scientific_name="Aphonopelma seemanni", size_cm="1.5"),
+        ]
+
+        history_csv = create_temp_csv_file(create_history_csv_content(history_entries))
+
+        try:
+            metadata = get_observation_metadata("Aphonopelma seemanni", "1.5", history_csv)
+
+            assert metadata["first_observed_status"] == "current"
+            assert metadata["first_observed_flag"] is None
+            assert metadata["coverage_status"] == "low"
+        finally:
+            Path(history_csv).unlink()
+
+
 class TestGenerateSpeciesPage:
     """Test species page HTML generation."""
+
+    def test_renders_observation_metadata_and_newly_observed_callout(self):
+        """Species page should render limited-history metadata and ambiguity wording."""
+        from website.species_detail import generate_species_page
+
+        species_data = {
+            "breeder": {
+                "signal": "⚠️",
+                "stock_pattern": "Newly Observed",
+                "oos_runs": "0",
+                "wishlist": "18 🔥 ↑",
+                "drivers": "Stock: Newly Observed (currently IN); Coverage: observed 2/5 runs; Demand: Wishlist High + rising; Price: Rising",
+            },
+            "dealer": {
+                "risk": "⚠️",
+                "stock_reliability": "Medium",
+                "restock_speed": "Moderate",
+                "wishlist": "18 🔥 ↑",
+                "drivers": "Stock: Reliability Medium (Restock Moderate); Coverage: observed 2/5 runs; Demand: Wishlist High + rising; Price: Rising",
+            },
+        }
+        chart_data = {"runs": []}
+        observation_metadata = {
+            "first_observed": "2025-01-15",
+            "latest_observed": "2025-01-29",
+            "observed_run_count": 2,
+            "total_run_count": 5,
+            "observed_runs_display": "2/5 runs",
+            "has_ambiguous_pre_first_seen_runs": True,
+            "first_observed_status": "new",
+            "first_observed_flag": "New",
+            "latest_observed_status": "stale",
+            "latest_observed_flag": "Stale",
+            "coverage_status": "low",
+            "coverage_flag": "Low coverage",
+        }
+
+        html = generate_species_page(
+            "Aphonopelma seemanni",
+            "Common Name",
+            "1.5",
+            species_data,
+            chart_data,
+            observation_metadata=observation_metadata,
+            default_view="breeder",
+        )
+
+        assert "First observed in dataset" in html
+        assert "2025-01-15" in html
+        assert "Latest observed" in html
+        assert "2025-01-29" in html
+        assert "Observed in 2/5 runs" in html
+        assert "Pre-first-seen absence is ambiguous" in html
+        assert "Newly observed in the dataset" in html
+        assert "limited history means supply is not yet proven stable or scarce" in html
+
+        evidence_pos = html.index("<div class=\"section-title\">Evidence")
+        coverage_pos = html.index("Observation Coverage")
+        tabs_pos = html.index("Breeder view")
+
+        assert coverage_pos > evidence_pos
+        assert coverage_pos > tabs_pos
+        assert "coverage-metric--key-date" not in html
+        assert "coverage-metric--context" in html
+        assert "coverage-metric--new" in html
+        assert "coverage-metric--stale" in html
+        assert "coverage-metric--low" in html
+        assert "New" in html
+        assert "Stale" in html
+        assert "Low coverage" in html
 
     def test_generates_html_with_breeder_and_dealer_sections(self):
         """Should generate HTML with both perspective sections and required CSS.

@@ -400,11 +400,15 @@ def test_chart_tooltips_show_on_hover(e2e_site_minimal) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _navigate_to_species_page(page, base_url: str) -> None:
-    """Navigate from the breeder table to the first available species detail page."""
+def _navigate_to_species_page(page, base_url: str, species_name: str | None = None) -> None:
+    """Navigate from the breeder table to a species detail page."""
     page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
-    species_link = page.locator('table a[href^="species/"]').first
-    assert species_link.count() == 1, "Breeder page should have at least one species link"
+    if species_name is None:
+        species_link = page.locator('table a[href^="species/"]').first
+        assert species_link.count() == 1, "Breeder page should have at least one species link"
+    else:
+        species_link = page.locator('table a[href^="species/"]', has_text=species_name)
+        assert species_link.count() == 1, f"Breeder page should link to {species_name}"
     species_href = species_link.get_attribute('href')
     page.goto(f"{base_url}/{species_href}", wait_until="domcontentloaded")
     page.wait_for_timeout(200)
@@ -540,3 +544,37 @@ def test_species_detail_table_footnote_styling(e2e_site_minimal) -> None:
     margin_top = footnote.first.evaluate('el => window.getComputedStyle(el).marginTop')
     assert margin_top == '10px', \
         f".table-footnote should have margin-top: 10px, got {margin_top}"
+
+
+@pytest.mark.e2e
+def test_species_detail_observation_coverage_emphasizes_key_dates(e2e_site_minimal) -> None:
+    """Observation coverage should stay subtle overall when there are no significance states."""
+    page, base_url, errors = e2e_site_minimal
+
+    _navigate_to_species_page(page, base_url)
+
+    coverage_panel = page.locator('.panel--observation-coverage')
+    assert coverage_panel.count() == 1, "Species detail should have a compact observation coverage panel"
+
+    panel_bg = coverage_panel.first.evaluate('el => window.getComputedStyle(el).backgroundColor')
+    assert token_rgb('--color-surface-light') in panel_bg, \
+        f"Observation coverage panel should use {token_rgb('--color-surface-light')}, got {panel_bg}"
+
+    key_metrics = page.locator('.coverage-metric--key-date')
+    assert key_metrics.count() == 0, "Current observation metrics should not use the old strong key-date treatment"
+
+    flag_count = page.locator('.coverage-metric__flag').count()
+    assert flag_count == 0, f"Current observation metrics should not render significance flags, got {flag_count}"
+
+    context_metric = page.locator('.coverage-metric--context')
+    assert context_metric.count() == 1, "Observed runs metric should use lower-emphasis context styling"
+    context_border = context_metric.first.evaluate('el => window.getComputedStyle(el).borderLeftWidth')
+    assert context_border == '1px', \
+        f"Context metric should not use the stronger key-date border treatment, got {context_border}"
+
+    latest_metric = page.locator('.coverage-metrics .coverage-metric').nth(1)
+    latest_border = latest_metric.evaluate('el => window.getComputedStyle(el).borderLeftWidth')
+    assert latest_border == '1px', \
+        f"Latest observed should stay visually neutral unless stale, got border-left width {latest_border}"
+
+

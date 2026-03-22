@@ -62,6 +62,7 @@ try:
         slugify_species,
         get_species_data,
         build_chart_data,
+        get_observation_metadata,
         get_default_size,
         get_page_url,
         generate_species_page,
@@ -83,6 +84,7 @@ except ModuleNotFoundError:
     )
     from csv_utils import read_csv_file
     from table_data_helpers import rows_to_json  # type: ignore[import]
+    from species_detail import get_observation_metadata  # type: ignore[import]
     from shared.parsing import format_datetime_smart, snake_to_display_header
 
 # Output directory for the generated website
@@ -295,7 +297,7 @@ def generate_analysis_page(config: BasePageConfig) -> str:
             }
             tooltips = {
                 'hot': 'Strong breeding opportunity. Sustained or emerging scarcity patterns (4+ weeks out of stock) with rising prices or high demand signals.',
-                'watch': 'Emerging opportunity forming. Species showing early scarcity (2-3 weeks) or cyclical patterns. Monitor for escalating signals.',
+                'watch': 'Emerging opportunity forming. Species showing early scarcity (2-3 weeks), cyclical patterns, or newly observed limited history supply. Monitor for escalating signals.',
                 'avoid': 'Oversupplied or always available. No meaningful scarcity pattern detected, regardless of demand spikes.'
             }
     
@@ -435,6 +437,9 @@ def generate_species_pages() -> int:
         
         # Build chart data (last 26 runs)
         chart_data = build_chart_data(scientific_name, size, history_csv)
+
+        # Build observation coverage metadata for species detail context
+        observation_metadata = get_observation_metadata(scientific_name, size, history_csv)
         
         # Get page URL from most recent observation
         page_url = get_page_url(scientific_name, size, history_csv)
@@ -449,6 +454,7 @@ def generate_species_pages() -> int:
             size=size,
             species_data=species_data,
             chart_data=chart_data,
+            observation_metadata=observation_metadata,
             page_url=page_url,
             default_view=default_view
         )

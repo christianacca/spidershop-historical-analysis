@@ -377,6 +377,19 @@ class TestFormatDatetimeSmart:
         result = format_datetime_smart(["2026-02-15T10:30+00:00"])
         assert result == ["2026-02-15"]
 
+    def test_space_separated_datetime_with_seconds(self):
+        """Space-separated datetimes from historical CSV rows should be parsed."""
+        result = format_datetime_smart(["2026-02-15 10:30:00"])
+        assert result == ["2026-02-15"]
+
+    def test_space_separated_same_day_collision(self):
+        """Same-day collisions should preserve times for space-separated datetimes."""
+        result = format_datetime_smart([
+            "2026-02-15 06:10:00",
+            "2026-02-15 14:30:00",
+        ])
+        assert result == ["2026-02-15 06:10", "2026-02-15 14:30"]
+
     def test_simple_date_string(self):
         """Simple YYYY-MM-DD format should be accepted."""
         result = format_datetime_smart(["2026-02-15"])

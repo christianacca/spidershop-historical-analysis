@@ -20,6 +20,7 @@ import functools
 import http.server
 import os
 import socketserver
+import subprocess
 import threading
 from contextlib import contextmanager
 from pathlib import Path
@@ -34,6 +35,40 @@ class _SilentHandler(http.server.SimpleHTTPRequestHandler):
     
     def log_message(self, format: str, *args) -> None:  # noqa: A002
         return
+
+
+@functools.lru_cache(maxsize=1)
+def ensure_client_bundle_built() -> None:
+    """Build the client bundle once so E2E fixtures never serve stale assets."""
+    repo_root = Path(__file__).resolve().parents[2]
+    client_dir = repo_root / "client"
+
+    if not (client_dir / "node_modules").exists():
+        install = subprocess.run(
+            ["npm", "ci"],
+            cwd=client_dir,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if install.returncode != 0:
+            raise RuntimeError(
+                "Failed to install client dependencies for E2E tests.\n"
+                f"STDOUT:\n{install.stdout}\nSTDERR:\n{install.stderr}"
+            )
+
+    build = subprocess.run(
+        ["npm", "run", "build"],
+        cwd=client_dir,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if build.returncode != 0:
+        raise RuntimeError(
+            "Failed to build client assets for E2E tests.\n"
+            f"STDOUT:\n{build.stdout}\nSTDERR:\n{build.stderr}"
+        )
 
 
 @contextmanager
@@ -261,7 +296,7 @@ def write_multi_species_test_data(cwd: Path) -> None:
     
     This data set includes:
     - Mix of signals (🔥, ⚠️, ❌) and risks
-    - Mix of stock patterns (Sustained, Emerging, Cyclical, Always)
+    - Mix of stock patterns (Sustained, Emerging, Cyclical, Always, Newly Observed)
     - Variety of numeric values (OOS runs, prices, wishlist counts) for sorting
     - Different name patterns for search testing
     """
@@ -271,8 +306,7 @@ def write_multi_species_test_data(cwd: Path) -> None:
     )
     
     history_entries = [
-        # Aphonopelma seemanni — three dated entries to produce a rising price trend
-        # (matches the 3-bar sparkline ▁▄▇ in breeder_opportunity_table.csv)
+        # Run 1
         HistoryEntry(
             scrape_datetime="2025-12-18",
             scientific_name="Aphonopelma seemanni",
@@ -282,6 +316,39 @@ def write_multi_species_test_data(cwd: Path) -> None:
             wishlist_count="3"
         ),
         HistoryEntry(
+            scrape_datetime="2025-12-18",
+            scientific_name="Brachypelma hamorii",
+            common_name="Mexican Red Knee",
+            size_cm="2.0",
+            price_gbp="30.00",
+            wishlist_count="8"
+        ),
+        HistoryEntry(
+            scrape_datetime="2025-12-18",
+            scientific_name="Grammostola pulchra",
+            common_name="Brazilian Black",
+            size_cm="3.5",
+            price_gbp="35.00",
+            wishlist_count="12"
+        ),
+        HistoryEntry(
+            scrape_datetime="2025-12-18",
+            scientific_name="Lasiodora parahybana",
+            common_name="Salmon Pink Birdeater",
+            size_cm="4.0",
+            price_gbp="20.00",
+            wishlist_count="3"
+        ),
+        HistoryEntry(
+            scrape_datetime="2025-12-18",
+            scientific_name="Pterinochilus murinus",
+            common_name="Orange Baboon Tarantula",
+            size_cm="1.0",
+            price_gbp="15.00",
+            wishlist_count="10"
+        ),
+        # Run 2
+        HistoryEntry(
             scrape_datetime="2025-12-25",
             scientific_name="Aphonopelma seemanni",
             common_name="Costa Rican Zebra",
@@ -289,6 +356,39 @@ def write_multi_species_test_data(cwd: Path) -> None:
             price_gbp="15.00",
             wishlist_count="4"
         ),
+        HistoryEntry(
+            scrape_datetime="2025-12-25",
+            scientific_name="Brachypelma hamorii",
+            common_name="Mexican Red Knee",
+            size_cm="2.0",
+            price_gbp="30.00",
+            wishlist_count="8"
+        ),
+        HistoryEntry(
+            scrape_datetime="2025-12-25",
+            scientific_name="Grammostola pulchra",
+            common_name="Brazilian Black",
+            size_cm="3.5",
+            price_gbp="35.00",
+            wishlist_count="12"
+        ),
+        HistoryEntry(
+            scrape_datetime="2025-12-25",
+            scientific_name="Lasiodora parahybana",
+            common_name="Salmon Pink Birdeater",
+            size_cm="4.0",
+            price_gbp="20.00",
+            wishlist_count="3"
+        ),
+        HistoryEntry(
+            scrape_datetime="2025-12-25",
+            scientific_name="Pterinochilus murinus",
+            common_name="Orange Baboon Tarantula",
+            size_cm="1.0",
+            price_gbp="15.00",
+            wishlist_count="10"
+        ),
+        # Run 3
         HistoryEntry(
             scrape_datetime="2026-01-01",
             scientific_name="Aphonopelma seemanni",
@@ -328,6 +428,63 @@ def write_multi_species_test_data(cwd: Path) -> None:
             size_cm="1.0",
             price_gbp="15.00",
             wishlist_count="10"
+        ),
+        HistoryEntry(
+            scrape_datetime="2026-01-01",
+            scientific_name="Psalmopoeus irminia",
+            common_name="Venezuelan Suntiger",
+            size_cm="1.2",
+            price_gbp="18.00",
+            wishlist_count="5"
+        ),
+        # Run 4
+        HistoryEntry(
+            scrape_datetime="2026-01-08",
+            scientific_name="Aphonopelma seemanni",
+            common_name="Costa Rican Zebra",
+            size_cm="1.5",
+            price_gbp="25.00",
+            wishlist_count="5"
+        ),
+        HistoryEntry(
+            scrape_datetime="2026-01-08",
+            scientific_name="Brachypelma hamorii",
+            common_name="Mexican Red Knee",
+            size_cm="2.0",
+            price_gbp="30.00",
+            wishlist_count="8"
+        ),
+        HistoryEntry(
+            scrape_datetime="2026-01-08",
+            scientific_name="Grammostola pulchra",
+            common_name="Brazilian Black",
+            size_cm="3.5",
+            price_gbp="35.00",
+            wishlist_count="12"
+        ),
+        HistoryEntry(
+            scrape_datetime="2026-01-08",
+            scientific_name="Lasiodora parahybana",
+            common_name="Salmon Pink Birdeater",
+            size_cm="4.0",
+            price_gbp="20.00",
+            wishlist_count="3"
+        ),
+        HistoryEntry(
+            scrape_datetime="2026-01-08",
+            scientific_name="Pterinochilus murinus",
+            common_name="Orange Baboon Tarantula",
+            size_cm="1.0",
+            price_gbp="15.00",
+            wishlist_count="10"
+        ),
+        HistoryEntry(
+            scrape_datetime="2026-01-08",
+            scientific_name="Psalmopoeus irminia",
+            common_name="Venezuelan Suntiger",
+            size_cm="1.2",
+            price_gbp="18.00",
+            wishlist_count="6"
         ),
     ]
     
@@ -403,6 +560,18 @@ def write_multi_species_test_data(cwd: Path) -> None:
                 wishlist_pressure="⚠️",
                 wishlist_delta="→",
                 drivers="Stock: Emerging OOS (3 runs)",
+            ),
+            BreederEntry(
+                species="Psalmopoeus irminia",
+                size_cm="1.2",
+                signal="⚠️",
+                oos_runs="0",
+                stock_pattern="Newly Observed",
+                price="£18.00 →",
+                wishlist="6 ⚠️ ↑",
+                wishlist_pressure="⚠️",
+                wishlist_delta="↑",
+                drivers="Stock: Newly Observed (currently IN); Coverage: observed 2/5 runs",
             ),
         ]),
         encoding="utf-8",

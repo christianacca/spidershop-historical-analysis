@@ -100,6 +100,28 @@ class TestBuildDealerSupplyRiskTable:
         assert seemanni_entry["Dealer Risk"] == "⚠️"
         assert "Buy opportunistically" in seemanni_entry["Dealer Recommendation"]
 
+    def test_sparse_history_adds_cautious_wording_without_changing_dealer_risk(self):
+        """Sparse-history species should keep the same risk class but gain a confidence qualifier."""
+        history = [
+            make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "5"),
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "5"),
+            make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "5"),
+            make_row("2025-01-22", "Aphonopelma seemanni", "1.0", "25.00", "3"),
+            make_row("2025-01-22", "Grammostola pulchra", "2.0", "41.00", "5"),
+            make_row("2025-01-29", "Aphonopelma seemanni", "1.0", "26.00", "4"),
+            make_row("2025-01-29", "Grammostola pulchra", "2.0", "42.00", "5"),
+        ]
+
+        table = build_dealer_supply_risk_table(history)
+        seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+
+        assert seemanni_entry["Stock Reliability"] == "Medium"
+        assert seemanni_entry["Dealer Risk"] == "⚠️"
+        assert "Buy opportunistically" in seemanni_entry["Dealer Recommendation"]
+        assert "limited history" in seemanni_entry["Dealer Recommendation"].lower()
+        assert "observed 2/5 runs" in seemanni_entry["Dealer Recommendation"].lower()
+        assert "observed 2/5 runs" in seemanni_entry["Drivers"].lower()
+
     def test_low_reliability_present_less_than_40_percent(self):
         """Species present in <40% of runs should have Low reliability."""
         history = [

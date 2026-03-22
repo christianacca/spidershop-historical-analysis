@@ -103,7 +103,7 @@
 
     // 3. Stock pattern filter
     const afterStockPattern = stockPatternCol && activeStockPattern !== 'all'
-      ? afterTop10.filter((r) => String(r[stockPatternCol] ?? '') === activeStockPattern)
+      ? afterTop10.filter((r) => normalizeStockPattern(r[stockPatternCol]) === activeStockPattern)
       : afterTop10;
 
     // 4. Search (all columns)
@@ -212,7 +212,7 @@
     const key = filterConfig.stockPatternFilter.column;
     const counts: Record<string, number> = { all: allRows.length };
     for (const row of allRows) {
-      const val = String(row[key] ?? '');
+      const val = normalizeStockPattern(row[key]);
       counts[val] = (counts[val] ?? 0) + 1;
     }
     return counts;
@@ -224,7 +224,8 @@
     { value: 'Sustained',        label: `Sustained (${stockPatternCounts['Sustained'] ?? 0})` },
     { value: 'Emerging',         label: `Emerging (${stockPatternCounts['Emerging'] ?? 0})` },
     { value: 'Cyclical',         label: `Cyclical (${stockPatternCounts['Cyclical'] ?? 0})` },
-    { value: 'Always Available', label: `Always (${stockPatternCounts['Always Available'] ?? 0})` },
+    { value: 'Always',           label: `Always (${stockPatternCounts['Always'] ?? 0})` },
+    { value: 'Newly Observed',   label: `Newly Observed (${stockPatternCounts['Newly Observed'] ?? 0})` },
   ]);
 
   // ── Derived: whether there is any collapsible content to show ────────────
@@ -239,6 +240,11 @@
 
   const slugify = (s: string): string =>
     s.toLowerCase().replace(/[^a-z0-9\s.]/g, '').replace(/\s+/g, '-');
+
+  const normalizeStockPattern = (value: unknown): string => {
+    const pattern = String(value ?? '');
+    return pattern === 'Always Available' ? 'Always' : pattern;
+  };
 </script>
 
 <!-- ── Signal filter row ─────────────────────────────────────────────────── -->

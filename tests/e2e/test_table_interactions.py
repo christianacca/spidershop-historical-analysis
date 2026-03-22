@@ -139,7 +139,7 @@ def test_signal_filtering_on_breeder_table(e2e_site_multi_species) -> None:
     
     # All rows visible initially
     all_rows = page.locator('#breeder-table tbody tr').count()
-    assert all_rows == 5, "Expected 5 species in test data"
+    assert all_rows == 6, "Expected 6 breeder species in test data"
     
     # Click "🔥 Hot" filter button (use specific selector to avoid matching Hot (top 10))
     hot_button = page.locator('button[data-action="filter-signal"][data-signal="🔥"]:not([data-limit])')
@@ -152,7 +152,7 @@ def test_signal_filtering_on_breeder_table(e2e_site_multi_species) -> None:
     # Click "Show All" to reset (use specific selector for signal filter)
     show_all = page.locator('button[data-action="filter-signal"][data-signal="all"]')
     show_all.click()
-    expect(page.locator('#breeder-table tbody tr')).to_have_count(5)
+    expect(page.locator('#breeder-table tbody tr')).to_have_count(6)
 
 
 @pytest.mark.e2e
@@ -181,6 +181,30 @@ def test_stock_pattern_filtering_on_breeder_table(e2e_site_multi_species) -> Non
 
 
 @pytest.mark.e2e
+def test_newly_observed_filtering_on_breeder_table(e2e_site_multi_species) -> None:
+    """Verify the Newly Observed stock pattern is exposed and filters breeder rows."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    advanced_toggle = page.locator(".advanced-filters-toggle")
+    if advanced_toggle.count() > 0:
+        advanced_content = page.locator(".advanced-filters-content")
+        if advanced_content.count() == 0:
+            advanced_toggle.click()
+            advanced_content.wait_for(state="visible")
+
+    newly_observed_button = page.locator(
+        'button[data-action="filter-stock-pattern"][data-stock-pattern="Newly Observed"]'
+    )
+    newly_observed_button.click()
+
+    visible_rows = page.locator('#breeder-table tbody tr')
+    expect(visible_rows).to_have_count(1)
+    expect(visible_rows.first).to_contain_text('Psalmopoeus irminia')
+
+
+@pytest.mark.e2e
 def test_search_filter_on_breeder_and_dealer_tables(e2e_site_multi_species) -> None:
     """Test that the text search filter works on both breeder and dealer tables."""
     page, base_url, errors = e2e_site_multi_species
@@ -195,7 +219,7 @@ def test_search_filter_on_breeder_and_dealer_tables(e2e_site_multi_species) -> N
         page.locator(".advanced-filters-content").wait_for(timeout=2000)
     
     # All rows should be visible initially
-    assert page.locator("#breeder-table tbody tr").count() == 5, "Expected 5 visible rows initially"
+    assert page.locator("#breeder-table tbody tr").count() == 6, "Expected 6 visible breeder rows initially"
     
     # Type "Brachypelma" in search box
     search_input = page.locator("#search-breeder-table")
@@ -211,7 +235,7 @@ def test_search_filter_on_breeder_and_dealer_tables(e2e_site_multi_species) -> N
     # Clear search - all rows should be visible again
     search_input.fill("")
     search_input.dispatch_event("keyup")
-    expect(page.locator("#breeder-table tbody tr")).to_have_count(5)
+    expect(page.locator("#breeder-table tbody tr")).to_have_count(6)
     
     # TEST: Dealer page search filter
     page.goto(f"{base_url}/dealer.html", wait_until="domcontentloaded")
@@ -250,7 +274,7 @@ def test_combined_signal_and_stock_pattern_filters(e2e_site_multi_species) -> No
     """Verify applying multiple filter types (signal then stock pattern) uses AND logic.
     
     NOTE: SortableTable applies AND logic: both signal and stock pattern filters are
-    combined. This test verifies: ⚠️ signal (2 rows) AND Emerging pattern (2 rows)
+    combined. This test verifies: ⚠️ signal (3 rows) AND Emerging pattern (2 rows)
     = 2 rows (Brachypelma ⚠️ Emerging + Pterinochilus ⚠️ Emerging).
     """
     page, base_url, errors = e2e_site_multi_species
@@ -266,7 +290,7 @@ def test_combined_signal_and_stock_pattern_filters(e2e_site_multi_species) -> No
     # Apply signal filter: ⚠️ Watch (use specific selector to avoid matching top10)
     watch_button = page.locator('button[data-action="filter-signal"][data-signal="⚠️"]:not([data-limit])')
     watch_button.click()
-    expect(page.locator('#breeder-table tbody tr')).to_have_count(2)
+    expect(page.locator('#breeder-table tbody tr')).to_have_count(3)
 
     # Now apply stock pattern filter: Emerging (both ⚠️ species are Emerging)
     # SortableTable applies AND logic: shows rows matching BOTH filters
@@ -280,7 +304,33 @@ def test_combined_signal_and_stock_pattern_filters(e2e_site_multi_species) -> No
     # Also clear the stock pattern filter (filters are independent — each must be reset separately)
     show_all_stock = page.locator("button[data-action='filter-stock-pattern'][data-stock-pattern='all']")
     show_all_stock.click()
-    expect(page.locator('#breeder-table tbody tr')).to_have_count(5)
+    expect(page.locator('#breeder-table tbody tr')).to_have_count(6)
+
+
+@pytest.mark.e2e
+def test_combined_signal_and_newly_observed_filters(e2e_site_multi_species) -> None:
+    """Verify ⚠️ signal and Newly Observed stock pattern combine with AND logic."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    advanced_toggle = page.locator(".advanced-filters-toggle")
+    if advanced_toggle.count() > 0:
+        advanced_toggle.click()
+        page.locator(".advanced-filters-content").wait_for(state="visible")
+
+    watch_button = page.locator('button[data-action="filter-signal"][data-signal="⚠️"]:not([data-limit])')
+    watch_button.click()
+    expect(page.locator('#breeder-table tbody tr')).to_have_count(3)
+
+    newly_observed_button = page.locator(
+        'button[data-action="filter-stock-pattern"][data-stock-pattern="Newly Observed"]'
+    )
+    newly_observed_button.click()
+
+    visible_rows = page.locator('#breeder-table tbody tr')
+    expect(visible_rows).to_have_count(1)
+    expect(visible_rows.first).to_contain_text('Psalmopoeus irminia')
 
 
 @pytest.mark.e2e
@@ -296,10 +346,10 @@ def test_search_filter_combined_with_signal_filter(e2e_site_multi_species) -> No
         advanced_toggle.click()
         page.locator(".advanced-filters-content").wait_for(state="visible")
 
-    # Apply ⚠️ Watch signal filter first (2 species)
+    # Apply ⚠️ Watch signal filter first (3 species)
     watch_button = page.locator('button:has-text("⚠️")')
     watch_button.click()
-    expect(page.locator('#breeder-table tbody tr')).to_have_count(2)
+    expect(page.locator('#breeder-table tbody tr')).to_have_count(3)
 
     # Now type search: "Brachypelma" (only matches one of the ⚠️ species)
     search_input = page.locator("#search-breeder-table")

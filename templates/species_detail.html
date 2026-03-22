@@ -63,6 +63,8 @@
       <strong>Breeder perspective:</strong>
       {% if species_data.breeder.signal == '🔥' %}
         Sustained scarcity signal detected. Consider breeding potential if pattern persists.
+      {% elif species_data.breeder.stock_pattern == 'Newly Observed' %}
+        Newly observed in the dataset; limited history means supply is not yet proven stable or scarce.
       {% elif species_data.breeder.signal == '⚠️' %}
         Emerging opportunity signal. Monitor for sustained scarcity pattern.
       {% else %}
@@ -149,6 +151,42 @@
   <!-- Evidence section (shared) -->
   <div class="section-title">Evidence <span class="shared-tag">Shared</span></div>
   <div class="section-subtitle">Charts and history table: the "source of truth" regardless of perspective.</div>
+
+  {% if observation_metadata %}
+  <div class="panel panel--observation-coverage">
+    <h3>Observation Coverage</h3>
+    <div class="panel-sub">Dataset context for interpreting sparse-history supply signals.</div>
+    <div class="coverage-metrics">
+      <div class="coverage-metric{% if observation_metadata.first_observed_status != 'current' %} coverage-metric--{{ observation_metadata.first_observed_status }}{% endif %}">
+        <div class="coverage-label">First observed in dataset</div>
+        {% if observation_metadata.first_observed_flag %}
+        <div class="coverage-metric__flag">{{ observation_metadata.first_observed_flag }}</div>
+        {% endif %}
+        <div class="coverage-value">{{ observation_metadata.first_observed }}</div>
+        <div class="coverage-note">Earliest confirmed listing</div>
+      </div>
+      <div class="coverage-metric{% if observation_metadata.latest_observed_status != 'current' %} coverage-metric--{{ observation_metadata.latest_observed_status }}{% endif %}">
+        <div class="coverage-label">Latest observed</div>
+        {% if observation_metadata.latest_observed_flag %}
+        <div class="coverage-metric__flag">{{ observation_metadata.latest_observed_flag }}</div>
+        {% endif %}
+        <div class="coverage-value">{{ observation_metadata.latest_observed }}</div>
+        <div class="coverage-note">Most recent confirmed listing</div>
+      </div>
+      <div class="coverage-metric coverage-metric--context{% if observation_metadata.coverage_status != 'current' %} coverage-metric--{{ observation_metadata.coverage_status }}{% endif %}">
+        <div class="coverage-label">Observed in {{ observation_metadata.observed_runs_display }}</div>
+        {% if observation_metadata.coverage_flag %}
+        <div class="coverage-metric__flag">{{ observation_metadata.coverage_flag }}</div>
+        {% endif %}
+        <div class="coverage-value">{{ observation_metadata.observed_runs_display }}</div>
+        <div class="coverage-note">Uses the full dataset run count</div>
+      </div>
+    </div>
+    {% if observation_metadata.has_ambiguous_pre_first_seen_runs %}
+    <div class="meta-note">Pre-first-seen absence is ambiguous: the species may have been unlisted, renamed, or simply not yet observed in the dataset.</div>
+    {% endif %}
+  </div>
+  {% endif %}
 
   <div class="grid-2">
     <div class="panel">

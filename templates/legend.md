@@ -17,6 +17,7 @@
 - With weekly runs, `4+` weeks indicates persistent scarcity
 - **Resets to 0 when species returns to stock** — focuses on current opportunity window
 - Example: A species OUT for 5 weeks, then IN, then OUT for 2 weeks shows `OOS Runs = 2`
+- Runs before a species is first observed are **ambiguous** and do not count as breeder scarcity evidence
 - **Key Difference from Dealer Matrix:** Breeder OOS Runs measures current scarcity window (forward-looking opportunity), while Dealer Avg OOS Duration measures historical supply reliability (backward-looking risk assessment)
 
 **Stock Pattern** (Primary Signal)
@@ -25,6 +26,7 @@
 - `Emerging` — Missing for multiple consecutive runs (early scarcity)
 - `Sustained` — Missing for many runs (strong breeding signal)
 - `Cyclical` — Repeated disappear / reappear pattern (batch supply)
+- `Newly Observed` — Currently in stock, but only observed in the latest 1-2 runs; limited history means pre-first-seen absence is ambiguous
 - This is the **foundation** of all recommendations — modifiers can only refine, not override
 
 **Price** (Value + Trend)
@@ -67,6 +69,7 @@
 - `🔥` — Strong breeding opportunity signal
 - `⚠️` — Monitor closely; opportunity may be forming
 - `❌` — Oversupplied or no meaningful scarcity
+- `Newly Observed` stays in the `⚠️` bucket until more runs exist; it is a limited-history hold state, not confirmed scarcity or abundance
 
 **Recommendation** (Final Assessment)
 
@@ -75,6 +78,7 @@
 - Modifiers can escalate signals but never override the base pattern category
 - Example: `Sustained` scarcity cannot be downgraded by falling prices
 - Example: `Always` available cannot reach 🔥 regardless of wishlist interest
+- Example: `Newly Observed` remains ⚠️ while history is sparse, even if current demand is strong
 - Designed to be conservative to avoid reacting to short-term noise
 
 ---
@@ -93,6 +97,7 @@
 - This is the **foundation** of all dealer risk assessments — demand modifiers refine but cannot override supply constraints
 - **Calculated across entire history**, not just recent weeks
 - Example: A species IN stock now but only appeared in 3 of 10 historical weeks = `Low` reliability
+- When a species is only newly observed late in the dataset, reliability still stays supply-first but recommendation text may flag the conclusion as limited-history / low-confidence
 
 **Avg OOS Duration** (Supply Volatility Measure)
 
@@ -169,6 +174,7 @@
 - Demand modifiers escalate urgency for supply-constrained species but cannot override healthy supply
 - Example: `Low` reliability + `Slow` restock = 🔥 regardless of wishlist interest
 - Example: `High` reliability cannot reach 🔥 even with surging demand (well-supplied)
+- Sparse-history species may carry a limited-history qualifier in the recommendation or drivers, but this does not create a separate dealer taxonomy
 - Designed to prevent stockouts while avoiding panic buying of well-stocked items
 
 ---

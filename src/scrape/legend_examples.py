@@ -359,6 +359,39 @@ def generate_breeder_example_7():
 This demonstrates how the same market data yields different but equally valid insights for different stakeholders."""
 
 
+def generate_breeder_example_8():
+    """Example 8: Newly Observed (Limited History Hold State)."""
+    history = [
+        make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-01-15", "Aphonopelma seemanni", "1.0", "25.00", "9"),
+        make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-01-22", "Aphonopelma seemanni", "1.0", "26.00", "14"),
+        make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "1"),
+    ]
+
+    table = build_breeder_opportunity_table(history)
+    entry = _get_table_entry(table, "Aphonopelma seemanni")
+
+    data_table = format_scenario_table(history, "Aphonopelma seemanni")
+
+    return f"""#### Example 8: Newly Observed (Limited History Hold State)
+**Scenario:** A species is currently in stock, but only appears in the latest 2 runs after being absent from all earlier dataset history
+
+{data_table}
+
+**Analysis Result:**
+
+- **OOS:** {entry["OOS"]}
+- **OOS Runs:** {entry["OOS Runs"]}
+- **Stock Pattern:** {entry["Stock Pattern"]}
+- **Wishlist:** {entry["Wishlist"]}
+- **Signal:** {entry["Signal"]}
+- **Recommendation:** {entry["Recommendation"]}
+
+**Why:** This species is too new in the dataset to treat as reliably available, but there is also not enough evidence to treat earlier absence as true scarcity. `Newly Observed` keeps the row in a limited-history hold state until more runs exist."""
+
+
 def generate_breeder_examples():
     """Generate all Breeder Matrix examples."""
     examples = [
@@ -369,6 +402,7 @@ def generate_breeder_examples():
         generate_breeder_example_5(),
         generate_breeder_example_6(),
         generate_breeder_example_7(),
+        generate_breeder_example_8(),
     ]
     
     header = """### 📖 Breeder Matrix — Practical Examples

@@ -5,7 +5,7 @@ Shared utility functions for working with historical data rows.
 These functions provide common patterns for grouping and identifying
 historical scrape data, used by both analysis and website generation.
 """
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any, Tuple, Optional
 
 def group_by_run(rows: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
     """Group historical rows by scrape_datetime (run ID).
@@ -46,6 +46,74 @@ def create_species_key(row: Dict[str, Any]) -> Tuple[str, str]:
         Tuple of (scientific_name, size_cm)
     """
     return (row["scientific_name"], row["size_cm"])
+
+
+def create_observation_coverage(
+    rows: List[Dict[str, Any]],
+    key: Tuple[str, str],
+) -> Dict[str, Any]:
+    """Return full-timeline observation metadata for a species/size key.
+
+    Args:
+        rows: Full historical row set across all runs.
+        key: Species key as ``(scientific_name, size_cm)``.
+
+    Returns:
+        Dict containing:
+            - first_observed_run: first run where key was observed, or None
+            - latest_observed_run: latest run where key was observed, or None
+            - observed_run_count: number of runs where key was observed
+            - total_run_count: total number of runs in the dataset
+            - current_consecutive_observation_runs: trailing observed run streak
+            - ambiguous_pre_first_seen_run_count: runs before first observation
+            - observed_in_current_run: whether key is present in the latest run
+    """
+    by_run = group_by_run(rows)
+    runs = sorted(by_run)
+
+    observed_runs = [
+        run_timestamp
+        for run_timestamp in runs
+        if any(create_species_key(row) == key for row in by_run[run_timestamp])
+    ]
+    observed_run_set = set(observed_runs)
+    first_observed_run: Optional[str] = observed_runs[0] if observed_runs else None
+    latest_observed_run: Optional[str] = observed_runs[-1] if observed_runs else None
+    total_run_count = len(runs)
+    observed_run_count = len(observed_runs)
+
+    current_consecutive_observation_runs = 0
+    for run_timestamp in reversed(runs):
+        if run_timestamp in observed_run_set:
+            current_consecutive_observation_runs += 1
+            continue
+        break
+
+    ambiguous_pre_first_seen_run_count = 0
+    if first_observed_run is not None:
+        ambiguous_pre_first_seen_run_count = runs.index(first_observed_run)
+
+    observed_in_current_run = bool(runs) and latest_observed_run == runs[-1]
+
+    return {
+        "first_observed_run": first_observed_run,
+        "latest_observed_run": latest_observed_run,
+        "observed_run_count": observed_run_count,
+        "total_run_count": total_run_count,
+        "current_consecutive_observation_runs": current_consecutive_observation_runs,
+        "ambiguous_pre_first_seen_run_count": ambiguous_pre_first_seen_run_count,
+        "observed_in_current_run": observed_in_current_run,
+    }
+
+
+def is_newly_observed_coverage(observation_coverage: Dict[str, Any]) -> bool:
+    """Return whether coverage matches the shared breeder Newly Observed rule."""
+    return bool(
+        observation_coverage["observed_in_current_run"]
+        and observation_coverage["observed_run_count"] <= 2
+        and observation_coverage["current_consecutive_observation_runs"]
+        == observation_coverage["observed_run_count"]
+    )
 
 
 def compare_prices(price_current: str, price_previous: str) -> str:
