@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from shared.history_utils import create_observation_coverage, k2, compare_prices
+from shared.history_utils import create_observation_coverage, is_newly_observed_coverage, k2, compare_prices
 from shared.config import BREEDER_TABLE_FILE, SIGNAL_PRIORITY
 from shared.driver_text_helpers import build_drivers_text
 from shared.price_text_helpers import format_price_cell
@@ -180,12 +180,7 @@ def build_breeder_opportunity_table(history_rows):
                 oos_runs += 1
 
         # Pattern derived from OOS evidence, with a conservative sparse-history hold state.
-        is_newly_observed = (
-            in_current
-            and observation_coverage["observed_run_count"] <= 2
-            and observation_coverage["current_consecutive_observation_runs"]
-            == observation_coverage["observed_run_count"]
-        )
+        is_newly_observed = is_newly_observed_coverage(observation_coverage)
 
         if is_newly_observed:
             pattern = "Newly Observed"

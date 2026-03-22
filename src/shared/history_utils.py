@@ -106,6 +106,16 @@ def create_observation_coverage(
     }
 
 
+def is_newly_observed_coverage(observation_coverage: Dict[str, Any]) -> bool:
+    """Return whether coverage matches the shared breeder Newly Observed rule."""
+    return bool(
+        observation_coverage["observed_in_current_run"]
+        and observation_coverage["observed_run_count"] <= 2
+        and observation_coverage["current_consecutive_observation_runs"]
+        == observation_coverage["observed_run_count"]
+    )
+
+
 def compare_prices(price_current: str, price_previous: str) -> str:
     """Compare two price strings and return a trend symbol.
     

@@ -14,7 +14,7 @@ from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 
 from website.csv_utils import read_csv_file
-from shared.history_utils import create_observation_coverage
+from shared.history_utils import create_observation_coverage, is_newly_observed_coverage
 from shared.parsing import format_datetime_smart
 
 
@@ -357,19 +357,34 @@ def get_observation_metadata(
 
     first_observed_run = observation_coverage["first_observed_run"]
     latest_observed_run = observation_coverage["latest_observed_run"]
+    run_dates = all_run_dates
+    latest_run_index = run_dates.index(latest_observed_run)
+    runs_since_latest_observed = len(run_dates) - 1 - latest_run_index
+    observed_run_count = observation_coverage["observed_run_count"]
+    total_run_count = observation_coverage["total_run_count"]
+
+    first_observed_status = "new" if is_newly_observed_coverage(observation_coverage) else "current"
+    latest_observed_status = "stale" if runs_since_latest_observed >= 4 else "current"
+    coverage_status = "low" if observed_run_count <= 2 else "current"
 
     return {
         "first_observed": date_to_formatted.get(first_observed_run, first_observed_run),
         "latest_observed": date_to_formatted.get(latest_observed_run, latest_observed_run),
-        "observed_run_count": observation_coverage["observed_run_count"],
-        "total_run_count": observation_coverage["total_run_count"],
+        "observed_run_count": observed_run_count,
+        "total_run_count": total_run_count,
         "observed_runs_display": (
-            f"{observation_coverage['observed_run_count']}"
-            f"/{observation_coverage['total_run_count']} runs"
+            f"{observed_run_count}"
+            f"/{total_run_count} runs"
         ),
         "has_ambiguous_pre_first_seen_runs": (
             observation_coverage["ambiguous_pre_first_seen_run_count"] > 0
         ),
+        "first_observed_status": first_observed_status,
+        "first_observed_flag": "New" if first_observed_status == "new" else None,
+        "latest_observed_status": latest_observed_status,
+        "latest_observed_flag": "Stale" if latest_observed_status == "stale" else None,
+        "coverage_status": coverage_status,
+        "coverage_flag": "Low coverage" if coverage_status == "low" else None,
     }
 
 

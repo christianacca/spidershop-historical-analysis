@@ -3,7 +3,7 @@
 
 from conftest import HistoryEntry
 
-from shared.history_utils import create_observation_coverage, k2
+from shared.history_utils import create_observation_coverage, is_newly_observed_coverage, k2
 
 
 def _coverage(entries):
@@ -179,3 +179,99 @@ class TestCreateObservationCoverage:
         row = HistoryEntry(scientific_name="Aphonopelma seemanni", size_cm="1.5").__dict__.copy()
 
         assert k2(row) == ("Aphonopelma seemanni", "1.5")
+
+
+class TestIsNewlyObservedCoverage:
+    """Newly observed classification should come from one shared predicate."""
+
+    def test_returns_true_for_current_run_first_observation(self):
+        coverage = _coverage(
+            [
+                HistoryEntry(
+                    scrape_datetime="2024-01-01 10:00:00",
+                    scientific_name="Other species",
+                    size_cm="1.0",
+                ),
+                HistoryEntry(
+                    scrape_datetime="2024-01-08 10:00:00",
+                    scientific_name="Aphonopelma seemanni",
+                    size_cm="1.5",
+                ),
+            ]
+        )
+
+        assert is_newly_observed_coverage(coverage) is True
+
+    def test_returns_true_for_latest_two_consecutive_observations(self):
+        coverage = _coverage(
+            [
+                HistoryEntry(
+                    scrape_datetime="2024-01-01 10:00:00",
+                    scientific_name="Other species",
+                    size_cm="1.0",
+                ),
+                HistoryEntry(
+                    scrape_datetime="2024-01-08 10:00:00",
+                    scientific_name="Aphonopelma seemanni",
+                    size_cm="1.5",
+                ),
+                HistoryEntry(
+                    scrape_datetime="2024-01-15 10:00:00",
+                    scientific_name="Aphonopelma seemanni",
+                    size_cm="1.5",
+                ),
+            ]
+        )
+
+        assert is_newly_observed_coverage(coverage) is True
+
+    def test_returns_false_for_non_consecutive_sparse_observations(self):
+        coverage = _coverage(
+            [
+                HistoryEntry(
+                    scrape_datetime="2024-01-01 10:00:00",
+                    scientific_name="Aphonopelma seemanni",
+                    size_cm="1.5",
+                ),
+                HistoryEntry(
+                    scrape_datetime="2024-01-08 10:00:00",
+                    scientific_name="Other species",
+                    size_cm="1.0",
+                ),
+                HistoryEntry(
+                    scrape_datetime="2024-01-15 10:00:00",
+                    scientific_name="Aphonopelma seemanni",
+                    size_cm="1.5",
+                ),
+            ]
+        )
+
+        assert is_newly_observed_coverage(coverage) is False
+
+    def test_returns_false_after_three_observed_runs(self):
+        coverage = _coverage(
+            [
+                HistoryEntry(
+                    scrape_datetime="2024-01-01 10:00:00",
+                    scientific_name="Other species",
+                    size_cm="1.0",
+                ),
+                HistoryEntry(
+                    scrape_datetime="2024-01-08 10:00:00",
+                    scientific_name="Aphonopelma seemanni",
+                    size_cm="1.5",
+                ),
+                HistoryEntry(
+                    scrape_datetime="2024-01-15 10:00:00",
+                    scientific_name="Aphonopelma seemanni",
+                    size_cm="1.5",
+                ),
+                HistoryEntry(
+                    scrape_datetime="2024-01-22 10:00:00",
+                    scientific_name="Aphonopelma seemanni",
+                    size_cm="1.5",
+                ),
+            ]
+        )
+
+        assert is_newly_observed_coverage(coverage) is False

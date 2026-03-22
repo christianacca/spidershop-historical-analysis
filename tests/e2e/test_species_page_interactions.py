@@ -400,11 +400,15 @@ def test_chart_tooltips_show_on_hover(e2e_site_minimal) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _navigate_to_species_page(page, base_url: str) -> None:
-    """Navigate from the breeder table to the first available species detail page."""
+def _navigate_to_species_page(page, base_url: str, species_name: str | None = None) -> None:
+    """Navigate from the breeder table to a species detail page."""
     page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
-    species_link = page.locator('table a[href^="species/"]').first
-    assert species_link.count() == 1, "Breeder page should have at least one species link"
+    if species_name is None:
+        species_link = page.locator('table a[href^="species/"]').first
+        assert species_link.count() == 1, "Breeder page should have at least one species link"
+    else:
+        species_link = page.locator('table a[href^="species/"]', has_text=species_name)
+        assert species_link.count() == 1, f"Breeder page should link to {species_name}"
     species_href = species_link.get_attribute('href')
     page.goto(f"{base_url}/{species_href}", wait_until="domcontentloaded")
     page.wait_for_timeout(200)
@@ -544,7 +548,7 @@ def test_species_detail_table_footnote_styling(e2e_site_minimal) -> None:
 
 @pytest.mark.e2e
 def test_species_detail_observation_coverage_emphasizes_key_dates(e2e_site_minimal) -> None:
-    """Observation coverage should stay subtle overall while first/latest dates get the visual emphasis."""
+    """Observation coverage should stay subtle overall when there are no significance states."""
     page, base_url, errors = e2e_site_minimal
 
     _navigate_to_species_page(page, base_url)
@@ -557,17 +561,20 @@ def test_species_detail_observation_coverage_emphasizes_key_dates(e2e_site_minim
         f"Observation coverage panel should use {token_rgb('--color-surface-light')}, got {panel_bg}"
 
     key_metrics = page.locator('.coverage-metric--key-date')
-    assert key_metrics.count() == 2, "First/latest observed metrics should use key-date emphasis styling"
+    assert key_metrics.count() == 0, "Current observation metrics should not use the old strong key-date treatment"
 
-    first_border = key_metrics.nth(0).evaluate('el => window.getComputedStyle(el).borderLeftColor')
-    latest_border = key_metrics.nth(1).evaluate('el => window.getComputedStyle(el).borderLeftColor')
-    assert token_rgb('--color-accent') in first_border, \
-        f"First observed metric should emphasize with accent border, got {first_border}"
-    assert token_rgb('--color-accent') in latest_border, \
-        f"Latest observed metric should emphasize with accent border, got {latest_border}"
+    flag_count = page.locator('.coverage-metric__flag').count()
+    assert flag_count == 0, f"Current observation metrics should not render significance flags, got {flag_count}"
 
     context_metric = page.locator('.coverage-metric--context')
     assert context_metric.count() == 1, "Observed runs metric should use lower-emphasis context styling"
     context_border = context_metric.first.evaluate('el => window.getComputedStyle(el).borderLeftWidth')
     assert context_border == '1px', \
         f"Context metric should not use the stronger key-date border treatment, got {context_border}"
+
+    latest_metric = page.locator('.coverage-metrics .coverage-metric').nth(1)
+    latest_border = latest_metric.evaluate('el => window.getComputedStyle(el).borderLeftWidth')
+    assert latest_border == '1px', \
+        f"Latest observed should stay visually neutral unless stale, got border-left width {latest_border}"
+
+
