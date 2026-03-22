@@ -654,6 +654,38 @@ def test_instruction_box_legend_link_opens_legend_section(e2e_site_multi_species
 
 
 @pytest.mark.e2e
+def test_analysis_pages_render_methodology_below_legend(e2e_site_multi_species) -> None:
+    """Breeder and dealer pages should render the methodology section after the legend."""
+    page, base_url, errors = e2e_site_multi_species
+
+    for page_name in ['breeder.html', 'dealer.html']:
+        page.goto(f"{base_url}/{page_name}", wait_until="domcontentloaded")
+
+        methodology = page.locator('#methodology-section')
+        assert methodology.count() == 1, f"{page_name} should render #methodology-section"
+        assert methodology.locator('text=Worked example').count() >= 1, \
+            f"{page_name} methodology should include a worked example"
+
+        legend = page.locator('#legend-section')
+        assert legend.count() == 1, f"{page_name} should still render #legend-section"
+
+        order_is_correct = page.evaluate("""
+            () => {
+                const legend = document.querySelector('#legend-section');
+                const methodology = document.querySelector('#methodology-section');
+                if (!legend || !methodology) {
+                    return false;
+                }
+
+                return Boolean(
+                    legend.compareDocumentPosition(methodology) & Node.DOCUMENT_POSITION_FOLLOWING
+                );
+            }
+        """)
+        assert order_is_correct, f"{page_name} should place methodology after the legend"
+
+
+@pytest.mark.e2e
 def test_filter_buttons_layout(e2e_site_multi_species) -> None:
     """Filter button containers should use flexbox; individual buttons use inline-flex."""
     page, base_url, errors = e2e_site_multi_species

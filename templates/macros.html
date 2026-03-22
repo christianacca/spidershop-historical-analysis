@@ -78,3 +78,84 @@
     </div>
 </div>
 {%- endmacro %}
+
+{% macro methodology_section(methodology) -%}
+<section id="methodology-section" class="analysis-methodology" aria-labelledby="methodology-title">
+    <div class="analysis-methodology__header">
+        <p class="analysis-methodology__eyebrow">Reference guide</p>
+        <h3 id="methodology-title">{{ methodology.section_title }}</h3>
+        <p class="analysis-methodology__intro">Use this section for the exact thresholds, rule order, and conservative edge-case handling behind the table above.</p>
+    </div>
+
+    <div class="analysis-methodology__stack">
+        <section class="methodology-card methodology-card--summary" aria-labelledby="methodology-summary-title">
+            <h4 id="methodology-summary-title">{{ methodology.summary.title }}</h4>
+            <p>{{ methodology.summary.intro }}</p>
+            <ul class="methodology-list">
+                {% for bullet in methodology.summary.bullets %}
+                <li>{{ bullet }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+
+        <section class="methodology-card methodology-card--example" aria-labelledby="methodology-example-title">
+            <div class="methodology-card__head">
+                <h4 id="methodology-example-title">{{ methodology.worked_example.title }}</h4>
+                <span class="methodology-result">{{ methodology.worked_example.result }}</span>
+            </div>
+            <p class="methodology-species">{{ methodology.worked_example.species }}</p>
+            <ol class="methodology-steps">
+                {% for step in methodology.worked_example.steps %}
+                <li>
+                    <strong>{{ step.label }}</strong>
+                    <p>{{ step.detail }}</p>
+                </li>
+                {% endfor %}
+            </ol>
+        </section>
+
+        <section class="methodology-card methodology-card--thresholds" aria-labelledby="methodology-thresholds-title">
+            <h4 id="methodology-thresholds-title">Threshold inventory</h4>
+            <div class="methodology-groups">
+                {% for group in methodology.threshold_groups %}
+                <section class="methodology-group">
+                    <h5>{{ group.title }}</h5>
+                    <dl class="methodology-grid">
+                        {% for item in group['items'] %}
+                        <div class="methodology-grid__item">
+                            <dt>{{ item.label }}</dt>
+                            <dd>{{ item.detail }}</dd>
+                        </div>
+                        {% endfor %}
+                    </dl>
+                </section>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="methodology-card methodology-card--decision-tree" aria-labelledby="methodology-decision-title">
+            <h4 id="methodology-decision-title">{{ methodology.decision_tree.title }}</h4>
+            <ol class="methodology-steps methodology-steps--compact">
+                {% for node in methodology.decision_tree.nodes %}
+                <li>
+                    <strong>{{ node.label }}</strong>
+                    <p>{{ node.detail }}</p>
+                </li>
+                {% endfor %}
+            </ol>
+        </section>
+
+        <section class="methodology-card methodology-card--edge-cases" aria-labelledby="methodology-edge-title">
+            <h4 id="methodology-edge-title">Edge-case notes</h4>
+            <div class="methodology-edge-list">
+                {% for note in methodology.edge_cases %}
+                <article class="methodology-edge-note">
+                    <h5>{{ note.title }}</h5>
+                    <p>{{ note.body }}</p>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+</section>
+{%- endmacro %}

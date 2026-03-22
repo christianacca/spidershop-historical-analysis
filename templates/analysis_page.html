@@ -63,8 +63,12 @@
     {% if legend_html %}
     {{ legend_html|safe }}
     {% endif %}
+
+    {% if methodology %}
+    {{ macros.methodology_section(methodology) }}
+    {% endif %}
     
-    {% if examples_html %}
+    {% if examples_html and not methodology %}
     <details open>
         <summary><strong>📖 Practical Examples</strong></summary>
         <div class="examples-content">

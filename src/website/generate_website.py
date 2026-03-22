@@ -42,6 +42,7 @@ from typing import Optional, List, Any
 
 # Handle both direct script execution and module import
 try:
+    from website.analysis_methodology import build_analysis_methodology
     from website.page_config import BasePageConfig, NAV_ITEMS
     from website.sparkline_dto import (
         load_historical_sparkline_data,
@@ -69,6 +70,7 @@ try:
     )
     from shared.parsing import format_datetime_smart, snake_to_display_header
 except ModuleNotFoundError:
+    from analysis_methodology import build_analysis_methodology  # type: ignore[assignment]
     from page_config import BasePageConfig, NAV_ITEMS  # type: ignore[assignment]
     from sparkline_dto import (
         load_historical_sparkline_data,
@@ -301,6 +303,8 @@ def generate_analysis_page(config: BasePageConfig) -> str:
                 'avoid': 'Oversupplied or always available. No meaningful scarcity pattern detected, regardless of demand spikes.'
             }
     
+    methodology = getattr(config, 'methodology', None)
+
     # Get optional markdown fields (may not exist on all config types)
     examples_markdown = getattr(config, 'examples_markdown', None)
     examples_html = parse_markdown_to_html(examples_markdown) if examples_markdown else None
@@ -329,6 +333,7 @@ def generate_analysis_page(config: BasePageConfig) -> str:
         stats_labels=stats_labels,
         tooltips=tooltips,
         legend_html=legend_html,
+        methodology=methodology,
         examples_html=examples_html,
         headers=headers_enum,
         rows=rows_enum,
@@ -536,6 +541,7 @@ def main() -> None:
             analysis_markdown=breeder_analysis,
             legend_markdown=breeder_legend,
             examples_markdown=breeder_examples,
+            methodology=build_analysis_methodology("breeder"),
             link_to_species_page=True,
             table_view="breeder"
         )))
@@ -553,6 +559,7 @@ def main() -> None:
             analysis_markdown=dealer_analysis,
             legend_markdown=dealer_legend,
             examples_markdown=dealer_examples,
+            methodology=build_analysis_methodology("dealer"),
             link_to_species_page=True,
             table_view="dealer"
         )))

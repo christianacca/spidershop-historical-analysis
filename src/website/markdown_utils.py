@@ -189,7 +189,10 @@ def extract_analysis_sections(markdown_file: str) -> Tuple[Optional[str], Option
                 # Split dealer remaining at dealer examples heading
                 dealer_examples_split = re.split(r'### 📖 Dealer Matrix — Practical Examples', remaining_dealer)
                 if len(dealer_examples_split) >= 2:
-                    dealer_legend = '### 🏪 Dealer Supply Risk Matrix — Legend' + dealer_examples_split[0].strip()
+                    dealer_legend = (
+                        '### 🏪 Dealer Supply Risk Matrix — Legend\n\n'
+                        + dealer_examples_split[0].strip()
+                    )
                     dealer_examples = '### 📖 Dealer Matrix — Practical Examples' + dealer_examples_split[1]
     
     return breeder_md, dealer_md, breeder_legend, dealer_legend, breeder_examples, dealer_examples

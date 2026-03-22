@@ -100,9 +100,11 @@ Example content for dealers.
                 assert "<ul>" in breeder_html
                 assert "<li><code>IN</code>" in breeder_html
                 
-                # Verify examples were converted
-                assert "<h4>📖 Breeder Matrix — Practical Examples</h4>" in breeder_html
-                assert "Example content for breeders" in breeder_html
+                # Final analysis pages now render methodology below the legend instead of
+                # the old free-form markdown example block.
+                assert 'id="methodology-section"' in breeder_html
+                assert "Worked example" in breeder_html
+                assert "How the breeder analysis works" in breeder_html
                 
                 # Verify NO markdown syntax remains
                 assert "### 🧬 Breeder" not in breeder_html
@@ -118,10 +120,12 @@ Example content for dealers.
                 # Dealer JS bundle should be referenced (Svelte owns filter buttons + table)
                 assert 'src="dealer-page.js"' in dealer_html, "Should reference dealer-page JS bundle"
                 
-                # Verify legend/examples were converted to HTML
-                assert "<h4>" in dealer_html  # Some heading converted
-                assert "Example content for dealers" in dealer_html
-                assert "Example content for dealers" in dealer_html
+                # Verify legend was converted to HTML and methodology is rendered
+                assert "<h4>🏪 Dealer Supply Risk Matrix — Legend</h4>" in dealer_html
+                assert "<h4>🏪 Dealer Supply Risk Matrix — Legend<strong>Stock Reliability</strong></h4>" not in dealer_html
+                assert 'id="methodology-section"' in dealer_html
+                assert "Worked example" in dealer_html
+                assert "How the dealer analysis works" in dealer_html
                 
                 # Verify NO markdown syntax remains
                 assert "### 🏪 Dealer" not in dealer_html
