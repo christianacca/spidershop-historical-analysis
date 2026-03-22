@@ -62,7 +62,7 @@
 
   let { tableId, rows, columns, filterConfig = {}, primaryToggle = false }: Props = $props();
 
-  // ── One-time range computation (data is static after mount) ────────────────
+  // ── Full-data ranges (used when all filters are cleared) ───────────────────
 
   const priceRange = computeRange(rows, filterConfig.priceColumn, 'float');
   const wishlistRange = computeRange(rows, filterConfig.wishlistColumn, 'int');
@@ -84,34 +84,57 @@
   let sliderWishlistMin = $state(wishlistRange.min);
   let sliderWishlistMax = $state(wishlistRange.max);
 
+  // ── Derived: upstream rows for adaptive downstream filters ─────────────────
+  const signalFilteredRows = $derived.by(() => {
+    const signalCol = filterConfig.signalFilter?.column;
+    return signalCol && activeSignal !== 'all'
+      ? allRows.filter((row) => String(row[signalCol] ?? '') === activeSignal)
+      : allRows;
+  });
+
+  const upstreamRows = $derived.by(() => {
+    if (top10Limit === null) return signalFilteredRows;
+    const pinnedRows = new Set(signalFilteredRows.slice(0, top10Limit));
+    return allRows.filter((row) => pinnedRows.has(row));
+  });
+
+  const adaptivePriceRange = $derived.by(() =>
+    computeRange(upstreamRows, filterConfig.priceColumn, 'float'),
+  );
+
+  const adaptiveWishlistRange = $derived.by(() =>
+    computeRange(upstreamRows, filterConfig.wishlistColumn, 'int'),
+  );
+
+  $effect(() => {
+    if (!filterConfig.priceColumn) return;
+    sliderPriceMin = adaptivePriceRange.min;
+    sliderPriceMax = adaptivePriceRange.max;
+  });
+
+  $effect(() => {
+    if (!filterConfig.wishlistColumn) return;
+    sliderWishlistMin = adaptiveWishlistRange.min;
+    sliderWishlistMax = adaptiveWishlistRange.max;
+  });
+
   // ── Derived: filtered + sorted rows ───────────────────────────────────────
   const visibleRows = $derived.by(() => {
-    const signalCol = filterConfig.signalFilter?.column;
     const stockPatternCol = filterConfig.stockPatternFilter?.column;
     const priceCol = filterConfig.priceColumn;
     const wishlistCol = filterConfig.wishlistColumn;
 
-    // 1. Signal filter
-    const afterSignal: Record<string, unknown>[] = signalCol && activeSignal !== 'all'
-      ? allRows.filter((r) => String(r[signalCol] ?? '') === activeSignal)
-      : allRows;
-
-    // 2. Top-10: pins a subset from the signal-filtered list, then allows the
-    //    remaining filters to narrow further (e.g. search within top-10).
-    const top10Pinned = top10Limit !== null ? new Set(afterSignal.slice(0, top10Limit)) : null;
-    const afterTop10 = top10Pinned !== null ? allRows.filter((r) => top10Pinned.has(r)) : afterSignal;
-
-    // 3. Stock pattern filter
+    // 1. Stock pattern filter after the signal/top-10 upstream subset.
     const afterStockPattern = stockPatternCol && activeStockPattern !== 'all'
-      ? afterTop10.filter((r) => normalizeStockPattern(r[stockPatternCol]) === activeStockPattern)
-      : afterTop10;
+      ? upstreamRows.filter((r) => normalizeStockPattern(r[stockPatternCol]) === activeStockPattern)
+      : upstreamRows;
 
-    // 4. Search (all columns)
+    // 2. Search (all columns)
     const afterSearch = searchText.trim()
       ? applySearchFilter(afterStockPattern, columns, searchText)
       : afterStockPattern;
 
-    // 5. Price range — NaN (non-numeric cell, e.g. empty) passes through unchanged.
+    // 3. Price range — NaN (non-numeric cell, e.g. empty) passes through unchanged.
     const afterPriceRange = priceCol
       ? afterSearch.filter((r) => {
           const v = parseFloat(String(r[priceCol] ?? '').replace(/^[^0-9.]*/, ''));
@@ -119,7 +142,7 @@
         })
       : afterSearch;
 
-    // 6. Wishlist range — NaN (emoji values, empty cells) passes through unchanged.
+    // 4. Wishlist range — NaN (emoji values, empty cells) passes through unchanged.
     const afterWishlist = wishlistCol
       ? afterPriceRange.filter((r) => {
           const v = parseInt(String(r[wishlistCol] ?? '').replace(/^[^0-9.]*/, ''), 10);
@@ -127,7 +150,7 @@
         })
       : afterPriceRange;
 
-    // 7. Sort
+    // 5. Sort
     const sorted = sort.apply(afterWishlist);
 
     return sorted;
@@ -145,8 +168,14 @@
     if (top10Limit !== null) count++;
     if (activeStockPattern !== 'all') count++;
     if (searchText.trim()) count++;
-    if (filterConfig.priceColumn && (sliderPriceMin > priceRange.min || sliderPriceMax < priceRange.max)) count++;
-    if (filterConfig.wishlistColumn && (sliderWishlistMin > wishlistRange.min || sliderWishlistMax < wishlistRange.max)) count++;
+    if (
+      filterConfig.priceColumn &&
+      (sliderPriceMin > adaptivePriceRange.min || sliderPriceMax < adaptivePriceRange.max)
+    ) count++;
+    if (
+      filterConfig.wishlistColumn &&
+      (sliderWishlistMin > adaptiveWishlistRange.min || sliderWishlistMax < adaptiveWishlistRange.max)
+    ) count++;
     return count;
   });
 
@@ -206,12 +235,12 @@
     { value: '❌', label: `❌ Avoid (${signalCounts.avoid})`, count: signalCounts.avoid },
   ]);
 
-  // ── Derived: per-stock-pattern row counts (from all rows, not filtered) ───
+  // ── Derived: per-stock-pattern row counts within the signal/top-10 subset ─
   const stockPatternCounts = $derived.by(() => {
     if (!filterConfig.stockPatternFilter) return {} as Record<string, number>;
     const key = filterConfig.stockPatternFilter.column;
-    const counts: Record<string, number> = { all: allRows.length };
-    for (const row of allRows) {
+    const counts: Record<string, number> = { all: upstreamRows.length };
+    for (const row of upstreamRows) {
       const val = normalizeStockPattern(row[key]);
       counts[val] = (counts[val] ?? 0) + 1;
     }
@@ -337,8 +366,10 @@
     {#if filterConfig.priceColumn}
       <RangeSlider
         label="💷 Price Range:"
-        min={priceRange.min}
-        max={priceRange.max}
+        min={adaptivePriceRange.min}
+        max={adaptivePriceRange.max}
+        currentMin={sliderPriceMin}
+        currentMax={sliderPriceMax}
         onchange={handlePriceChange}
         minInputId="priceMin"
         maxInputId="priceMax"
@@ -349,8 +380,10 @@
     {#if filterConfig.wishlistColumn}
       <RangeSlider
         label="💚 Wishlist Count:"
-        min={wishlistRange.min}
-        max={wishlistRange.max}
+        min={adaptiveWishlistRange.min}
+        max={adaptiveWishlistRange.max}
+        currentMin={sliderWishlistMin}
+        currentMax={sliderWishlistMax}
         onchange={handleWishlistChange}
         minInputId="wishlistMin"
         maxInputId="wishlistMax"

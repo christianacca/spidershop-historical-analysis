@@ -298,6 +298,43 @@ test('clicking Newly Observed stock pattern filter shows only matching rows', as
   expect(container.querySelector('tbody tr td')?.textContent?.trim()).toBe('Beta Spider');
 });
 
+test('signal filter rebases stock counts and slider bounds for remaining filters', async () => {
+  const { container, getByText } = renderTable({
+    priceColumn: 'Price',
+    wishlistColumn: 'Wishlist Count',
+  });
+
+  const hotBtn = container.querySelector(
+    '[data-action="filter-signal"][data-signal="🔥"]',
+  ) as HTMLElement;
+  await fireEvent.click(hotBtn);
+  await openAdvancedFilters(container);
+
+  expect(getByText('Show All (1)')).toBeTruthy();
+  expect(getByText('Sustained (1)')).toBeTruthy();
+  expect(getByText('Emerging (0)')).toBeTruthy();
+  expect(getByText('Cyclical (0)')).toBeTruthy();
+
+  const priceMin = container.querySelector('#priceMin') as HTMLInputElement;
+  const priceMax = container.querySelector('#priceMax') as HTMLInputElement;
+  const wishlistMin = container.querySelector('#wishlistMin') as HTMLInputElement;
+  const wishlistMax = container.querySelector('#wishlistMax') as HTMLInputElement;
+
+  expect(priceMin).toHaveAttribute('min', '15');
+  expect(priceMin).toHaveAttribute('max', '15');
+  expect(priceMin.value).toBe('15');
+  expect(priceMax).toHaveAttribute('min', '15');
+  expect(priceMax).toHaveAttribute('max', '15');
+  expect(priceMax.value).toBe('15');
+
+  expect(wishlistMin).toHaveAttribute('min', '3');
+  expect(wishlistMin).toHaveAttribute('max', '3');
+  expect(wishlistMin.value).toBe('3');
+  expect(wishlistMax).toHaveAttribute('min', '3');
+  expect(wishlistMax).toHaveAttribute('max', '3');
+  expect(wishlistMax.value).toBe('3');
+});
+
 // ── Search ────────────────────────────────────────────────────────────────────
 
 test('search input filters rows by text', async () => {

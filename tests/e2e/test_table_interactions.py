@@ -181,6 +181,67 @@ def test_stock_pattern_filtering_on_breeder_table(e2e_site_multi_species) -> Non
 
 
 @pytest.mark.e2e
+def test_signal_filter_rebases_remaining_breeder_filters(e2e_site_multi_species) -> None:
+    """Selecting a breeder signal should update stock counts and slider ranges."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    hot_button = page.locator('button[data-action="filter-signal"][data-signal="🔥"]:not([data-limit])')
+    hot_button.click()
+    expect(page.locator('#breeder-table tbody tr')).to_have_count(2)
+
+    advanced_toggle = page.locator(".advanced-filters-toggle")
+    if advanced_toggle.count() > 0:
+        advanced_content = page.locator(".advanced-filters-content")
+        if advanced_content.count() == 0:
+            advanced_toggle.click()
+            advanced_content.wait_for(state="visible")
+
+    expect(page.locator('button[data-action="filter-stock-pattern"][data-stock-pattern="all"]')).to_have_text(
+        'Show All (2)'
+    )
+    expect(page.locator('button[data-action="filter-stock-pattern"][data-stock-pattern="Sustained"]')).to_have_text(
+        'Sustained (1)'
+    )
+    expect(page.locator('button[data-action="filter-stock-pattern"][data-stock-pattern="Cyclical"]')).to_have_text(
+        'Cyclical (1)'
+    )
+    expect(page.locator('button[data-action="filter-stock-pattern"][data-stock-pattern="Emerging"]')).to_have_text(
+        'Emerging (0)'
+    )
+
+    price_min = page.locator('#priceMin')
+    price_max = page.locator('#priceMax')
+    wishlist_min = page.locator('#wishlistMin')
+    wishlist_max = page.locator('#wishlistMax')
+
+    expect(page.locator('#priceDisplay')).to_have_text('£20 – £25')
+    expect(page.locator('#wishlistDisplay')).to_have_text('3 – 5')
+
+    assert price_min.evaluate("el => ({ min: el.min, max: el.max, value: el.value })") == {
+        'min': '20',
+        'max': '25',
+        'value': '20',
+    }
+    assert price_max.evaluate("el => ({ min: el.min, max: el.max, value: el.value })") == {
+        'min': '20',
+        'max': '25',
+        'value': '25',
+    }
+    assert wishlist_min.evaluate("el => ({ min: el.min, max: el.max, value: el.value })") == {
+        'min': '3',
+        'max': '5',
+        'value': '3',
+    }
+    assert wishlist_max.evaluate("el => ({ min: el.min, max: el.max, value: el.value })") == {
+        'min': '3',
+        'max': '5',
+        'value': '5',
+    }
+
+
+@pytest.mark.e2e
 def test_newly_observed_filtering_on_breeder_table(e2e_site_multi_species) -> None:
     """Verify the Newly Observed stock pattern is exposed and filters breeder rows."""
     page, base_url, errors = e2e_site_multi_species
