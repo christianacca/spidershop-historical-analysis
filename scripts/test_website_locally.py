@@ -3,15 +3,19 @@
 Generate the website locally for testing from CSV files in tmp/local-testing/.
 
 Usage:
-    python test_website_locally.py [--serve] [--port PORT]
+    python test_website_locally.py [--serve] [--port PORT] [--seed-demo-data] [--overwrite-demo-data] [--data-only]
 
 Options:
     --serve            Start a local HTTP server to preview the website
     --port PORT        Port for the local server (default: 8000)
+    --seed-demo-data   Seed realistic local demo CSVs when required files are missing
+    --overwrite-demo-data
+                       Rewrite local CSVs with the realistic demo dataset before generating
+    --data-only        Write demo data and exit without generating the website
 
 Note:
-    CSV files must exist in tmp/local-testing/ before running this script.
-    Use 'make download-artifacts' or 'make scrape-only' to obtain them.
+    CSV files can come from real artifacts/scrapes or from the realistic local
+    demo dataset used for development preview.
 """
 
 import argparse
@@ -21,6 +25,12 @@ import socketserver
 import subprocess
 import sys
 from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SRC_DIR = REPO_ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 
 TESTING_DIR = Path("tmp/local-testing")
@@ -56,21 +66,39 @@ def check_python_dependencies():
 
 def verify_csv_files():
     """Verify that required CSV files exist."""
-    required_files = [
-        TESTING_DIR / "spidershop_spiderlings_scrape.csv",
-        TESTING_DIR / "spidershop_spiderlings_history.csv",
-        TESTING_DIR / "breeder_opportunity_table.csv",
-        TESTING_DIR / "dealer_supply_risk_table.csv"
-    ]
-    
-    missing = [f.name for f in required_files if not f.exists()]
-    if missing:
-        print(f"❌ Missing required CSV files: {', '.join(missing)}")
-        print(f"\n🔧 Generate CSV files first:")
-        print(f"   make download-artifacts  # Download from GitHub Actions")
-        print(f"   # OR")
-        print(f"   make scrape-only         # Run scraper locally")
+    ensure_local_data(seed_demo_data=False, overwrite_demo_data=False)
+
+
+def ensure_local_data(*, seed_demo_data: bool = False, overwrite_demo_data: bool = False):
+    """Ensure local CSV inputs exist, optionally seeding realistic demo data."""
+    from website.local_demo_data import ensure_local_csv_files, write_realistic_demo_data
+
+    if overwrite_demo_data:
+        print("🧪 Writing realistic local demo data...")
+        write_realistic_demo_data(TESTING_DIR)
+        return
+
+    try:
+        ensure_local_csv_files(TESTING_DIR, seed_demo_data=seed_demo_data)
+    except FileNotFoundError as exc:
+        print(f"❌ {exc}")
+        print("\n🔧 Generate CSV files first:")
+        print("   make download-artifacts  # Download from GitHub Actions")
+        print("   # OR")
+        print("   make scrape-only         # Run scraper locally")
+        print("   # OR")
+        print("   make seed-demo-data      # Write realistic local demo data")
         sys.exit(1)
+
+    if seed_demo_data:
+        required_files = [
+            TESTING_DIR / "spidershop_spiderlings_scrape.csv",
+            TESTING_DIR / "spidershop_spiderlings_history.csv",
+            TESTING_DIR / "breeder_opportunity_table.csv",
+            TESTING_DIR / "dealer_supply_risk_table.csv",
+        ]
+        if all(path.exists() for path in required_files):
+            print("📁 Using existing local CSV files.")
 
 
 def generate_website():
@@ -149,6 +177,21 @@ def main():
         default=8000,
         help="Port for local server (default: 8000)"
     )
+    parser.add_argument(
+        "--seed-demo-data",
+        action="store_true",
+        help="Seed realistic demo CSVs when local inputs are missing",
+    )
+    parser.add_argument(
+        "--overwrite-demo-data",
+        action="store_true",
+        help="Rewrite local CSVs with the realistic demo dataset before generating",
+    )
+    parser.add_argument(
+        "--data-only",
+        action="store_true",
+        help="Write demo data and exit without generating the website",
+    )
     
     args = parser.parse_args()
     
@@ -159,8 +202,21 @@ def main():
     # Check Python dependencies
     check_python_dependencies()
     
-    # Verify CSV files exist
-    verify_csv_files()
+    if args.overwrite_demo_data and not args.seed_demo_data:
+        parser.error("--overwrite-demo-data requires --seed-demo-data")
+
+    if args.data_only and not args.seed_demo_data:
+        parser.error("--data-only requires --seed-demo-data")
+
+    # Verify or seed CSV files
+    ensure_local_data(
+        seed_demo_data=args.seed_demo_data,
+        overwrite_demo_data=args.overwrite_demo_data,
+    )
+
+    if args.data_only:
+        print("\n✅ Local demo data prepared.")
+        return
     
     # Generate the website
     generate_website()
@@ -172,6 +228,7 @@ def main():
         print(f"\n💡 To preview the website, run:")
         print(f"   make scrape-website-serve   # Scrape + build + serve")
         print(f"   make website-serve          # Build from existing data + serve")
+        print(f"   make seed-demo-data && make generate-website")
         print(f"\n   Or directly:")
         print(f"   python3 test_website_locally.py --serve")
         print(f"\n   Or manually:")

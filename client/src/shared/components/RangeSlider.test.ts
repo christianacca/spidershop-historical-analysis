@@ -136,3 +136,32 @@ test('formatValue is applied to display span text', () => {
 
   expect(getByText('£10 – £50')).toBeTruthy();
 });
+
+test('prop changes rebase slider bounds and current values', async () => {
+  const onchange = vi.fn();
+  const { getAllByRole, rerender } = render(RangeSlider, {
+    min: 10,
+    max: 50,
+    label: 'Price',
+    onchange,
+  });
+
+  const initialSliders = getAllByRole('slider') as HTMLInputElement[];
+  await fireEvent.input(initialSliders[0], { target: { value: '20' } });
+  expect(initialSliders[0].value).toBe('20');
+
+  await rerender({
+    min: 15,
+    max: 15,
+    label: 'Price',
+    onchange,
+  });
+
+  const reboundSliders = getAllByRole('slider') as HTMLInputElement[];
+  expect(reboundSliders[0]).toHaveAttribute('min', '15');
+  expect(reboundSliders[0]).toHaveAttribute('max', '15');
+  expect(reboundSliders[0].value).toBe('15');
+  expect(reboundSliders[1]).toHaveAttribute('min', '15');
+  expect(reboundSliders[1]).toHaveAttribute('max', '15');
+  expect(reboundSliders[1].value).toBe('15');
+});

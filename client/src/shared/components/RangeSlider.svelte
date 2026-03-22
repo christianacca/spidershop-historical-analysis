@@ -6,6 +6,8 @@
     max: number;
     label: string;
     onchange: (detail: { min: number; max: number }) => void;
+    currentMin?: number;
+    currentMax?: number;
     /** Override the auto-generated id for the min range input. */
     minInputId?: string;
     /** Override the auto-generated id for the max range input. */
@@ -16,33 +18,52 @@
     formatValue?: (v: number) => string;
   }
 
-  let { min, max, label, onchange, minInputId, maxInputId, displayId, formatValue }: Props = $props();
+  let {
+    min,
+    max,
+    label,
+    onchange,
+    currentMin: controlledMin,
+    currentMax: controlledMax,
+    minInputId,
+    maxInputId,
+    displayId,
+    formatValue,
+  }: Props = $props();
 
   const resolvedMinId = $derived(minInputId ?? `${uid}-min`);
   const resolvedMaxId = $derived(maxInputId ?? `${uid}-max`);
   const fmt = $derived(formatValue ?? String);
 
-  let currentMin = $state(min);
-  let currentMax = $state(max);
+  let localMin = $state(min);
+  let localMax = $state(max);
+
+  $effect(() => {
+    const nextMin = Math.max(min, Math.min(controlledMin ?? min, max));
+    const nextMax = Math.max(min, Math.min(controlledMax ?? max, max));
+
+    localMin = Math.min(nextMin, nextMax);
+    localMax = Math.max(nextMin, nextMax);
+  });
 
   function handleMinInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     const newMin = Number(input.value);
-    if (newMin > currentMax) {
-      currentMax = newMin;
+    if (newMin > localMax) {
+      localMax = newMin;
     }
-    currentMin = newMin;
-    onchange({ min: currentMin, max: currentMax });
+    localMin = newMin;
+    onchange({ min: localMin, max: localMax });
   }
 
   function handleMaxInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     const newMax = Number(input.value);
-    if (newMax < currentMin) {
-      currentMin = newMax;
+    if (newMax < localMin) {
+      localMin = newMax;
     }
-    currentMax = newMax;
-    onchange({ min: currentMin, max: currentMax });
+    localMax = newMax;
+    onchange({ min: localMin, max: localMax });
   }
 </script>
 
@@ -56,7 +77,7 @@
         class="slider slider-min"
         min={min}
         max={max}
-        value={currentMin}
+        value={localMin}
         oninput={handleMinInput}
       />
       <input
@@ -65,15 +86,15 @@
         class="slider slider-max"
         min={min}
         max={max}
-        value={currentMax}
+        value={localMax}
         oninput={handleMaxInput}
       />
     </div>
     <div class="slider-values">
-      <span>{fmt(currentMin)}</span>
-      <span>{fmt(currentMax)}</span>
+      <span>{fmt(localMin)}</span>
+      <span>{fmt(localMax)}</span>
     </div>
-    <div class="slider-current">Showing: <span id={displayId}>{fmt(currentMin)} – {fmt(currentMax)}</span></div>
+    <div class="slider-current">Showing: <span id={displayId}>{fmt(localMin)} – {fmt(localMax)}</span></div>
   </div>
 </div>
 

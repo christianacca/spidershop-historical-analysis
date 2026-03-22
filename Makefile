@@ -12,7 +12,7 @@
 #   All commands automatically activate the .venv virtual environment
 #   Ensure .venv exists and has dependencies installed first
 
-.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only generate-website serve-only preview clean-cache clean-artifacts clean-all build-client test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install open-coverage check-coverage test-client test-client-fast test-client-watch open-coverage-client test-visual visual-install .check-venv .check-gh
+.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only seed-demo-data generate-website serve-only preview clean-cache clean-artifacts clean-all build-client test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install open-coverage check-coverage test-client test-client-fast test-client-watch open-coverage-client test-visual visual-install .check-venv .check-gh
 .PHONY: test-client-file
 
 # Shell configuration
@@ -46,7 +46,8 @@ help:
 	@echo "Data Management:"
 	@echo "  make download-artifacts     Download latest data from GitHub Actions"
 	@echo "  make scrape-only            Run scraper only (no website generation)"
-	@echo "  make generate-website       Generate website from existing CSV files"
+	@echo "  make seed-demo-data         Write realistic local demo CSVs to tmp/local-testing/"
+	@echo "  make generate-website       Generate website from existing CSV files or seed demo data if absent"
 	@echo "  make serve-only             Serve existing website (no regeneration)"
 	@echo "  make preview                Generate website + serve (alias for website-serve)"
 	@echo "  make build-client           Build client-side TS/Svelte assets (auto-run by generate-website)"
@@ -178,14 +179,15 @@ scrape-only: .check-venv clean-cache
 		python -m scrape
 	@echo "✅ Scrape complete. CSV files saved to $(TESTING_DIR)/"
 
+seed-demo-data: build-client .check-venv clean-cache
+	@echo "🧪 Writing realistic local demo data..."
+	@mkdir -p $(TESTING_DIR)
+	source $(VENV)/bin/activate && python scripts/test_website_locally.py --seed-demo-data --overwrite-demo-data --data-only
+	@echo "✅ Demo data written to $(TESTING_DIR)/"
+
 generate-website: build-client .check-venv clean-cache
 	@echo "🌐 Generating website..."
-	@if [ ! -f "$(TESTING_DIR)/spidershop_spiderlings_scrape.csv" ]; then \
-		echo "❌ CSV files not found in $(TESTING_DIR)/"; \
-		echo "Run 'make download-artifacts' or 'make scrape-only' first"; \
-		exit 1; \
-	fi
-	source $(VENV)/bin/activate && python scripts/test_website_locally.py
+	source $(VENV)/bin/activate && python scripts/test_website_locally.py --seed-demo-data
 	@echo "✅ Website generated in $(TESTING_DIR)/website/"
 
 serve-only: .check-venv
