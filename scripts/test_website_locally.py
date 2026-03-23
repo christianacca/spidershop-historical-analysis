@@ -129,8 +129,6 @@ def generate_website():
     print(f"\n✅ Website generation complete!")
     print(f"   Website files: {TESTING_DIR / 'website'}")
     print(f"   CSV files: {TESTING_DIR}")
-    
-    print("\n✅ Website generation complete!")
 
 
 def serve_website(port=8000):

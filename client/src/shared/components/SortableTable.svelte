@@ -106,16 +106,28 @@
     computeRange(upstreamRows, filterConfig.wishlistColumn, 'int'),
   );
 
+  function syncSliderToRange(columnKey: string | undefined, range: { min: number; max: number }, setMin: (v: number) => void, setMax: (v: number) => void): void {
+    if (!columnKey) return;
+    setMin(range.min);
+    setMax(range.max);
+  }
+
   $effect(() => {
-    if (!filterConfig.priceColumn) return;
-    sliderPriceMin = adaptivePriceRange.min;
-    sliderPriceMax = adaptivePriceRange.max;
+    syncSliderToRange(
+      filterConfig.priceColumn,
+      adaptivePriceRange,
+      (v) => { sliderPriceMin = v; },
+      (v) => { sliderPriceMax = v; }
+    );
   });
 
   $effect(() => {
-    if (!filterConfig.wishlistColumn) return;
-    sliderWishlistMin = adaptiveWishlistRange.min;
-    sliderWishlistMax = adaptiveWishlistRange.max;
+    syncSliderToRange(
+      filterConfig.wishlistColumn,
+      adaptiveWishlistRange,
+      (v) => { sliderWishlistMin = v; },
+      (v) => { sliderWishlistMax = v; }
+    );
   });
 
   // ── Derived: filtered + sorted rows ───────────────────────────────────────

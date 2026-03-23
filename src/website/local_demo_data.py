@@ -620,11 +620,7 @@ def _price_trend_arrow(values: list[str | None]) -> str:
     if len(numeric_values) < 2:
         return "→"
     delta = numeric_values[-1] - numeric_values[0]
-    if delta >= 2.0:
-        return "↑"
-    if delta <= -2.0:
-        return "↓"
-    return "→"
+    return "↑" if delta >= 2.0 else "↓" if delta <= -2.0 else "→"
 
 
 def _wishlist_pressure_icon(value: int) -> str:
@@ -643,11 +639,7 @@ def _recent_delta(values: list[str | None]) -> int:
 
 
 def _delta_arrow(delta: int) -> str:
-    if delta >= 2:
-        return "↑"
-    if delta <= -2:
-        return "↓"
-    return "→"
+    return "↑" if delta >= 2 else "↓" if delta <= -2 else "→"
 
 
 def _page_url(scientific_name: str) -> str:
