@@ -1,4 +1,3 @@
-import { wireOpenDetailsLinks } from '../shared/dom-utils.js';
 import type { SortableTablePageConfig } from '../shared/page-init.js';
 
 export const DEALER_PAGE_CONFIG: SortableTablePageConfig = {
@@ -26,5 +25,4 @@ export const DEALER_PAGE_CONFIG: SortableTablePageConfig = {
     statsLabel: 'species',
     driversKey: 'Drivers',
   },
-  postMount: wireOpenDetailsLinks,
 };

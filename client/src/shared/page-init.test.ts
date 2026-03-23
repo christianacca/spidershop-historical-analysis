@@ -323,7 +323,7 @@ describe('stable page configs', () => {
       statsLabel: 'species',
       driversKey: 'Drivers',
     });
-    expect(BREEDER_PAGE_CONFIG.postMount).toBeTypeOf('function');
+    expect(BREEDER_PAGE_CONFIG.postMount).toBeUndefined();
     expect(BREEDER_PAGE_CONFIG.columns).toEqual(
       expect.arrayContaining([
         { key: 'Species', type: 'species-link', linkViewParam: 'breeder' },
@@ -342,7 +342,7 @@ describe('stable page configs', () => {
       statsLabel: 'species',
       driversKey: 'Drivers',
     });
-    expect(DEALER_PAGE_CONFIG.postMount).toBeTypeOf('function');
+    expect(DEALER_PAGE_CONFIG.postMount).toBeUndefined();
     expect(DEALER_PAGE_CONFIG.columns).toEqual(
       expect.arrayContaining([
         { key: 'Species', type: 'species-link', linkViewParam: 'dealer' },

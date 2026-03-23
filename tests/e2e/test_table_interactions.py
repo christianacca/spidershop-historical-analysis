@@ -694,6 +694,8 @@ def test_methodology_tabs_switch_panels(e2e_site_multi_species) -> None:
 
     page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
 
+    page.locator('#methodology-section summary').click()
+
     thresholds_panel = page.locator('[data-methodology-panel="thresholds"]')
     tree_panel = page.locator('[data-methodology-panel="tree"]')
     example_panel = page.locator('[data-methodology-panel="example"]')
@@ -710,6 +712,24 @@ def test_methodology_tabs_switch_panels(e2e_site_multi_species) -> None:
 
     expect(example_panel).to_have_class(re.compile(r'is-active'))
     expect(tree_panel).to_be_hidden()
+
+
+@pytest.mark.e2e
+def test_methodology_is_collapsed_by_default_and_expandable(e2e_site_multi_species) -> None:
+    """Methodology should start collapsed and reveal its content when opened."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    methodology = page.locator('#methodology-section')
+    assert methodology.count() == 1, 'breeder.html should render #methodology-section'
+    expect(methodology).not_to_have_attribute('open', '')
+    expect(methodology.locator('[data-methodology-panel="thresholds"]')).to_be_hidden()
+
+    methodology.locator('summary').click()
+
+    expect(methodology).to_have_attribute('open', '')
+    expect(methodology.locator('[data-methodology-panel="thresholds"]')).to_be_visible()
 
 
 @pytest.mark.e2e

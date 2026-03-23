@@ -76,6 +76,29 @@ class TestAnalysisMethodologyBuilder:
         assert any("If Emerging" in label for label in decision_labels)
         assert example_tab["example"]["result"] == "🔥 Hot"
 
+        escalation_rules = next(
+            card for card in thresholds_tab["cards"] if card["title"] == "Escalation Rules"
+        )
+        sustained_hot_rule = next(
+            item
+            for item in escalation_rules["items"]
+            if item["label"] == "Sustained + price up or flat => Hot"
+        )
+        assert "wishlist" not in sustained_hot_rule["detail"].lower()
+
+        sustained_branch = next(
+            branch for branch in tree_tab["tree"]["branches"] if branch["label"] == "If Sustained"
+        )
+        assert "falling price" in sustained_branch["copy"].lower()
+
+        price_step = next(
+            step for step in example_tab["example"]["steps"] if step["title"] == "Price trend"
+        )
+        assert "£8.99" in price_step["detail"]
+        assert "£15.00" in price_step["detail"]
+        assert "£25.00" in price_step["detail"]
+        assert "£17" not in price_step["detail"]
+
     def test_build_dealer_methodology_contains_live_thresholds_and_limited_history_note(self):
         """Dealer methodology should expose reliability/restock thresholds and limited-history caveat."""
         methodology = build_dealer_methodology()
@@ -106,11 +129,61 @@ class TestAnalysisMethodologyBuilder:
         assert any("Dealer Limited History" in line for line in threshold_lines)
         assert any("Dealer price pressure" in line for line in threshold_lines)
         assert example_tab["example"]["result"] == "🔥 High Risk"
-        assert example_tab["example"]["species"] == "Monocentropus balfouri"
+        assert example_tab["example"]["species"] == "Aphonopelma seemanni"
+
+        dealer_price_step = next(
+            step for step in example_tab["example"]["steps"] if step["title"] == "Restock speed"
+        )
+        assert "3.1" not in dealer_price_step["detail"]
+        assert "seeded" not in dealer_price_step["detail"].lower()
+
+        dealer_output_step = next(
+            step for step in example_tab["example"]["steps"] if step["title"] == "Output row"
+        )
+        assert "seeded" not in dealer_output_step["detail"].lower()
+
+        breeder_methodology = build_breeder_methodology()
+        breeder_example_tab = next(tab for tab in breeder_methodology["tabs"] if tab["id"] == "example")
+        breeder_price_step = next(
+            step for step in breeder_example_tab["example"]["steps"] if step["title"] == "Price trend"
+        )
+        assert "seeded" not in breeder_price_step["detail"].lower()
 
 
 class TestAnalysisMethodologyRendering:
     """Methodology should render as a primary explanatory panel on analysis pages."""
+
+    def test_methodology_renders_as_closed_details_panel_by_default(self):
+        """Methodology should be expandable and collapsed by default."""
+        csv_content = "Species,Size (cm),Signal\nAphonopelma seemanni,1.5,🔥\n"
+        with temp_csv_file(csv_content) as filename:
+            config = BreederPageConfig(
+                title="Breeder Opportunities",
+                description="Test breeder page",
+                csv_filename=filename,
+                table_id="breeder-table",
+                active_page="breeder",
+                legend_markdown="**Legend**: test legend",
+                methodology=build_breeder_methodology(),
+            )
+
+            html = generate_analysis_page(config)
+            soup = BeautifulSoup(html, "html.parser")
+
+            methodology = soup.find("details", id="methodology-section")
+            assert methodology is not None, "Methodology should render as a details element"
+            assert methodology.get("open") is None, "Methodology should be collapsed by default"
+
+            summary = methodology.find("summary")
+            assert summary is not None, "Methodology should expose a summary trigger"
+            assert "How the breeder analysis works" in summary.get_text(" ", strip=True)
+            assert "Threshold inventory, compact decision logic" not in summary.get_text(" ", strip=True)
+            title = summary.find("strong")
+            assert title is not None, "Methodology summary should use the shared strong-label pattern"
+
+            content = methodology.find(class_="analysis-methodology__content")
+            assert content is not None, "Methodology should render expandable body content"
+            assert "Threshold inventory, compact decision logic" in content.get_text(" ", strip=True)
 
     def test_breeder_page_renders_methodology_above_legend_and_table(self):
         """Breeder page should render methodology before the legend and the full table."""
@@ -129,7 +202,7 @@ class TestAnalysisMethodologyRendering:
             html = generate_analysis_page(config)
             soup = BeautifulSoup(html, "html.parser")
 
-            methodology = soup.find("section", id="methodology-section")
+            methodology = soup.find("details", id="methodology-section")
             assert methodology is not None, "Breeder page should render methodology section"
             assert "How the breeder analysis works" in methodology.get_text(" ", strip=True)
             assert "Threshold Inventory" in methodology.get_text(" ", strip=True)
@@ -157,13 +230,13 @@ class TestAnalysisMethodologyRendering:
             html = generate_analysis_page(config)
             soup = BeautifulSoup(html, "html.parser")
 
-            methodology = soup.find("section", id="methodology-section")
+            methodology = soup.find("details", id="methodology-section")
             assert methodology is not None, "Dealer page should render methodology section"
             assert "How the dealer analysis works" in methodology.get_text(" ", strip=True)
             assert "Threshold Inventory" in methodology.get_text(" ", strip=True)
             assert "Decision Tree" in methodology.get_text(" ", strip=True)
             assert "Worked Example" in methodology.get_text(" ", strip=True)
-            assert "Monocentropus balfouri" in methodology.get_text(" ", strip=True)
+            assert "Aphonopelma seemanni" in methodology.get_text(" ", strip=True)
 
             assert html.index('id="methodology-section"') < html.index('id="legend-section"')
             assert html.index('id="legend-section"') < html.index('id="dealer-table-root"')

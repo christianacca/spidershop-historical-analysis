@@ -90,124 +90,124 @@
 {%- endmacro %}
 
 {% macro methodology_section(methodology) -%}
-<section id="methodology-section" class="analysis-methodology" aria-labelledby="methodology-title">
-    <div class="analysis-methodology__header">
-        <p class="analysis-methodology__eyebrow">Methodology</p>
-        <h3 id="methodology-title">{{ methodology.section_title }}</h3>
+<details id="methodology-section" class="analysis-methodology" aria-labelledby="methodology-title">
+    <summary class="analysis-methodology__summary"><strong id="methodology-title">🧭 {{ methodology.section_title }}</strong></summary>
+
+    <div class="analysis-methodology__content">
         <p class="analysis-methodology__intro">{{ methodology.intro }}</p>
-    </div>
 
-    <div class="methodology-callout">
-        <div>
-            <h4 class="methodology-callout__title">{{ methodology.callout.title }}</h4>
-            <p class="methodology-callout__body">{{ methodology.callout.body }}</p>
+        <div class="methodology-callout">
+            <div>
+                <h4 class="methodology-callout__title">{{ methodology.callout.title }}</h4>
+                <p class="methodology-callout__body">{{ methodology.callout.body }}</p>
+            </div>
+            {{ methodology_pills(methodology.callout.pills) }}
         </div>
-        {{ methodology_pills(methodology.callout.pills) }}
-    </div>
 
-    <div class="methodology-tabs" role="tablist" aria-label="Methodology tabs">
-        {% for tab in methodology.tabs %}
-        <button
-            id="methodology-tab-{{ tab.id }}"
-            class="methodology-tab{% if loop.first %} is-active{% endif %}"
-            type="button"
-            role="tab"
-            tabindex="{{ 0 if loop.first else -1 }}"
-            aria-selected="{{ 'true' if loop.first else 'false' }}"
-            aria-controls="methodology-panel-{{ tab.id }}"
-            data-methodology-tab="{{ tab.id }}"
-        >{{ tab.label }}</button>
-        {% endfor %}
-    </div>
+        <div class="methodology-tabs" role="tablist" aria-label="Methodology tabs">
+            {% for tab in methodology.tabs %}
+            <button
+                id="methodology-tab-{{ tab.id }}"
+                class="methodology-tab{% if loop.first %} is-active{% endif %}"
+                type="button"
+                role="tab"
+                tabindex="{{ 0 if loop.first else -1 }}"
+                aria-selected="{{ 'true' if loop.first else 'false' }}"
+                aria-controls="methodology-panel-{{ tab.id }}"
+                data-methodology-tab="{{ tab.id }}"
+            >{{ tab.label }}</button>
+            {% endfor %}
+        </div>
 
-    <div class="methodology-panels">
-        {% for tab in methodology.tabs %}
-        <section
-            id="methodology-panel-{{ tab.id }}"
-            class="methodology-panel{% if loop.first %} is-active{% endif %}"
-            role="tabpanel"
-            aria-labelledby="methodology-tab-{{ tab.id }}"
-            data-methodology-panel="{{ tab.id }}"
-            {% if not loop.first %}hidden{% endif %}
-        >
-            {% if tab.layout == 'thresholds' %}
-            <div class="panel-grid">
-                <div class="threshold-grid">
-                    {% for card in tab.cards %}
-                    <section class="threshold-card">
-                        <h4>{{ card.title }}</h4>
-                        {{ methodology_pills(card.pills) }}
-                        <ul class="threshold-list">
-                            {% for item in card['items'] %}
-                            <li><strong>{{ item.label }}</strong>{% if item.detail %}: {{ item.detail }}{% endif %}</li>
+        <div class="methodology-panels">
+            {% for tab in methodology.tabs %}
+            <section
+                id="methodology-panel-{{ tab.id }}"
+                class="methodology-panel{% if loop.first %} is-active{% endif %}"
+                role="tabpanel"
+                aria-labelledby="methodology-tab-{{ tab.id }}"
+                data-methodology-panel="{{ tab.id }}"
+                {% if not loop.first %}hidden{% endif %}
+            >
+                {% if tab.layout == 'thresholds' %}
+                <div class="panel-grid">
+                    <div class="threshold-grid">
+                        {% for card in tab.cards %}
+                        <section class="threshold-card">
+                            <h4>{{ card.title }}</h4>
+                            {{ methodology_pills(card.pills) }}
+                            <ul class="threshold-list">
+                                {% for item in card['items'] %}
+                                <li><strong>{{ item.label }}</strong>{% if item.detail %}: {{ item.detail }}{% endif %}</li>
+                                {% endfor %}
+                            </ul>
+                        </section>
+                        {% endfor %}
+                    </div>
+
+                    <aside class="aside-card">
+                        <h4>{{ tab.aside.title }}</h4>
+                        <ul class="mini-list">
+                            {% for item in tab.aside['items'] %}
+                            <li>{{ item }}</li>
                             {% endfor %}
                         </ul>
-                    </section>
-                    {% endfor %}
+                        <div class="rule-note"><strong>{{ tab.aside.note.label }}:</strong> {{ tab.aside.note.body }}</div>
+                    </aside>
                 </div>
-
-                <aside class="aside-card">
-                    <h4>{{ tab.aside.title }}</h4>
-                    <ul class="mini-list">
-                        {% for item in tab.aside['items'] %}
-                        <li>{{ item }}</li>
-                        {% endfor %}
-                    </ul>
-                    <div class="rule-note"><strong>{{ tab.aside.note.label }}:</strong> {{ tab.aside.note.body }}</div>
-                </aside>
-            </div>
-            {% elif tab.layout == 'tree' %}
-            <div class="tree-card">
-                <h4>{{ tab.tree.title }}</h4>
-                <div class="tree-layout">
-                    <div class="tree-node tree-node--root">
-                        <div class="branch-label">{{ tab.tree.root.step }}</div>
-                        <h5 class="node-title">{{ tab.tree.root.title }}</h5>
-                        <p class="node-copy">{{ tab.tree.root['copy'] }}</p>
-                    </div>
-                    <div class="tree-branches">
-                        {% for branch in tab.tree.branches %}
-                        <div class="tree-node">
-                            <div class="branch-label">{{ branch.label }}</div>
-                            <h5 class="node-title">{{ branch.title }}</h5>
-                            <p class="node-copy">{{ branch['copy'] }}</p>
+                {% elif tab.layout == 'tree' %}
+                <div class="tree-card">
+                    <h4>{{ tab.tree.title }}</h4>
+                    <div class="tree-layout">
+                        <div class="tree-node tree-node--root">
+                            <div class="branch-label">{{ tab.tree.root.step }}</div>
+                            <h5 class="node-title">{{ tab.tree.root.title }}</h5>
+                            <p class="node-copy">{{ tab.tree.root['copy'] }}</p>
                         </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-            {% elif tab.layout == 'example' %}
-            <div class="example-layout">
-                <section class="example-card">
-                    <h4>{{ tab.example.title }}</h4>
-                    {{ methodology_pills(tab.example.pills) }}
-                    <h5 class="example-species">{{ tab.example.species }}</h5>
-                    <p class="example-subtitle">{{ tab.example.subtitle }}</p>
-                    <div class="step-list">
-                        {% for step in tab.example.steps %}
-                        <div class="step-card">
-                            <div class="step-number">{{ step.number }}</div>
-                            <div>
-                                <h5>{{ step.title }}</h5>
-                                <p>{{ step.detail }}</p>
+                        <div class="tree-branches">
+                            {% for branch in tab.tree.branches %}
+                            <div class="tree-node">
+                                <div class="branch-label">{{ branch.label }}</div>
+                                <h5 class="node-title">{{ branch.title }}</h5>
+                                <p class="node-copy">{{ branch['copy'] }}</p>
                             </div>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
                     </div>
-                </section>
+                </div>
+                {% elif tab.layout == 'example' %}
+                <div class="example-layout">
+                    <section class="example-card">
+                        <h4>{{ tab.example.title }}</h4>
+                        {{ methodology_pills(tab.example.pills) }}
+                        <h5 class="example-species">{{ tab.example.species }}</h5>
+                        <p class="example-subtitle">{{ tab.example.subtitle }}</p>
+                        <div class="step-list">
+                            {% for step in tab.example.steps %}
+                            <div class="step-card">
+                                <div class="step-number">{{ step.number }}</div>
+                                <div>
+                                    <h5>{{ step.title }}</h5>
+                                    <p>{{ step.detail }}</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </section>
 
-                <aside class="aside-card">
-                    <h4>{{ tab.aside.title }}</h4>
-                    <ul class="mini-list">
-                        {% for item in tab.aside['items'] %}
-                        <li>{{ item }}</li>
-                        {% endfor %}
-                    </ul>
-                </aside>
-            </div>
-            {% endif %}
-        </section>
-        {% endfor %}
+                    <aside class="aside-card">
+                        <h4>{{ tab.aside.title }}</h4>
+                        <ul class="mini-list">
+                            {% for item in tab.aside['items'] %}
+                            <li>{{ item }}</li>
+                            {% endfor %}
+                        </ul>
+                    </aside>
+                </div>
+                {% endif %}
+            </section>
+            {% endfor %}
+        </div>
     </div>
-</section>
+</details>
 {%- endmacro %}

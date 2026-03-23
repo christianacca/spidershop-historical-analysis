@@ -128,7 +128,15 @@ def build_breeder_methodology() -> MethodologyDict:
                         "items": [
                             {
                                 "label": "Sustained + price up or flat => Hot",
-                                "detail": "Wishlist Hot can reinforce the recommendation text, but sustained scarcity already carries the core signal.",
+                                "detail": "The current breeder matrix treats sustained scarcity plus non-falling price as sufficient confirmation for the Hot branch.",
+                            },
+                            {
+                                "label": "Sustained + wishlist Hot => recommendation emphasis only",
+                                "detail": "Strong wishlist pressure can strengthen the recommendation wording, but it does not create a second escalation above Hot.",
+                            },
+                            {
+                                "label": "Sustained + price down => misses Hot confirmation",
+                                "detail": "The current breeder rules do not promote sustained scarcity when the price signal is falling, so the row drops out of the Hot path.",
                             },
                             {
                                 "label": "Emerging + price up => Hot",
@@ -186,7 +194,7 @@ def build_breeder_methodology() -> MethodologyDict:
                         {
                             "label": "If Sustained",
                             "title": f"OOS runs {BREEDER_SUSTAINED_OOS_RUNS} or more",
-                            "copy": "If price is up or flat, classify as Hot. Wishlist Hot can strengthen the recommendation text but does not create the signal.",
+                            "copy": "If price is up or flat, classify as Hot. A falling price misses that Hot confirmation branch. Wishlist Hot can still strengthen the recommendation wording once the row is already Hot.",
                         },
                         {
                             "label": "If Emerging",
@@ -226,7 +234,7 @@ def build_breeder_methodology() -> MethodologyDict:
                         {
                             "number": "2",
                             "title": "Price trend",
-                            "detail": "Price history steps up through £17, £18, £20, £22, and £25, which confirms scarcity instead of weakening it.",
+                            "detail": "In this worked example the price climbs from £8.99 to £15.00 to £25.00, so the current breeder price signal is rising rather than softening.",
                         },
                         {
                             "number": "3",
@@ -236,7 +244,7 @@ def build_breeder_methodology() -> MethodologyDict:
                         {
                             "number": "4",
                             "title": "Output row",
-                            "detail": "Signal remains Hot because sustained scarcity came first and price plus demand reinforced it rather than inventing it.",
+                            "detail": "Signal remains Hot because sustained scarcity reached the base trigger first, the non-falling price branch confirmed it, and wishlist strength only reinforced the recommendation wording.",
                         },
                     ],
                 },
@@ -403,29 +411,29 @@ def build_dealer_methodology() -> MethodologyDict:
                     "title": "Worked Example",
                     "result": "🔥 High Risk",
                     "result_tone": "hot",
-                    "species": "Monocentropus balfouri",
-                    "subtitle": "Socotra Island Blue Baboon, 2.0 cm",
-                    "pills": [_pill("Result: High Risk", "hot"), _pill("Monocentropus balfouri")],
+                    "species": "Aphonopelma seemanni",
+                    "subtitle": "Costa Rican Zebra, 1.5 cm",
+                    "pills": [_pill("Result: High Risk", "hot"), _pill("Aphonopelma seemanni")],
                     "steps": [
                         {
                             "number": "1",
                             "title": "Reliability bucket",
-                            "detail": f"This row is tagged Stock Reliability = Low, which places it below the {DEALER_MEDIUM_RELIABILITY_THRESHOLD:.1f} medium-reliability floor.",
+                            "detail": f"This row is tagged Stock Reliability = Low, which places it below the {DEALER_MEDIUM_RELIABILITY_THRESHOLD:.1f} medium-reliability floor and immediately signals weak supply coverage.",
                         },
                         {
                             "number": "2",
                             "title": "Restock speed",
-                            "detail": f"Avg OOS Duration is 3.1 runs, which clears the slow-restock threshold of {DEALER_SLOW_RESTOCK_MIN_AVG_OOS} runs and confirms this is not a short blip.",
+                            "detail": "In this worked example the row is marked Restock Speed = Slow, so the supply gap is not being treated as a quick one-run blip.",
                         },
                         {
                             "number": "3",
                             "title": "Demand pressure",
-                            "detail": "Wishlist value remains elevated, so the recommendation shifts from passive monitoring to active sourcing urgency.",
+                            "detail": "Drivers show rising wishlist interest, which reinforces urgency for a low-reliability row instead of letting it sit in passive monitoring.",
                         },
                         {
                             "number": "4",
                             "title": "Output row",
-                            "detail": "Dealer Risk becomes High Risk because low reliability plus slow restock already establishes the supply problem, and demand only reinforces it.",
+                            "detail": "Dealer Risk becomes High Risk because low reliability already weakens supply, Slow restock confirms the fragility, and the rising wishlist signal only reinforces urgency. Price pressure remains informational only on the dealer page.",
                         },
                     ],
                 },

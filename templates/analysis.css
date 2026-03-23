@@ -160,27 +160,22 @@
 
 .analysis-methodology {
     margin: 28px 0 24px;
-    padding: 20px 22px 24px;
     background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-light) 100%);
     border: 1px solid var(--color-border-alt);
     border-radius: var(--radius-lg);
     box-shadow: none;
 }
 
-.analysis-methodology__header {
-    margin-bottom: 16px;
+.analysis-methodology__summary {
+    user-select: none;
 }
 
-.analysis-methodology__eyebrow {
-    display: none;
-}
-
-.analysis-methodology__header h3::before {
-    content: "🧭 ";
+.analysis-methodology__content {
+    padding: 0;
 }
 
 .analysis-methodology__intro {
-    margin: 0;
+    margin: 0 0 18px;
     max-width: 70ch;
     color: var(--color-text-dim);
 }
