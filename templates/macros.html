@@ -44,7 +44,8 @@
             <li>Check <strong>Avg OOS Duration</strong> and <strong>Restock Speed</strong> to plan inventory</li>
         </ul>
         {% endif %}
-        <p class="legend-link-row"><a href="#legend-section" class="legend-anchor" data-action="open-details" data-target="legend-section">See full column legend ↓</a></p>
+        <p class="reference-link-row"><a href="#methodology-section" class="reference-anchor" data-action="open-details" data-target="methodology-section">See how this analysis works ↓</a></p>
+        <p class="reference-link-row"><a href="#legend-section" class="reference-anchor" data-action="open-details" data-target="legend-section">See full column legend ↓</a></p>
     </div>
 </details>
 {%- endmacro %}
@@ -130,6 +131,7 @@
                 {% if not loop.first %}hidden{% endif %}
             >
                 {% if tab.layout == 'thresholds' %}
+                {% if tab.aside %}
                 <div class="panel-grid">
                     <div class="threshold-grid">
                         {% for card in tab.cards %}
@@ -155,6 +157,21 @@
                         <div class="rule-note"><strong>{{ tab.aside.note.label }}:</strong> {{ tab.aside.note.body }}</div>
                     </aside>
                 </div>
+                {% else %}
+                <div class="threshold-grid">
+                    {% for card in tab.cards %}
+                    <section class="threshold-card">
+                        <h4>{{ card.title }}</h4>
+                        {{ methodology_pills(card.pills) }}
+                        <ul class="threshold-list">
+                            {% for item in card['items'] %}
+                            <li><strong>{{ item.label }}</strong>{% if item.detail %}: {{ item.detail }}{% endif %}</li>
+                            {% endfor %}
+                        </ul>
+                    </section>
+                    {% endfor %}
+                </div>
+                {% endif %}
                 {% elif tab.layout == 'tree' %}
                 <div class="tree-card">
                     <h4>{{ tab.tree.title }}</h4>

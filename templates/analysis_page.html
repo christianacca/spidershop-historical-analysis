@@ -48,14 +48,6 @@
     {% endif %}
     
     {{ macros.instruction_box(active_page) }}
-
-    {% if methodology %}
-    {{ macros.methodology_section(methodology) }}
-    {% endif %}
-
-    {% if legend_html %}
-    {{ legend_html|safe }}
-    {% endif %}
     
     {% if json_rows %}
     <h3>Full Data Table</h3>
@@ -66,6 +58,14 @@
     <div class="info-box">
         <p>No data available yet. Please check back after the next scrape run.</p>
     </div>
+    {% endif %}
+
+    {% if methodology %}
+    {{ macros.methodology_section(methodology) }}
+    {% endif %}
+
+    {% if legend_html %}
+    {{ legend_html|safe }}
     {% endif %}
     
     {% if examples_html and not methodology %}

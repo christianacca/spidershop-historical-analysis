@@ -71,16 +71,32 @@ def _shared_window_items() -> list[dict[str, str]]:
     ]
 
 
+def _shared_window_pills() -> list[dict[str, str]]:
+    return [
+        _pill(f"Carryover {OOS_CARRYOVER_LOOKBACK}"),
+        _pill(f"Current lookback {WISHLIST_DELTA_LOOKBACK}"),
+        _pill(f"Previous lookback {WISHLIST_DELTA_PREV_LOOKBACK}"),
+    ]
+
+
+def _shared_escalation_pills() -> list[dict[str, str]]:
+    return [_pill("Can escalate", "hot"), _pill("Cannot override supply", "avoid")]
+
+
+def _core_rule_pill(page_label: str) -> dict[str, str]:
+    return _pill(f"Core {page_label} rule", "hot")
+
+
 def build_breeder_methodology() -> MethodologyDict:
     """Return structured methodology content for the breeder analysis page."""
     return {
         "section_title": "How the breeder analysis works",
-        "intro": "Threshold inventory, compact decision logic, and a worked example that shows why a row becomes Hot, Watch, or Avoid.",
+        "intro": "Thresholds, compact decision logic, and a worked example that show why a row becomes Hot, Watch, or Avoid.",
         "callout": {
             "title": "Breeder reading lens",
             "body": "Start with supply evidence. Stock pattern sets the base signal, price trend validates or strengthens borderline cases, and wishlist metrics refine urgency without replacing supply logic.",
             "pills": [
-                _pill("Supply-first", "hot"),
+                _pill("Supply-first"),
                 _pill("Demand modifies confidence"),
                 _pill("Conservative by default"),
             ],
@@ -88,12 +104,12 @@ def build_breeder_methodology() -> MethodologyDict:
         "tabs": [
             {
                 "id": "thresholds",
-                "label": "Threshold Inventory",
+                "label": "Thresholds & Windows",
                 "layout": "thresholds",
                 "cards": [
                     {
-                        "title": "Stock Pattern Rules",
-                        "pills": [_pill("Supply-first", "hot"), _pill("Breeder-specific")],
+                        "title": "Stock Pattern Thresholds",
+                        "pills": [_pill("Supply-first"), _core_rule_pill("breeder")],
                         "items": [
                             {
                                 "label": f"Newly Observed: present now, observed in {BREEDER_NEWLY_OBSERVED_MAX_RUNS} runs or fewer, and all observed runs are current trailing runs",
@@ -118,13 +134,13 @@ def build_breeder_methodology() -> MethodologyDict:
                         ],
                     },
                     {
-                        "title": "Demand and Momentum Modifiers",
+                        "title": "Demand Modifiers",
                         "pills": [_pill("Wishlist pressure"), _pill("Delta threshold")],
                         "items": _shared_wishlist_items(),
                     },
                     {
                         "title": "Escalation Rules",
-                        "pills": [_pill("Can escalate", "hot"), _pill("Cannot override supply", "avoid")],
+                        "pills": _shared_escalation_pills(),
                         "items": [
                             {
                                 "label": "Sustained + price up or flat => Hot",
@@ -157,27 +173,11 @@ def build_breeder_methodology() -> MethodologyDict:
                         ],
                     },
                     {
-                        "title": "Time Windows",
-                        "pills": [
-                            _pill(f"Carryover {OOS_CARRYOVER_LOOKBACK}"),
-                            _pill(f"Current lookback {WISHLIST_DELTA_LOOKBACK}"),
-                            _pill(f"Previous lookback {WISHLIST_DELTA_PREV_LOOKBACK}"),
-                        ],
+                        "title": "Time Windows & Caveats",
+                        "pills": _shared_window_pills(),
                         "items": _shared_window_items(),
                     },
                 ],
-                "aside": {
-                    "title": "Why this section exists",
-                    "items": [
-                        "Make the hidden calculation thresholds visible without exposing raw Python code.",
-                        "Show that demand can amplify but not dominate supply logic.",
-                        "Clarify edge cases like Newly Observed versus oversupplied rows.",
-                    ],
-                    "note": {
-                        "label": "Static in v1",
-                        "body": "Users can inspect the thresholds and logic, but they cannot edit them in the browser.",
-                    },
-                },
             },
             {
                 "id": "tree",
@@ -194,12 +194,17 @@ def build_breeder_methodology() -> MethodologyDict:
                         {
                             "label": "If Sustained",
                             "title": f"OOS runs {BREEDER_SUSTAINED_OOS_RUNS} or more",
-                            "copy": "If price is up or flat, classify as Hot. A falling price misses that Hot confirmation branch. Wishlist Hot can still strengthen the recommendation wording once the row is already Hot.",
+                            "copy": f"If price is up or flat, classify as Hot. A falling price misses that Hot confirmation branch. Wishlist Hot can still strengthen the recommendation wording once the row is already Hot, and any OUT-row demand carryover is bounded to {OOS_CARRYOVER_LOOKBACK} runs.",
                         },
                         {
                             "label": "If Emerging",
                             "title": f"OOS runs {BREEDER_EMERGING_MIN_OOS_RUNS} to {BREEDER_SUSTAINED_OOS_RUNS - 1}",
-                            "copy": "Price up becomes Hot. Otherwise, Hot wishlist plus rising delta can still escalate the row.",
+                            "copy": "Price up becomes Hot. Otherwise, Hot wishlist plus rising delta can still escalate the row, but demand has to confirm both pressure and momentum together.",
+                        },
+                        {
+                            "label": "If Newly Observed",
+                            "title": f"Observed in {BREEDER_NEWLY_OBSERVED_MAX_RUNS} runs or fewer",
+                            "copy": "Stay Watch while the history is sparse. The model exposes the row, but it does not treat missing pre-first-seen runs as proven scarcity.",
                         },
                         {
                             "label": "If Cyclical",
@@ -209,7 +214,12 @@ def build_breeder_methodology() -> MethodologyDict:
                         {
                             "label": "If Always",
                             "title": "No convincing supply shortage",
-                            "copy": "Demand can only lift this to Watch. Falling momentum keeps it Avoid.",
+                            "copy": "Demand can only lift this to Watch, never Hot. Falling momentum keeps it Avoid.",
+                        },
+                        {
+                            "label": "Demand windows",
+                            "title": "Bounded pressure and momentum lookups",
+                            "copy": f"Demand signals stay recent: OUT carryover ends after {OOS_CARRYOVER_LOOKBACK} runs, the current delta lookup uses {WISHLIST_DELTA_LOOKBACK} runs, and the previous comparable lookup uses {WISHLIST_DELTA_PREV_LOOKBACK} runs.",
                         },
                     ],
                 },
@@ -265,7 +275,7 @@ def build_dealer_methodology() -> MethodologyDict:
     """Return structured methodology content for the dealer analysis page."""
     return {
         "section_title": "How the dealer analysis works",
-        "intro": "Threshold inventory, compact decision logic, and a worked example that explains why a row becomes High Risk, Moderate Risk, or Low Risk.",
+        "intro": "Thresholds, compact decision logic, and a worked example that explain why a row becomes High Risk, Moderate Risk, or Low Risk.",
         "callout": {
             "title": "Dealer reading lens",
             "body": "Start with reliability and restock speed. Wishlist pressure changes urgency inside the supply bands, but healthy supply should not be promoted into a risk state by demand alone.",
@@ -278,12 +288,12 @@ def build_dealer_methodology() -> MethodologyDict:
         "tabs": [
             {
                 "id": "thresholds",
-                "label": "Threshold Inventory",
+                "label": "Thresholds & Windows",
                 "layout": "thresholds",
                 "cards": [
                     {
-                        "title": "Supply Reliability",
-                        "pills": [_pill("Presence %"), _pill("Core dealer rule", "hot")],
+                        "title": "Supply Reliability Thresholds",
+                        "pills": [_pill("Presence %"), _core_rule_pill("dealer")],
                         "items": [
                             {
                                 "label": f"High: presence percentage >= {DEALER_HIGH_RELIABILITY_THRESHOLD}",
@@ -318,8 +328,8 @@ def build_dealer_methodology() -> MethodologyDict:
                         ],
                     },
                     {
-                        "title": "Demand Escalation",
-                        "pills": [_pill("Wishlist Hot"), _pill(f"Delta {WISHLIST_DELTA_INCREASE_THRESHOLD} / {WISHLIST_DELTA_DECREASE_THRESHOLD}")],
+                        "title": "Escalation Rules",
+                        "pills": _shared_escalation_pills(),
                         "items": [
                             {
                                 "label": "Low reliability + slow restock => High Risk",
@@ -340,9 +350,10 @@ def build_dealer_methodology() -> MethodologyDict:
                         ],
                     },
                     {
-                        "title": "Limited History Note",
-                        "pills": [_pill("Append-only caveat", "watch")],
-                        "items": [
+                        "title": "Time Windows & Caveats",
+                        "pills": _shared_window_pills(),
+                        "items": _shared_window_items()
+                        + [
                             {
                                 "label": "Dealer Limited History",
                                 "detail": "This appears only when a species has been observed in at most two runs and earlier runs before first observation are ambiguous.",
@@ -351,22 +362,9 @@ def build_dealer_methodology() -> MethodologyDict:
                                 "label": "Dealer price pressure",
                                 "detail": "Price pressure is informational only. It appears in the table and Drivers text, but it does not decide the dealer risk classification.",
                             },
-                        ]
-                        + _shared_window_items(),
+                        ],
                     },
                 ],
-                "aside": {
-                    "title": "Dealer reading lens",
-                    "items": [
-                        "Start with supply reliability and restock speed.",
-                        "Treat wishlist as urgency, not a replacement for supply evidence.",
-                        "Keep healthy supply classified as Low Risk even when demand is strong.",
-                    ],
-                    "note": {
-                        "label": "Intent",
-                        "body": "Explain why a row is High Risk, Moderate Risk, or Low Risk without forcing the user to reverse-engineer the matrix code.",
-                    },
-                },
             },
             {
                 "id": "tree",
@@ -383,17 +381,22 @@ def build_dealer_methodology() -> MethodologyDict:
                         {
                             "label": "If Low",
                             "title": "Supply is already weak",
-                            "copy": "Slow restock, Hot wishlist, or rising delta is enough to classify the row as High Risk.",
+                            "copy": "Slow restock is already enough to classify the row as High Risk. If restock is faster, Hot wishlist or rising delta can still accelerate sourcing urgency for an already weak supply row.",
                         },
                         {
                             "label": "If Medium",
                             "title": "Variable supply",
-                            "copy": "Stay Moderate Risk by default. Escalate to High Risk only when Hot wishlist and rising delta combine.",
+                            "copy": "Stay Moderate Risk by default. Restock speed alone does not promote medium reliability rows, so escalate to High Risk only when both Hot wishlist and rising delta combine.",
                         },
                         {
                             "label": "If High",
                             "title": "Healthy supply",
-                            "copy": "Remain Low Risk. Strong wishlist may trigger monitoring language but does not override the supply classification.",
+                            "copy": "Remain Low Risk. Restock speed does not override healthy supply, and strong wishlist may trigger monitoring language but does not override the supply classification.",
+                        },
+                        {
+                            "label": "Demand windows",
+                            "title": "Bounded momentum, informational price",
+                            "copy": f"Wishlist momentum stays recent: the current delta lookup uses {WISHLIST_DELTA_LOOKBACK} runs, the previous comparable lookup uses {WISHLIST_DELTA_PREV_LOOKBACK} runs, and price remains informational only.",
                         },
                         {
                             "label": "Final note",

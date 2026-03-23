@@ -31,6 +31,8 @@ class TestAnalysisMethodologyBuilder:
         tree_tab = next(tab for tab in methodology["tabs"] if tab["id"] == "tree")
         example_tab = next(tab for tab in methodology["tabs"] if tab["id"] == "example")
 
+        callout_card = methodology["callout"]
+
         threshold_lines = [
             item["label"]
             for card in thresholds_tab["cards"]
@@ -38,6 +40,9 @@ class TestAnalysisMethodologyBuilder:
         ]
         decision_labels = [branch["label"] for branch in tree_tab["tree"]["branches"]]
         threshold_titles = [card["title"] for card in thresholds_tab["cards"]]
+
+        assert thresholds_tab["label"] == "Thresholds & Windows"
+        assert "aside" not in thresholds_tab
 
         assert any(
             f"Sustained: OOS runs >= {breeder_matrix.BREEDER_SUSTAINED_OOS_RUNS}" in line
@@ -71,7 +76,22 @@ class TestAnalysisMethodologyBuilder:
             f"Small-N flattening: max-min <= {WISHLIST_SMALL_N_FLATTEN_THRESHOLD}" in line
             for line in threshold_lines
         )
-        assert "Time Windows" in threshold_titles
+        assert "Time Windows & Caveats" in threshold_titles
+
+        stock_pattern_card = next(
+            card for card in thresholds_tab["cards"] if card["title"] == "Stock Pattern Thresholds"
+        )
+        assert [pill["label"] for pill in stock_pattern_card["pills"]] == [
+            "Supply-first",
+            "Core breeder rule",
+        ]
+        assert next(
+            pill for pill in callout_card["pills"] if pill["label"] == "Supply-first"
+        )["tone"] == "neutral"
+        assert next(
+            pill for pill in stock_pattern_card["pills"] if pill["label"] == "Supply-first"
+        )["tone"] == "neutral"
+
         assert any("If Sustained" in label for label in decision_labels)
         assert any("If Emerging" in label for label in decision_labels)
         assert example_tab["example"]["result"] == "🔥 Hot"
@@ -79,6 +99,10 @@ class TestAnalysisMethodologyBuilder:
         escalation_rules = next(
             card for card in thresholds_tab["cards"] if card["title"] == "Escalation Rules"
         )
+        assert [pill["label"] for pill in escalation_rules["pills"]] == [
+            "Can escalate",
+            "Cannot override supply",
+        ]
         sustained_hot_rule = next(
             item
             for item in escalation_rules["items"]
@@ -90,6 +114,20 @@ class TestAnalysisMethodologyBuilder:
             branch for branch in tree_tab["tree"]["branches"] if branch["label"] == "If Sustained"
         )
         assert "falling price" in sustained_branch["copy"].lower()
+        assert "carryover" in sustained_branch["copy"].lower()
+        assert str(OOS_CARRYOVER_LOOKBACK) in sustained_branch["copy"]
+
+        always_branch = next(
+            branch for branch in tree_tab["tree"]["branches"] if branch["label"] == "If Always"
+        )
+        assert "never hot" in always_branch["copy"].lower()
+
+        windows_branch = next(
+            branch for branch in tree_tab["tree"]["branches"] if branch["label"] == "Demand windows"
+        )
+        assert str(OOS_CARRYOVER_LOOKBACK) in windows_branch["copy"]
+        assert str(WISHLIST_DELTA_LOOKBACK) in windows_branch["copy"]
+        assert str(WISHLIST_DELTA_PREV_LOOKBACK) in windows_branch["copy"]
 
         price_step = next(
             step for step in example_tab["example"]["steps"] if step["title"] == "Price trend"
@@ -113,6 +151,9 @@ class TestAnalysisMethodologyBuilder:
         ]
         decision_labels = [branch["label"] for branch in tree_tab["tree"]["branches"]]
 
+        assert thresholds_tab["label"] == "Thresholds & Windows"
+        assert "aside" not in thresholds_tab
+
         assert any(str(dealer_matrix.DEALER_HIGH_RELIABILITY_THRESHOLD) in line for line in threshold_lines)
         assert any(
             str(dealer_matrix.DEALER_MEDIUM_RELIABILITY_THRESHOLD) in line for line in threshold_lines
@@ -130,6 +171,65 @@ class TestAnalysisMethodologyBuilder:
         assert any("Dealer price pressure" in line for line in threshold_lines)
         assert example_tab["example"]["result"] == "🔥 High Risk"
         assert example_tab["example"]["species"] == "Aphonopelma seemanni"
+        threshold_titles = [card["title"] for card in thresholds_tab["cards"]]
+        assert "Escalation Rules" in threshold_titles
+        assert "Time Windows & Caveats" in threshold_titles
+
+        supply_reliability_card = next(
+            card
+            for card in thresholds_tab["cards"]
+            if card["title"] == "Supply Reliability Thresholds"
+        )
+        assert [pill["label"] for pill in supply_reliability_card["pills"]] == [
+            "Presence %",
+            "Core dealer rule",
+        ]
+
+        dealer_escalation_rules = next(
+            card for card in thresholds_tab["cards"] if card["title"] == "Escalation Rules"
+        )
+        assert [pill["label"] for pill in dealer_escalation_rules["pills"]] == [
+            "Can escalate",
+            "Cannot override supply",
+        ]
+
+        dealer_windows_card = next(
+            card for card in thresholds_tab["cards"] if card["title"] == "Time Windows & Caveats"
+        )
+        assert [pill["label"] for pill in dealer_windows_card["pills"]] == [
+            f"Carryover {OOS_CARRYOVER_LOOKBACK}",
+            f"Current lookback {WISHLIST_DELTA_LOOKBACK}",
+            f"Previous lookback {WISHLIST_DELTA_PREV_LOOKBACK}",
+        ]
+        assert [item["label"] for item in dealer_windows_card["items"]][-2:] == [
+            "Dealer Limited History",
+            "Dealer price pressure",
+        ]
+
+        medium_branch = next(
+            branch for branch in tree_tab["tree"]["branches"] if branch["label"] == "If Medium"
+        )
+        assert "both hot wishlist and rising delta" in medium_branch["copy"].lower()
+        assert "restock" in medium_branch["copy"].lower()
+        assert "does not" in medium_branch["copy"].lower()
+
+        high_branch = next(
+            branch for branch in tree_tab["tree"]["branches"] if branch["label"] == "If High"
+        )
+        assert "does not override" in high_branch["copy"].lower()
+        assert "restock" in high_branch["copy"].lower()
+
+        low_branch = next(
+            branch for branch in tree_tab["tree"]["branches"] if branch["label"] == "If Low"
+        )
+        assert "slow restock" in low_branch["copy"].lower()
+        assert "high risk" in low_branch["copy"].lower()
+
+        windows_branch = next(
+            branch for branch in tree_tab["tree"]["branches"] if branch["label"] == "Demand windows"
+        )
+        assert str(WISHLIST_DELTA_LOOKBACK) in windows_branch["copy"]
+        assert "price remains informational" in windows_branch["copy"].lower()
 
         dealer_price_step = next(
             step for step in example_tab["example"]["steps"] if step["title"] == "Restock speed"
@@ -177,16 +277,16 @@ class TestAnalysisMethodologyRendering:
             summary = methodology.find("summary")
             assert summary is not None, "Methodology should expose a summary trigger"
             assert "How the breeder analysis works" in summary.get_text(" ", strip=True)
-            assert "Threshold inventory, compact decision logic" not in summary.get_text(" ", strip=True)
+            assert "Thresholds, compact decision logic" not in summary.get_text(" ", strip=True)
             title = summary.find("strong")
             assert title is not None, "Methodology summary should use the shared strong-label pattern"
 
             content = methodology.find(class_="analysis-methodology__content")
             assert content is not None, "Methodology should render expandable body content"
-            assert "Threshold inventory, compact decision logic" in content.get_text(" ", strip=True)
+            assert "Thresholds, compact decision logic" in content.get_text(" ", strip=True)
 
-    def test_breeder_page_renders_methodology_above_legend_and_table(self):
-        """Breeder page should render methodology before the legend and the full table."""
+    def test_breeder_page_renders_methodology_and_legend_below_table(self):
+        """Breeder page should render the full table before methodology and legend."""
         csv_content = "Species,Size (cm),Signal\nAphonopelma seemanni,1.5,🔥\n"
         with temp_csv_file(csv_content) as filename:
             config = BreederPageConfig(
@@ -205,16 +305,18 @@ class TestAnalysisMethodologyRendering:
             methodology = soup.find("details", id="methodology-section")
             assert methodology is not None, "Breeder page should render methodology section"
             assert "How the breeder analysis works" in methodology.get_text(" ", strip=True)
-            assert "Threshold Inventory" in methodology.get_text(" ", strip=True)
+            assert "Thresholds & Windows" in methodology.get_text(" ", strip=True)
             assert "Decision Tree" in methodology.get_text(" ", strip=True)
             assert "Worked Example" in methodology.get_text(" ", strip=True)
             assert "Aphonopelma seemanni" in methodology.get_text(" ", strip=True)
+            assert "Why this section exists" not in methodology.get_text(" ", strip=True)
+            assert "Static in v1" not in methodology.get_text(" ", strip=True)
 
+            assert html.index('id="breeder-table-root"') < html.index('id="methodology-section"')
             assert html.index('id="methodology-section"') < html.index('id="legend-section"')
-            assert html.index('id="legend-section"') < html.index('id="breeder-table-root"')
 
-    def test_dealer_page_renders_methodology_above_legend_and_table(self):
-        """Dealer page should render methodology before the legend and the full table."""
+    def test_dealer_page_renders_methodology_and_legend_below_table(self):
+        """Dealer page should render the full table before methodology and legend."""
         csv_content = "Species,Size (cm),Dealer Risk\nTliltocatl albopilosus,2.0,🔥\n"
         with temp_csv_file(csv_content) as filename:
             config = DealerPageConfig(
@@ -233,13 +335,15 @@ class TestAnalysisMethodologyRendering:
             methodology = soup.find("details", id="methodology-section")
             assert methodology is not None, "Dealer page should render methodology section"
             assert "How the dealer analysis works" in methodology.get_text(" ", strip=True)
-            assert "Threshold Inventory" in methodology.get_text(" ", strip=True)
+            assert "Thresholds & Windows" in methodology.get_text(" ", strip=True)
             assert "Decision Tree" in methodology.get_text(" ", strip=True)
             assert "Worked Example" in methodology.get_text(" ", strip=True)
             assert "Aphonopelma seemanni" in methodology.get_text(" ", strip=True)
+            assert "Why this section exists" not in methodology.get_text(" ", strip=True)
+            assert "Static in v1" not in methodology.get_text(" ", strip=True)
 
+            assert html.index('id="dealer-table-root"') < html.index('id="methodology-section"')
             assert html.index('id="methodology-section"') < html.index('id="legend-section"')
-            assert html.index('id="legend-section"') < html.index('id="dealer-table-root"')
 
     def test_methodology_renders_tab_shell_with_one_active_panel(self):
         """Methodology should render tab buttons and a default active panel shell."""
@@ -262,7 +366,7 @@ class TestAnalysisMethodologyRendering:
             tab_panels = soup.select("#methodology-section [data-methodology-panel]")
 
             assert [button.get_text(" ", strip=True) for button in tab_buttons] == [
-                "Threshold Inventory",
+                "Thresholds & Windows",
                 "Decision Tree",
                 "Worked Example",
             ]

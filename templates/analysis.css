@@ -149,6 +149,14 @@
     line-height: 1.6;
 }
 
+.reference-link-row {
+    margin: 12px 0 0;
+}
+
+.reference-anchor {
+    font-weight: 600;
+}
+
 .instruction-content strong {
     color: var(--color-primary);
 }

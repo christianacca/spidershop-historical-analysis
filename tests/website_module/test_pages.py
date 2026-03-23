@@ -464,11 +464,15 @@ class TestGenerateSnapshotPage:
             assert 'signal' in text.lower()
             assert 'stock pattern' in text.lower()
 
-            # Should have a subtle anchor linking to the legend section
-            legend_link = instruction_box.find('a', attrs={'data-action': 'open-details'})
+            # Should have subtle anchors linking to methodology and legend sections
+            details_links = instruction_box.find_all('a', attrs={'data-action': 'open-details'})
+            assert len(details_links) == 2, "Instruction box should have methodology and legend anchor links"
+            methodology_link = instruction_box.find('a', attrs={'data-target': 'methodology-section'})
+            assert methodology_link is not None, "Instruction box should have a methodology anchor link"
+            assert methodology_link.get('href') == '#methodology-section'
+            legend_link = instruction_box.find('a', attrs={'data-target': 'legend-section'})
             assert legend_link is not None, "Instruction box should have a legend anchor link"
             assert legend_link.get('href') == '#legend-section'
-            assert legend_link.get('data-target') == 'legend-section'
 
     def test_includes_instruction_box_for_dealer_page(self):
         """Should include 'How to use this page' instruction box for dealer pages."""
@@ -501,11 +505,15 @@ class TestGenerateSnapshotPage:
             assert 'restock' in text.lower()
             assert 'inventory' in text.lower()
 
-            # Should have a subtle anchor linking to the legend section
-            legend_link = instruction_box.find('a', attrs={'data-action': 'open-details'})
+            # Should have subtle anchors linking to methodology and legend sections
+            details_links = instruction_box.find_all('a', attrs={'data-action': 'open-details'})
+            assert len(details_links) == 2, "Instruction box should have methodology and legend anchor links"
+            methodology_link = instruction_box.find('a', attrs={'data-target': 'methodology-section'})
+            assert methodology_link is not None, "Instruction box should have a methodology anchor link"
+            assert methodology_link.get('href') == '#methodology-section'
+            legend_link = instruction_box.find('a', attrs={'data-target': 'legend-section'})
             assert legend_link is not None, "Instruction box should have a legend anchor link"
             assert legend_link.get('href') == '#legend-section'
-            assert legend_link.get('data-target') == 'legend-section'
 
     def test_omits_instruction_box_for_snapshot_page(self):
         """Should NOT include instruction box for snapshot pages (simple pages)."""
