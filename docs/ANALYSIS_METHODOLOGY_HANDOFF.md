@@ -1,523 +1,514 @@
-# Analysis Methodology Handoff
+# Analysis Methodology UI Handoff
 
-## Mission
+## Purpose
 
-Implement a new static methodology section for the breeder and dealer analysis pages so users can understand:
+Implement a high-fidelity methodology UI for the analysis pages that matches the visual and
+interaction intent of the mock in `tmp/analysis-methodology-mockup.html`, with one explicit
+exception:
 
-- what thresholds are used
-- how the rules are ordered
-- why a row becomes Hot, Watch, Avoid, High Risk, Moderate Risk, or Low Risk
-- how edge cases are handled
-- at least one concrete worked example per page type
+- Do **not** implement the mock's combined breeder/dealer page mode switch.
+- The real product keeps **separate breeder and dealer pages**.
+- Each page should render its **own page-specific methodology panel** using the same layout
+  system and interaction model.
 
-## Final Product Requirements
+This handoff replaces the earlier low-prominence, below-the-table methodology plan. The target
+experience is now the mock's information hierarchy: the methodology is a first-class explanatory
+surface, not an appendix.
 
-The final feature must:
+## Scope
 
-- be static and read-only
-- be sourced from the real Python analysis rules
-- preserve the existing legend
-- preserve the existing row-level Drivers tooltip
-- avoid client-side recalculation
-- avoid editable thresholds
-- avoid storing methodology data in CSV rows or table row JSON
+This handoff applies to:
 
-## Final UX Decision
-
-The methodology section should not sit above the table.
-
-Use this page order:
-
-1. summary cards
-2. short instruction box
-3. table
-4. legend
-5. methodology section
-
-### Why
-
-- The table remains the primary task surface.
-- The legend is quick-reference material while users are scanning rows.
-- The methodology section is deeper reference content and should not push the main table down the page.
-
-## Methodology Section Structure
-
-Use stacked sections, not tabs.
-
-Recommended internal order:
-
-1. short summary of how the model works
-2. worked example
-3. threshold inventory
-4. compact decision tree
-5. edge-case notes
-
-### Content priority
-
-If the implementation must be simplified, keep content in this order of importance:
-
-1. worked example
-2. real thresholds
-3. summary text
-4. edge-case notes
-5. compact decision tree
-
-If time runs short, simplify the decision tree before cutting the worked example.
-
-## Information Architecture
-
-### Keep the legend
-
-The legend must remain.
-
-It should keep responsibility for:
-
-- quick-reference symbol meanings
-- column definitions
-- short interpretation notes while reading the table
-
-It should not become the place for the full threshold inventory or deeper branch logic.
-
-### Add the methodology section
-
-The methodology section should own:
-
-- exact thresholds
-- rule ordering
-- branch logic
-- conservative model philosophy
-- edge-case explanation
-- worked examples
-
-### Keep the Drivers tooltip
-
-The existing Drivers tooltip remains useful and should not be removed.
-
-It provides fast row-level context. The methodology section provides deeper page-level explanation.
-
-## Non-Negotiable Constraints
-
-- Do not add editable thresholds.
-- Do not add browser-side recalculation logic.
-- Do not move methodology metadata into CSV rows.
-- Do not remove the legend.
-- Do not remove the Drivers tooltip.
-- Do not change breeder or dealer scoring rules unless a real bug is found and intentionally addressed.
-- Prefer server-rendered HTML and CSS for the first implementation.
-
-## Source of Truth
-
-All methodology content must come from the live production rules in these files:
-
-- `src/scrape/breeder_matrix.py`
-- `src/scrape/dealer_matrix.py`
-- `src/scrape/wishlist_analysis.py`
-- `src/shared/config.py`
-- `src/shared/history_utils.py`
-- `src/scrape/matrix_workflow.py`
-
-Do not create hand-maintained content that can drift from these rules.
-
-## Verified Thresholds and Rules
-
-These thresholds and rules were already verified from the source code and must be accurately reflected in the final methodology content.
-
-### Shared wishlist thresholds
-
-- wishlist delta up: `delta >= 5`
-- wishlist delta down: `delta <= -5`
-- otherwise wishlist delta is neutral
-- OOS carryover lookback: `5` runs
-- OUT-row current delta lookup window: `3` runs
-- previous comparable lookup window: `12` runs
-- small-N flattening threshold: `max(non_zero_counts) - min(non_zero_counts) <= 1`
-
-Wishlist pressure behavior:
-
-- zero wishlist count => Avoid
-- flat non-zero distribution within threshold => all non-zero rows become Watch
-- otherwise use approximate percentile-style bands with a minimum of one top-band row:
-  - top quartile-style band => Hot
-  - middle band => Watch
-  - bottom quartile-style band => Avoid
-
-### Breeder stock-pattern rules
-
-- Newly Observed:
-  - present in the current run
-  - observed in at most 2 runs total
-  - those observed runs are the trailing current runs
-- Sustained if `oos_runs >= 4`
-- Emerging if `oos_runs >= 2` and `< 4`
-- Cyclical if status is `IN/OUT`
-- Always otherwise
-
-### Breeder signal logic
-
-- Newly Observed => Watch
-- Sustained + price up or flat + wishlist Hot => Hot
-- Sustained + price up or flat => Hot
-- Emerging + price up => Hot
-- Emerging + wishlist Hot + delta up => Hot
-- Emerging + wishlist Hot => Watch
-- Emerging => Watch
-- Cyclical => Watch
-- Always + wishlist Hot + delta down => Avoid
-- Always + wishlist Hot => Watch
-- otherwise => Avoid
-
-### Dealer reliability and restock rules
-
-- High reliability if presence percentage `>= 0.8`
-- Medium reliability if `>= 0.4` and `< 0.8`
-- Low reliability otherwise
-
-- Slow restock if `avg_oos >= 3`
-- Moderate restock if `avg_oos == 2`
-- Fast restock otherwise
-
-### Dealer risk logic
-
-- Low + Slow + wishlist Hot => High Risk
-- Low + Slow => High Risk
-- Low + wishlist Hot => High Risk
-- Low + delta up => High Risk
-- Medium + wishlist Hot + delta up => High Risk
-- Medium + wishlist Hot => Moderate Risk
-- Medium => Moderate Risk
-- High + wishlist Avoid or Watch => Low Risk
-- High + delta down => Low Risk
-- High + wishlist Hot => Low Risk
-- otherwise => Low Risk
-
-### Dealer price pressure
-
-- dealer price pressure is informational only
-- it is displayed and included in driver text
-- it does not participate in dealer risk classification
-
-### Edge cases that must remain explicit
-
-#### Breeder Newly Observed
-
-This is a real breeder-side classification, not just a generic sparse-history warning.
-
-#### Dealer limited history
-
-This is different from breeder Newly Observed.
-
-It is an appended caution note when:
-
-- observed run count is at most 2
-- and earlier runs before first observation are ambiguous
-
-It should not become a separate dealer risk bucket.
-
-## Implementation Strategy
-
-Implement the feature in the server-rendered website layer.
-
-Do not build it as a client-side feature first.
-
-### Why this approach
-
-- the feature is page-level and static
-- the site already uses Python templates for page generation
-- it avoids duplicated rule logic in the browser
-- it matches the refined UX direction from the mock
-
-## Files to Add or Update
-
-### Add
-
-- `src/website/analysis_methodology.py`
-
-Likely new test file:
-
-- `tests/website_module/test_analysis_methodology.py`
-
-### Update
-
-- `src/website/page_config.py`
 - `src/website/generate_website.py`
+- `src/website/page_config.py`
+- `src/website/analysis_methodology.py`
 - `templates/analysis_page.html`
 - `templates/macros.html`
 - `templates/analysis.css`
-- `src/website/local_demo_data.py` only if necessary for clearer worked examples in local preview
+- any supporting tests in `tests/website_module/`, `tests/e2e/`, and `tests/visual/` as needed
 
-## Required Implementation Approach
+It does **not** change:
 
-### 1. Create methodology builder module
+- the underlying breeder/dealer scoring rules
+- row-level payloads sent to Svelte islands
+- the meaning of legend content
+- the existing Drivers tooltip behavior
+- the single-page routing model of the mock
 
-Create `src/website/analysis_methodology.py`.
+## Non-Negotiable Constraints
 
-It should expose structured methodology data, not one giant raw HTML blob.
+These constraints still hold even though the UX target has changed.
 
-At minimum it should provide:
+### 1. Read-only explanatory UI
 
-- summary text
-- worked example data
-- threshold groups
-- compact decision-tree data
-- edge-case notes
+The methodology panel explains existing Python-driven outputs. It does not recalculate signals,
+change thresholds in-browser, or mutate analysis results.
 
-Keep breeder and dealer methodology content separate.
+### 2. Python rules remain the source of truth
 
-### 2. Extend page config and page generation
+All thresholds, labels, worked-example logic, and explanatory copy must be derived from the live
+Python rule system already used to generate the tables.
 
-Update `src/website/page_config.py` and `src/website/generate_website.py` so breeder and dealer analysis pages receive methodology data as page-level template context.
+Do not invent parallel threshold definitions in JavaScript or hard-code values into templates that
+can drift from the analysis engine.
 
-Hard requirement:
+### 3. No new row metadata for methodology rendering
 
-- do not add methodology data to row payloads or `json_rows`
+Do not add hidden methodology payloads to each table row. The methodology panel is page-level
+content and should be rendered from page-level data.
 
-### 3. Render methodology in templates
+### 4. Preserve the legend and Drivers tooltip
 
-Update `templates/analysis_page.html` so the final page order is:
+The legend still matters and must remain on the page. The Drivers tooltip in the analysis table
+must remain intact.
 
-1. summary cards
-2. instruction box
-3. table
-4. legend
-5. methodology section
+### 5. Separate breeder and dealer pages
 
-Use `templates/macros.html` if reusable rendering helpers make the template cleaner.
+The mock's breeder/dealer toggle was a prototype convenience for comparing both variants in one
+HTML file. The production site keeps separate pages:
 
-Useful macro candidates:
+- breeder page renders breeder methodology
+- dealer page renders dealer methodology
 
-- methodology wrapper
-- threshold group renderer
-- worked example renderer
-- compact decision-tree renderer
+## Final UX Decision
 
-### 4. Style the methodology section
+### Methodology becomes the main explanatory block
 
-Update `templates/analysis.css`.
+The methodology panel should appear **above the legend and above the table**, in the prominent,
+card-based layout shown in the mock.
+
+Target page order:
+
+1. page title and intro
+2. summary/KPI cards
+3. instruction or context callout
+4. methodology panel
+5. legend
+6. analysis table
+
+This is a deliberate reversal of the previous handoff. The goal is to let users understand the
+classification model before reading the legend or interpreting row-level signals.
+
+### Internal organization matches the mock
+
+The methodology panel should use the mock's richer composition:
+
+- prominent container panel
+- clear section header and supporting intro copy
+- a compact top-level explanation row or callout
+- tabbed or pill-based internal navigation for major views
+- card-based content inside each view
+- short explanatory asides that explain why signals escalate or do not escalate
+
+The methodology content should feel like a structured briefing, not a long markdown appendix.
+
+### Allowed interaction model
+
+Tabbed internal navigation is allowed and expected.
+
+Examples of acceptable tab labels:
+
+- `Threshold Inventory`
+- `Decision Tree`
+- `Worked Example`
+
+This interaction is presentational only. Switching tabs must not alter page data or analysis
+results; it only swaps visible explanatory content.
+
+## Page-Level UX Structure
+
+Each analysis page should render a methodology panel with the following structure.
+
+### 1. Panel shell
+
+A visually prominent panel, consistent with the mock's `methodology-box` concept.
+
+Required characteristics:
+
+- strong section heading
+- short descriptive intro
+- clear containment distinct from legend and table
+- card-based internal spacing
+- responsive layout that collapses cleanly on mobile
+
+### 2. Context callout
+
+A short block near the top of the panel that explains how to read the methodology.
+
+Purpose:
+
+- frame the methodology as a guide to signal interpretation
+- explain that supply drives the base signal and demand modifies confidence/urgency
+- set user expectations before they inspect tabs/cards
+
+This can be styled as an info bar, note card, or explainer strip, consistent with the mock.
+
+### 3. Tab row / pill row
+
+A compact navigation row inside the methodology panel.
+
+Minimum tabs:
+
+- `Threshold Inventory`
+- `Decision Tree`
+- `Worked Example`
+
+Optional additional tab:
+
+- `Edge Cases`
+
+If edge-case content fits naturally into the other three tabs, a fourth tab is not required.
+
+### 4. Tab content area
+
+Each tab should render one or more cards. The content should use short labels, small lists,
+compact narrative, and visually distinct result callouts, similar to the mock.
+
+## Tab Specifications
+
+### Threshold Inventory tab
+
+This tab should present the page's core rule inputs as scannable cards rather than one long list.
+
+For breeder, include cards or grouped blocks covering at minimum:
+
+- supply pattern / out-of-stock persistence
+- price trend interpretation
+- wishlist pressure meaning
+- wishlist delta meaning
+- escalation rules and non-escalation rules
+
+For dealer, include cards or grouped blocks covering at minimum:
+
+- stock reliability bands
+- average out-of-stock duration / restock speed
+- price pressure interpretation
+- wishlist pressure meaning
+- wishlist delta meaning
+- escalation rules and non-escalation rules
+
+Expectations:
+
+- thresholds shown here must come from live constants or live rule functions where possible
+- labels should be concise and product-facing
+- cards can include small "what this means" notes
+- the layout should visually resemble the mock's threshold cards and side-asides
+
+### Decision Tree tab
+
+This tab should explain the order of evaluation in a compact, card-based flow.
+
+It should not be a literal code dump. It should answer:
+
+- what is evaluated first
+- what can reinforce a signal
+- what cannot override a stronger supply-based conclusion
+- why neutral decisions are preferred when evidence is weak
+
+Structure guidance:
+
+- step cards, decision cards, or a short flow stack
+- each step has a title and one or two lines of explanatory copy
+- include explicit "does not override" notes where important
+
+Breeder emphasis:
+
+- supply pattern determines the base classification
+- price trend can reinforce or soften borderline cases
+- wishlist metrics can escalate emerging opportunities only when the rule allows it
+- sustained scarcity must never be downgraded
+
+Dealer emphasis:
+
+- stock reliability and restock speed determine the base risk view
+- price pressure and wishlist behavior can reinforce urgency
+- healthy supply must not be overridden by demand alone
+
+### Worked Example tab
+
+This tab should show a concrete example row and explain how the page's rules classify it.
+
+Format guidance:
+
+- species card or result card at the top
+- short list of observed facts from local demo data
+- step-by-step reasoning bullets
+- final result badge or callout
+- short note explaining why nearby alternative outcomes did not apply
 
 Requirements:
 
-- use tokens from `templates/common.css`
-- keep the table visually primary
-- ensure mobile readability
-- ensure desktop readability
-- do not introduce tabs in the real implementation
+- use realistic species/examples from local demo data for both breeder and dealer pages
+- the example should map directly to current generated demo content where possible
+- copy must remain aligned with live rules
 
-### 5. Support worked examples in preview if needed
+This tab should feel very close to the mock's worked-example presentation.
 
-Review `src/website/local_demo_data.py`.
+### Edge Cases handling
 
-Only update it if existing local preview data does not clearly support:
+Edge cases still need to be explained, but they no longer need to exist as a separate stacked
+section below everything else.
 
-- breeder Hot example
-- breeder Watch or edge-case example
-- dealer High Risk example
-- dealer Low Risk example
+Acceptable placements:
 
-Avoid unnecessary churn in local demo data.
+- an `Edge Cases` tab
+- a dedicated edge-case card within `Decision Tree`
+- short aside cards inside `Threshold Inventory`
+- a compact note card at the bottom of the methodology panel
 
-## Suggested Data Shape
+At minimum, cover:
 
-The exact structure can vary, but it should resemble this:
+- newly observed species / limited history
+- carryover bounds for out-of-stock wishlist handling
+- bounded lookback for previous comparable observations
+- why ambiguous cases remain neutral instead of being forced upward
 
-```python
-{
-    "summary": {
-        "title": "How the breeder analysis works",
-        "intro": "Supply-first model with demand as modifier"
-    },
-    "worked_example": {
-        "species": "Aphonopelma seemanni",
-        "result": "🔥 Hot",
-        "steps": [...]
-    },
-    "threshold_groups": [
-        {
-            "title": "Stock pattern rules",
-            "items": [...]
-        }
-    ],
-    "decision_tree": {
-        "title": "Compact breeder decision tree",
-        "nodes": [...]
-    },
-    "edge_cases": [...]
-}
-```
+## Visual Fidelity Requirements
 
-## Exact File Edit Order
+The target should be recognizably close to the mock's visual hierarchy and composition.
 
-Use this order unless there is a strong reason not to:
+### Required visual traits
 
-1. `src/website/analysis_methodology.py`
-2. `src/website/page_config.py`
-3. `src/website/generate_website.py`
-4. `templates/macros.html`
-5. `templates/analysis_page.html`
-6. `templates/analysis.css`
-7. `src/website/local_demo_data.py` only if needed
-8. `tests/website_module/...`
-9. `tests/e2e/...` if needed
+- methodology panel is visually stronger than the legend block
+- cards are used deliberately, not as plain text wrappers
+- the tab row is clearly interactive and current state is obvious
+- result outcomes are visually highlighted
+- supporting asides help users understand "why" and "why not"
+- spacing, borders, and grouping create a dashboard-like explanatory surface
 
-## Execution Checklist
+### Avoid
 
-### Phase 0: Confirm baseline
+- a plain markdown article below the table
+- a single long vertical stack of generic paragraphs
+- burying the methodology after the legend and table
+- reducing the mock to only content parity without layout parity
 
-- [ ] Read this file fully before coding.
-- [ ] Read `tmp/analysis-methodology-mockup.html` for visual intent only.
-- [ ] Review current analysis page flow in:
-  - `src/website/generate_website.py`
-  - `src/website/page_config.py`
-  - `templates/analysis_page.html`
-  - `templates/macros.html`
-  - `templates/analysis.css`
-- [ ] Review the live rule sources listed earlier.
+### Responsive expectations
 
-Stop if the page order or section ownership becomes ambiguous. The correct ownership is legend for quick reference, methodology for deep explanation.
+On desktop:
 
-### Phase 1: Build methodology data source
+- tab row remains easy to scan
+- cards can appear in 2-column layouts where appropriate
+- worked example may use a main card with supporting side card
 
-- [ ] Create breeder methodology builder
-- [ ] Create dealer methodology builder
-- [ ] Include summary text
-- [ ] Include worked example
-- [ ] Include threshold groups
-- [ ] Include compact decision tree content
-- [ ] Include edge-case notes
-- [ ] Keep breeder and dealer variants separate
+On mobile:
 
-Minimum breeder content:
+- tab row may wrap or collapse cleanly
+- cards stack vertically
+- no horizontal overflow from threshold or tree cards
 
-- [ ] Newly Observed rule
-- [ ] Sustained threshold
-- [ ] Emerging threshold
-- [ ] Cyclical explanation
-- [ ] Always explanation
-- [ ] wishlist delta thresholds
-- [ ] carryover and lookback windows
-- [ ] escalation rules
+## Data and Rendering Architecture
 
-Minimum dealer content:
+### Page-level data model
 
-- [ ] reliability thresholds
-- [ ] restock thresholds
-- [ ] Low and Medium escalation rules
-- [ ] note that High reliability remains Low Risk even under strong demand
-- [ ] limited-history caveat
+Continue using a page-level methodology object generated from Python.
 
-### Phase 2: Pass methodology data into analysis page rendering
+Suggested structure:
 
-- [ ] Extend page config contract
-- [ ] Build breeder methodology during breeder page generation
-- [ ] Build dealer methodology during dealer page generation
-- [ ] Pass methodology into template context
-- [ ] Leave row payloads unchanged
+- `title`
+- `intro`
+- `callout`
+- `tabs`
+- each tab contains structured cards, notes, badges, and small lists
 
-### Phase 3: Render methodology section
+A tab may contain card types such as:
 
-- [ ] Place methodology after legend
-- [ ] Keep instruction box near top
-- [ ] Keep table before legend and methodology
-- [ ] Render summary text
-- [ ] Render worked example
-- [ ] Render threshold inventory
-- [ ] Render compact decision tree
-- [ ] Render edge-case notes
-- [ ] Use stacked details or stacked content blocks, not tabs
+- threshold cards
+- aside cards
+- decision steps
+- example facts
+- example reasoning
+- result callout
+- edge-case notes
 
-### Phase 4: Style methodology section
+Do not flatten everything into pre-rendered HTML too early. The template needs structured data so it
+can faithfully reproduce the mock-style composition.
 
-- [ ] Add section styling in `templates/analysis.css`
-- [ ] Add worked-example styling
-- [ ] Add threshold group styling
-- [ ] Add decision-tree styling
-- [ ] Add edge-case note styling
-- [ ] Ensure mobile readability
-- [ ] Ensure desktop readability
-- [ ] Ensure the table remains visually primary
+### Templating approach
 
-### Phase 5: Review local preview examples
+Use Jinja macros to render the panel and its substructures. The goal is a maintainable component-like
+server-rendered layout, not string-built HTML fragments.
 
-- [ ] Confirm demo data supports clear breeder example(s)
-- [ ] Confirm demo data supports clear dealer example(s)
-- [ ] Only edit local demo data if the examples would otherwise be weak or confusing
+Recommended macro responsibilities:
 
-### Phase 6: Add or update tests
+- methodology shell
+- tab navigation
+- threshold cards
+- decision tree steps
+- worked example result block
+- supporting note/aside cards
 
-Python/content tests:
+### Client-side behavior
 
-- [ ] breeder thresholds present and correct
-- [ ] dealer thresholds present and correct
-- [ ] breeder Newly Observed content present
-- [ ] dealer limited-history content present
-- [ ] worked examples are page-specific
+Minimal client-side behavior is acceptable for switching tabs or expanding/collapsing methodology
+subsections, provided that:
 
-Website rendering tests:
+- no analysis logic runs in the browser
+- no thresholds are recalculated in the browser
+- page still renders meaningful default content without needing data-fetching
 
-- [ ] breeder page includes methodology section
-- [ ] dealer page includes methodology section
-- [ ] legend still present
-- [ ] methodology rendered after legend
-- [ ] table rendered before methodology
-- [ ] worked example content rendered
+If tabs are implemented progressively, keep the behavior lightweight and scoped to presentation.
 
-E2E checks:
+## Content Requirements By Page
 
-- [ ] methodology section exists on breeder page
-- [ ] methodology section exists on dealer page
-- [ ] details open correctly if details blocks are used
-- [ ] table interactions still work
+### Breeder page
 
-### Phase 7: Run required commands
+The methodology content must reflect the breeder opportunity philosophy:
 
-- [ ] `make test`
-- [ ] `make test-visual`
-- [ ] `make test-e2e`
+- supply pattern is primary
+- price trend confirms or weakens borderline opportunity signals
+- wishlist pressure and wishlist delta can amplify emerging signals but do not create signals alone
+- always-available species remain negative despite demand noise
+- sustained scarcity remains strong and is not downgraded
 
-Do not declare completion until these commands pass or any unrelated failure is explicitly documented.
+### Dealer page
+
+The methodology content must reflect the dealer risk philosophy:
+
+- stock reliability and restock speed are primary
+- price pressure and wishlist behavior adjust urgency, not the base truth of supply health
+- high demand can reinforce low reliability risk
+- healthy supply should not be pushed into strong risk by demand alone
+
+## Implementation Notes
+
+### Templates
+
+Update `templates/analysis_page.html` so the methodology panel renders before the legend and table.
+
+Expected order inside the analysis content region:
+
+1. summary/stat cards
+2. instruction/context box
+3. methodology panel
+4. legend
+5. table
+
+Update `templates/macros.html` to support the richer methodology component structure required by the
+mock.
+
+### Styling
+
+Update `templates/analysis.css` to support:
+
+- prominent methodology shell styling
+- tab row / pill row states
+- threshold card grid
+- decision tree cards
+- worked example cards and result callouts
+- aside/note cards
+- responsive adaptations
+
+Use existing design tokens from `templates/common.css`. Do not hard-code unrelated one-off values if
+existing tokens already express the needed color, spacing, radius, or type scale.
+
+### Page config and generation
+
+Continue injecting methodology at page-config/render time. Keep breeder and dealer methodology built
+explicitly from Python-side helpers.
+
+The generation path should make it obvious which page receives which methodology object.
+
+## Testing Requirements
+
+This is UI-heavy work and must be validated at the correct layers.
+
+### Unit / integration tests
+
+Add or update tests to assert at minimum:
+
+- breeder and dealer methodology render above the legend and table
+- expected tabs render for each page
+- worked-example content uses the intended demo data
+- live threshold constants appear in the rendered methodology where appropriate
+- legend and Drivers tooltip remain present
+
+### Visual tests
+
+Browser-backed visual tests are required for:
+
+- tab active state
+- methodology panel layout and card rendering
+- result callout styling
+- responsive stacking behavior where practical
+
+### E2E tests
+
+Use Playwright to verify:
+
+- methodology panel appears before the legend and table in the real page
+- tab switching works if tabs are interactive
+- breeder page shows breeder-specific methodology only
+- dealer page shows dealer-specific methodology only
+- table interactions still work after the layout change
 
 ## Acceptance Criteria
 
-The work is complete only when all of the following are true:
+This work is complete when all of the following are true.
 
-1. Breeder page includes methodology content below the legend.
-2. Dealer page includes methodology content below the legend.
-3. The legend still exists.
-4. The Drivers tooltip still exists.
-5. The methodology is static and read-only.
-6. A worked example is present on each page type.
-7. The threshold inventory includes the real thresholds.
-8. The compact decision tree reflects the real logic ordering.
-9. Edge-case notes clearly distinguish breeder Newly Observed from dealer limited history.
-10. Required tests pass.
+### Functional
 
-## If Time Runs Short
+- breeder and dealer pages each have a page-specific methodology panel
+- the methodology panel sits above the legend and analysis table
+- the panel uses mock-faithful internal organization with tabs/pills and card-based content
+- no combined breeder/dealer page switch is introduced into production
+- no browser-side analysis recalculation exists
 
-Reduce scope in this order only:
+### Content
 
-1. simplify the compact decision tree
-2. reduce the number of threshold groups
-3. tighten explanatory copy
+- methodology copy remains grounded in live Python rules
+- breeder and dealer content reflect their distinct analysis philosophies
+- worked examples align with available demo data
+- edge cases are explained clearly somewhere in the panel
 
-Do not cut:
+### UX / visual
 
-- the worked example
-- the legend
-- the real thresholds
-- the below-the-legend placement
+- the result is recognizably close to the mock's hierarchy and composition
+- methodology feels like a primary explanatory feature, not an appendix
+- legend remains present but visually secondary to the methodology panel
+- mobile layout remains readable and non-fragile
 
-## Final Instructions to the Coding Agent
+### Quality
 
-- Implement the feature end-to-end.
-- Do not stop at planning.
-- Make the code changes.
-- Add the tests.
-- Run the required commands.
-- Report exactly what changed and what passed.
+- relevant tests pass
+- visual checks pass
+- E2E checks pass when required by the touched files
 
-## Related Artifacts
+## Out of Scope
 
-These are supporting materials for context, not required for handoff:
+Do not implement the following as part of this handoff unless separately requested:
 
-- `tmp/analysis-methodology-mockup.html`
+- the mock's single-page breeder/dealer switch
+- editable thresholds
+- per-row methodology drawers or expanded metadata payloads
+- client-side recomputation of classifications
+- replacing the legend entirely
 
-This file is the canonical handoff document.
+## Build Sequence
+
+Recommended implementation order:
+
+1. restructure the methodology data model so it can express mock-style tabs/cards
+2. move methodology rendering above the legend and table in the template
+3. implement the new Jinja macros for shell, tabs, cards, and result blocks
+4. add the required CSS for high-fidelity composition
+5. add or update tests for order, content, and interaction
+6. run `make test`
+7. run `make test-visual`
+8. run `make test-e2e`
+
+## Summary
+
+The target is no longer a conservative documentation appendix below the table. The target is the
+mock's richer explanatory product surface, adapted to the real site's separate breeder and dealer
+pages.
+
+In short:
+
+- keep the real site's separate page model
+- keep the methodology static and Python-sourced
+- keep the legend and Drivers tooltip
+- move the methodology up
+- make it visually prominent
+- use tabs/cards/decision views like the mock
+- ship a recognizably high-fidelity version of the prototype UI
