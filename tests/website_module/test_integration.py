@@ -100,11 +100,13 @@ Example content for dealers.
                 assert "<ul>" in breeder_html
                 assert "<li><code>IN</code>" in breeder_html
                 
-                # Final analysis pages now render methodology below the legend instead of
-                # the old free-form markdown example block.
+                # Final analysis pages now render the methodology as a primary panel
+                # before the legend and the full table.
                 assert 'id="methodology-section"' in breeder_html
-                assert "Worked example" in breeder_html
+                assert "Threshold Inventory" in breeder_html
+                assert "Worked Example" in breeder_html
                 assert "How the breeder analysis works" in breeder_html
+                assert breeder_html.index('id="methodology-section"') < breeder_html.index('id="legend-section"')
                 
                 # Verify NO markdown syntax remains
                 assert "### 🧬 Breeder" not in breeder_html
@@ -124,8 +126,10 @@ Example content for dealers.
                 assert "<h4>🏪 Dealer Supply Risk Matrix — Legend</h4>" in dealer_html
                 assert "<h4>🏪 Dealer Supply Risk Matrix — Legend<strong>Stock Reliability</strong></h4>" not in dealer_html
                 assert 'id="methodology-section"' in dealer_html
-                assert "Worked example" in dealer_html
+                assert "Threshold Inventory" in dealer_html
+                assert "Worked Example" in dealer_html
                 assert "How the dealer analysis works" in dealer_html
+                assert dealer_html.index('id="methodology-section"') < dealer_html.index('id="legend-section"')
                 
                 # Verify NO markdown syntax remains
                 assert "### 🏪 Dealer" not in dealer_html

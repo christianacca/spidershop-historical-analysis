@@ -27,14 +27,17 @@ class TestAnalysisMethodologyBuilder:
     def test_build_breeder_methodology_contains_live_thresholds_and_edge_case(self):
         """Breeder methodology should expose verified thresholds and Newly Observed guidance."""
         methodology = build_breeder_methodology()
+        thresholds_tab = next(tab for tab in methodology["tabs"] if tab["id"] == "thresholds")
+        tree_tab = next(tab for tab in methodology["tabs"] if tab["id"] == "tree")
+        example_tab = next(tab for tab in methodology["tabs"] if tab["id"] == "example")
 
         threshold_lines = [
             item["label"]
-            for group in methodology["threshold_groups"]
-            for item in group["items"]
+            for card in thresholds_tab["cards"]
+            for item in card["items"]
         ]
-        decision_labels = [node["label"] for node in methodology["decision_tree"]["nodes"]]
-        edge_case_titles = [note["title"] for note in methodology["edge_cases"]]
+        decision_labels = [branch["label"] for branch in tree_tab["tree"]["branches"]]
+        threshold_titles = [card["title"] for card in thresholds_tab["cards"]]
 
         assert any(
             f"Sustained: OOS runs >= {breeder_matrix.BREEDER_SUSTAINED_OOS_RUNS}" in line
@@ -68,29 +71,28 @@ class TestAnalysisMethodologyBuilder:
             f"Small-N flattening: max-min <= {WISHLIST_SMALL_N_FLATTEN_THRESHOLD}" in line
             for line in threshold_lines
         )
-        assert any("Newly Observed => Watch" in label for label in decision_labels)
-        assert "Breeder Newly Observed" in edge_case_titles
-        assert methodology["worked_example"]["result"] == "🔥 Hot"
+        assert "Time Windows" in threshold_titles
+        assert any("If Sustained" in label for label in decision_labels)
+        assert any("If Emerging" in label for label in decision_labels)
+        assert example_tab["example"]["result"] == "🔥 Hot"
 
     def test_build_dealer_methodology_contains_live_thresholds_and_limited_history_note(self):
         """Dealer methodology should expose reliability/restock thresholds and limited-history caveat."""
         methodology = build_dealer_methodology()
+        thresholds_tab = next(tab for tab in methodology["tabs"] if tab["id"] == "thresholds")
+        tree_tab = next(tab for tab in methodology["tabs"] if tab["id"] == "tree")
+        example_tab = next(tab for tab in methodology["tabs"] if tab["id"] == "example")
 
         threshold_lines = [
             item["label"]
-            for group in methodology["threshold_groups"]
-            for item in group["items"]
+            for card in thresholds_tab["cards"]
+            for item in card["items"]
         ]
-        decision_labels = [node["label"] for node in methodology["decision_tree"]["nodes"]]
-        edge_cases = {note["title"]: note["body"] for note in methodology["edge_cases"]}
+        decision_labels = [branch["label"] for branch in tree_tab["tree"]["branches"]]
 
+        assert any(str(dealer_matrix.DEALER_HIGH_RELIABILITY_THRESHOLD) in line for line in threshold_lines)
         assert any(
-            f"High reliability: presence percentage >= {dealer_matrix.DEALER_HIGH_RELIABILITY_THRESHOLD}" in line
-            for line in threshold_lines
-        )
-        assert any(
-            f"Medium reliability: >= {dealer_matrix.DEALER_MEDIUM_RELIABILITY_THRESHOLD} and < {dealer_matrix.DEALER_HIGH_RELIABILITY_THRESHOLD}" in line
-            for line in threshold_lines
+            str(dealer_matrix.DEALER_MEDIUM_RELIABILITY_THRESHOLD) in line for line in threshold_lines
         )
         assert any(
             f"Slow restock: average OOS duration >= {dealer_matrix.DEALER_SLOW_RESTOCK_MIN_AVG_OOS}" in line
@@ -100,18 +102,18 @@ class TestAnalysisMethodologyBuilder:
             f"Moderate restock: average OOS duration == {dealer_matrix.DEALER_MODERATE_RESTOCK_AVG_OOS}" in line
             for line in threshold_lines
         )
-        assert any("High reliability stays Low Risk" in label for label in decision_labels)
-        assert "Dealer Limited History" in edge_cases
-        assert "informational only" in edge_cases["Dealer price pressure"].lower()
-        assert methodology["worked_example"]["result"] == "🔥 High Risk"
-        assert methodology["worked_example"]["species"] == "Monocentropus balfouri"
+        assert any("If High" in label for label in decision_labels)
+        assert any("Dealer Limited History" in line for line in threshold_lines)
+        assert any("Dealer price pressure" in line for line in threshold_lines)
+        assert example_tab["example"]["result"] == "🔥 High Risk"
+        assert example_tab["example"]["species"] == "Monocentropus balfouri"
 
 
 class TestAnalysisMethodologyRendering:
-    """Methodology should render below the legend on analysis pages."""
+    """Methodology should render as a primary explanatory panel on analysis pages."""
 
-    def test_breeder_page_renders_methodology_after_legend(self):
-        """Breeder page should render methodology below the legend and include worked-example content."""
+    def test_breeder_page_renders_methodology_above_legend_and_table(self):
+        """Breeder page should render methodology before the legend and the full table."""
         csv_content = "Species,Size (cm),Signal\nAphonopelma seemanni,1.5,🔥\n"
         with temp_csv_file(csv_content) as filename:
             config = BreederPageConfig(
@@ -130,14 +132,16 @@ class TestAnalysisMethodologyRendering:
             methodology = soup.find("section", id="methodology-section")
             assert methodology is not None, "Breeder page should render methodology section"
             assert "How the breeder analysis works" in methodology.get_text(" ", strip=True)
-            assert "Worked example" in methodology.get_text(" ", strip=True)
+            assert "Threshold Inventory" in methodology.get_text(" ", strip=True)
+            assert "Decision Tree" in methodology.get_text(" ", strip=True)
+            assert "Worked Example" in methodology.get_text(" ", strip=True)
             assert "Aphonopelma seemanni" in methodology.get_text(" ", strip=True)
 
-            assert html.index('id="breeder-table-root"') < html.index('id="legend-section"')
-            assert html.index('id="legend-section"') < html.index('id="methodology-section"')
+            assert html.index('id="methodology-section"') < html.index('id="legend-section"')
+            assert html.index('id="legend-section"') < html.index('id="breeder-table-root"')
 
-    def test_dealer_page_renders_methodology_after_legend(self):
-        """Dealer page should render methodology below the legend with page-specific content."""
+    def test_dealer_page_renders_methodology_above_legend_and_table(self):
+        """Dealer page should render methodology before the legend and the full table."""
         csv_content = "Species,Size (cm),Dealer Risk\nTliltocatl albopilosus,2.0,🔥\n"
         with temp_csv_file(csv_content) as filename:
             config = DealerPageConfig(
@@ -156,14 +160,16 @@ class TestAnalysisMethodologyRendering:
             methodology = soup.find("section", id="methodology-section")
             assert methodology is not None, "Dealer page should render methodology section"
             assert "How the dealer analysis works" in methodology.get_text(" ", strip=True)
-            assert "Worked example" in methodology.get_text(" ", strip=True)
+            assert "Threshold Inventory" in methodology.get_text(" ", strip=True)
+            assert "Decision Tree" in methodology.get_text(" ", strip=True)
+            assert "Worked Example" in methodology.get_text(" ", strip=True)
             assert "Monocentropus balfouri" in methodology.get_text(" ", strip=True)
 
-            assert html.index('id="dealer-table-root"') < html.index('id="legend-section"')
-            assert html.index('id="legend-section"') < html.index('id="methodology-section"')
+            assert html.index('id="methodology-section"') < html.index('id="legend-section"')
+            assert html.index('id="legend-section"') < html.index('id="dealer-table-root"')
 
-    def test_methodology_cards_render_in_expected_internal_order(self):
-        """Methodology section should preserve the intended summary-to-edge-case order."""
+    def test_methodology_renders_tab_shell_with_one_active_panel(self):
+        """Methodology should render tab buttons and a default active panel shell."""
         csv_content = "Species,Size (cm),Signal\nAphonopelma seemanni,1.5,🔥\n"
         with temp_csv_file(csv_content) as filename:
             config = BreederPageConfig(
@@ -179,18 +185,13 @@ class TestAnalysisMethodologyRendering:
             html = generate_analysis_page(config)
             soup = BeautifulSoup(html, "html.parser")
 
-            stack = soup.select_one("#methodology-section .analysis-methodology__stack")
-            assert stack is not None, "Methodology stack should be rendered"
+            tab_buttons = soup.select("#methodology-section [data-methodology-tab]")
+            tab_panels = soup.select("#methodology-section [data-methodology-panel]")
 
-            section_classes = [
-                next(class_name for class_name in section.get("class", []) if class_name.startswith("methodology-card--"))
-                for section in stack.find_all("section", recursive=False)
+            assert [button.get_text(" ", strip=True) for button in tab_buttons] == [
+                "Threshold Inventory",
+                "Decision Tree",
+                "Worked Example",
             ]
-
-            assert section_classes == [
-                "methodology-card--summary",
-                "methodology-card--example",
-                "methodology-card--thresholds",
-                "methodology-card--decision-tree",
-                "methodology-card--edge-cases",
-            ]
+            assert len(tab_panels) == 3
+            assert sum("is-active" in panel.get("class", []) for panel in tab_panels) == 1

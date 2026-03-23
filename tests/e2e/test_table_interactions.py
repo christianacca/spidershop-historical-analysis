@@ -654,8 +654,8 @@ def test_instruction_box_legend_link_opens_legend_section(e2e_site_multi_species
 
 
 @pytest.mark.e2e
-def test_analysis_pages_render_methodology_below_legend(e2e_site_multi_species) -> None:
-    """Breeder and dealer pages should render the methodology section after the legend."""
+def test_analysis_pages_render_methodology_above_legend(e2e_site_multi_species) -> None:
+    """Breeder and dealer pages should render the methodology section before the legend."""
     page, base_url, errors = e2e_site_multi_species
 
     for page_name in ['breeder.html', 'dealer.html']:
@@ -663,8 +663,10 @@ def test_analysis_pages_render_methodology_below_legend(e2e_site_multi_species) 
 
         methodology = page.locator('#methodology-section')
         assert methodology.count() == 1, f"{page_name} should render #methodology-section"
-        assert methodology.locator('text=Worked example').count() >= 1, \
-            f"{page_name} methodology should include a worked example"
+        assert methodology.locator('text=Threshold Inventory').count() >= 1, \
+            f"{page_name} methodology should include the thresholds tab"
+        assert methodology.locator('text=Worked Example').count() >= 1, \
+            f"{page_name} methodology should include a worked example tab"
 
         legend = page.locator('#legend-section')
         assert legend.count() == 1, f"{page_name} should still render #legend-section"
@@ -678,11 +680,36 @@ def test_analysis_pages_render_methodology_below_legend(e2e_site_multi_species) 
                 }
 
                 return Boolean(
-                    legend.compareDocumentPosition(methodology) & Node.DOCUMENT_POSITION_FOLLOWING
+                    methodology.compareDocumentPosition(legend) & Node.DOCUMENT_POSITION_FOLLOWING
                 );
             }
         """)
-        assert order_is_correct, f"{page_name} should place methodology after the legend"
+        assert order_is_correct, f"{page_name} should place methodology before the legend"
+
+
+@pytest.mark.e2e
+def test_methodology_tabs_switch_panels(e2e_site_multi_species) -> None:
+    """Methodology tabs should switch which explanatory panel is active."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    thresholds_panel = page.locator('[data-methodology-panel="thresholds"]')
+    tree_panel = page.locator('[data-methodology-panel="tree"]')
+    example_panel = page.locator('[data-methodology-panel="example"]')
+
+    expect(thresholds_panel).to_have_class(re.compile(r'is-active'))
+    expect(tree_panel).to_be_hidden()
+
+    page.locator('[data-methodology-tab="tree"]').click()
+
+    expect(tree_panel).to_have_class(re.compile(r'is-active'))
+    expect(thresholds_panel).to_be_hidden()
+
+    page.locator('[data-methodology-tab="example"]').click()
+
+    expect(example_panel).to_have_class(re.compile(r'is-active'))
+    expect(tree_panel).to_be_hidden()
 
 
 @pytest.mark.e2e
