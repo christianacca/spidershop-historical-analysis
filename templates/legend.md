@@ -27,7 +27,6 @@
 - `Sustained` — Missing for many runs (strong breeding signal)
 - `Cyclical` — Repeated disappear / reappear pattern (batch supply)
 - `Newly Observed` — Currently in stock, but only observed in the latest 1-2 runs; limited history means pre-first-seen absence is ambiguous
-- This is the **foundation** of all recommendations — modifiers can only refine, not override
 
 **Price** (Value + Trend)
 
@@ -35,8 +34,6 @@
 - `↑` — Price rising vs last observed price
 - `→` — Price stable
 - `↓` — Price falling
-- **Influence:** Can escalate `Emerging` patterns to 🔥 when rising (strong confirmation of demand)
-- Does not affect `Sustained` signals (already high-confidence) or downgrade any patterns
 
 **Price History** (Trend Visualization)
 
@@ -53,7 +50,7 @@
 - **Count** — raw wishlist count (higher = more buyer interest); table sorts by count descending within each signal group
 - **Tier** (`🔥`/`⚠️`/`❌`) — relative ranking within the current run (not absolute thresholds); for **OUT-of-stock** species carries forward from most recent IN-stock run (up to 5 runs back)
 - **Momentum** (`↑`/`→`/`↓`) — meaningful change between current and previous IN-stock observations (±5 threshold); uses bounded carryover for OUT species (up to 3 runs back); returns `→` when no comparable value found
-- **Influence:** Tier can elevate `Emerging` patterns to 🔥 when combined with rising momentum; can prevent `Always` patterns from being dismissed when demand is high; never overrides `Sustained` scarcity signals
+- Adds demand context beside the supply columns; see the methodology section for exact escalation rules.
 
 **Wishlist History** (Trend Visualization)
 
@@ -74,12 +71,8 @@
 **Recommendation** (Final Assessment)
 
 - Combines **Stock Pattern + Price + Wishlist**
-- **Hierarchy:** Stock Pattern is primary (~70% influence), Price and Wishlist together provide ~30% refinement
-- Modifiers can escalate signals but never override the base pattern category
-- Example: `Sustained` scarcity cannot be downgraded by falling prices
-- Example: `Always` available cannot reach 🔥 regardless of wishlist interest
-- Example: `Newly Observed` remains ⚠️ while history is sparse, even if current demand is strong
-- Designed to be conservative to avoid reacting to short-term noise
+- Final label shown in the table after the row's supply and demand columns are considered together.
+- See the methodology section above for the detailed decision rules and worked example.
 
 ---
 
@@ -94,7 +87,6 @@
 - `High` — Listed in ≥80% of all historical runs (typically always available)
 - `Medium` — Listed in 40-79% of runs (intermittent availability)
 - `Low` — Listed in <40% of runs (rarely available)
-- This is the **foundation** of all dealer risk assessments — demand modifiers refine but cannot override supply constraints
 - **Calculated across entire history**, not just recent weeks
 - Example: A species IN stock now but only appeared in 3 of 10 historical weeks = `Low` reliability
 - When a species is only newly observed late in the dataset, reliability still stays supply-first but recommendation text may flag the conclusion as limited-history / low-confidence
@@ -113,7 +105,6 @@
 - `Fast` — Typically returns quickly
 - `Moderate` — Takes several runs
 - `Slow` — Prolonged absence after sell-out
-- **Influence:** Combines with Stock Reliability to define supply stability; slow restock amplifies low reliability risks
 
 **Price** (Value + Trend)
 
@@ -138,7 +129,7 @@
 - **Count** — raw wishlist count (higher = more buyer interest); table sorts by count descending within each risk group
 - **Tier** (`🔥`/`⚠️`/`❌`) — relative ranking within the current run; for **OUT-of-stock** species carries forward from most recent IN-stock run (up to 5 runs back)
 - **Momentum** (`↑`/`→`/`↓`) — meaningful change between observations (±5 threshold); bounded carryover for OUT species (up to 3 runs back); returns `→` when no comparable value found
-- **Influence:** Tier escalates `Low` or `Medium` reliability to 🔥 when combined with poor supply stability; rising momentum can escalate `Medium` reliability + high tier to 🔥; falling momentum reinforces `High` reliability ❌
+- Adds demand urgency beside the supply columns; see the methodology section for the full dealer escalation rules.
 
 **Wishlist History** (Trend Visualization)
 
@@ -170,12 +161,8 @@
 **Dealer Recommendation** (Final Assessment)
 
 - Combines **Stock Reliability + Restock Speed + Wishlist**
-- **Hierarchy:** Supply metrics (Reliability + Restock Speed) are primary (~75% influence), demand signals provide ~25% refinement
-- Demand modifiers escalate urgency for supply-constrained species but cannot override healthy supply
-- Example: `Low` reliability + `Slow` restock = 🔥 regardless of wishlist interest
-- Example: `High` reliability cannot reach 🔥 even with surging demand (well-supplied)
-- Sparse-history species may carry a limited-history qualifier in the recommendation or drivers, but this does not create a separate dealer taxonomy
-- Designed to prevent stockouts while avoiding panic buying of well-stocked items
+- Final label shown in the table after the row's supply and demand columns are considered together.
+- See the methodology section above for the detailed dealer decision rules and worked example.
 
 ---
 
