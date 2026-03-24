@@ -20,6 +20,7 @@ from scrape.legend_examples import (
     generate_breeder_example_4,
     generate_breeder_example_5,
     generate_breeder_example_6,
+    generate_breeder_example_7,
     generate_breeder_example_8,
     generate_dealer_example_1,
     generate_dealer_example_2,
@@ -63,30 +64,51 @@ class TestGeneratedBreederExamples:
         assert "**OOS:** IN/OUT" in example
         assert "**Stock Pattern:** Cyclical" in example
         assert "**Signal:** ⚠️" in example
+        assert "**Recommendation:** Breed cautiously — wave restocking" in example
     
     def test_breeder_example_4_always_available(self):
         """Example 4 should demonstrate oversupplied market."""
         example = generate_breeder_example_4()
         assert "#### Example 4: Always Available (Oversupplied)" in example
         assert "**OOS:** IN" in example
+        assert "**OOS Runs:** 0" in example
         assert "**Stock Pattern:** Always" in example
+        assert "**Wishlist:** 4 ❌ →" in example
         assert "**Signal:** ❌" in example
+        assert "**Recommendation:** Avoid for profit — oversupplied" in example
     
     def test_breeder_example_5_emerging_with_high_demand(self):
         """Example 5 should demonstrate emerging scarcity with wishlist surge."""
         example = generate_breeder_example_5()
         assert "#### Example 5: Emerging Opportunity with High Demand" in example
+        assert "**OOS:** OUT" in example
+        assert "**OOS Runs:** 2" in example
         assert "**Stock Pattern:** Emerging" in example
-        assert "**Wishlist:**" in example
+        assert "**Wishlist:** 15 🔥 ↑" in example
         assert "**Signal:** 🔥" in example
+        assert "**Recommendation:** Consider pairing — emerging scarcity with surging interest" in example
     
     def test_breeder_example_6_always_available_falling_interest(self):
         """Example 6 should demonstrate oversupplied market with declining interest."""
         example = generate_breeder_example_6()
         assert "#### Example 6: Always Available with Falling Interest" in example
+        assert "**OOS:** IN" in example
+        assert "**OOS Runs:** 0" in example
         assert "**Stock Pattern:** Always" in example
-        assert "**Wishlist:**" in example
+        assert "**Wishlist:** 8 🔥 ↓" in example
         assert "**Signal:** ❌" in example
+        assert "**Recommendation:** Avoid for profit — interest declining" in example
+
+    def test_breeder_example_7_breeder_vs_dealer_perspective(self):
+        """Example 7 should keep the breeder/dealer metric contrast intentional."""
+        example = generate_breeder_example_7()
+        assert "#### Example 7: Understanding OOS Metrics — Breeder vs Dealer Perspective" in example
+        assert "**OOS:** IN (currently listed)" in example
+        assert "**OOS Runs:** 0 (no consecutive scarcity right now)" in example
+        assert "**Stock Reliability:** Low" in example
+        assert "**Avg OOS Duration:** 5.0 runs" in example
+        assert "**Dealer Risk:** 🔥" in example
+        assert "**The Key Insight:** This is **low-priority for breeders**" in example
 
     def test_breeder_example_8_newly_observed(self):
         """Example 8 should demonstrate the limited-history hold state."""
@@ -96,6 +118,8 @@ class TestGeneratedBreederExamples:
         assert "**OOS Runs:** 0" in example
         assert "**Stock Pattern:** Newly Observed" in example
         assert "**Signal:** ⚠️" in example
+        assert "limited history" in example.lower()
+        assert "**Recommendation:** Monitor closely" in example
         assert "limited history" in example.lower()
 
 
@@ -111,58 +135,71 @@ class TestGeneratedDealerExamples:
         """Example 1 should demonstrate high reliability scenario."""
         example = generate_dealer_example_1()
         assert "#### Example 1: High Reliability (No Urgency)" in example
-        # Reliability should be High (example aims for 9/10 = 90%)
+        assert "**Stock Reliability:** High (9/10 weeks = 90%)" in example
+        assert "**Restock Speed:** Fast" in example
+        assert "**Wishlist:** 5 ❌ →" in example
+        assert "**Dealer Risk:** ❌" in example
+        assert "**Recommendation:** No urgency / oversupplied" in example
+
+    def test_dealer_example_1_narrative_matches_stable_low_demand(self):
+        """Example 1 should show low demand rather than a carried high-pressure artifact."""
+        example = generate_dealer_example_1()
         assert "**Dealer Risk:**" in example
     
     def test_dealer_example_2_medium_reliability(self):
         """Example 2 should demonstrate medium reliability scenario."""
         example = generate_dealer_example_2()
         assert "#### Example 2: Medium Reliability (Watch and Wait)" in example
-        # Example aims for 50% availability
-        assert "**Stock Reliability:**" in example
-        assert "**Dealer Risk:**" in example
+        assert "**Stock Reliability:** Medium" in example
+        assert "**Wishlist:** 8 ⚠️ →" in example
+        assert "**Dealer Risk:** ⚠️" in example
+        assert "**Recommendation:** Buy opportunistically" in example
     
     def test_dealer_example_3_low_reliability_slow_restock(self):
         """Example 3 should demonstrate low reliability scenario."""
         example = generate_dealer_example_3()
         assert "#### Example 3: Low Reliability + Slow Restock (High Risk)" in example
-        # Example aims for 3/10 = 30% availability
-        assert "**Stock Reliability:**" in example
-        assert "**Restock Speed:**" in example
-        assert "**Dealer Risk:**" in example
+        assert "**Stock Reliability:** Low" in example
+        assert "**Avg OOS Duration:** 3.5 runs" in example
+        assert "**Restock Speed:** Slow" in example
+        assert "**Dealer Risk:** 🔥" in example
+        assert "**Recommendation:** Actively seek breeders" in example
     
     def test_dealer_example_4_low_reliability_high_demand(self):
         """Example 4 should demonstrate low reliability with high demand."""
         example = generate_dealer_example_4()
         assert "#### Example 4: Low Reliability + High Demand (Critical Risk)" in example
-        # Example aims for 1/6 weeks with high wishlist
-        assert "**Stock Reliability:**" in example
-        assert "**Wishlist:**" in example
-        assert "**Dealer Risk:**" in example
+        assert "**Stock Reliability:** Low" in example
+        assert "**Wishlist:** 50 🔥 → (carried from last seen)" in example
+        assert "**Dealer Risk:** 🔥" in example
+        assert "**Recommendation:** Actively seek breeders — high demand, poor supply" in example
     
     def test_dealer_example_5_medium_reliability_surging_demand(self):
         """Example 5 should demonstrate medium reliability with surging demand."""
         example = generate_dealer_example_5()
         assert "#### Example 5: Medium Reliability + Surging Demand (Escalated Risk)" in example
-        assert "**Stock Reliability:**" in example
-        assert "**Wishlist:**" in example
+        assert "**Stock Reliability:** Medium" in example
+        assert "**Wishlist:** 22 🔥 ↑" in example
         assert "**Dealer Risk:** 🔥" in example
+        assert "**Recommendation:** Actively seek breeders — surging demand, variable supply" in example
     
     def test_dealer_example_6_high_reliability_falling_demand(self):
         """Example 6 should demonstrate high reliability with falling demand."""
         example = generate_dealer_example_6()
         assert "#### Example 6: High Reliability + Falling Demand (No Action Needed)" in example
-        assert "**Stock Reliability:**" in example
-        assert "**Wishlist:**" in example
+        assert "**Stock Reliability:** High" in example
+        assert "**Wishlist:** 6 ❌ ↓" in example
         assert "**Dealer Risk:** ❌" in example
+        assert "**Recommendation:** No urgency / oversupplied" in example
     
     def test_dealer_example_7_low_reliability_surging_interest(self):
         """Example 7 should demonstrate low reliability with surging interest."""
         example = generate_dealer_example_7()
         assert "#### Example 7: Low Reliability + Surging Interest (Early Warning)" in example
-        assert "**Stock Reliability:**" in example
-        assert "**Wishlist:**" in example
-        assert "**Dealer Risk:**" in example
+        assert "**Stock Reliability:** Low" in example
+        assert "**Wishlist:** 12 ⚠️ ↑" in example
+        assert "**Dealer Risk:** 🔥" in example
+        assert "**Recommendation:** Actively seek breeders — unreliable supply, surging interest" in example
 
 
 class TestExampleStructure:

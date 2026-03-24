@@ -106,6 +106,20 @@ def _get_table_entry(table: list, species: str) -> dict:
     return [r for r in table if r["Species"] == species][0]
 
 
+def _get_presence_summary(history_rows, target_species):
+    """Return observed/total run counts plus rounded availability percentage."""
+    runs = sorted({row["scrape_datetime"] for row in history_rows})
+    observed_runs = {
+        row["scrape_datetime"]
+        for row in history_rows
+        if row["scientific_name"] == target_species
+    }
+    observed_count = len(observed_runs)
+    total_count = len(runs)
+    percentage = round((observed_count / total_count) * 100) if total_count else 0
+    return observed_count, total_count, percentage
+
+
 def generate_breeder_example_1():
     """Example 1: Sustained Scarcity (Strong Opportunity)."""
     history = [
@@ -207,6 +221,10 @@ def generate_breeder_example_4():
         make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "3"),
         make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "25.00", "3"),
         make_row("2025-01-15", "Aphonopelma seemanni", "1.0", "25.00", "4"),
+        make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "12"),
+        make_row("2025-01-15", "Brachypelma hamorii", "1.5", "30.00", "8"),
+        make_row("2025-01-15", "Avicularia avicularia", "1.0", "28.00", "6"),
+        make_row("2025-01-15", "Chromatopelma cyaneopubescens", "1.0", "35.00", "1"),
     ]
     
     table = build_breeder_opportunity_table(history)
@@ -306,13 +324,18 @@ def generate_breeder_example_7():
     history = [
         make_row("2025-01-01", "Cyriocosmus elegans", "0.5", "15.00", "8"),
         make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "1"),
-        # OUT for 4 weeks
+        make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-01-29", "Grammostola pulchra", "2.0", "40.00", "1"),
         make_row("2025-02-05", "Grammostola pulchra", "2.0", "40.00", "1"),
         make_row("2025-02-12", "Cyriocosmus elegans", "0.5", "15.00", "12"),
         make_row("2025-02-12", "Grammostola pulchra", "2.0", "40.00", "1"),
-        # OUT for 4 weeks
-        make_row("2025-03-19", "Cyriocosmus elegans", "0.5", "15.00", "16"),
-        make_row("2025-03-19", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-02-19", "Cyriocosmus elegans", "0.5", "15.00", "16"),
+        make_row("2025-02-19", "Grammostola pulchra", "2.0", "40.00", "20"),
+        make_row("2025-02-19", "Brachypelma hamorii", "1.5", "30.00", "10"),
+        make_row("2025-02-19", "Avicularia avicularia", "1.0", "28.00", "6"),
+        make_row("2025-02-19", "Chromatopelma cyaneopubescens", "1.0", "35.00", "1"),
     ]
     
     breeder_table = build_breeder_opportunity_table(history)
@@ -320,6 +343,7 @@ def generate_breeder_example_7():
     
     breeder_entry = _get_table_entry(breeder_table, "Cyriocosmus elegans")
     dealer_entry = _get_table_entry(dealer_table, "Cyriocosmus elegans")
+    observed_count, total_count, percentage = _get_presence_summary(history, "Cyriocosmus elegans")
     
     data_table = format_scenario_table(history, "Cyriocosmus elegans")
     
@@ -339,8 +363,8 @@ def generate_breeder_example_7():
 
 **Dealer Analysis:**
 
-- **Stock Reliability:** {dealer_entry["Stock Reliability"]} (only in stock 3 of 10 weeks = 30%)
-- **Avg OOS Duration:** {dealer_entry["Avg OOS Duration"]} runs (when it goes OUT, stays OUT ~4 weeks)
+- **Stock Reliability:** {dealer_entry["Stock Reliability"]} (only in stock {observed_count} of {total_count} weeks = {percentage}%)
+- **Avg OOS Duration:** {dealer_entry["Avg OOS Duration"]} runs (one long sell-out lasted 5 weeks)
 - **Restock Speed:** {dealer_entry["Restock Speed"]}
 - **Wishlist:** {dealer_entry["Wishlist"]}
 - **Dealer Risk:** {dealer_entry["Dealer Risk"]}
@@ -350,11 +374,11 @@ def generate_breeder_example_7():
 
 - **Breeder OOS Runs = 0**: Measures *consecutive* weeks OUT *ending now*. Since it's IN stock now, the counter resets. Breeders focus on *current* scarcity windows — if it's available now, there's no immediate breeding signal.
 
-- **Dealer Avg OOS = 4.0**: Measures *average duration* of OOS events *across all history*. This species disappeared twice (weeks 2-5 and weeks 7-10), averaging 4 weeks per event. Dealers need to know *supply reliability* — even if it's in stock today, the pattern shows it frequently becomes unavailable for extended periods.
+- **Dealer Avg OOS = 5.0**: Measures *average duration* of OOS events *across all history*. This species disappeared once for 5 consecutive weeks before returning. Dealers need to know *supply reliability* — even if it's in stock today, the pattern shows it can vanish for extended periods.
 
 **The Key Insight:** This is **low-priority for breeders** (no current scarcity) but **high-priority for dealers** (poor supply reliability means lost sales risk). The metrics answer different questions:
 - Breeder: "Should I breed this NOW?" → No, it's currently available
-- Dealer: "Is supply reliable?" → No, and when it sells out, it stays out for ~4 weeks
+- Dealer: "Is supply reliable?" → No, and when it sells out, it can stay out for ~5 weeks
 
 This demonstrates how the same market data yields different but equally valid insights for different stakeholders."""
 
@@ -439,18 +463,27 @@ def generate_dealer_example_1():
     """Example 1: High Reliability (No Urgency)."""
     history = [
         make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "5"),
+        make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "1"),
         make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "25.00", "5"),
+        make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "1"),
         make_row("2025-01-15", "Aphonopelma seemanni", "1.0", "25.00", "5"),
+        make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "1"),
         make_row("2025-01-22", "Aphonopelma seemanni", "1.0", "25.00", "5"),
+        make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "1"),
         make_row("2025-01-29", "Aphonopelma seemanni", "1.0", "25.00", "5"),
+        make_row("2025-01-29", "Grammostola pulchra", "2.0", "40.00", "1"),
         make_row("2025-02-05", "Aphonopelma seemanni", "1.0", "25.00", "5"),
+        make_row("2025-02-05", "Grammostola pulchra", "2.0", "40.00", "1"),
         make_row("2025-02-12", "Aphonopelma seemanni", "1.0", "25.00", "5"),
+        make_row("2025-02-12", "Grammostola pulchra", "2.0", "40.00", "1"),
         make_row("2025-02-19", "Aphonopelma seemanni", "1.0", "25.00", "5"),
-        # Skip one week
+        make_row("2025-02-19", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-02-26", "Grammostola pulchra", "2.0", "40.00", "1"),
         make_row("2025-03-05", "Aphonopelma seemanni", "1.0", "25.00", "5"),
-        make_row("2025-03-12", "Aphonopelma seemanni", "1.0", "25.00", "5"),
-        # Add low-wishlist species for pressure calculation
-        make_row("2025-03-12", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-03-05", "Grammostola pulchra", "2.0", "40.00", "20"),
+        make_row("2025-03-05", "Brachypelma hamorii", "1.5", "30.00", "12"),
+        make_row("2025-03-05", "Avicularia avicularia", "1.0", "28.00", "8"),
+        make_row("2025-03-05", "Chromatopelma cyaneopubescens", "1.0", "35.00", "1"),
     ]
     
     table = build_dealer_supply_risk_table(history)
@@ -474,17 +507,23 @@ def generate_dealer_example_2():
     """Example 2: Medium Reliability (Watch and Wait)."""
     history = [
         make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "5"),
-        # out week 2
+        make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "1"),
         make_row("2025-01-15", "Aphonopelma seemanni", "1.0", "25.00", "5"),
-        # out week 4
+        make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "1"),
         make_row("2025-01-29", "Aphonopelma seemanni", "1.0", "25.00", "5"),
-        make_row("2025-02-05", "Aphonopelma seemanni", "1.0", "25.00", "5"),
-        # out week 7
-        make_row("2025-02-19", "Aphonopelma seemanni", "1.0", "25.00", "5"),
-        # out week 9
-        make_row("2025-03-05", "Aphonopelma seemanni", "1.0", "25.00", "5"),
-        # Low-wishlist species for pressure calculation
-        make_row("2025-03-05", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-01-29", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-02-05", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-02-12", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-02-19", "Aphonopelma seemanni", "1.0", "25.00", "8"),
+        make_row("2025-02-19", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-02-26", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-03-05", "Aphonopelma seemanni", "1.0", "25.00", "8"),
+        make_row("2025-03-05", "Grammostola pulchra", "2.0", "40.00", "20"),
+        make_row("2025-03-05", "Brachypelma hamorii", "1.5", "30.00", "12"),
+        make_row("2025-03-05", "Avicularia avicularia", "1.0", "28.00", "4"),
+        make_row("2025-03-05", "Chromatopelma cyaneopubescens", "1.0", "35.00", "1"),
     ]
     
     table = build_dealer_supply_risk_table(history)
@@ -496,6 +535,7 @@ def generate_dealer_example_2():
 **Analysis Result:**
 
 - **Stock Reliability:** {entry["Stock Reliability"]}
+- **Wishlist:** {entry["Wishlist"]}
 - **Dealer Risk:** {entry["Dealer Risk"]}
 - **Recommendation:** {entry["Dealer Recommendation"]}
 
@@ -506,12 +546,22 @@ def generate_dealer_example_3():
     """Example 3: Low Reliability + Slow Restock (High Risk)."""
     history = [
         make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "5"),
-        # out 4 weeks
+        make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-01-29", "Grammostola pulchra", "2.0", "40.00", "1"),
         make_row("2025-02-05", "Aphonopelma seemanni", "1.0", "26.00", "6"),
-        # out 4 weeks
-        make_row("2025-03-12", "Aphonopelma seemanni", "1.0", "27.00", "7"),
-        # Low-wishlist species for pressure calculation
-        make_row("2025-03-12", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-02-05", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-02-12", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-02-19", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-02-26", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-03-05", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-03-05", "Aphonopelma seemanni", "1.0", "27.00", "7"),
+        make_row("2025-03-05", "Grammostola pulchra", "2.0", "40.00", "20"),
+        make_row("2025-03-05", "Brachypelma hamorii", "1.5", "30.00", "12"),
+        make_row("2025-03-05", "Avicularia avicularia", "1.0", "28.00", "8"),
+        make_row("2025-03-05", "Chromatopelma cyaneopubescens", "1.0", "35.00", "1"),
     ]
     
     table = build_dealer_supply_risk_table(history)
@@ -535,11 +585,20 @@ def generate_dealer_example_4():
     """Example 4: Low Reliability + High Demand (Critical Risk)."""
     history = [
         make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "50"),
-        make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "1"),
-        make_row("2025-01-01", "Brachypelma hamorii", "1.5", "30.00", "1"),
-        # Out for 5 weeks
-        make_row("2025-02-12", "Grammostola pulchra", "2.0", "40.00", "1"),
-        make_row("2025-02-12", "Brachypelma hamorii", "1.5", "30.00", "1"),
+        make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "10"),
+        make_row("2025-01-01", "Brachypelma hamorii", "1.5", "30.00", "8"),
+        make_row("2025-01-01", "Avicularia avicularia", "1.0", "28.00", "2"),
+        make_row("2025-01-01", "Chromatopelma cyaneopubescens", "1.0", "35.00", "1"),
+        make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-01-08", "Brachypelma hamorii", "1.5", "30.00", "1"),
+        make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-01-15", "Brachypelma hamorii", "1.5", "30.00", "1"),
+        make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-01-22", "Brachypelma hamorii", "1.5", "30.00", "1"),
+        make_row("2025-01-29", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-01-29", "Brachypelma hamorii", "1.5", "30.00", "1"),
+        make_row("2025-02-05", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-02-05", "Brachypelma hamorii", "1.5", "30.00", "1"),
     ]
     
     table = build_dealer_supply_risk_table(history)
@@ -565,10 +624,13 @@ def generate_dealer_example_5():
         make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "1"),
         make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "40.00", "15"),
         make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "1"),
-        # Out 1 week
+        make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "1"),
         make_row("2025-01-22", "Aphonopelma seemanni", "1.0", "40.00", "22"),
-        make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "1"),
-        # Out 1 week
+        make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "12"),
+        make_row("2025-01-22", "Brachypelma hamorii", "1.5", "30.00", "9"),
+        make_row("2025-01-22", "Avicularia avicularia", "1.0", "28.00", "4"),
+        make_row("2025-01-22", "Chromatopelma cyaneopubescens", "1.0", "35.00", "1"),
+        make_row("2025-01-29", "Grammostola pulchra", "2.0", "40.00", "1"),
         make_row("2025-02-05", "Grammostola pulchra", "2.0", "40.00", "1"),
     ]
     
@@ -593,10 +655,19 @@ def generate_dealer_example_6():
     history = [
         make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "30.00", "20"),
         make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "1"),
-        make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "30.00", "15"),
+        make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "30.00", "17"),
         make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "1"),
-        make_row("2025-01-15", "Aphonopelma seemanni", "1.0", "30.00", "10"),
+        make_row("2025-01-15", "Aphonopelma seemanni", "1.0", "30.00", "14"),
         make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-01-22", "Aphonopelma seemanni", "1.0", "30.00", "12"),
+        make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-01-29", "Aphonopelma seemanni", "1.0", "30.00", "12"),
+        make_row("2025-01-29", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-02-05", "Aphonopelma seemanni", "1.0", "30.00", "6"),
+        make_row("2025-02-05", "Grammostola pulchra", "2.0", "40.00", "25"),
+        make_row("2025-02-05", "Brachypelma hamorii", "1.5", "30.00", "18"),
+        make_row("2025-02-05", "Avicularia avicularia", "1.0", "28.00", "10"),
+        make_row("2025-02-05", "Chromatopelma cyaneopubescens", "1.0", "35.00", "2"),
     ]
     
     table = build_dealer_supply_risk_table(history)
@@ -620,10 +691,14 @@ def generate_dealer_example_7():
     history = [
         make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "30.00", "5"),
         make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "1"),
-        # Out 2 weeks
+        make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "1"),
+        make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "1"),
         make_row("2025-01-22", "Aphonopelma seemanni", "1.0", "30.00", "12"),
-        make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "1"),
-        # Out 1 week
+        make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "20"),
+        make_row("2025-01-22", "Brachypelma hamorii", "1.5", "30.00", "9"),
+        make_row("2025-01-22", "Avicularia avicularia", "1.0", "28.00", "4"),
+        make_row("2025-01-22", "Chromatopelma cyaneopubescens", "1.0", "35.00", "1"),
+        make_row("2025-01-29", "Grammostola pulchra", "2.0", "40.00", "1"),
         make_row("2025-02-05", "Grammostola pulchra", "2.0", "40.00", "1"),
     ]
     

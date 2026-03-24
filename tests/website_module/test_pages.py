@@ -430,6 +430,24 @@ class TestGenerateSnapshotPage:
             for details in details_elements:
                 assert 'How to read these tables' not in details.text
 
+    def test_examples_render_collapsed_when_provided(self):
+        """Practical Examples should render in a collapsed details block by default."""
+        csv_content = "Species,Size (cm),Signal\nTest Spider,1.5,🔥\n"
+        examples_md = "### 📖 Breeder Matrix — Practical Examples\n\nExample content."
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.breeder(filename) \
+                .with_title("Test") \
+                .with_description("Desc") \
+                .with_examples(examples_md) \
+                .build()
+            html = generate_analysis_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            details_elements = soup.find_all('details')
+            example_details = [d for d in details_elements if 'Practical Examples' in d.text]
+            assert len(example_details) == 1, "Should have a Practical Examples details element"
+            assert example_details[0].get('open') is None, "Practical Examples should start collapsed"
+
     def test_includes_instruction_box_for_breeder_page(self):
         """Should include 'How to use this page' instruction box for breeder pages."""
         csv_content = "Species,Size (cm),Signal\nTest Spider,1.5,🔥\n"
