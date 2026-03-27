@@ -151,6 +151,42 @@ class TestBuildDealerSupplyRiskTable:
         
         assert seemanni_entry["Stock Reliability"] == "Low"
 
+    def test_low_reliability_without_fire_triggers_is_warning_risk(self):
+        """Low reliability without slow restock, Hot wishlist, or rising delta should stay at ⚠️, not fall to ❌."""
+        history = [
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "5"),
+            make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "30"),
+
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "30"),
+            make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "30"),
+
+            make_row("2025-01-22", "Aphonopelma seemanni", "1.0", "25.00", "5"),
+            make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "30"),
+
+            make_row("2025-01-29", "Grammostola pulchra", "2.0", "40.00", "30"),
+            make_row("2025-02-05", "Grammostola pulchra", "2.0", "40.00", "30"),
+
+            make_row("2025-02-12", "Aphonopelma seemanni", "1.0", "25.00", "6"),
+            make_row("2025-02-12", "Grammostola pulchra", "2.0", "40.00", "30"),
+
+            make_row("2025-02-19", "Grammostola pulchra", "2.0", "40.00", "30"),
+            make_row("2025-02-26", "Grammostola pulchra", "2.0", "40.00", "30"),
+            make_row("2025-03-05", "Grammostola pulchra", "2.0", "40.00", "30"),
+
+            make_row("2025-03-12", "Aphonopelma seemanni", "1.0", "25.00", "6"),
+            make_row("2025-03-12", "Grammostola pulchra", "2.0", "40.00", "30"),
+        ]
+
+        table = build_dealer_supply_risk_table(history)
+        seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+
+        assert seemanni_entry["Stock Reliability"] == "Low"
+        assert seemanni_entry["Restock Speed"] != "Slow"
+        assert seemanni_entry["Wishlist"].split()[1] != "🔥"
+        assert seemanni_entry["Wishlist"].split()[2] == "→"
+        assert seemanni_entry["Dealer Risk"] == "⚠️"
+        assert "unreliable supply" in seemanni_entry["Dealer Recommendation"].lower()
+
     def test_restock_speed_fast_avg_oos_1_run(self):
         """Average OOS duration of 1 run should classify as Fast restock speed."""
         history = [

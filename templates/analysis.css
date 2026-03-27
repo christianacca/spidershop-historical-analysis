@@ -149,6 +149,14 @@
     line-height: 1.6;
 }
 
+.reference-link-row {
+    margin: 12px 0 0;
+}
+
+.reference-anchor {
+    font-weight: 600;
+}
+
 .instruction-content strong {
     color: var(--color-primary);
 }
@@ -158,9 +166,308 @@
     padding: 15px;
 }
 
+.analysis-methodology {
+    margin: 28px 0 24px;
+    background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-light) 100%);
+    border: 1px solid var(--color-border-alt);
+    border-radius: var(--radius-lg);
+    box-shadow: none;
+}
+
+.analysis-methodology__summary {
+    user-select: none;
+}
+
+.analysis-methodology__content {
+    padding: 0;
+}
+
+.analysis-methodology__intro {
+    margin: 0 0 18px;
+    max-width: 70ch;
+    color: var(--color-text-dim);
+}
+
+.methodology-callout {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 18px 20px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface-light);
+    box-shadow: none;
+}
+
+.methodology-callout__title {
+    margin: 0 0 6px;
+}
+
+.methodology-callout__body {
+    margin: 0;
+    color: var(--color-text-dim);
+}
+
+.pill-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.methodology-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-light);
+    color: var(--color-primary-light);
+    font-size: var(--font-sm);
+    font-weight: 600;
+}
+
+.methodology-pill--hot {
+    background: rgba(231, 76, 60, 0.10);
+    border-color: rgba(231, 76, 60, 0.28);
+    color: var(--color-danger);
+}
+
+.methodology-pill--watch {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.24);
+    color: var(--color-date-filter-text);
+}
+
+.methodology-pill--avoid {
+    background: rgba(148, 163, 184, 0.16);
+    border-color: rgba(148, 163, 184, 0.3);
+    color: var(--color-primary-light);
+}
+
+.methodology-tabs {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 18px 0 0;
+}
+
+.methodology-tab {
+    padding: 10px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--color-border-light);
+    background: var(--color-surface);
+    color: var(--color-primary-light);
+    font-size: var(--font-base);
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.methodology-tab:hover {
+    transform: translateY(-1px);
+    border-color: var(--color-accent);
+}
+
+.methodology-tab.is-active {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: white;
+}
+
+.methodology-panels {
+    margin-top: 18px;
+}
+
+.methodology-panel {
+    display: none;
+}
+
+.methodology-panel.is-active {
+    display: block;
+}
+
+.panel-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2.4fr) minmax(260px, 1fr);
+    gap: 18px;
+}
+
+.threshold-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.threshold-card,
+.tree-card,
+.example-card,
+.aside-card {
+    background: var(--color-surface-light);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    box-shadow: none;
+}
+
+.threshold-card h4,
+.tree-card h4,
+.example-card h4,
+.aside-card h4 {
+    margin-top: 0;
+}
+
+.threshold-list,
+.mini-list {
+    margin: 14px 0 0;
+    padding-left: 18px;
+}
+
+.threshold-list li,
+.mini-list li {
+    margin: 9px 0;
+    color: var(--color-text-dim);
+}
+
+.threshold-list strong,
+.mini-list strong {
+    color: var(--color-primary);
+}
+
+.rule-note {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-radius: var(--radius-md);
+    background: var(--color-info-bg);
+    border: 1px solid var(--color-border-alt);
+    color: var(--color-primary-light);
+}
+
+.tree-layout {
+    display: grid;
+    gap: 16px;
+}
+
+.tree-branches {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.tree-node {
+    padding: 16px;
+    border-radius: var(--radius-md);
+    background: var(--color-surface-light);
+    border: 1px solid var(--color-border);
+}
+
+.tree-node--root {
+    background: linear-gradient(180deg, rgba(52, 152, 219, 0.14), transparent 150%), var(--color-surface);
+    border-color: rgba(52, 152, 219, 0.3);
+}
+
+.branch-label {
+    display: inline-flex;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-size: var(--font-sm);
+    font-weight: 700;
+}
+
+.node-title {
+    margin: 12px 0 6px;
+}
+
+.node-copy {
+    margin: 0;
+    color: var(--color-text-dim);
+}
+
+.example-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(260px, 1fr);
+    gap: 18px;
+}
+
+.example-species {
+    margin: 12px 0 0;
+    color: var(--color-primary);
+    font-size: 1.2rem;
+}
+
+.example-subtitle {
+    margin: 4px 0 0;
+    color: var(--color-text-muted);
+}
+
+.step-list {
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.step-card {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 14px;
+    padding: 14px;
+    border-left: 4px solid var(--color-accent);
+    background: var(--color-surface-light);
+    border-radius: var(--radius-md);
+}
+
+.step-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    color: white;
+    font-weight: 700;
+}
+
+.step-card h5 {
+    margin: 0 0 4px;
+}
+
+.step-card p {
+    margin: 0;
+    color: var(--color-text-dim);
+}
+
 /* Mobile Responsive for Analysis Elements */
 @media (max-width: 768px) {
     .summary-stats {
         grid-template-columns: 1fr;
+    }
+
+    .analysis-methodology {
+        padding: 18px;
+    }
+
+    .methodology-callout,
+    .panel-grid,
+    .example-layout {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .threshold-grid,
+    .tree-branches {
+        grid-template-columns: 1fr;
+    }
+
+    .methodology-tabs {
+        gap: 8px;
+    }
+
+    .methodology-tab {
+        width: 100%;
+        justify-content: center;
     }
 }

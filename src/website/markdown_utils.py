@@ -110,7 +110,13 @@ def extract_summary_stats(markdown: Optional[str]) -> Optional[Dict[str, int]]:
         return None
     
     # Match either "Hot/Watch/Avoid" or "High Risk/Moderate Risk/Low Risk" format
-    pattern = r'\*\*Summary:\*\*\s*(\d+)\s*species analyzed\s*\|.*?🔥\s*(?:Hot|High Risk):\s*(\d+)\s*\|.*?⚠️\s*(?:Watch|Moderate Risk):\s*(\d+)\s*\|.*?❌\s*(?:Avoid|Low Risk):\s*(\d+)'
+    pattern = (
+        r'\*\*Summary:\*\*\s*(\d+)\s*species analyzed'
+        r'(?:\s+across\s+\d+\s+weekly runs)?\s*\|.*?'
+        r'🔥\s*(?:Hot|High Risk):\s*(\d+)\s*\|.*?'
+        r'⚠️\s*(?:Watch|Moderate Risk):\s*(\d+)\s*\|.*?'
+        r'❌\s*(?:Avoid|Low Risk):\s*(\d+)'
+    )
     match = re.search(pattern, markdown)
     
     if match:
@@ -147,14 +153,14 @@ def extract_analysis_sections(markdown_file: str) -> Tuple[Optional[str], Option
     
     # Extract breeder summary line only (no table)
     breeder_summary_match = re.search(
-        r'\*\*Summary:\*\*\s*\d+\s*species analyzed\s*\|[^\n]+',
+        r'\*\*Summary:\*\*\s*\d+\s*species analyzed(?:\s+across\s+\d+\s+weekly runs)?\s*\|[^\n]+',
         content
     )
     breeder_md = breeder_summary_match.group(0) if breeder_summary_match else None
     
     # Extract dealer summary line only (no table)
     dealer_summary_match = re.search(
-        r'## 🏪 Dealer Supply Risk Matrix \(Top 10\)\n\n\*\*Summary:\*\*\s*\d+\s*species analyzed\s*\|[^\n]+',
+        r'## 🏪 Dealer Supply Risk Matrix \(Top 10\)\n\n\*\*Summary:\*\*\s*\d+\s*species analyzed(?:\s+across\s+\d+\s+weekly runs)?\s*\|[^\n]+',
         content
     )
     dealer_md = dealer_summary_match.group(0) if dealer_summary_match else None
@@ -189,7 +195,10 @@ def extract_analysis_sections(markdown_file: str) -> Tuple[Optional[str], Option
                 # Split dealer remaining at dealer examples heading
                 dealer_examples_split = re.split(r'### 📖 Dealer Matrix — Practical Examples', remaining_dealer)
                 if len(dealer_examples_split) >= 2:
-                    dealer_legend = '### 🏪 Dealer Supply Risk Matrix — Legend' + dealer_examples_split[0].strip()
+                    dealer_legend = (
+                        '### 🏪 Dealer Supply Risk Matrix — Legend\n\n'
+                        + dealer_examples_split[0].strip()
+                    )
                     dealer_examples = '### 📖 Dealer Matrix — Practical Examples' + dealer_examples_split[1]
     
     return breeder_md, dealer_md, breeder_legend, dealer_legend, breeder_examples, dealer_examples

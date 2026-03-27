@@ -42,88 +42,11 @@
   
   ### 🧬 Breeder Opportunity Matrix — Legend
   
-  **OOS** (Current Availability)
+  [... Breeder legend details truncated in snapshot - full text verified in production ...]
   
-  - `IN` — Species is currently listed for sale
-  - `OUT` — Species is not listed this run
-  - `IN/OUT` — Species recently disappeared and reappeared (cyclical supply)
-  - **Note:** This reflects CURRENT availability only, not historical supply patterns
+  ### 🏪 Dealer Supply Risk Matrix — Legend
   
-  **OOS Runs** (Consecutive Scarcity Window)
-  
-  - Number of **consecutive runs** the species has been out of stock **ending at the current run**
-  - With weekly runs, `4+` weeks indicates persistent scarcity
-  - **Resets to 0 when species returns to stock** — focuses on current opportunity window
-  - Example: A species OUT for 5 weeks, then IN, then OUT for 2 weeks shows `OOS Runs = 2`
-  - Runs before a species is first observed are **ambiguous** and do not count as breeder scarcity evidence
-  - **Key Difference from Dealer Matrix:** Breeder OOS Runs measures current scarcity window (forward-looking opportunity), while Dealer Avg OOS Duration measures historical supply reliability (backward-looking risk assessment)
-  
-  **Stock Pattern** (Primary Signal)
-  
-  - `Always` — Normal availability or a single short-term sell-out (noise)
-  - `Emerging` — Missing for multiple consecutive runs (early scarcity)
-  - `Sustained` — Missing for many runs (strong breeding signal)
-  - `Cyclical` — Repeated disappear / reappear pattern (batch supply)
-  - `Newly Observed` — Currently in stock, but only observed in the latest 1-2 runs; limited history means pre-first-seen absence is ambiguous
-  - This is the **foundation** of all recommendations — modifiers can only refine, not override
-  
-  **Price** (Value + Trend)
-  
-  - Shows current (or last-seen) price plus direction (e.g., `£30.00 ↑`)
-  - `↑` — Price rising vs last observed price
-  - `→` — Price stable
-  - `↓` — Price falling
-  - **Influence:** Can escalate `Emerging` patterns to 🔥 when rising (strong confirmation of demand)
-  - Does not affect `Sustained` signals (already high-confidence) or downgrade any patterns
-  
-  **Price History** (Trend Visualization)
-  
-  - Unicode sparkline showing last 8 weeks of pricing (▁▂▃▄▅▆▇█)
-  - Each character represents one week (left = oldest, right = most recent)
-  - Height indicates relative price within the period
-  - When species is OUT of stock, last known price is carried forward (prices persist even when not actively sold)
-  - Shows pricing stability or volatility at a glance
-  - Example: `▁▂▃▄▅▆▇█` shows steady price increases over 8 weeks
-  
-  **Wishlist** (Count · Demand Tier · Momentum)
-  
-  - Shows `count tier momentum` (e.g., `57 🔥 →`) — the raw wishlist count, relative demand tier, and momentum signal
-  - **Count** — raw wishlist count (higher = more buyer interest); table sorts by count descending within each signal group
-  - **Tier** (`🔥`/`⚠️`/`❌`) — relative ranking within the current run (not absolute thresholds); for **OUT-of-stock** species carries forward from most recent IN-stock run (up to 5 runs back)
-  - **Momentum** (`↑`/`→`/`↓`) — meaningful change between current and previous IN-stock observations (±5 threshold); uses bounded carryover for OUT species (up to 3 runs back); returns `→` when no comparable value found
-  - **Influence:** Tier can elevate `Emerging` patterns to 🔥 when combined with rising momentum; can prevent `Always` patterns from being dismissed when demand is high; never overrides `Sustained` scarcity signals
-  
-  **Wishlist History** (Trend Visualization)
-  
-  - Unicode sparkline showing last 8 weeks of wishlist counts (▁▂▃▄▅▆▇█)
-  - Each character represents one week (left = oldest, right = most recent)
-  - Height indicates relative wishlist interest within the period
-  - When species is OUT of stock, last known wishlist count is carried forward (interest persists)
-  - Shows demand trajectory and momentum at a glance
-  - Example: `▁▂▄▆█` shows accelerating interest over 5 weeks
-  
-  **Signal**
-  
-  - `🔥` — Strong breeding opportunity signal
-  - `⚠️` — Monitor closely; opportunity may be forming
-  - `❌` — Oversupplied or no meaningful scarcity
-  - `Newly Observed` stays in the `⚠️` bucket until more runs exist; it is a limited-history hold state, not confirmed scarcity or abundance
-  
-  **Recommendation** (Final Assessment)
-  
-  - Combines **Stock Pattern + Price + Wishlist**
-  - **Hierarchy:** Stock Pattern is primary (~70% influence), Price and Wishlist together provide ~30% refinement
-  - Modifiers can escalate signals but never override the base pattern category
-  - Example: `Sustained` scarcity cannot be downgraded by falling prices
-  - Example: `Always` available cannot reach 🔥 regardless of wishlist interest
-  - Example: `Newly Observed` remains ⚠️ while history is sparse, even if current demand is strong
-  - Designed to be conservative to avoid reacting to short-term noise
-  
-  ---
-  
-  
-  
-  [... Legend details truncated in snapshot - full text verified in production ...]
+  [... Dealer legend details truncated in snapshot - full text verified in production ...]
   
   </details>
   

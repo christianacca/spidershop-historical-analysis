@@ -1,4 +1,3 @@
-import { wireOpenDetailsLinks } from '../shared/dom-utils.js';
 import type { SortableTablePageConfig } from '../shared/page-init.js';
 
 export const BREEDER_PAGE_CONFIG: SortableTablePageConfig = {
@@ -26,5 +25,4 @@ export const BREEDER_PAGE_CONFIG: SortableTablePageConfig = {
     statsLabel: 'species',
     driversKey: 'Drivers',
   },
-  postMount: wireOpenDetailsLinks,
 };

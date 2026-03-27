@@ -10,21 +10,22 @@ from scrape.legend_examples import generate_breeder_examples, generate_dealer_ex
 # LEGEND
 # =====================
 
+def render_summary_legend() -> str:
+    templates_dir = Path(__file__).parent.parent.parent / "templates"
+    env = Environment(loader=FileSystemLoader(templates_dir))
+    template = env.get_template("legend.md")
+
+    return template.render(
+        breeder_examples=generate_breeder_examples(),
+        dealer_examples=generate_dealer_examples(),
+    )
+
 def write_summary_legend():
     summary_path = get_summary_path()
     if not summary_path:
         return
 
-    # Set up Jinja2 environment - templates are at project root
-    templates_dir = Path(__file__).parent.parent.parent / "templates"
-    env = Environment(loader=FileSystemLoader(templates_dir))
-    template = env.get_template("legend.md")
-    
-    # Render legend with dynamically generated examples
-    legend_content = template.render(
-        breeder_examples=generate_breeder_examples(),
-        dealer_examples=generate_dealer_examples()
-    )
+    legend_content = render_summary_legend()
     
     # Append to summary file
     with open(summary_path, "a", encoding="utf-8") as f:

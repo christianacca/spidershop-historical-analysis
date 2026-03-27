@@ -43,6 +43,23 @@ class TestParseMarkdownToHtml:
 class TestExtractAnalysisSections:
     """Test suite for extracting analysis sections from markdown."""
 
+    def test_production_legend_stays_column_focused_when_methodology_exists(self):
+        """Production legend should define columns without duplicating methodology and worked examples."""
+        legend_path = Path(__file__).resolve().parents[2] / "templates" / "legend.md"
+        legend_text = legend_path.read_text(encoding="utf-8")
+
+        assert "**OOS** (Current Availability)" in legend_text
+        assert "**Stock Reliability** (Historical Supply Pattern)" in legend_text
+        assert "**Recommendation** (Final Assessment)" in legend_text
+        assert "**Dealer Recommendation** (Final Assessment)" in legend_text
+        assert "{{ breeder_examples }}" in legend_text
+        assert "{{ dealer_examples }}" in legend_text
+
+        assert "~70% influence" not in legend_text
+        assert "~75% influence" not in legend_text
+        assert "This is the **foundation** of all recommendations" not in legend_text
+        assert "This is the **foundation** of all dealer risk assessments" not in legend_text
+
     def test_nonexistent_file_returns_none(self):
         """Should return None for breeder and dealer if file doesn't exist."""
         result = extract_analysis_sections("/nonexistent/file.md")
@@ -102,6 +119,30 @@ Other content."""
             assert "109 species analyzed" in dealer
             # Table should NOT be extracted
             assert "| Species |" not in dealer
+        finally:
+            os.unlink(filename)
+
+    def test_extract_sections_with_weekly_run_context(self):
+        """Should extract breeder and dealer summary lines when they include weekly-run context."""
+        from conftest import create_temp_markdown_file
+
+        filename = create_temp_markdown_file(
+            """## 🧬 Breeder Opportunity Matrix (Top 10)
+
+**Summary:** 16 species analyzed across 60 weekly runs | 🔥 Hot: 11 | ⚠️ Watch: 3 | ❌ Avoid: 2
+
+## 🏪 Dealer Supply Risk Matrix (Top 10)
+
+**Summary:** 16 species analyzed across 60 weekly runs | 🔥 High Risk: 5 | ⚠️ Moderate Risk: 7 | ❌ Low Risk: 4
+"""
+        )
+
+        try:
+            breeder, dealer, breeder_legend, dealer_legend, breeder_examples, dealer_examples = extract_analysis_sections(filename)
+            assert breeder is not None
+            assert dealer is not None
+            assert "across 60 weekly runs" in breeder
+            assert "across 60 weekly runs" in dealer
         finally:
             os.unlink(filename)
 

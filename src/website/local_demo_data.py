@@ -24,6 +24,7 @@ from shared.sparkline_helpers import (
     extract_historical_values_with_carryforward,
     generate_stock_availability_sparkline,
 )
+from scrape.legend import render_summary_legend
 
 
 ANALYSIS_SUMMARY_FILE = "analysis_summary.md"
@@ -38,6 +39,8 @@ DEMO_DATA_MARKER = "<!-- local-demo-data:v2 -->"
 LEGACY_DEMO_MARKERS = (
     "Rich local demo data covering sustained, emerging, cyclical, always, and newly observed states.",
     "Local preview data includes volatile, moderate, and healthy dealer supply patterns.",
+    "Example breeder scenario.",
+    "Example dealer scenario.",
 )
 
 BREEDER_HEADERS = [
@@ -661,6 +664,7 @@ def _build_analysis_summary(
 ) -> str:
     breeder_counts = Counter(row["Signal"] for row in breeder_rows)
     dealer_counts = Counter(row["Dealer Risk"] for row in dealer_rows)
+    legend_content = render_summary_legend()
 
     return (
         f"{DEMO_DATA_MARKER}\n"
@@ -672,19 +676,5 @@ def _build_analysis_summary(
         f"**Summary:** {len(dealer_rows)} species analyzed across {DEMO_RUN_COUNT} weekly runs | "
         f"🔥 High Risk: {dealer_counts['🔥']} | ⚠️ Moderate Risk: {dealer_counts['⚠️']} | ❌ Low Risk: {dealer_counts['❌']}\n\n"
         "Local preview data includes tooltip, sparkline, recommendation, and stock-availability states for both analysis pages.\n\n"
-        "<details markdown=\"1\">\n"
-        "<summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>\n\n"
-        "### 🧬 Breeder Opportunity Matrix — Legend\n\n"
-        "- `🔥` — Sustained scarcity with demand confirmation\n"
-        "- `⚠️` — Emerging shortage, sparse evidence, or early demand support\n"
-        "- `❌` — Healthy supply or weak demand signal\n\n"
-        "### 📖 Breeder Matrix — Practical Examples\n\n"
-        "Use this dataset to inspect top-10 behaviour, signal tooltips, recommendation text, and adaptive filters against a 60-week history.\n\n"
-        "### 🏪 Dealer Supply Risk Matrix — Legend\n\n"
-        "- `🔥` — Supply is fragile and deserves early reorder attention\n"
-        "- `⚠️` — Mixed availability signals; monitor restock timing\n"
-        "- `❌` — Reliable supply and low urgency\n\n"
-        "### 📖 Dealer Matrix — Practical Examples\n\n"
-        "Use this dataset to inspect risk-state styling, stock availability gaps, sparkline tooltips, and species drill-down behaviour.\n\n"
-        "</details>\n"
+        f"{legend_content}"
     )

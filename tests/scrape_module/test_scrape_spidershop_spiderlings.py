@@ -459,37 +459,43 @@ class TestMainOrchestration:
             # (Full legend/example text is documentation, not integration logic)
             # Keep just enough to verify sections exist and basic structure
             def truncate_legend_section(content):
-                """Keep only first few lines of legend sections to verify presence."""
+                """Keep only stable legend headings to verify presence."""
                 # Find the legend details block
                 details_start = content.find('<details>')
                 if details_start == -1:
                     return content
                 
-                # Find the first legend subsection
-                breeder_legend_start = content.find('### 🧬 Breeder Opportunity Matrix — Legend', details_start)
+                # Find the legend subsections
+                summary_end = content.find('</summary>', details_start)
+                if summary_end == -1:
+                    return content
+
+                breeder_legend_start = content.find('### 🧬 Breeder Opportunity Matrix — Legend', summary_end)
                 if breeder_legend_start == -1:
                     return content
-                
-                # Find where examples start (truncate point)
-                examples_start = content.find('### 📖 Breeder Matrix — Practical Examples', details_start)
-                if examples_start == -1:
-                    examples_start = content.find('### 🏪 Dealer Supply Risk Matrix — Legend', details_start)
-                
-                if examples_start == -1:
+
+                dealer_legend_start = content.find('### 🏪 Dealer Supply Risk Matrix — Legend', breeder_legend_start)
+                if dealer_legend_start == -1:
                     return content
-                
-                # Keep structure up to examples, then add truncation marker
-                truncation_note = "\n\n[... Legend details truncated in snapshot - full text verified in production ...]\n\n"
                 
                 # Find end of details block
-                details_end = content.find('</details>', examples_start)
+                details_end = content.find('</details>', dealer_legend_start)
                 if details_end == -1:
                     return content
+
+                # Snapshot only the section headings and fixed placeholders so
+                # documentation copy changes do not churn the orchestration snapshot.
+                truncated_details = (
+                    '### 🧬 Breeder Opportunity Matrix — Legend\n\n'
+                    '[... Breeder legend details truncated in snapshot - full text verified in production ...]\n\n'
+                    '### 🏪 Dealer Supply Risk Matrix — Legend\n\n'
+                    '[... Dealer legend details truncated in snapshot - full text verified in production ...]\n\n'
+                )
                 
-                # Reconstruct: keep everything before examples + truncation note + closing tag
-                return (content[:examples_start] + 
-                       truncation_note +
-                       content[details_end:])
+                # Reconstruct with only the stable legend skeleton.
+                return (content[:summary_end + len('</summary>') + 2] +
+                    truncated_details +
+                    content[details_end:])
             
             summary_content = truncate_legend_section(summary_content)
             

@@ -430,6 +430,24 @@ class TestGenerateSnapshotPage:
             for details in details_elements:
                 assert 'How to read these tables' not in details.text
 
+    def test_examples_render_collapsed_when_provided(self):
+        """Practical Examples should render in a collapsed details block by default."""
+        csv_content = "Species,Size (cm),Signal\nTest Spider,1.5,🔥\n"
+        examples_md = "### 📖 Breeder Matrix — Practical Examples\n\nExample content."
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.breeder(filename) \
+                .with_title("Test") \
+                .with_description("Desc") \
+                .with_examples(examples_md) \
+                .build()
+            html = generate_analysis_page(config)
+            soup = BeautifulSoup(html, 'html.parser')
+
+            details_elements = soup.find_all('details')
+            example_details = [d for d in details_elements if 'Practical Examples' in d.text]
+            assert len(example_details) == 1, "Should have a Practical Examples details element"
+            assert example_details[0].get('open') is None, "Practical Examples should start collapsed"
+
     def test_includes_instruction_box_for_breeder_page(self):
         """Should include 'How to use this page' instruction box for breeder pages."""
         csv_content = "Species,Size (cm),Signal\nTest Spider,1.5,🔥\n"
@@ -464,11 +482,15 @@ class TestGenerateSnapshotPage:
             assert 'signal' in text.lower()
             assert 'stock pattern' in text.lower()
 
-            # Should have a subtle anchor linking to the legend section
-            legend_link = instruction_box.find('a', attrs={'data-action': 'open-details'})
+            # Should have subtle anchors linking to methodology and legend sections
+            details_links = instruction_box.find_all('a', attrs={'data-action': 'open-details'})
+            assert len(details_links) == 2, "Instruction box should have methodology and legend anchor links"
+            methodology_link = instruction_box.find('a', attrs={'data-target': 'methodology-section'})
+            assert methodology_link is not None, "Instruction box should have a methodology anchor link"
+            assert methodology_link.get('href') == '#methodology-section'
+            legend_link = instruction_box.find('a', attrs={'data-target': 'legend-section'})
             assert legend_link is not None, "Instruction box should have a legend anchor link"
             assert legend_link.get('href') == '#legend-section'
-            assert legend_link.get('data-target') == 'legend-section'
 
     def test_includes_instruction_box_for_dealer_page(self):
         """Should include 'How to use this page' instruction box for dealer pages."""
@@ -501,11 +523,15 @@ class TestGenerateSnapshotPage:
             assert 'restock' in text.lower()
             assert 'inventory' in text.lower()
 
-            # Should have a subtle anchor linking to the legend section
-            legend_link = instruction_box.find('a', attrs={'data-action': 'open-details'})
+            # Should have subtle anchors linking to methodology and legend sections
+            details_links = instruction_box.find_all('a', attrs={'data-action': 'open-details'})
+            assert len(details_links) == 2, "Instruction box should have methodology and legend anchor links"
+            methodology_link = instruction_box.find('a', attrs={'data-target': 'methodology-section'})
+            assert methodology_link is not None, "Instruction box should have a methodology anchor link"
+            assert methodology_link.get('href') == '#methodology-section'
+            legend_link = instruction_box.find('a', attrs={'data-target': 'legend-section'})
             assert legend_link is not None, "Instruction box should have a legend anchor link"
             assert legend_link.get('href') == '#legend-section'
-            assert legend_link.get('data-target') == 'legend-section'
 
     def test_omits_instruction_box_for_snapshot_page(self):
         """Should NOT include instruction box for snapshot pages (simple pages)."""

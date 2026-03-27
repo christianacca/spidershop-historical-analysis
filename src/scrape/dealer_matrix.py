@@ -18,6 +18,11 @@ from scrape.matrix_workflow import (
 # DEALER MATRIX (Option B: Price Pressure informational)
 # =====================
 
+DEALER_HIGH_RELIABILITY_THRESHOLD = 0.8
+DEALER_MEDIUM_RELIABILITY_THRESHOLD = 0.4
+DEALER_SLOW_RESTOCK_MIN_AVG_OOS = 3
+DEALER_MODERATE_RESTOCK_AVG_OOS = 2
+
 def _format_observation_coverage(observation_coverage: dict[str, int]) -> str:
     """Return compact observation coverage text for sparse-history dealer rows."""
     return (
@@ -94,7 +99,13 @@ def build_dealer_supply_risk_table(history_rows):
         )
         observation_coverage_text = ""
         present_pct = len(present_runs) / total_runs
-        reliability = "High" if present_pct >= 0.8 else "Medium" if present_pct >= 0.4 else "Low"
+        reliability = (
+            "High"
+            if present_pct >= DEALER_HIGH_RELIABILITY_THRESHOLD
+            else "Medium"
+            if present_pct >= DEALER_MEDIUM_RELIABILITY_THRESHOLD
+            else "Low"
+        )
 
         # Safe OOS event counting even if the series starts with "absent"
         oos_events = []
@@ -111,7 +122,13 @@ def build_dealer_supply_risk_table(history_rows):
             last_present = present
 
         avg_oos = round(sum(oos_events) / len(oos_events), 1) if oos_events else 0
-        speed = "Slow" if avg_oos >= 3 else "Moderate" if avg_oos == 2 else "Fast"
+        speed = (
+            "Slow"
+            if avg_oos >= DEALER_SLOW_RESTOCK_MIN_AVG_OOS
+            else "Moderate"
+            if avg_oos == DEALER_MODERATE_RESTOCK_AVG_OOS
+            else "Fast"
+        )
 
         pp = compare_prices(
             cur_prices.get((sci, size), ""),
@@ -145,6 +162,10 @@ def build_dealer_supply_risk_table(history_rows):
         elif reliability == "Low" and wishlist_delta == "↑":
             risk = "🔥"
             rec = "Actively seek breeders — unreliable supply, surging interest"
+        # Low reliability without a fire trigger still warrants caution
+        elif reliability == "Low":
+            risk = "⚠️"
+            rec = "Buy opportunistically — unreliable supply"
         # Medium reliability + high wishlist + rising delta
         elif reliability == "Medium" and wishlist_pressure == "🔥" and wishlist_delta == "↑":
             risk = "🔥"

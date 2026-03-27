@@ -59,13 +59,17 @@
         <p>No data available yet. Please check back after the next scrape run.</p>
     </div>
     {% endif %}
-    
+
+    {% if methodology %}
+    {{ macros.methodology_section(methodology) }}
+    {% endif %}
+
     {% if legend_html %}
     {{ legend_html|safe }}
     {% endif %}
     
     {% if examples_html %}
-    <details open>
+    <details>
         <summary><strong>📖 Practical Examples</strong></summary>
         <div class="examples-content">
             {{ examples_html|safe }}

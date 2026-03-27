@@ -23,6 +23,10 @@ BREEDER_WARNING_PATTERN_PRIORITY = {
     "Newly Observed": 2,
 }
 
+BREEDER_NEWLY_OBSERVED_MAX_RUNS = 2
+BREEDER_SUSTAINED_OOS_RUNS = 4
+BREEDER_EMERGING_MIN_OOS_RUNS = 2
+
 
 def _format_observation_coverage(observation_coverage: dict[str, int]) -> str:
     """Return compact observation coverage text for sparse-history species."""
@@ -185,9 +189,9 @@ def build_breeder_opportunity_table(history_rows):
         if is_newly_observed:
             pattern = "Newly Observed"
             observation_coverage_text = _format_observation_coverage(observation_coverage)
-        elif oos_runs >= 4:
+        elif oos_runs >= BREEDER_SUSTAINED_OOS_RUNS:
             pattern = "Sustained"
-        elif oos_runs >= 2:
+        elif oos_runs >= BREEDER_EMERGING_MIN_OOS_RUNS:
             pattern = "Emerging"
         elif oos_status == "IN/OUT":
             pattern = "Cyclical"

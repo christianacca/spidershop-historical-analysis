@@ -1,7 +1,7 @@
 """Configuration dataclasses for website page generation."""
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Any, List, Optional
 
 
 @dataclass
@@ -86,6 +86,7 @@ class BreederPageConfig(BasePageConfig):
     analysis_markdown: Optional[str] = None
     legend_markdown: Optional[str] = None
     examples_markdown: Optional[str] = None
+    methodology: Optional[dict[str, Any]] = None
     link_to_species_page: bool = True
     table_view: str = "breeder"
 
@@ -100,6 +101,7 @@ class DealerPageConfig(BasePageConfig):
     analysis_markdown: Optional[str] = None
     legend_markdown: Optional[str] = None
     examples_markdown: Optional[str] = None
+    methodology: Optional[dict[str, Any]] = None
     link_to_species_page: bool = True
     table_view: str = "dealer"
 

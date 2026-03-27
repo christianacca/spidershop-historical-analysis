@@ -620,19 +620,22 @@ def test_non_analysis_pages_lack_analysis_ui(e2e_site_multi_species) -> None:
 
 
 @pytest.mark.e2e
-def test_instruction_box_legend_link_opens_legend_section(e2e_site_multi_species) -> None:
-    """Clicking the 'See full column legend' link should open the legend <details> section."""
+def test_instruction_box_reference_links_open_reference_sections(e2e_site_multi_species) -> None:
+    """Instruction-box reference links should open the methodology and legend <details> sections."""
     page, base_url, errors = e2e_site_multi_species
 
     for page_name in ['breeder.html', 'dealer.html']:
         page.goto(f"{base_url}/{page_name}", wait_until="domcontentloaded")
 
+        methodology_section = page.locator('#methodology-section')
         legend_section = page.locator('#legend-section')
-        if legend_section.count() == 0:
-            pytest.skip(f"No legend section rendered on {page_name} with current test data")
+        if methodology_section.count() == 0 or legend_section.count() == 0:
+            pytest.skip(f"Reference sections not rendered on {page_name} with current test data")
 
-        # Legend should start closed
+        # Both reference sections should start closed
+        methodology_open_before = methodology_section.evaluate('el => el.open')
         is_open_before = legend_section.evaluate('el => el.open')
+        assert not methodology_open_before, f"{page_name}: #methodology-section should be closed on page load"
         assert not is_open_before, f"{page_name}: #legend-section should be closed on page load"
 
         # The legend link lives inside instruction-box which is a collapsed <details>.
@@ -640,10 +643,18 @@ def test_instruction_box_legend_link_opens_legend_section(e2e_site_multi_species
         instruction_box = page.locator('.instruction-box')
         instruction_box.locator('summary').click()
 
-        # Click the anchor inside instruction-box
-        legend_link = page.locator('.instruction-box a[data-action="open-details"]')
+        methodology_link = page.locator('.instruction-box a[data-target="methodology-section"]')
+        legend_link = page.locator('.instruction-box a[data-target="legend-section"]')
+        assert methodology_link.count() == 1, \
+            f"{page_name}: instruction box should contain exactly one methodology anchor"
         assert legend_link.count() == 1, \
             f"{page_name}: instruction box should contain exactly one legend anchor"
+
+        methodology_link.click()
+
+        methodology_open_after = methodology_section.evaluate('el => el.open')
+        assert methodology_open_after, \
+            f"{page_name}: #methodology-section should be open after clicking the methodology link"
 
         legend_link.click()
 
@@ -651,6 +662,92 @@ def test_instruction_box_legend_link_opens_legend_section(e2e_site_multi_species
         is_open_after = legend_section.evaluate('el => el.open')
         assert is_open_after, \
             f"{page_name}: #legend-section should be open after clicking the legend link"
+
+
+@pytest.mark.e2e
+def test_analysis_pages_render_table_before_methodology_and_legend(e2e_site_multi_species) -> None:
+    """Breeder and dealer pages should render the table before the reference sections."""
+    page, base_url, errors = e2e_site_multi_species
+
+    for page_name in ['breeder.html', 'dealer.html']:
+        page.goto(f"{base_url}/{page_name}", wait_until="domcontentloaded")
+
+        table_root = page.locator('#breeder-table-root, #dealer-table-root')
+        methodology = page.locator('#methodology-section')
+        assert methodology.count() == 1, f"{page_name} should render #methodology-section"
+        assert methodology.locator('text=Thresholds & Windows').count() >= 1, \
+            f"{page_name} methodology should include the thresholds tab"
+        assert methodology.locator('text=Rule Trace').count() >= 1, \
+            f"{page_name} methodology should include a rule trace tab"
+        assert methodology.locator('text=Why this section exists').count() == 0, \
+            f"{page_name} should not render the old thresholds aside"
+
+        legend = page.locator('#legend-section')
+        assert legend.count() == 1, f"{page_name} should still render #legend-section"
+
+        order_is_correct = page.evaluate("""
+            () => {
+                const table = document.querySelector('#breeder-table-root, #dealer-table-root');
+                const legend = document.querySelector('#legend-section');
+                const methodology = document.querySelector('#methodology-section');
+                if (!table || !legend || !methodology) {
+                    return false;
+                }
+
+                return Boolean(
+                    table.compareDocumentPosition(methodology) & Node.DOCUMENT_POSITION_FOLLOWING
+                ) && Boolean(
+                    methodology.compareDocumentPosition(legend) & Node.DOCUMENT_POSITION_FOLLOWING
+                );
+            }
+        """)
+        assert table_root.count() == 1, f"{page_name} should render a table root"
+        assert order_is_correct, f"{page_name} should place the table before methodology and legend"
+
+
+@pytest.mark.e2e
+def test_methodology_tabs_switch_panels(e2e_site_multi_species) -> None:
+    """Methodology tabs should switch which explanatory panel is active."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    page.locator('#methodology-section summary').click()
+
+    thresholds_panel = page.locator('[data-methodology-panel="thresholds"]')
+    tree_panel = page.locator('[data-methodology-panel="tree"]')
+    trace_panel = page.locator('[data-methodology-panel="trace"]')
+
+    expect(thresholds_panel).to_have_class(re.compile(r'is-active'))
+    expect(tree_panel).to_be_hidden()
+
+    page.locator('[data-methodology-tab="tree"]').click()
+
+    expect(tree_panel).to_have_class(re.compile(r'is-active'))
+    expect(thresholds_panel).to_be_hidden()
+
+    page.locator('[data-methodology-tab="trace"]').click()
+
+    expect(trace_panel).to_have_class(re.compile(r'is-active'))
+    expect(tree_panel).to_be_hidden()
+
+
+@pytest.mark.e2e
+def test_methodology_is_collapsed_by_default_and_expandable(e2e_site_multi_species) -> None:
+    """Methodology should start collapsed and reveal its content when opened."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    methodology = page.locator('#methodology-section')
+    assert methodology.count() == 1, 'breeder.html should render #methodology-section'
+    expect(methodology).not_to_have_attribute('open', '')
+    expect(methodology.locator('[data-methodology-panel="thresholds"]')).to_be_hidden()
+
+    methodology.locator('summary').click()
+
+    expect(methodology).to_have_attribute('open', '')
+    expect(methodology.locator('[data-methodology-panel="thresholds"]')).to_be_visible()
 
 
 @pytest.mark.e2e
