@@ -104,7 +104,7 @@ Example content for dealers.
                 # render methodology and legend as below-table reference material.
                 assert 'id="methodology-section"' in breeder_html
                 assert "Thresholds &amp; Windows" in breeder_html
-                assert "Worked Example" in breeder_html
+                assert "Rule Trace" in breeder_html
                 assert "How the breeder analysis works" in breeder_html
                 assert "Why this section exists" not in breeder_html
                 assert breeder_html.index('id="breeder-table-root"') < breeder_html.index('id="methodology-section"')
@@ -129,7 +129,7 @@ Example content for dealers.
                 assert "<h4>🏪 Dealer Supply Risk Matrix — Legend<strong>Stock Reliability</strong></h4>" not in dealer_html
                 assert 'id="methodology-section"' in dealer_html
                 assert "Thresholds &amp; Windows" in dealer_html
-                assert "Worked Example" in dealer_html
+                assert "Rule Trace" in dealer_html
                 assert "How the dealer analysis works" in dealer_html
                 assert "Why this section exists" not in dealer_html
                 assert dealer_html.index('id="dealer-table-root"') < dealer_html.index('id="methodology-section"')

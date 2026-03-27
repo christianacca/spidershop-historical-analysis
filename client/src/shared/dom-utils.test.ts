@@ -9,12 +9,12 @@ describe('wireMethodologyTabs', () => {
         <div class="methodology-tabs" role="tablist">
           <button class="tab-btn is-active" data-methodology-tab="thresholds" aria-selected="true">Threshold Inventory</button>
           <button class="tab-btn" data-methodology-tab="tree" aria-selected="false">Decision Tree</button>
-          <button class="tab-btn" data-methodology-tab="example" aria-selected="false">Worked Example</button>
+          <button class="tab-btn" data-methodology-tab="trace" aria-selected="false">Rule Trace</button>
         </div>
         <div class="methodology-panels">
           <section class="methodology-panel is-active" data-methodology-panel="thresholds"></section>
           <section class="methodology-panel" data-methodology-panel="tree"></section>
-          <section class="methodology-panel" data-methodology-panel="example"></section>
+          <section class="methodology-panel" data-methodology-panel="trace"></section>
         </div>
       </section>
     `;

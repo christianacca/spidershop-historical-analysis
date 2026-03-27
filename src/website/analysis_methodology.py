@@ -91,7 +91,7 @@ def build_breeder_methodology() -> MethodologyDict:
     """Return structured methodology content for the breeder analysis page."""
     return {
         "section_title": "How the breeder analysis works",
-        "intro": "Thresholds, compact decision logic, and a worked example that show why a row becomes Hot, Watch, or Avoid.",
+        "intro": "Thresholds, compact decision logic, and a rule trace that show why a row becomes Hot, Watch, or Avoid.",
         "callout": {
             "title": "Breeder reading lens",
             "body": "Start with supply evidence. Stock pattern sets the base signal, price trend validates or strengthens borderline cases, and wishlist metrics refine urgency without replacing supply logic.",
@@ -113,23 +113,23 @@ def build_breeder_methodology() -> MethodologyDict:
                         "items": [
                             {
                                 "label": f"Newly Observed: present now, observed in {BREEDER_NEWLY_OBSERVED_MAX_RUNS} runs or fewer, and all observed runs are current trailing runs",
-                                "detail": "This protects the breeder page from overreacting when history is genuinely sparse.",
+                                "detail": "This resolves to ⚠️ Watch. The breeder page exposes the row, but it avoids treating sparse history as proven scarcity.",
                             },
                             {
                                 "label": f"Sustained: OOS runs >= {BREEDER_SUSTAINED_OOS_RUNS}",
-                                "detail": "Persistent absence is treated as the strongest supply-side breeding signal.",
+                                "detail": "This is the strongest supply-side setup. With price up or flat it becomes 🔥 Hot; if price falls, the row misses that Hot branch and drops out of the confirmed Hot path.",
                             },
                             {
                                 "label": f"Emerging: OOS runs >= {BREEDER_EMERGING_MIN_OOS_RUNS} and < {BREEDER_SUSTAINED_OOS_RUNS}",
-                                "detail": "Early tightening counts, but it still needs confirmation to escalate.",
+                                "detail": "This defaults to ⚠️ Watch and only becomes 🔥 Hot when price is up, or when wishlist pressure is Hot and delta is rising together.",
                             },
                             {
                                 "label": "Cyclical: current status is IN/OUT",
-                                "detail": "Wave restocking stays visible as Watch instead of being treated as stable scarcity.",
+                                "detail": "This resolves to ⚠️ Watch. Wave restocking stays visible without being treated as stable scarcity.",
                             },
                             {
                                 "label": "Always: everything else",
-                                "detail": "Consistent availability is the default oversupply state.",
+                                "detail": "This is the oversupply bucket. It stays ❌ Avoid by default, and the best demand can do is lift it to ⚠️ Watch rather than 🔥 Hot.",
                             },
                         ],
                     },
@@ -143,7 +143,7 @@ def build_breeder_methodology() -> MethodologyDict:
                         "pills": _shared_escalation_pills(),
                         "items": [
                             {
-                                "label": "Sustained + price up or flat => Hot",
+                                "label": "Assign 🔥 Hot: Sustained + price up or flat",
                                 "detail": "The current breeder matrix treats sustained scarcity plus non-falling price as sufficient confirmation for the Hot branch.",
                             },
                             {
@@ -155,20 +155,28 @@ def build_breeder_methodology() -> MethodologyDict:
                                 "detail": "The current breeder rules do not promote sustained scarcity when the price signal is falling, so the row drops out of the Hot path.",
                             },
                             {
-                                "label": "Emerging + price up => Hot",
+                                "label": "Assign 🔥 Hot: Emerging + price up",
                                 "detail": "Rising price is the cleanest confirmation path for a two-to-three-run shortage.",
                             },
                             {
-                                "label": "Emerging + wishlist Hot + delta up => Hot",
+                                "label": "Assign 🔥 Hot: Emerging + wishlist Hot + delta up",
                                 "detail": "Demand can only upgrade an emerging pattern when both pressure and momentum are strong.",
                             },
                             {
-                                "label": "Always + wishlist Hot => Watch",
+                                "label": "Assign ⚠️ Watch: Newly Observed or Cyclical",
+                                "detail": "Both of these paths stay visible but unconfirmed. Sparse history and wave restocking do not produce a Hot or Avoid signal on their own.",
+                            },
+                            {
+                                "label": "Assign ⚠️ Watch: Always + wishlist Hot",
                                 "detail": "Strong latent demand never overrides consistent availability into a Hot breeder signal.",
                             },
                             {
-                                "label": "Always + wishlist Hot + delta down => Avoid",
+                                "label": "Assign ❌ Avoid: Always + wishlist Hot + delta down",
                                 "detail": "Falling momentum keeps oversupplied rows from being dressed up as opportunities.",
+                            },
+                            {
+                                "label": "Assign ❌ Avoid: Any remaining unmatched path",
+                                "detail": "If none of the scarcity or watch-state checks fire, the breeder classifier falls back to oversupplied Avoid.",
                             },
                         ],
                     },
@@ -188,33 +196,33 @@ def build_breeder_methodology() -> MethodologyDict:
                     "root": {
                         "step": "Step 1",
                         "title": "Classify stock pattern from current availability and OOS runs",
-                        "copy": "Newly Observed, Sustained, Emerging, Cyclical, or Always.",
+                        "copy": "Classify the row as Newly Observed, Sustained, Emerging, Cyclical, or Always. From there the breeder page assigns one of three outputs: 🔥 Hot, ⚠️ Watch, or ❌ Avoid.",
                     },
                     "branches": [
                         {
                             "label": "If Sustained",
                             "title": f"OOS runs {BREEDER_SUSTAINED_OOS_RUNS} or more",
-                            "copy": f"If price is up or flat, classify as Hot. A falling price misses that Hot confirmation branch. Wishlist Hot can still strengthen the recommendation wording once the row is already Hot, and any OUT-row demand carryover is bounded to {OOS_CARRYOVER_LOOKBACK} runs.",
+                            "copy": f"Assign 🔥 Hot if price is up or flat. A falling price misses that Hot confirmation branch, so this sustained row does not stay on the confirmed Hot path and can fall through to ❌ Avoid if no other watch-state rule applies. Wishlist Hot can still strengthen the recommendation wording once the row is already Hot, and any OUT-row demand carryover is bounded to {OOS_CARRYOVER_LOOKBACK} runs.",
                         },
                         {
                             "label": "If Emerging",
                             "title": f"OOS runs {BREEDER_EMERGING_MIN_OOS_RUNS} to {BREEDER_SUSTAINED_OOS_RUNS - 1}",
-                            "copy": "Price up becomes Hot. Otherwise, Hot wishlist plus rising delta can still escalate the row, but demand has to confirm both pressure and momentum together.",
+                            "copy": "Assign ⚠️ Watch by default. Price up becomes 🔥 Hot. Otherwise, Hot wishlist plus rising delta can still escalate the row to 🔥 Hot, but demand has to confirm both pressure and momentum together.",
                         },
                         {
                             "label": "If Newly Observed",
                             "title": f"Observed in {BREEDER_NEWLY_OBSERVED_MAX_RUNS} runs or fewer",
-                            "copy": "Stay Watch while the history is sparse. The model exposes the row, but it does not treat missing pre-first-seen runs as proven scarcity.",
+                            "copy": "Assign ⚠️ Watch while the history is sparse. The model exposes the row, but it does not treat missing pre-first-seen runs as proven scarcity.",
                         },
                         {
                             "label": "If Cyclical",
                             "title": "Recent IN/OUT flapping",
-                            "copy": "Remain Watch. The model treats this as wave restocking, not stable scarcity.",
+                            "copy": "Assign ⚠️ Watch. The model treats this as wave restocking, not stable scarcity.",
                         },
                         {
                             "label": "If Always",
                             "title": "No convincing supply shortage",
-                            "copy": "Demand can only lift this to Watch, never Hot. Falling momentum keeps it Avoid.",
+                            "copy": "Assign ❌ Avoid by default. Demand can only lift this to ⚠️ Watch, never Hot, and falling momentum keeps it ❌ Avoid.",
                         },
                         {
                             "label": "Demand windows",
@@ -225,11 +233,11 @@ def build_breeder_methodology() -> MethodologyDict:
                 },
             },
             {
-                "id": "example",
-                "label": "Worked Example",
+                "id": "trace",
+                "label": "Rule Trace",
                 "layout": "example",
                 "example": {
-                    "title": "Worked Example",
+                    "title": "Rule Trace",
                     "result": "🔥 Hot",
                     "result_tone": "hot",
                     "species": "Aphonopelma seemanni",
@@ -239,31 +247,31 @@ def build_breeder_methodology() -> MethodologyDict:
                         {
                             "number": "1",
                             "title": "Stock pattern",
-                            "detail": f"Current row is OUT and the absence has lasted {BREEDER_SUSTAINED_OOS_RUNS} runs, so the pattern becomes Sustained.",
+                            "detail": f"Current row is OUT and the absence has lasted {BREEDER_SUSTAINED_OOS_RUNS} runs, so the first rule hit is Sustained rather than Emerging or Cyclical.",
                         },
                         {
                             "number": "2",
                             "title": "Price trend",
-                            "detail": "In this worked example the price climbs from £8.99 to £15.00 to £25.00, so the current breeder price signal is rising rather than softening.",
+                            "detail": "The price climbs from £8.99 to £15.00 to £25.00, so the confirmation check is price up rather than falling price.",
                         },
                         {
                             "number": "3",
                             "title": "Demand context",
-                            "detail": f"Wishlist pressure is strong and recent demand can still carry forward for up to {OOS_CARRYOVER_LOOKBACK} runs while the species remains OUT.",
+                            "detail": f"Wishlist pressure is strong, and recent demand can still carry forward for up to {OOS_CARRYOVER_LOOKBACK} runs while the species remains OUT. That reinforces the Hot reading, but it is not the primary trigger.",
                         },
                         {
                             "number": "4",
                             "title": "Output row",
-                            "detail": "Signal remains Hot because sustained scarcity reached the base trigger first, the non-falling price branch confirmed it, and wishlist strength only reinforced the recommendation wording.",
+                            "detail": "Assign 🔥 Hot because sustained scarcity reached the base trigger first and the non-falling price branch confirmed it. This is not ⚠️ Watch because the row is no longer borderline, and not ❌ Avoid because the Always oversupply path never applied.",
                         },
                     ],
                 },
                 "aside": {
-                    "title": "What changes when the row is not strong enough?",
+                    "title": "Rule Trace Contrasts",
                     "items": [
-                        "Emerging without price support drops to Watch.",
-                        "Always never jumps straight to Hot.",
-                        "Newly Observed becomes Watch because the model avoids over-reading sparse history.",
+                        "Emerging without price support stays ⚠️ Watch instead of upgrading to 🔥 Hot.",
+                        "Always never jumps straight to 🔥 Hot because supply still looks broad.",
+                        "Newly Observed stays ⚠️ Watch because the model avoids over-reading sparse history.",
                     ],
                 },
             },
@@ -275,7 +283,7 @@ def build_dealer_methodology() -> MethodologyDict:
     """Return structured methodology content for the dealer analysis page."""
     return {
         "section_title": "How the dealer analysis works",
-        "intro": "Thresholds, compact decision logic, and a worked example that explain why a row becomes High Risk, Moderate Risk, or Low Risk.",
+        "intro": "Thresholds, compact decision logic, and a rule trace that explain why a row becomes High Risk, Moderate Risk, or Low Risk.",
         "callout": {
             "title": "Dealer reading lens",
             "body": "Start with reliability and restock speed. Wishlist pressure changes urgency inside the supply bands, but healthy supply should not be promoted into a risk state by demand alone.",
@@ -297,15 +305,15 @@ def build_dealer_methodology() -> MethodologyDict:
                         "items": [
                             {
                                 "label": f"High: presence percentage >= {DEALER_HIGH_RELIABILITY_THRESHOLD}",
-                                "detail": "Species present in at least 80% of runs are treated as reliably supplied.",
+                                "detail": "This bucket resolves to ❌ Low Risk on the current dealer page. Strong wishlist interest can change the wording, but it does not change the symbol.",
                             },
                             {
                                 "label": f"Medium: >= {DEALER_MEDIUM_RELIABILITY_THRESHOLD} and < {DEALER_HIGH_RELIABILITY_THRESHOLD}",
-                                "detail": "Intermittent supply stays in the moderate-risk family unless demand surges.",
+                                "detail": "This bucket defaults to ⚠️ Moderate Risk. It only escalates to 🔥 High Risk when wishlist pressure is Hot and delta is rising together.",
                             },
                             {
                                 "label": f"Low: presence percentage < {DEALER_MEDIUM_RELIABILITY_THRESHOLD}",
-                                "detail": "Supply gaps dominate the classification once the species falls below the medium band.",
+                                "detail": "Low reliability starts at ⚠️ Moderate Risk. Slow restock, Hot wishlist pressure, or rising delta each upgrade it to 🔥 High Risk; without those fire triggers it stays ⚠️ rather than dropping to ❌ Low Risk.",
                             },
                         ],
                     },
@@ -332,20 +340,28 @@ def build_dealer_methodology() -> MethodologyDict:
                         "pills": _shared_escalation_pills(),
                         "items": [
                             {
-                                "label": "Low reliability + slow restock => High Risk",
+                                "label": "Assign 🔥 High Risk: Low reliability + slow restock",
                                 "detail": "This is already enough supply evidence for the urgent dealer bucket.",
                             },
                             {
-                                "label": "Low reliability + wishlist Hot or delta up => High Risk",
+                                "label": "Assign 🔥 High Risk: Low reliability + wishlist Hot or delta up",
                                 "detail": "Demand can accelerate a weak-supply row into active sourcing urgency.",
                             },
                             {
-                                "label": "Medium reliability + wishlist Hot + delta up => High Risk",
+                                "label": "Assign 🔥 High Risk: Medium reliability + wishlist Hot + delta up",
                                 "detail": "Medium supply only escalates fully when both pressure and momentum align.",
                             },
                             {
-                                "label": "High reliability stays Low Risk",
-                                "detail": "Even elevated interest never overrides consistently healthy supply.",
+                                "label": "Assign ⚠️ Moderate Risk: Low reliability unless a fire trigger applies",
+                                "detail": "Poor supply alone is already a warning state. Without slow restock, Hot wishlist pressure, or rising delta, the row stays ⚠️ instead of falling to ❌.",
+                            },
+                            {
+                                "label": "Assign ⚠️ Moderate Risk: Medium reliability unless both wishlist Hot and delta up",
+                                "detail": "Medium reliability is the watch-state default. Hot wishlist without rising delta still stays ⚠️.",
+                            },
+                            {
+                                "label": "Assign ❌ Low Risk: High reliability, even when wishlist is Hot",
+                                "detail": "Even elevated interest never overrides consistently healthy supply, and any remaining unmatched path also falls back to ❌.",
                             },
                         ],
                     },
@@ -375,23 +391,23 @@ def build_dealer_methodology() -> MethodologyDict:
                     "root": {
                         "step": "Step 1",
                         "title": "Bucket the row by stock reliability",
-                        "copy": f"High at {DEALER_HIGH_RELIABILITY_THRESHOLD:.1f}+ presence, Medium at {DEALER_MEDIUM_RELIABILITY_THRESHOLD:.1f} to {DEALER_HIGH_RELIABILITY_THRESHOLD:.1f}, Low below {DEALER_MEDIUM_RELIABILITY_THRESHOLD:.1f}.",
+                        "copy": f"High at {DEALER_HIGH_RELIABILITY_THRESHOLD:.1f}+ presence resolves to ❌ Low Risk. Medium at {DEALER_MEDIUM_RELIABILITY_THRESHOLD:.1f} to {DEALER_HIGH_RELIABILITY_THRESHOLD:.1f} defaults to ⚠️ Moderate Risk unless demand upgrades it to 🔥 High Risk. Low below {DEALER_MEDIUM_RELIABILITY_THRESHOLD:.1f} also starts at ⚠️ Moderate Risk, then upgrades to 🔥 High Risk when a fire trigger applies.",
                     },
                     "branches": [
                         {
                             "label": "If Low",
                             "title": "Supply is already weak",
-                            "copy": "Slow restock is already enough to classify the row as High Risk. If restock is faster, Hot wishlist or rising delta can still accelerate sourcing urgency for an already weak supply row.",
+                            "copy": "Assign 🔥 High Risk if restock is Slow: slow restock is enough on its own. If restock is faster, Hot wishlist pressure or rising wishlist delta can still produce 🔥 High Risk. If none of those checks fire, low reliability still remains ⚠️ Moderate Risk because weak supply is never treated as fully healthy.",
                         },
                         {
                             "label": "If Medium",
                             "title": "Variable supply",
-                            "copy": "Stay Moderate Risk by default. Restock speed alone does not promote medium reliability rows, so escalate to High Risk only when both Hot wishlist and rising delta combine.",
+                            "copy": "Assign ⚠️ Moderate Risk by default. Restock speed alone does not promote medium-reliability rows, so upgrade to 🔥 High Risk only when both Hot wishlist and rising delta combine.",
                         },
                         {
                             "label": "If High",
                             "title": "Healthy supply",
-                            "copy": "Remain Low Risk. Restock speed does not override healthy supply, and strong wishlist may trigger monitoring language but does not override the supply classification.",
+                            "copy": "Assign ❌ Low Risk. Restock speed does not override healthy supply, and even strong wishlist only adds monitoring language rather than a higher-risk symbol.",
                         },
                         {
                             "label": "Demand windows",
@@ -407,11 +423,11 @@ def build_dealer_methodology() -> MethodologyDict:
                 },
             },
             {
-                "id": "example",
-                "label": "Worked Example",
+                "id": "trace",
+                "label": "Rule Trace",
                 "layout": "example",
                 "example": {
-                    "title": "Worked Example",
+                    "title": "Rule Trace",
                     "result": "🔥 High Risk",
                     "result_tone": "hot",
                     "species": "Aphonopelma seemanni",
@@ -421,30 +437,30 @@ def build_dealer_methodology() -> MethodologyDict:
                         {
                             "number": "1",
                             "title": "Reliability bucket",
-                            "detail": f"This row is tagged Stock Reliability = Low, which places it below the {DEALER_MEDIUM_RELIABILITY_THRESHOLD:.1f} medium-reliability floor and immediately signals weak supply coverage.",
+                            "detail": f"Stock Reliability = Low places the row below the {DEALER_MEDIUM_RELIABILITY_THRESHOLD:.1f} medium-reliability floor, so it starts on the weak-supply branch rather than the Medium or High branches.",
                         },
                         {
                             "number": "2",
                             "title": "Restock speed",
-                            "detail": "In this worked example the row is marked Restock Speed = Slow, so the supply gap is not being treated as a quick one-run blip.",
+                            "detail": "Restock Speed = Slow, so the low-reliability path already has enough supply evidence for the urgent branch instead of a quick one-run blip.",
                         },
                         {
                             "number": "3",
                             "title": "Demand pressure",
-                            "detail": "Drivers show rising wishlist interest, which reinforces urgency for a low-reliability row instead of letting it sit in passive monitoring.",
+                            "detail": "Drivers show rising wishlist interest. That reinforces urgency for a low-reliability row, but the key rule trace is that High Risk was already available once Low reliability and Slow restock combined.",
                         },
                         {
                             "number": "4",
                             "title": "Output row",
-                            "detail": "Dealer Risk becomes High Risk because low reliability already weakens supply, Slow restock confirms the fragility, and the rising wishlist signal only reinforces urgency. Price pressure remains informational only on the dealer page.",
+                            "detail": "Assign 🔥 High Risk because low reliability plus Slow restock is already enough to trigger the urgent dealer branch. This is not ⚠️ Moderate Risk because the row is beyond the medium-supply watch state, and not ❌ Low Risk because healthy-supply branches never applied. Price pressure remains informational only.",
                         },
                     ],
                 },
                 "aside": {
-                    "title": "What changes when the row is healthier?",
+                    "title": "Rule Trace Contrasts",
                     "items": [
-                        "Medium reliability without strong demand stays Moderate Risk.",
-                        "High reliability remains Low Risk even when wishlist pressure is strong.",
+                        "Medium reliability without strong demand stays ⚠️ Moderate Risk.",
+                        "High reliability remains ❌ Low Risk even when wishlist pressure is strong.",
                         "Limited history adds caution text instead of creating a new risk bucket.",
                     ],
                 },

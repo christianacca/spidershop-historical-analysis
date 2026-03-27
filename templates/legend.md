@@ -72,7 +72,7 @@
 
 - Combines **Stock Pattern + Price + Wishlist**
 - Final label shown in the table after the row's supply and demand columns are considered together.
-- See the methodology section above for the detailed decision rules and worked example.
+- See the methodology section above for the detailed decision rules and rule trace.
 
 ---
 
@@ -87,6 +87,7 @@
 - `High` — Listed in ≥80% of all historical runs (typically always available)
 - `Medium` — Listed in 40-79% of runs (intermittent availability)
 - `Low` — Listed in <40% of runs (rarely available)
+- `Low` reliability is never treated as fully healthy supply on the dealer page; without extra fire triggers it still remains a `⚠️` warning state rather than `❌` low risk
 - **Calculated across entire history**, not just recent weeks
 - Example: A species IN stock now but only appeared in 3 of 10 historical weeks = `Low` reliability
 - When a species is only newly observed late in the dataset, reliability still stays supply-first but recommendation text may flag the conclusion as limited-history / low-confidence
@@ -156,13 +157,14 @@
 
 - `🔥` — High risk of lost sales (supply constrained)
 - `⚠️` — Manage carefully
-- `❌` — No urgency; supply is healthy
+- `❌` — No urgency; reserved for healthy high-reliability supply
 
 **Dealer Recommendation** (Final Assessment)
 
 - Combines **Stock Reliability + Restock Speed + Wishlist**
 - Final label shown in the table after the row's supply and demand columns are considered together.
-- See the methodology section above for the detailed dealer decision rules and worked example.
+- Low reliability on its own is already enough to keep the row out of `❌ Low Risk`; extra fire triggers decide whether it escalates from `⚠️` to `🔥`
+- See the methodology section above for the detailed dealer decision rules and rule trace.
 
 ---
 

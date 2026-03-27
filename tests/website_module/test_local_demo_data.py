@@ -150,6 +150,7 @@ def test_write_realistic_demo_data_includes_full_production_legend_and_examples(
     assert dealer_examples is not None
     assert "High Reliability (No Urgency)" in dealer_examples
     assert "Low Reliability + High Demand (Critical Risk)" in dealer_examples
+    assert "Low Reliability + Stable Demand (Supply Warning)" in dealer_examples
 
 
 def test_ensure_local_csv_files_seeds_demo_data_when_requested(tmp_path: Path) -> None:

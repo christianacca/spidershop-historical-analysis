@@ -448,6 +448,7 @@ def generate_dealer_examples():
         generate_dealer_example_5(),
         generate_dealer_example_6(),
         generate_dealer_example_7(),
+        generate_dealer_example_8(),
     ]
     
     header = """### 📖 Dealer Matrix — Practical Examples
@@ -716,6 +717,43 @@ def generate_dealer_example_7():
 - **Recommendation:** {entry["Dealer Recommendation"]}
 
 **Why:** Low reliability species with accelerating interest represent early-stage supply constraints. Even if current wishlist pressure isn't at maximum, the positive momentum combined with poor supply reliability signals dealers should secure stock before competition intensifies."""
+
+
+def generate_dealer_example_8():
+    """Example 8: Low Reliability + Stable Demand (Supply Warning)."""
+    history = [
+        make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "5"),
+        make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "30"),
+        make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "30"),
+        make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "30"),
+        make_row("2025-01-22", "Aphonopelma seemanni", "1.0", "25.00", "5"),
+        make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "30"),
+        make_row("2025-01-29", "Grammostola pulchra", "2.0", "40.00", "30"),
+        make_row("2025-02-05", "Grammostola pulchra", "2.0", "40.00", "30"),
+        make_row("2025-02-12", "Aphonopelma seemanni", "1.0", "25.00", "6"),
+        make_row("2025-02-12", "Grammostola pulchra", "2.0", "40.00", "30"),
+        make_row("2025-02-19", "Grammostola pulchra", "2.0", "40.00", "30"),
+        make_row("2025-02-26", "Grammostola pulchra", "2.0", "40.00", "30"),
+        make_row("2025-03-05", "Grammostola pulchra", "2.0", "40.00", "30"),
+        make_row("2025-03-12", "Aphonopelma seemanni", "1.0", "25.00", "6"),
+        make_row("2025-03-12", "Grammostola pulchra", "2.0", "40.00", "30"),
+    ]
+
+    table = build_dealer_supply_risk_table(history)
+    entry = _get_table_entry(table, "Aphonopelma seemanni")
+
+    return f"""#### Example 8: Low Reliability + Stable Demand (Supply Warning)
+**Scenario:** A rarely available species with stable, non-urgent demand and no extra fire trigger
+
+**Analysis Result:**
+
+- **Stock Reliability:** {entry["Stock Reliability"]}
+- **Restock Speed:** {entry["Restock Speed"]}
+- **Wishlist:** {entry["Wishlist"]}
+- **Dealer Risk:** {entry["Dealer Risk"]}
+- **Recommendation:** {entry["Dealer Recommendation"]}
+
+**Why:** Low reliability alone is already a dealer warning sign because supply is weak. Without slow restock, Hot wishlist pressure, or rising momentum, the row stays at `⚠️ Moderate Risk` rather than escalating to `🔥`, but it also never drops to fully healthy `❌ Low Risk`."""
 
 
 if __name__ == "__main__":

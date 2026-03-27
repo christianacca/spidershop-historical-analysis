@@ -162,6 +162,10 @@ def build_dealer_supply_risk_table(history_rows):
         elif reliability == "Low" and wishlist_delta == "↑":
             risk = "🔥"
             rec = "Actively seek breeders — unreliable supply, surging interest"
+        # Low reliability without a fire trigger still warrants caution
+        elif reliability == "Low":
+            risk = "⚠️"
+            rec = "Buy opportunistically — unreliable supply"
         # Medium reliability + high wishlist + rising delta
         elif reliability == "Medium" and wishlist_pressure == "🔥" and wishlist_delta == "↑":
             risk = "🔥"

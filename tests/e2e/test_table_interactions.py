@@ -677,8 +677,8 @@ def test_analysis_pages_render_table_before_methodology_and_legend(e2e_site_mult
         assert methodology.count() == 1, f"{page_name} should render #methodology-section"
         assert methodology.locator('text=Thresholds & Windows').count() >= 1, \
             f"{page_name} methodology should include the thresholds tab"
-        assert methodology.locator('text=Worked Example').count() >= 1, \
-            f"{page_name} methodology should include a worked example tab"
+        assert methodology.locator('text=Rule Trace').count() >= 1, \
+            f"{page_name} methodology should include a rule trace tab"
         assert methodology.locator('text=Why this section exists').count() == 0, \
             f"{page_name} should not render the old thresholds aside"
 
@@ -716,7 +716,7 @@ def test_methodology_tabs_switch_panels(e2e_site_multi_species) -> None:
 
     thresholds_panel = page.locator('[data-methodology-panel="thresholds"]')
     tree_panel = page.locator('[data-methodology-panel="tree"]')
-    example_panel = page.locator('[data-methodology-panel="example"]')
+    trace_panel = page.locator('[data-methodology-panel="trace"]')
 
     expect(thresholds_panel).to_have_class(re.compile(r'is-active'))
     expect(tree_panel).to_be_hidden()
@@ -726,9 +726,9 @@ def test_methodology_tabs_switch_panels(e2e_site_multi_species) -> None:
     expect(tree_panel).to_have_class(re.compile(r'is-active'))
     expect(thresholds_panel).to_be_hidden()
 
-    page.locator('[data-methodology-tab="example"]').click()
+    page.locator('[data-methodology-tab="trace"]').click()
 
-    expect(example_panel).to_have_class(re.compile(r'is-active'))
+    expect(trace_panel).to_have_class(re.compile(r'is-active'))
     expect(tree_panel).to_be_hidden()
 
 

@@ -29,7 +29,7 @@ class TestAnalysisMethodologyBuilder:
         methodology = build_breeder_methodology()
         thresholds_tab = next(tab for tab in methodology["tabs"] if tab["id"] == "thresholds")
         tree_tab = next(tab for tab in methodology["tabs"] if tab["id"] == "tree")
-        example_tab = next(tab for tab in methodology["tabs"] if tab["id"] == "example")
+        trace_tab = next(tab for tab in methodology["tabs"] if tab["id"] == "trace")
 
         callout_card = methodology["callout"]
 
@@ -94,7 +94,7 @@ class TestAnalysisMethodologyBuilder:
 
         assert any("If Sustained" in label for label in decision_labels)
         assert any("If Emerging" in label for label in decision_labels)
-        assert example_tab["example"]["result"] == "🔥 Hot"
+        assert trace_tab["example"]["result"] == "🔥 Hot"
 
         escalation_rules = next(
             card for card in thresholds_tab["cards"] if card["title"] == "Escalation Rules"
@@ -106,7 +106,7 @@ class TestAnalysisMethodologyBuilder:
         sustained_hot_rule = next(
             item
             for item in escalation_rules["items"]
-            if item["label"] == "Sustained + price up or flat => Hot"
+            if item["label"] == "Assign 🔥 Hot: Sustained + price up or flat"
         )
         assert "wishlist" not in sustained_hot_rule["detail"].lower()
 
@@ -130,19 +130,67 @@ class TestAnalysisMethodologyBuilder:
         assert str(WISHLIST_DELTA_PREV_LOOKBACK) in windows_branch["copy"]
 
         price_step = next(
-            step for step in example_tab["example"]["steps"] if step["title"] == "Price trend"
+            step for step in trace_tab["example"]["steps"] if step["title"] == "Price trend"
         )
         assert "£8.99" in price_step["detail"]
         assert "£15.00" in price_step["detail"]
         assert "£25.00" in price_step["detail"]
         assert "£17" not in price_step["detail"]
 
+    def test_build_breeder_methodology_makes_all_signal_outcomes_explicit(self):
+        """Breeder methodology should state when rows become 🔥, ⚠️, or ❌ in both thresholds and tree views."""
+        methodology = build_breeder_methodology()
+        thresholds_tab = next(tab for tab in methodology["tabs"] if tab["id"] == "thresholds")
+        tree_tab = next(tab for tab in methodology["tabs"] if tab["id"] == "tree")
+
+        escalation_card = next(
+            card for card in thresholds_tab["cards"] if card["title"] == "Escalation Rules"
+        )
+        escalation_labels = [item["label"] for item in escalation_card["items"]]
+
+        assert "Assign 🔥 Hot: Sustained + price up or flat" in escalation_labels
+        assert "Assign 🔥 Hot: Emerging + price up" in escalation_labels
+        assert "Assign 🔥 Hot: Emerging + wishlist Hot + delta up" in escalation_labels
+        assert "Assign ⚠️ Watch: Newly Observed or Cyclical" in escalation_labels
+        assert "Assign ⚠️ Watch: Always + wishlist Hot" in escalation_labels
+        assert "Assign ❌ Avoid: Always + wishlist Hot + delta down" in escalation_labels
+        assert "Assign ❌ Avoid: Any remaining unmatched path" in escalation_labels
+
+        assert "🔥 Hot" in tree_tab["tree"]["root"]["copy"]
+        assert "⚠️ Watch" in tree_tab["tree"]["root"]["copy"]
+        assert "❌ Avoid" in tree_tab["tree"]["root"]["copy"]
+
+        sustained_branch = next(
+            branch for branch in tree_tab["tree"]["branches"] if branch["label"] == "If Sustained"
+        )
+        emerging_branch = next(
+            branch for branch in tree_tab["tree"]["branches"] if branch["label"] == "If Emerging"
+        )
+        newly_observed_branch = next(
+            branch for branch in tree_tab["tree"]["branches"] if branch["label"] == "If Newly Observed"
+        )
+        cyclical_branch = next(
+            branch for branch in tree_tab["tree"]["branches"] if branch["label"] == "If Cyclical"
+        )
+        always_branch = next(
+            branch for branch in tree_tab["tree"]["branches"] if branch["label"] == "If Always"
+        )
+
+        assert "🔥 Hot" in sustained_branch["copy"]
+        assert "❌ Avoid" in sustained_branch["copy"]
+        assert "🔥 Hot" in emerging_branch["copy"]
+        assert "⚠️ Watch" in emerging_branch["copy"]
+        assert "⚠️ Watch" in newly_observed_branch["copy"]
+        assert "⚠️ Watch" in cyclical_branch["copy"]
+        assert "⚠️ Watch" in always_branch["copy"]
+        assert "❌ Avoid" in always_branch["copy"]
+
     def test_build_dealer_methodology_contains_live_thresholds_and_limited_history_note(self):
         """Dealer methodology should expose reliability/restock thresholds and limited-history caveat."""
         methodology = build_dealer_methodology()
         thresholds_tab = next(tab for tab in methodology["tabs"] if tab["id"] == "thresholds")
         tree_tab = next(tab for tab in methodology["tabs"] if tab["id"] == "tree")
-        example_tab = next(tab for tab in methodology["tabs"] if tab["id"] == "example")
+        trace_tab = next(tab for tab in methodology["tabs"] if tab["id"] == "trace")
 
         threshold_lines = [
             item["label"]
@@ -169,8 +217,8 @@ class TestAnalysisMethodologyBuilder:
         assert any("If High" in label for label in decision_labels)
         assert any("Dealer Limited History" in line for line in threshold_lines)
         assert any("Dealer price pressure" in line for line in threshold_lines)
-        assert example_tab["example"]["result"] == "🔥 High Risk"
-        assert example_tab["example"]["species"] == "Aphonopelma seemanni"
+        assert trace_tab["example"]["result"] == "🔥 High Risk"
+        assert trace_tab["example"]["species"] == "Aphonopelma seemanni"
         threshold_titles = [card["title"] for card in thresholds_tab["cards"]]
         assert "Escalation Rules" in threshold_titles
         assert "Time Windows & Caveats" in threshold_titles
@@ -232,20 +280,86 @@ class TestAnalysisMethodologyBuilder:
         assert "price remains informational" in windows_branch["copy"].lower()
 
         dealer_price_step = next(
-            step for step in example_tab["example"]["steps"] if step["title"] == "Restock speed"
+            step for step in trace_tab["example"]["steps"] if step["title"] == "Restock speed"
         )
         assert "3.1" not in dealer_price_step["detail"]
         assert "seeded" not in dealer_price_step["detail"].lower()
 
         dealer_output_step = next(
-            step for step in example_tab["example"]["steps"] if step["title"] == "Output row"
+            step for step in trace_tab["example"]["steps"] if step["title"] == "Output row"
         )
         assert "seeded" not in dealer_output_step["detail"].lower()
 
+    def test_build_dealer_methodology_makes_all_risk_outcomes_explicit(self):
+        """Dealer methodology should state when rows become 🔥, ⚠️, or ❌ in both thresholds and tree views."""
+        methodology = build_dealer_methodology()
+        thresholds_tab = next(tab for tab in methodology["tabs"] if tab["id"] == "thresholds")
+        tree_tab = next(tab for tab in methodology["tabs"] if tab["id"] == "tree")
+
+        escalation_card = next(
+            card for card in thresholds_tab["cards"] if card["title"] == "Escalation Rules"
+        )
+        escalation_labels = [item["label"] for item in escalation_card["items"]]
+
+        assert "Assign 🔥 High Risk: Low reliability + slow restock" in escalation_labels
+        assert "Assign 🔥 High Risk: Low reliability + wishlist Hot or delta up" in escalation_labels
+        assert "Assign 🔥 High Risk: Medium reliability + wishlist Hot + delta up" in escalation_labels
+        assert "Assign ⚠️ Moderate Risk: Low reliability unless a fire trigger applies" in escalation_labels
+        assert "Assign ⚠️ Moderate Risk: Medium reliability unless both wishlist Hot and delta up" in escalation_labels
+        assert "Assign ❌ Low Risk: High reliability, even when wishlist is Hot" in escalation_labels
+
+        assert "🔥 High Risk" in tree_tab["tree"]["root"]["copy"]
+        assert "⚠️ Moderate Risk" in tree_tab["tree"]["root"]["copy"]
+        assert "❌ Low Risk" in tree_tab["tree"]["root"]["copy"]
+
+        low_branch = next(
+            branch for branch in tree_tab["tree"]["branches"] if branch["label"] == "If Low"
+        )
+        medium_branch = next(
+            branch for branch in tree_tab["tree"]["branches"] if branch["label"] == "If Medium"
+        )
+        high_branch = next(
+            branch for branch in tree_tab["tree"]["branches"] if branch["label"] == "If High"
+        )
+
+        assert "🔥 High Risk" in low_branch["copy"]
+        assert "⚠️ Moderate Risk" in low_branch["copy"]
+        assert "❌ Low Risk" not in low_branch["copy"]
+        assert "⚠️ Moderate Risk" in medium_branch["copy"]
+        assert "🔥 High Risk" in medium_branch["copy"]
+        assert "❌ Low Risk" in high_branch["copy"]
+
+    def test_methodology_worked_examples_are_rule_traces_not_case_studies(self):
+        """Worked examples should act as concise rule traces that contrast the chosen outcome against nearby alternatives."""
         breeder_methodology = build_breeder_methodology()
-        breeder_example_tab = next(tab for tab in breeder_methodology["tabs"] if tab["id"] == "example")
+        dealer_methodology = build_dealer_methodology()
+
+        breeder_trace = next(tab for tab in breeder_methodology["tabs"] if tab["id"] == "trace")
+        dealer_trace = next(tab for tab in dealer_methodology["tabs"] if tab["id"] == "trace")
+
+        breeder_steps = breeder_trace["example"]["steps"]
+        dealer_steps = dealer_trace["example"]["steps"]
+
+        breeder_output = next(step for step in breeder_steps if step["title"] == "Output row")
+        breeder_price = next(step for step in breeder_steps if step["title"] == "Price trend")
+        dealer_output = next(step for step in dealer_steps if step["title"] == "Output row")
+        dealer_restock = next(step for step in dealer_steps if step["title"] == "Restock speed")
+
+        assert "in this worked example" not in breeder_price["detail"].lower()
+        assert "in this worked example" not in dealer_restock["detail"].lower()
+
+        assert "not ⚠️ watch" in breeder_output["detail"].lower()
+        assert "not ❌ avoid" in breeder_output["detail"].lower()
+        assert "rule trace" in breeder_trace["aside"]["title"].lower()
+
+        assert "not ⚠️ moderate risk" in dealer_output["detail"].lower()
+        assert "not ❌ low risk" in dealer_output["detail"].lower()
+        assert "rule trace" in dealer_trace["aside"]["title"].lower()
+
+        breeder_methodology = build_breeder_methodology()
+        breeder_trace_tab = next(tab for tab in breeder_methodology["tabs"] if tab["id"] == "trace")
         breeder_price_step = next(
-            step for step in breeder_example_tab["example"]["steps"] if step["title"] == "Price trend"
+            step for step in breeder_trace_tab["example"]["steps"] if step["title"] == "Price trend"
         )
         assert "seeded" not in breeder_price_step["detail"].lower()
 
@@ -307,7 +421,7 @@ class TestAnalysisMethodologyRendering:
             assert "How the breeder analysis works" in methodology.get_text(" ", strip=True)
             assert "Thresholds & Windows" in methodology.get_text(" ", strip=True)
             assert "Decision Tree" in methodology.get_text(" ", strip=True)
-            assert "Worked Example" in methodology.get_text(" ", strip=True)
+            assert "Rule Trace" in methodology.get_text(" ", strip=True)
             assert "Aphonopelma seemanni" in methodology.get_text(" ", strip=True)
             assert "Why this section exists" not in methodology.get_text(" ", strip=True)
             assert "Static in v1" not in methodology.get_text(" ", strip=True)
@@ -337,7 +451,7 @@ class TestAnalysisMethodologyRendering:
             assert "How the dealer analysis works" in methodology.get_text(" ", strip=True)
             assert "Thresholds & Windows" in methodology.get_text(" ", strip=True)
             assert "Decision Tree" in methodology.get_text(" ", strip=True)
-            assert "Worked Example" in methodology.get_text(" ", strip=True)
+            assert "Rule Trace" in methodology.get_text(" ", strip=True)
             assert "Aphonopelma seemanni" in methodology.get_text(" ", strip=True)
             assert "Why this section exists" not in methodology.get_text(" ", strip=True)
             assert "Static in v1" not in methodology.get_text(" ", strip=True)
@@ -368,7 +482,7 @@ class TestAnalysisMethodologyRendering:
             assert [button.get_text(" ", strip=True) for button in tab_buttons] == [
                 "Thresholds & Windows",
                 "Decision Tree",
-                "Worked Example",
+                "Rule Trace",
             ]
             assert len(tab_panels) == 3
             assert sum("is-active" in panel.get("class", []) for panel in tab_panels) == 1

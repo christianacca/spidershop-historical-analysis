@@ -51,6 +51,24 @@ class TestExtractSummaryStatistics:
         assert stats['watch'] == 38
         assert stats['avoid'] == 26
 
+    def test_extract_summary_stats_with_weekly_run_context(self):
+        """Should extract summary statistics when the summary includes weekly-run context."""
+        markdown = """## 🧬 Breeder Opportunity Matrix (Top 10)
+
+**Summary:** 16 species analyzed across 60 weekly runs | 🔥 Hot: 11 | ⚠️ Watch: 3 | ❌ Avoid: 2
+
+| Species | Size (cm) | OOS |
+|---|---:|---|
+| Test Species | 1 | OUT |
+"""
+
+        stats = extract_summary_stats(markdown)
+        assert stats is not None
+        assert stats['total'] == 16
+        assert stats['hot'] == 11
+        assert stats['watch'] == 3
+        assert stats['avoid'] == 2
+
     def test_extract_summary_stats_missing_summary(self):
         """Should return None when Summary line is missing."""
         from website.generate_website import extract_summary_stats
@@ -126,6 +144,31 @@ class TestSummaryStatsInHtml:
             assert 'Species A' in html
         finally:
             os.unlink(csv_filename)
+
+    def test_breeder_page_includes_summary_stats_cards_with_weekly_run_context(self):
+        """Should render top summary cards for the current production summary wording."""
+        from website.generate_website import generate_analysis_page
+
+        csv_content = create_breeder_csv_content([
+            BreederEntry(species="Species A", signal="🔥"),
+            BreederEntry(species="Species B", signal="⚠️"),
+            BreederEntry(species="Species C", signal="❌"),
+        ])
+
+        analysis_markdown = """## 🧬 Breeder Opportunity Matrix (Top 10)
+
+**Summary:** 16 species analyzed across 60 weekly runs | 🔥 Hot: 11 | ⚠️ Watch: 3 | ❌ Avoid: 2
+"""
+
+        with temp_csv_file(csv_content) as csv_filename:
+            config = page_config.breeder(csv_filename, analysis_markdown).with_title("Breeder Opportunities").with_description("Test description").build()
+            html = generate_analysis_page(config)
+
+            assert '<div class="summary-stats">' in html
+            assert '<div class="stat-value">16</div>' in html
+            assert '🔥 Hot' in html
+            assert '⚠️ Watch' in html
+            assert '❌ Avoid' in html
 
     def test_dealer_page_includes_summary_stats_cards(self):
         """Should render summary statistics with dealer-specific labels."""

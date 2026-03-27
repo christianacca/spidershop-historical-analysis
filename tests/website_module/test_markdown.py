@@ -122,6 +122,30 @@ Other content."""
         finally:
             os.unlink(filename)
 
+    def test_extract_sections_with_weekly_run_context(self):
+        """Should extract breeder and dealer summary lines when they include weekly-run context."""
+        from conftest import create_temp_markdown_file
+
+        filename = create_temp_markdown_file(
+            """## 🧬 Breeder Opportunity Matrix (Top 10)
+
+**Summary:** 16 species analyzed across 60 weekly runs | 🔥 Hot: 11 | ⚠️ Watch: 3 | ❌ Avoid: 2
+
+## 🏪 Dealer Supply Risk Matrix (Top 10)
+
+**Summary:** 16 species analyzed across 60 weekly runs | 🔥 High Risk: 5 | ⚠️ Moderate Risk: 7 | ❌ Low Risk: 4
+"""
+        )
+
+        try:
+            breeder, dealer, breeder_legend, dealer_legend, breeder_examples, dealer_examples = extract_analysis_sections(filename)
+            assert breeder is not None
+            assert dealer is not None
+            assert "across 60 weekly runs" in breeder
+            assert "across 60 weekly runs" in dealer
+        finally:
+            os.unlink(filename)
+
     def test_extract_legend_section(self):
         """Should extract legend from details block."""
         from conftest import create_temp_markdown_file
