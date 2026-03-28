@@ -3,8 +3,8 @@ import { wireMethodologyTabs, wireOpenDetailsLinks } from '../shared/dom-utils.j
 import { bootstrapSortableTablePage } from '../shared/page-entry.js';
 
 bootstrapSortableTablePage(BREEDER_PAGE_CONFIG, {
-	beforeTableInit: () => {
-		wireOpenDetailsLinks();
-		wireMethodologyTabs();
-	},
+  beforeTableInit: () => {
+    wireOpenDetailsLinks();
+    wireMethodologyTabs();
+  },
 });
