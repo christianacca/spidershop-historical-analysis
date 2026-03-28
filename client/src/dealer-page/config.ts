@@ -1,4 +1,5 @@
 import type { SortableTablePageConfig } from '../shared/page-init.js';
+import { createFilterConfig } from '../shared/filter-config.js';
 
 export const DEALER_PAGE_CONFIG: SortableTablePageConfig = {
   tableId: 'dealer-table',
@@ -17,12 +18,8 @@ export const DEALER_PAGE_CONFIG: SortableTablePageConfig = {
     { key: 'Dealer Recommendation' },
     { key: 'Drivers', hidden: true },
   ],
-  filterConfig: {
+  filterConfig: createFilterConfig({
     signalFilter: { column: 'Dealer Risk', top10: true },
-    priceColumn: 'Price',
-    wishlistColumn: 'Wishlist',
-    showSearch: true,
-    statsLabel: 'species',
     driversKey: 'Drivers',
-  },
+  }),
 };
