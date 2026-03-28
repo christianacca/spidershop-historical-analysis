@@ -1,9 +1,10 @@
 import { DEALER_PAGE_CONFIG } from './config.js';
 import { wireMethodologyTabs, wireOpenDetailsLinks } from '../shared/dom-utils.js';
-import { registerPageInit, registerSortableTablePage } from '../shared/page-init.js';
+import { bootstrapSortableTablePage } from '../shared/page-entry.js';
 
-registerPageInit(() => {
-	wireOpenDetailsLinks();
-	wireMethodologyTabs();
+bootstrapSortableTablePage(DEALER_PAGE_CONFIG, {
+  beforeTableInit: () => {
+    wireOpenDetailsLinks();
+    wireMethodologyTabs();
+  },
 });
-registerSortableTablePage(DEALER_PAGE_CONFIG);

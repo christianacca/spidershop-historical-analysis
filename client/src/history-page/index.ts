@@ -1,4 +1,4 @@
 import { HISTORY_PAGE_CONFIG } from './config.js';
-import { registerSortableTablePage } from '../shared/page-init.js';
+import { bootstrapSortableTablePage } from '../shared/page-entry.js';
 
-registerSortableTablePage(HISTORY_PAGE_CONFIG);
+bootstrapSortableTablePage(HISTORY_PAGE_CONFIG);

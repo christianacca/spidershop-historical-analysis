@@ -5,7 +5,7 @@ Shared utility functions for working with historical data rows.
 These functions provide common patterns for grouping and identifying
 historical scrape data, used by both analysis and website generation.
 """
-from typing import Dict, List, Any, Tuple, Optional
+from typing import Dict, List, Any, Tuple, Optional, Mapping
 
 def group_by_run(rows: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
     """Group historical rows by scrape_datetime (run ID).
@@ -106,13 +106,21 @@ def create_observation_coverage(
     }
 
 
-def is_newly_observed_coverage(observation_coverage: Dict[str, Any]) -> bool:
+def is_newly_observed_coverage(observation_coverage: Mapping[str, Any]) -> bool:
     """Return whether coverage matches the shared breeder Newly Observed rule."""
     return bool(
         observation_coverage["observed_in_current_run"]
         and observation_coverage["observed_run_count"] <= 2
         and observation_coverage["current_consecutive_observation_runs"]
         == observation_coverage["observed_run_count"]
+    )
+
+
+def format_observation_coverage(observation_coverage: Mapping[str, Any]) -> str:
+    """Return compact observation coverage text for sparse-history items."""
+    return (
+        f"observed {observation_coverage['observed_run_count']}"
+        f"/{observation_coverage['total_run_count']} runs"
     )
 
 
