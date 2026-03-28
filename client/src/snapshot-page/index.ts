@@ -1,4 +1,4 @@
 import { SNAPSHOT_PAGE_CONFIG } from './config.js';
-import { registerSortableTablePage } from '../shared/page-init.js';
+import { bootstrapSortableTablePage } from '../shared/page-entry.js';
 
-registerSortableTablePage(SNAPSHOT_PAGE_CONFIG);
+bootstrapSortableTablePage(SNAPSHOT_PAGE_CONFIG);

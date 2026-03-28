@@ -3,7 +3,12 @@
 
 from conftest import HistoryEntry
 
-from shared.history_utils import create_observation_coverage, is_newly_observed_coverage, k2
+from shared.history_utils import (
+    create_observation_coverage,
+    format_observation_coverage,
+    is_newly_observed_coverage,
+    k2,
+)
 
 
 def _coverage(entries):
@@ -275,3 +280,15 @@ class TestIsNewlyObservedCoverage:
         )
 
         assert is_newly_observed_coverage(coverage) is False
+
+
+class TestFormatObservationCoverage:
+    """Coverage formatting is shared across matrix modules."""
+
+    def test_formats_observed_and_total_run_counts(self):
+        assert format_observation_coverage(
+            {
+                "observed_run_count": 2,
+                "total_run_count": 5,
+            }
+        ) == "observed 2/5 runs"

@@ -116,6 +116,14 @@ def is_newly_observed_coverage(observation_coverage: Dict[str, Any]) -> bool:
     )
 
 
+def format_observation_coverage(observation_coverage: Dict[str, int]) -> str:
+    """Return compact observation coverage text for sparse-history items."""
+    return (
+        f"observed {observation_coverage['observed_run_count']}"
+        f"/{observation_coverage['total_run_count']} runs"
+    )
+
+
 def compare_prices(price_current: str, price_previous: str) -> str:
     """Compare two price strings and return a trend symbol.
     

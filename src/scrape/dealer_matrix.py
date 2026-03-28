@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from shared.history_utils import create_observation_coverage, k2, compare_prices
+from shared.history_utils import compare_prices, create_observation_coverage, format_observation_coverage, k2
 from shared.config import DEALER_TABLE_FILE
 from shared.sparkline_helpers import generate_stock_availability_sparkline
 from shared.driver_text_helpers import build_drivers_text
@@ -22,13 +22,6 @@ DEALER_HIGH_RELIABILITY_THRESHOLD = 0.8
 DEALER_MEDIUM_RELIABILITY_THRESHOLD = 0.4
 DEALER_SLOW_RESTOCK_MIN_AVG_OOS = 3
 DEALER_MODERATE_RESTOCK_AVG_OOS = 2
-
-def _format_observation_coverage(observation_coverage: dict[str, int]) -> str:
-    """Return compact observation coverage text for sparse-history dealer rows."""
-    return (
-        f"observed {observation_coverage['observed_run_count']}"
-        f"/{observation_coverage['total_run_count']} runs"
-    )
 
 
 def _generate_dealer_drivers_text(
@@ -196,7 +189,7 @@ def build_dealer_supply_risk_table(history_rows):
             rec = "No urgency / oversupplied"
 
         if limited_history:
-            observation_coverage_text = _format_observation_coverage(observation_coverage)
+            observation_coverage_text = format_observation_coverage(observation_coverage)
             rec = f"{rec} — limited history ({observation_coverage_text})"
 
         # Generate sparklines for historical trends (last 8 weeks)

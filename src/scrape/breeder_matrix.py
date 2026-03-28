@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-from shared.history_utils import create_observation_coverage, is_newly_observed_coverage, k2, compare_prices
+from shared.history_utils import (
+    compare_prices,
+    create_observation_coverage,
+    format_observation_coverage,
+    is_newly_observed_coverage,
+    k2,
+)
 from shared.config import BREEDER_TABLE_FILE, SIGNAL_PRIORITY
 from shared.driver_text_helpers import build_drivers_text
 from shared.price_text_helpers import format_price_cell
@@ -26,14 +32,6 @@ BREEDER_WARNING_PATTERN_PRIORITY = {
 BREEDER_NEWLY_OBSERVED_MAX_RUNS = 2
 BREEDER_SUSTAINED_OOS_RUNS = 4
 BREEDER_EMERGING_MIN_OOS_RUNS = 2
-
-
-def _format_observation_coverage(observation_coverage: dict[str, int]) -> str:
-    """Return compact observation coverage text for sparse-history species."""
-    return (
-        f"observed {observation_coverage['observed_run_count']}"
-        f"/{observation_coverage['total_run_count']} runs"
-    )
 
 
 def _extract_wishlist_count(row: dict[str, str]) -> int:
@@ -188,7 +186,7 @@ def build_breeder_opportunity_table(history_rows):
 
         if is_newly_observed:
             pattern = "Newly Observed"
-            observation_coverage_text = _format_observation_coverage(observation_coverage)
+            observation_coverage_text = format_observation_coverage(observation_coverage)
         elif oos_runs >= BREEDER_SUSTAINED_OOS_RUNS:
             pattern = "Sustained"
         elif oos_runs >= BREEDER_EMERGING_MIN_OOS_RUNS:
