@@ -39,12 +39,20 @@ def parse_markdown_to_html(markdown_text: Optional[str]) -> str:
     html = add_data_labels_to_tables(html)
     
     # Downgrade heading levels to maintain semantic hierarchy
-    # h2 → h3, h3 → h4, h4 → h5, h5 → h6
     # Process in reverse order to avoid double-replacements
-    html = html.replace('<h5>', '<h6>').replace('</h5>', '</h6>')
-    html = html.replace('<h4>', '<h5>').replace('</h4>', '</h5>')
-    html = html.replace('<h3>', '<h4>').replace('</h3>', '</h4>')
-    html = html.replace('<h2>', '<h3>').replace('</h2>', '</h3>')
+    heading_map = [
+        ('<h5>', '<h6>'),
+        ('</h5>', '</h6>'),
+        ('<h4>', '<h5>'),
+        ('</h4>', '</h5>'),
+        ('<h3>', '<h4>'),
+        ('</h3>', '</h4>'),
+        ('<h2>', '<h3>'),
+        ('</h2>', '</h3>'),
+    ]
+    
+    for old, new in heading_map:
+        html = html.replace(old, new)
     
     return html
 

@@ -75,13 +75,14 @@ def _generate_breeder_drivers_text(
     """
     stock_details = []
     if oos_runs > 0:
-        plural = "s" if oos_runs != 1 else ""
+        plural = "" if oos_runs == 1 else "s"
         stock_details.append(f"OOS {oos_runs} run{plural}")
     if oos_status:
         stock_details.append(f"currently {oos_status}")
     
     if stock_details:
-        stock_section = f"Stock: {pattern} ({'; '.join(stock_details)})"
+        details_text = '; '.join(stock_details)
+        stock_section = f"Stock: {pattern} ({details_text})"
     else:
         stock_section = f"Stock: {pattern}"
 

@@ -71,6 +71,7 @@ export function wireMethodologyTabs(): void {
     });
 
     const initiallyActive = tabs.find((tab) => tab.classList.contains('is-active'));
-    setActiveTab(initiallyActive?.dataset.methodologyTab ?? tabs[0].dataset.methodologyTab ?? '');
+    const tabId = initiallyActive?.dataset.methodologyTab || tabs[0]?.dataset.methodologyTab || '';
+    setActiveTab(tabId);
   });
 }
