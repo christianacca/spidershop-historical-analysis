@@ -1,4 +1,5 @@
 import type { SortableTablePageConfig } from '../shared/page-init.js';
+import { createFilterConfig } from '../shared/filter-config.js';
 
 export const SNAPSHOT_PAGE_CONFIG: SortableTablePageConfig = {
   tableId: 'snapshot-table',
@@ -9,11 +10,9 @@ export const SNAPSHOT_PAGE_CONFIG: SortableTablePageConfig = {
     { key: 'Price (GBP)' },
     { key: 'Wishlist Count' },
   ],
-  filterConfig: {
+  filterConfig: createFilterConfig({
     priceColumn: 'Price (GBP)',
     wishlistColumn: 'Wishlist Count',
-    showSearch: true,
-    statsLabel: 'species',
-  },
+  }),
   primaryToggle: true,
 };

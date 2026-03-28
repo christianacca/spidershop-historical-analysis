@@ -1,4 +1,5 @@
 import type { SortableTablePageConfig } from '../shared/page-init.js';
+import { createFilterConfig } from '../shared/filter-config.js';
 
 export const BREEDER_PAGE_CONFIG: SortableTablePageConfig = {
   tableId: 'breeder-table',
@@ -16,13 +17,9 @@ export const BREEDER_PAGE_CONFIG: SortableTablePageConfig = {
     { key: 'Recommendation' },
     { key: 'Drivers', hidden: true },
   ],
-  filterConfig: {
+  filterConfig: createFilterConfig({
     signalFilter: { column: 'Signal', top10: true },
     stockPatternFilter: { column: 'Stock Pattern' },
-    priceColumn: 'Price',
-    wishlistColumn: 'Wishlist',
-    showSearch: true,
-    statsLabel: 'species',
     driversKey: 'Drivers',
-  },
+  }),
 };
