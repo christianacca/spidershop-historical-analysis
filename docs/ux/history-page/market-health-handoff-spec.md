@@ -13,17 +13,32 @@ this section.
 
 ## 1. Purpose and Scope
 
-The Market Health section answers: *"Is the wider tarantula hobby growing, becoming harder
-to source, or levelling off?"*
+The Market Health section answers a question that adapts to the genus selection:
 
-- Data scope: **all tracked species** — it deliberately ignores the user's genus selection.
+- **"All" mode (default on page load):** *"Is the wider tarantula market growing, becoming
+  harder to source, or levelling off?"* Data scope is **all tracked species** — the
+  market-wide baseline before the user narrows to a genus.
+- **Genus-scoped mode:** *"Is supply and demand for your selected genera growing, tightening,
+  or levelling off?"* Data scope is **selected genera only** — filtered to the genera the
+  user has in scope via the global genus selector.
+
+The genus selector includes an **"All genera" button** (default active on page load). Selecting
+it resets Market Health to market-wide data. Selecting any specific genus deactivates any
+active convenience button ("All", "Arboreal", "Most observed", etc.).
+
 - Time scope: controlled by the global **time window** filter (This month / Last month /
-  Current quarter / Last quarter / This year / Last year / All time).
-- Audience: same as the History page — breeders deciding whether market conditions support
-  investment.
+  Current quarter / Last quarter / This year / All time).
+- Audience: breeders deciding whether market or genus-level conditions support investment.
 
-**Gate rule.** If the market looks flat overall, downstream genus-specific sections should
-be treated cautiously. This framing is part of the section header, not a runtime signal.
+**Gate rule.** All-mode: "If the overall market looks flat, treat individual genus
+comparisons cautiously." Genus-scoped: "If your selected genera look flat overall, treat
+any individual genus comparison cautiously."
+
+**Filter panel note.** Both the time window and the genus selection apply to the whole
+page including this section. The filter panel description should read: *"Both the time
+window and genus selection apply to every section on this page, including Market Health
+KPIs. Comparison controls in sections 2 and 3 assign additional roles (focus genus, peer
+set) within the genera already in scope here."*
 
 ---
 
@@ -32,8 +47,9 @@ be treated cautiously. This framing is part of the section header, not a runtime
 ```
 ┌─ Section header ─────────────────────────────────────────────────────────────┐
 │  Eyebrow: "1. Market Health KPIs"                                            │
-│  Heading: "Is the hobby growing, becoming harder to source, or leveling off?"│
-│  Sub-copy + Section note (static)                                            │
+│  Heading: dynamic — see §2.1 below                                          │
+│  Sub-copy: dynamic — see §2.1 below                                         │
+│  Section note (static)                                                      │
 └──────────────────────────────────────────────────────────────────────────────┘
 
 ┌─ KPI Grid (4 cards) ─────────────────────────────────────────────────────────┐
@@ -54,27 +70,53 @@ be treated cautiously. This framing is part of the section header, not a runtime
 
 ---
 
+### 2.1 Heading Adaptation Rules
+
+The `<h2>` and sub-copy `<p>` in the section header are **dynamic** — they update whenever
+the genus selection changes. The section note is static.
+
+| Genus count | `<h2>` text | Sub-copy |
+|---|---|---|
+| All-mode | `"Is the wider tarantula market growing, becoming harder to source, or levelling off?"` | `"These metrics cover all tracked species — the widest possible lens before you narrow to a genus."` |
+| 0 (specific, none added) | `"Add genera to see supply and demand health for your selection."` | `"Use the genus filter above to add genera. Market Health KPIs will reflect whichever genera are in scope."` |
+| 1 | `"Is {genus} supply growing, tightening, or levelling off?"` | Static supply/demand sentence (see below) |
+| 2–3 | `"For {A}, {B} and {C}: is supply growing, tightening, or levelling off?"` | Static |
+| 4+ | `"How healthy is supply and demand across your {N} selected genera?"` | Static |
+
+**Static sub-copy (1+ genera):**  
+`"These metrics ask whether supply and demand for your selected genera look healthy enough to support breeding investment."`
+
+**Section note (always static, mode-aware):**
+- All-mode: `"If the overall market looks flat, treat individual genus comparisons cautiously."`
+- Genus-scoped (1+ genera): `"If your selected genera look flat overall, treat any individual genus comparison cautiously."`
+- Empty (0 specific genera): `"Use the genus filter above to add genera before drawing conclusions."`
+
+**DOM requirements:**  
+- `<h2 id="market-health-heading">` — updated by JS on every genus selection change  
+- `<p id="market-health-scope-copy">` — updated by JS alongside the heading
+
+---
+
 ## 3. KPI Definitions
 
 ### 3.1 Observed species
 
 | Field | Details |
 |---|---|
-| **What it measures** | Count of distinct scientific names seen IN-stock at least once within the active window |
-| **Value format** | Integer — e.g. `184` |
+| **What it measures** | Count of distinct scientific names seen IN-stock at least once within the selected genera and active window |
+| **Value format** | Integer — e.g. `14` |
 | **Delta format** | `+N vs {prior_label}` · `No prior comparison` (all-time) |
-| **Delta class** | `""` (positive or neutral) · `"down"` (negative) · `"flat"` (all-time) |
+| **Delta CSS class** | `""` (positive or neutral) · `"down"` (negative) · `"flat"` (all-time) — applied to `.metric-delta` element |
 | **Sparkline colour** | `#1f7a6b` (accent) |
 
 **Copy states** (select from this set; do not generate free-form prose):
 
 | When | Copy sentence |
 |---|---|
-| delta ≥ +10 | `"Breadth is expanding noticeably — the catalog is visibly broader than {prior_label}."` |
-| +3 ≤ delta ≤ +9 | `"Breadth is ahead of {prior_label}, so the market still looks alive on assortment even while actual stock is getting tighter."` |
-| 0 ≤ delta ≤ +2 | `"Breadth is only slightly ahead of {prior_label}, so the catalog still looks broad without signaling a step-change in assortment."` |
-| delta < 0 | `"The catalog is narrower than {prior_label}, which may suggest contraction rather than expansion."` |
-| all-time | `"All-time view is best read as structural context: the catalog is broad enough to support opportunity hunting, but this lens is not about recent acceleration."` |
+| delta ≥ +3 | `"Species breadth across your selected genera is ahead of {prior_label}, so your selection still looks alive on assortment even while actual stock is getting tighter."` |
+| 0 ≤ delta ≤ +2 | `"Species breadth is only slightly ahead of {prior_label}, so the selection still looks broad without signalling a step-change in assortment."` |
+| delta < 0 | `"Fewer species are being seen in-stock than at {prior_label}, which may suggest some genera are becoming harder to source."` |
+| all-time | `"All-time view is best read as structural context: the selection is broad enough to support opportunity hunting, but this lens is not about recent acceleration."` |
 
 ---
 
@@ -82,17 +124,17 @@ be treated cautiously. This framing is part of the section header, not a runtime
 
 | Field | Details |
 |---|---|
-| **What it measures** | Percentage of total tracked listings that are IN-stock at the most recent run within the active window |
+| **What it measures** | Of all distinct species seen IN-stock at least once during the active window, what percentage are IN-stock at the **most recent scrape run** within that window. Numerator = species in-stock at the latest run; denominator = species seen in-stock at any point during the window. Answers: "how much of what appeared this period is still available right now?" |
 | **Value format** | `NN%` — e.g. `61%` |
 | **Delta format** | `+N pts vs {prior_label}` · `-N pts vs {prior_label}` · `No prior comparison` |
-| **Delta class** | `""` (positive) · `"down"` (negative) · `"flat"` (all-time) |
+| **Delta CSS class** | `""` (positive) · `"down"` (negative) · `"flat"` (all-time) |
 | **Sparkline colour** | `#cc6b49` (accent-2) |
 
 **Copy states:**
 
 | When | Copy sentence |
 |---|---|
-| delta ≤ −7 | `"{value} of tracked listings are available now. That is {abs(delta)} percentage points lower than {prior_label}, so availability is slipping even while the catalog remains broad."` |
+| delta ≤ −7 | `"{value} of listings for your selected genera are available now. That is {abs(delta)} percentage points lower than {prior_label}, so availability is slipping even while the species count remains broad."` |
 | −6 ≤ delta ≤ −1 | `"Availability is a touch weaker than {prior_label}. That reads more like a near-term tightening than a structural collapse."` |
 | delta = 0 | `"The in-stock rate is holding steady vs {prior_label}."` |
 | delta ≥ +1 | `"Availability is firmer than {prior_label}, which suggests supply is keeping pace with demand."` |
@@ -104,21 +146,21 @@ be treated cautiously. This framing is part of the section header, not a runtime
 
 | Field | Details |
 |---|---|
-| **What it measures** | Median `wishlist_count` across all IN-stock listings at the most recent run within the active window |
+| **What it measures** | Median `wishlist_count` across all IN-stock listings **within the selected genera** at the most recent run within the active window |
 | **Value format** | Integer — e.g. `18` |
 | **Delta format** | `+N vs {prior_label}` · `No prior comparison` |
-| **Delta class** | `""` (positive) · `"flat"` (all-time or no change) |
+| **Delta CSS class** | `""` (positive) · `"flat"` (all-time or no change) |
 | **Sparkline colour** | `#a18b35` (accent-3) |
 
 **Copy states:**
 
 | When | Copy sentence |
 |---|---|
-| delta ≥ +4 | `"Across tracked species, median wishlist demand is ahead of {prior_label}, reinforcing the idea that interest is improving while availability slips."` |
-| +1 ≤ delta ≤ +3 | `"Median wishlist counts are modestly above {prior_label}, which suggests demand is holding without obviously overheating."` |
+| delta ≥ +4 | `"Across your selected genera, median wishlist demand is ahead of {prior_label}, reinforcing the idea that interest is improving while availability slips."` |
+| +1 ≤ delta ≤ +3 | `"Median wishlist counts across your selected genera are modestly above {prior_label}, which suggests demand is holding without obviously overheating."` |
 | delta = 0 | `"Median wishlist demand is stable vs {prior_label}."` |
-| delta ≤ −1 | `"Demand looks softer than {prior_label}."` |
-| all-time | `"All-time wishlist levels show the long-run demand floor across the market, not whether interest just strengthened this month or quarter."` |
+| delta ≤ −1 | `"Demand across your selected genera looks softer than {prior_label}."` |
+| all-time | `"All-time wishlist levels show the long-run demand floor for your selected genera, not whether interest just strengthened this month or quarter."` |
 
 ---
 
@@ -126,10 +168,10 @@ be treated cautiously. This framing is part of the section header, not a runtime
 
 | Field | Details |
 |---|---|
-| **What it measures** | Median `price_gbp` across all IN-stock listings at the most recent run within the active window |
+| **What it measures** | Median `price_gbp` across all IN-stock listings **within the selected genera** at the most recent run within the active window |
 | **Value format** | `GBP NN` — e.g. `GBP 24` |
 | **Delta format** | `+GBP N vs {prior_label}` · `No prior comparison` |
-| **Delta class** | `"flat"` (0 change) · `""` (positive) · `"down"` (negative) |
+| **Delta CSS class** | `"flat"` (0 change) · `""` (positive) · `"down"` (negative) |
 | **Sparkline colour** | `#5d6a6d` (muted) |
 
 **Copy states:**
@@ -291,6 +333,9 @@ export interface MarketHealthPayload {
   basisNote: string;           // human-readable basis sentence for sparkline legend
   showPrior: boolean;          // drives prior sparkline series visibility
   compareNote: string;         // drives sparkline-support basis note text
+  isAllSelected: boolean;      // true = All-mode (all tracked species); false = genus-scoped
+  generaCount: number;         // drives heading adaptation (0 = empty genus-scoped state)
+  scopeLabel: string;          // e.g. "Avicularia, Caribena and 2 more" for heading copy
 
   kpis: {
     observed: KpiCardData;
@@ -315,6 +360,9 @@ export interface KpiCardData {
   delta: string;                          // formatted delta e.g. "+7 vs prior quarter QTD"
   deltaClass: '' | 'down' | 'flat';       // maps to CSS modifier on .metric-delta
   copy: string;                           // one interpretation sentence (see §3)
+  // NOTE: the `?` info-icon tooltip text (e.g. "Of species seen in-stock this period…") is
+  // a hardcoded constant inside MarketKpiCard.svelte, keyed by metric ID. It is NOT in the
+  // payload because it never varies by window, genus selection, or data.
 }
 
 export interface SparklineSeries {
@@ -551,11 +599,14 @@ template string.
 | # | Question | Recommendation |
 |---|---|---|
 | 1 | **Svelte island vs server-render?** If sparkline run-click is the only stateful interaction, a single `MarketHealthSection.svelte` island receiving a fully-computed payload is the cleanest fit for the existing window-global pattern. | Go with single island. |
-| 2 | **Where does sparkline series data come from?** The mock uses interpolated shapes. In production, aggregate weekly snapshots per metric per window from the history CSV. | Build a `computeMarketHealthPayload(window, rows)` utility in `history-page/`. |
+| 2 | **Where does sparkline series data come from?** The mock uses interpolated shapes. In production, aggregate weekly snapshots per metric per window from the history CSV, filtered to the selected genera. | Build a `computeMarketHealthPayload(window, genera, rows)` utility in `history-page/`. |
 | 3 | **All-time Y-axis** | `showPrior: false` → auto-range solely from the current series. No shared-scale constraint with prior. |
 | 4 | **Run-click interaction scope** | Only the sparklines in the Market Health section participate. The run index is local state inside `MarketHealthSection` — it does not affect other sections. |
 | 5 | **Responsive grid** | KPI grid: 4-column → 2-column at < 760px (matches existing CSS breakpoint). Events grid: 2-column at all widths. |
 | 6 | **Residual CSS** | `.pulse-series`, `.pulse-end-label`, `.pulse-end-label[hidden]`, `.pulse-end-label.prior`, `.pulse-selection-note`, `.pulse-scale-note` are present in the mock CSS but unused. Remove before implementation. |
+| 7 | **Empty genus state** | When `generaCount === 0` AND `isAllSelected === false`, show the empty-state heading and hide all KPI cards and event tiles. The section remains visible as a structural placeholder. |
+| 8 | **`scopeLabel` format** | For ≤ 3 genera: `"Avicularia, Caribena and Psalmopoeus"`. For 4+: `"your 4 selected genera"`. Computed server-side; passed in payload so the client does not need to re-derive the genus list. |
+| 9 | **`isAllSelected` default** | `true` — the page generates with All-mode as the default. The Python generator passes the active genus selection and whether it is “All”. Selecting a specific genus requires a new page render (static site). |
 
 ---
 
@@ -564,6 +615,7 @@ template string.
 - **Breeder Opportunity section** — covered by a separate spec once this one is implemented.
 - **Bias Control section** — same.
 - **Time window filter UI** — that is a separate panel component.
-- **Genus selector** — Market Health ignores genus selection entirely; the filter panel is
-  out of scope for this spec.
+- **Genus selector UI** — the filter panel component itself is out of scope for this spec.
+  How the selection (and whether “All” is active) is communicated to the Python generator
+  is covered in the implementation plan.
 - **CSV export** — not relevant to this section.

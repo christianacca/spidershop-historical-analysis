@@ -63,6 +63,14 @@ calls it and passes the result into the Jinja template context, which then injec
 a window global. Follow the existing pattern in `sparkline_dto.py` for how DTOs are
 computed and passed to templates.
 
+The computation takes a `selected_genera: List[str]` parameter (list of genus name strings,
+e.g. `["Avicularia", "Caribena"]`) and an `is_all_selected: bool` parameter (default
+`True`). When `is_all_selected=True`, the computation uses **all rows** (market-wide);
+when `False`, it filters to rows where the first token of `scientific_name` is in
+`selected_genera`. When the page is generated, the generator passes the **default state**
+(`is_all_selected=True`) — genus selection changes in the browser require a new page
+render (this is a static site).
+
 The CSV the computation reads from: `spidershop_spiderlings_history.csv` with schema:
 ```
 scrape_datetime, scientific_name, common_name, size_cm, price_gbp, wishlist_count, page_url
@@ -286,19 +294,24 @@ global into the history page.
 
 **Tasks:**
 - [ ] Create `src/website/market_health_dto.py`:
-  - Public function: `build_market_health_payload(history_rows: List[dict], window_id: str) -> dict`
+  - Public function: `build_market_health_payload(history_rows: List[dict], window_id: str, selected_genera: List[str], is_all_selected: bool = True) -> dict`
   - Accepts the same list-of-dicts that the history table uses, plus the selected
-    time window ID.
-  - Returns a Python dict matching the `MarketHealthPayload` TypeScript interface.
-  - Computation rules:
+    time window ID, the list of genus names in scope, and a flag for All-mode.
+  - Returns a Python dict matching the `MarketHealthPayload` TypeScript interface
+    (including the `isAllSelected` field).
+  - Computation rules — **genus filter is conditional**: if `is_all_selected=True`, use
+    all rows (market-wide); if `False`, filter `history_rows` to only rows where the
+    first token (genus) of `scientific_name` is in `selected_genera`. All subsequent
+    computations operate on this filtered set.
     - **Observed species**: `COUNT DISTINCT scientific_name` where `scrape_datetime`
-      falls within the active window period AND the row exists (= in-stock).
+      falls within the active window period AND the row exists (= in-stock) in the
+      filtered set.
     - **In-stock rate**: `(in-stock rows at the latest scrape within window) /
-      (all species tracked within window) × 100`. Round to integer.
+      (all species tracked within window) × 100` from the filtered set. Round to integer.
     - **Median wishlist**: `MEDIAN(wishlist_count)` at the latest scrape within window,
-      for in-stock rows. Convert to integer.
+      for in-stock rows in the filtered set. Convert to integer.
     - **Median price**: `MEDIAN(price_gbp)` at the latest scrape within window, for
-      in-stock rows. Format as `"GBP N"`.
+      in-stock rows in the filtered set. Format as `"GBP N"`.
     - **Prior period computation**: for each window ID, derive the matched prior period
       (e.g. "current quarter" → "same dates last quarter") and compute the same
       four metrics for that period. Delta = current − prior.
@@ -309,7 +322,7 @@ global into the history page.
     - When fewer than 2 scrapes exist for a window: raise a domain-level warning
       (not an exception) and return safe fallback values with `showPrior: false`.
   - Build a second public function:
-    `build_market_health_payload_all_windows(history_rows) -> dict[str, dict]`
+    `build_market_health_payload_all_windows(history_rows: List[dict], selected_genera: List[str], is_all_selected: bool = True) -> dict[str, dict]`
     returning one payload per window ID.
 - [ ] Create `tests/website_module/test_market_health_dto.py`:
   - Test observed species count for a minimal fixture (2 scrapes, 3 species each)
@@ -319,6 +332,10 @@ global into the history page.
   - Test `showPrior: false` for `all-time` window
   - Test events counting (new listings, dropped, restocks, oos flips)
   - Test fewer-than-2-scrapes edge case — returns fallback, no crash
+  - **Test genus filtering**: given rows with 3 genera, passing `selected_genera=["A", "B"]`
+    with `is_all_selected=False` must exclude genus `C` from all four metric computations
+  - **Test All-mode**: given rows with 3 genera, passing `is_all_selected=True` must
+    include all genera regardless of `selected_genera`
 - [ ] Run `make test` — green; `make test-file FILE=tests/website_module/test_market_health_dto.py`
   — coverage ≥ 80% for `market_health_dto.py`
 
@@ -346,9 +363,9 @@ template, add the mount point to the HTML, and validate end-to-end.
 - [ ] In `templates/history_page.html`:
   - Add `<div id="market-health-root"></div>` above the table section.
   - Add `<script>window.marketHealthPayload = {{ market_health_payload | tojson | safe }};</script>`
-    in the extra_js block (or immediately below the root div). Choose `current-quarter`
-    as the default window — the client can re-derive other windows if needed, or
-    the Python can inject all windows and the client picks by `windowId`.
+    in the extra_js block (or immediately below the root div). The payload is built for
+    the **default genus selection** at page-generate time. Genus selection changes in the
+    browser require the page to be re-rendered — this is by design for a static site.
     **Decision to make and log:** inject one pre-selected window payload vs all windows.
     See open decision #2 in spec §11.
 - [ ] In `client/src/history-page/index.ts`:

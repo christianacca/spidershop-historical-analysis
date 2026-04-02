@@ -408,9 +408,26 @@
 
     .quick-pick.active {
       border-style: solid;
-      border-color: rgba(31, 122, 107, 0.24);
-      background: rgba(31, 122, 107, 0.12);
-      color: var(--accent);
+      border-color: var(--ink);
+      background: var(--ink);
+      color: #fff;
+    }
+
+    .quick-pick-action {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(31, 42, 44, 0.22);
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-weight: 400;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .quick-pick-action:hover {
+      border-color: rgba(31, 42, 44, 0.4);
+      color: var(--ink);
     }
 
     .selector-empty {
@@ -1500,11 +1517,11 @@
       <aside class="filters-panel">
         <div>
           <h2>Global filters</h2>
-          <p class="filter-note">Use these filters to define the base market slice for the whole page. Later comparison controls add genus-specific analysis for sections 2 and 3.</p>
+          <p class="filter-note">Both the time window and genus selection apply to every section on this page, including Market Health KPIs. Comparison controls in sections 2 and 3 assign additional roles (focus genus, peer set) within the genera already in scope here.</p>
         </div>
 
         <div class="scope-inline">
-          <span class="scope-label" id="global-scope-label">Current market scope: 4 genera • current quarter</span>
+          <span class="scope-label" id="global-scope-label">Current market scope: all genera • current quarter</span>
           <p class="filter-note">All KPIs, charts, preview rows, and CSV export reflect this scope.</p>
         </div>
 
@@ -1514,7 +1531,7 @@
             <details class="selector-details">
               <summary class="selector-header">
                 <div class="selector-title">
-                  <span class="scope-label" id="selector-count-label">4 selected • 68 available</span>
+                  <span class="scope-label" id="selector-count-label">All genera • 68 available</span>
                   <span class="selector-meta">Selected genera stay visible here so you can see the current market slice at a glance.</span>
                 </div>
                 <span class="selector-toggle"><span class="toggle-icon">▶</span></span>
@@ -1522,7 +1539,7 @@
 
               <div class="collapsed-shell">
                 <div class="chips" id="selected-genera-chips"></div>
-                <p class="collapsed-note" id="collapsed-selector-note">Expand to search all genera, adjust the selection, or use lifestyle shortcuts.</p>
+                <p class="collapsed-note" id="collapsed-selector-note">All genera are in scope for Market Health KPIs. Select specific genera to narrow the focus and unlock comparison controls.</p>
               </div>
 
               <div class="expanded-preview">
@@ -1535,12 +1552,12 @@
                   <div class="suggestion-list" id="genus-suggestion-list"></div>
                 </div>
                 <div class="quick-pick-row">
+                  <button type="button" id="genus-all-btn" class="quick-pick active" data-selection-action="all">All</button>
                   <button type="button" class="quick-pick" data-selection-action="most-observed">Most observed</button>
                   <button type="button" class="quick-pick" data-selection-action="arboreal">Arboreal</button>
                   <button type="button" class="quick-pick" data-selection-action="terrestrial">Terrestrial</button>
                   <button type="button" class="quick-pick" data-selection-action="fossorial">Fossorial</button>
-                  <button type="button" class="quick-pick" data-selection-action="selected-only">Selected only</button>
-                  <button type="button" class="quick-pick" data-selection-action="clear-all">Clear all</button>
+                  <button type="button" class="quick-pick-action" data-selection-action="clear-all">Clear all</button>
                 </div>
               </div>
             </details>
@@ -1580,48 +1597,84 @@
       <div class="section-header">
         <div class="section-title">
           <div class="eyebrow">1. Market Health KPIs</div>
-          <h2>Is the hobby growing, becoming harder to source, or leveling off?</h2>
-          <p>These visuals ignore your genus preference and ask whether the wider market looks alive enough to justify breeding investment.</p>
+          <h2 id="market-health-heading">Is the wider tarantula market growing, becoming harder to source, or levelling off?</h2>
+          <p id="market-health-scope-copy">These metrics cover all tracked species — the widest possible lens before you narrow to a genus.</p>
         </div>
-        <p class="section-note">If the market looks flat overall, even a visually attractive genus comparison should be treated cautiously.</p>
+        <p class="section-note" id="market-health-section-note">If the overall market looks flat, treat individual genus comparisons cautiously.</p>
       </div>
 
       <div class="kpi-grid">
         <article class="kpi-card">
-          <h3>Observed species</h3>
+          <div class="metric-title-row">
+            <h3>Observed species</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is Observed species?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>How many distinct species appeared in-stock at least once during this period.</p>
+              </div>
+            </details>
+          </div>
           <div class="metric-value">184</div>
-          <span class="metric-delta" id="market-observed-delta">+12 vs prior quarter QTD</span>
-          <p class="metric-text" id="market-observed-copy">The number of observed species is slightly expanding rather than contracting.</p>
+          <span class="metric-delta" id="market-observed-delta">+7 vs prior quarter QTD</span>
+          <p class="metric-text" id="market-observed-copy">Breadth is ahead of the same point last quarter, so the market still looks alive on assortment even while actual stock is getting tighter.</p>
           <div class="metric-sparkline-shell">
             <div class="metric-sparkline" id="market-observed-sparkline"></div>
             <p class="sparkline-readout" id="market-observed-sparkline-readout">Current vs matched prior-period shape.</p>
           </div>
         </article>
         <article class="kpi-card">
-          <h3>In-stock rate</h3>
+          <div class="metric-title-row">
+            <h3>In-stock rate</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is In-stock rate?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>Of species seen in-stock this period, how many are still available right now?</p>
+              </div>
+            </details>
+          </div>
           <div class="metric-value">61%</div>
           <span class="metric-delta down" id="market-stock-delta">-7 pts vs prior quarter QTD</span>
-          <p class="metric-text" id="market-stock-copy">61% of tracked listings are available now. That is 7 percentage points lower than last quarter, so availability is slipping even while the catalog remains broad.</p>
+          <p class="metric-text" id="market-stock-copy">Availability is a touch weaker than the same point last quarter. That reads more like near-term tightening than a structural collapse.</p>
           <div class="metric-sparkline-shell">
             <div class="metric-sparkline" id="market-stock-sparkline"></div>
             <p class="sparkline-readout" id="market-stock-sparkline-readout">Current vs matched prior-period shape.</p>
           </div>
         </article>
         <article class="kpi-card">
-          <h3>Median wishlist</h3>
+          <div class="metric-title-row">
+            <h3>Median wishlist</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is Median wishlist?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>The middle wishlist count across in-stock listings at the latest run — a rough proxy for demand interest.</p>
+              </div>
+            </details>
+          </div>
           <div class="metric-value">18</div>
-          <span class="metric-delta" id="market-wishlist-delta">+4 vs prior quarter QTD</span>
-          <p class="metric-text" id="market-wishlist-copy">Across tracked species, the median wishlist count is 18. That is modestly higher than last quarter and less sensitive to week-to-week stock swings.</p>
+          <span class="metric-delta" id="market-wishlist-delta">+3 vs prior quarter QTD</span>
+          <p class="metric-text" id="market-wishlist-copy">Median wishlist counts are modestly above the same point last quarter, which suggests demand is holding without obviously overheating.</p>
           <div class="metric-sparkline-shell">
             <div class="metric-sparkline" id="market-wishlist-sparkline"></div>
             <p class="sparkline-readout" id="market-wishlist-sparkline-readout">Current vs matched prior-period shape.</p>
           </div>
         </article>
         <article class="kpi-card">
-          <h3>Median price</h3>
+          <div class="metric-title-row">
+            <h3>Median price</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is Median price?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>The middle listing price across in-stock listings at the latest run.</p>
+              </div>
+            </details>
+          </div>
           <div class="metric-value">GBP 24</div>
-          <span class="metric-delta flat" id="market-price-delta">+GBP 0 vs prior quarter QTD</span>
-          <p class="metric-text" id="market-price-copy">Price is steady, so the main movement appears to be availability rather than inflation.</p>
+          <span class="metric-delta" id="market-price-delta">+GBP 1 vs prior quarter QTD</span>
+          <p class="metric-text" id="market-price-copy">Prices edged up a little relative to the same point last quarter, which fits a market tightening gradually rather than repricing sharply.</p>
           <div class="metric-sparkline-shell">
             <div class="metric-sparkline" id="market-price-sparkline"></div>
             <p class="sparkline-readout" id="market-price-sparkline-readout">Current vs matched prior-period shape.</p>
@@ -1737,19 +1790,46 @@
       <div class="section-live">
       <div class="kpi-grid">
         <article class="kpi-card">
-          <h3><span id="breeder-focus-name">Focus genus</span> scarcity rate</h3>
+          <div class="metric-title-row">
+            <h3><span id="breeder-focus-name">Focus genus</span> scarcity rate</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is Scarcity rate?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>The percentage of this genus's listings that are currently out of stock. Higher means harder to find.</p>
+              </div>
+            </details>
+          </div>
           <div class="metric-value" id="breeder-scarcity-value">38%</div>
           <span class="metric-delta flat" id="breeder-scarcity-label">Middle of pack</span>
           <p class="metric-text" id="breeder-scarcity-copy">Promising, but not dominant if scarcity is your main breeder signal.</p>
         </article>
         <article class="kpi-card">
-          <h3>Median wishlist in stock</h3>
+          <div class="metric-title-row">
+            <h3>Median wishlist in stock</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is Median wishlist in stock?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>The middle wishlist count across this genus's in-stock listings at the latest run — demand interest when supply is actually available.</p>
+              </div>
+            </details>
+          </div>
           <div class="metric-value" id="breeder-wishlist-value">26</div>
           <span class="metric-delta" id="breeder-wishlist-label">High</span>
           <p class="metric-text" id="breeder-wishlist-copy">Interest remains healthy even when listings are actually available.</p>
         </article>
         <article class="kpi-card">
-          <h3>Restock cadence</h3>
+          <div class="metric-title-row">
+            <h3>Restock cadence</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is Restock cadence?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>Average days for an out-of-stock listing of this genus to come back in stock. Shorter is better for supply reliability.</p>
+              </div>
+            </details>
+          </div>
           <div class="metric-value" id="breeder-restock-value">11d</div>
           <span class="metric-delta down" id="breeder-restock-label">Slow</span>
           <p class="metric-text" id="breeder-restock-copy">Once missing, these listings do not snap back immediately.</p>
@@ -2204,11 +2284,11 @@
     const editableComparisonLimit = 8;
     const initialSelection = ['Avicularia', 'Caribena', 'Psalmopoeus', 'Chromatopelma'];
     const selectionPresets = {
+      all: null,  // sentinel: isAllSelected mode
       'most-observed': ['Grammostola', 'Aphonopelma', 'Tliltocatl', 'Brachypelma', 'Nhandu', 'Avicularia', 'Psalmopoeus', 'Chromatopelma', 'Caribena', 'Poecilotheria', 'Lasiodora', 'Pamphobeteus'],
       arboreal: ['Avicularia', 'Caribena', 'Psalmopoeus', 'Poecilotheria', 'Tapinauchenius', 'Ybyrapora', 'Iridopelma'],
       terrestrial: ['Grammostola', 'Aphonopelma', 'Brachypelma', 'Tliltocatl', 'Nhandu', 'Chromatopelma', 'Euathlus'],
       fossorial: ['Chilobrachys', 'Cyriopagopus', 'Haplocosmia', 'Pelinobius', 'Ceratogyrus', 'Idiothele'],
-      'selected-only': initialSelection,
       'clear-all': [],
     };
     const genusSearchInput = document.getElementById('genus-search-input');
@@ -2254,6 +2334,10 @@
     const marketEventsOosLabel = document.getElementById('market-events-oos-label');
     const marketEventsOosValue = document.getElementById('market-events-oos-value');
     const marketEventsOosCopy = document.getElementById('market-events-oos-copy');
+    const marketHealthHeading = document.getElementById('market-health-heading');
+    const marketHealthScopeCopy = document.getElementById('market-health-scope-copy');
+    const marketHealthSectionNote = document.getElementById('market-health-section-note');
+    const genusAllBtn = document.getElementById('genus-all-btn');
     const focusGenusOptions = document.getElementById('focus-genus-options');
     const compareFocusPicker = document.getElementById('compare-focus-picker');
     const peerSetSubhead = document.getElementById('peer-set-subhead');
@@ -2520,17 +2604,17 @@
           observed: { text: '+7 vs prior quarter QTD', kind: '' },
           stock: { text: '-4 pts vs prior quarter QTD', kind: 'down' },
           wishlist: { text: '+3 vs prior quarter QTD', kind: '' },
-          price: { text: '+GBP 1 vs prior quarter QTD', kind: 'flat' },
+          price: { text: '+GBP 1 vs prior quarter QTD', kind: '' },
         },
         copy: {
           observed: 'Breadth is ahead of the same point last quarter, so the market still looks alive on assortment even while actual stock is getting tighter.',
-          stock: '61% of tracked listings are available now. That is below the same point last quarter, which is consistent with more friction on supply than on market interest.',
-          wishlist: 'Across tracked species, median wishlist demand is ahead of the same point last quarter, reinforcing the idea that interest is improving while availability slips.',
-          price: 'Median price is only modestly firmer than the same point last quarter. Demand looks healthier, but prices are not yet signaling a broad inflation cycle.',
+          stock: 'Availability is a touch weaker than the same point last quarter. That reads more like near-term tightening than a structural collapse.',
+          wishlist: 'Median wishlist counts are modestly above the same point last quarter, which suggests demand is holding without obviously overheating.',
+          price: 'Prices edged up a little relative to the same point last quarter, which fits a market tightening gradually rather than repricing sharply.',
         },
         pulse: {
           title: 'Market pulse this quarter',
-          subtitle: 'Current quarter view: a live read on market breadth, availability, and demand relative to the same point last quarter.',
+          subtitle: 'Current quarter view: a live read on breadth, availability, and demand relative to the same point last quarter.',
           currentLabel: 'Current quarter absolute level',
           priorLabel: 'Prior quarter QTD absolute level',
           compareNote: 'Compare within a row. Solid shows the current quarter; dashed shows the matched point last quarter.',
@@ -2547,11 +2631,11 @@
         events: {
           title: 'Run-to-run market events this quarter',
           subtitle: 'Current-quarter event totals against the same point last quarter.',
-          newListings: { label: 'Listings added', value: '+29 vs prior quarter QTD', copy: 'Introductions are materially ahead of the matched point last quarter, which supports the breadth expansion visible in the chart.' },
-          droppedListings: { label: 'Listings removed', value: '17 vs prior quarter QTD', copy: 'There is real churn, but not enough to erase the stronger inflow.' },
-          restocks: { label: 'OUT -> IN restocks', value: '43 vs prior quarter QTD', copy: 'Movement is active; stock is not simply frozen, even though the in-stock rate is weaker than last quarter.' },
-          oosFlips: { label: 'IN -> OUT stockouts', value: '+21 vs prior quarter QTD', copy: 'More listings are moving from IN to OUT than at the same point last quarter, which helps explain why availability is softer even while breadth is still expanding.' },
-          basis: { label: 'Comparison basis', value: 'vs prior quarter QTD', copy: 'Read these event totals the same way as the pulse chart: active quarter-to-date totals versus the matched point last quarter.' },
+          newListings: { label: 'Listings added', value: '+16 vs prior quarter QTD', copy: 'Fresh introductions outpaced the matched point last quarter, which supports the breadth expansion visible in the chart.' },
+          droppedListings: { label: 'Listings removed', value: '9 vs prior quarter QTD', copy: 'Churn also rose, but the balance still favours broader assortment rather than retreat.' },
+          restocks: { label: 'OUT -> IN restocks', value: '24 vs prior quarter QTD', copy: 'Movement is active; stock is not simply frozen, even though the in-stock rate is weaker than last quarter.' },
+          oosFlips: { label: 'IN -> OUT stockouts', value: '+12 vs prior quarter QTD', copy: 'More listings are moving from IN to OUT than at the same point last quarter, which helps explain why availability is softer even while breadth is still expanding.' },
+          basis: { label: 'Comparison basis', value: 'vs prior quarter QTD', copy: 'These are quarter-to-date totals compared with the matched point last quarter.' },
         },
       },
       'last-quarter': {
@@ -2812,7 +2896,53 @@
       },
     };
 
-    let selectedGenera = [...initialSelection];
+    const genusScopedOverrides = {
+      'current-quarter': {
+        label: 'Current quarter',
+        scopeLabel: 'current quarter',
+        basisNote: 'Comparison basis: quarter to date vs prior quarter QTD.',
+        deltas: {
+          observed: { text: '+2 vs prior quarter QTD', kind: '' },
+          stock: { text: '-4 pts vs prior quarter QTD', kind: 'down' },
+          wishlist: { text: '+3 vs prior quarter QTD', kind: '' },
+          price: { text: '+GBP 0 vs prior quarter QTD', kind: 'flat' },
+        },
+        copy: {
+          observed: 'Species breadth across your selected genera is ahead of the same point last quarter, so your selection still looks alive on assortment even while actual stock is getting tighter.',
+          stock: '61% of listings for your selected genera are available now. That is below the same point last quarter, which is consistent with more friction on supply than on demand.',
+          wishlist: 'Across your selected genera, median wishlist demand is ahead of the same point last quarter, reinforcing the idea that interest is improving while availability slips.',
+          price: 'Pricing across your selected genera is only modestly firmer than the same point last quarter. Demand looks healthier, but prices are not yet signaling a broad inflation cycle.',
+        },
+        pulse: {
+          title: 'Supply and demand pulse — your genera, this quarter',
+          subtitle: 'Current quarter view: a live read on breadth, availability, and demand for your selected genera relative to the same point last quarter.',
+          currentLabel: 'Current quarter absolute level',
+          priorLabel: 'Prior quarter QTD absolute level',
+          compareNote: 'Compare within a row. Solid shows the current quarter; dashed shows the matched point last quarter.',
+          showPrior: true,
+          endValues: {
+            breadthCurrent: '14',
+            breadthPrior: '12',
+            stockCurrent: '61%',
+            stockPrior: '65%',
+            wishlistCurrent: '26',
+            wishlistPrior: '23',
+          },
+        },
+        events: {
+          title: 'Run-to-run events for your selected genera, this quarter',
+          subtitle: 'Current-quarter listing events for your selected genera, against the same point last quarter.',
+          newListings: { label: 'Listings added', value: '+6 vs prior quarter QTD', copy: 'Introductions are ahead of the matched point last quarter, which supports the broader species breadth visible in the chart.' },
+          droppedListings: { label: 'Listings removed', value: '4 vs prior quarter QTD', copy: 'Some churn is present, but the removal count is too small to erase the stronger inflow.' },
+          restocks: { label: 'OUT -> IN restocks', value: '11 vs prior quarter QTD', copy: 'Movement is active; stock is not simply frozen, even though the in-stock rate is weaker than last quarter.' },
+          oosFlips: { label: 'IN -> OUT stockouts', value: '+7 vs prior quarter QTD', copy: 'More listings are moving from IN to OUT than at the same point last quarter, which helps explain why availability is softer even while breadth is still expanding.' },
+          basis: { label: 'Comparison basis', value: 'vs prior quarter QTD', copy: 'Read these event totals the same way as the sparklines: active quarter-to-date totals for your selected genera versus the matched point last quarter.' },
+        },
+      },
+    };
+
+    let selectedGenera = [];
+    let isAllSelected = true;
     let selectedTimeWindow = 'current-quarter';
     let selectedSparklineRun = null;
     let searchQuery = '';
@@ -2963,7 +3093,7 @@
     }
 
     function renderMarketSparklines() {
-      const windowConfig = timeWindowOptions[selectedTimeWindow];
+      const windowConfig = getEffectiveWindowConfig();
       const sparklineConfig = marketSparklineSeries[selectedTimeWindow];
       const showPrior = windowConfig.pulse.showPrior;
       marketSparklinePriorKey.hidden = !showPrior;
@@ -3065,14 +3195,17 @@
     }
 
     function matchesPreset(action) {
+      if (action === 'all') return isAllSelected;
+      if (isAllSelected) return false;
       const preset = selectionPresets[action];
       if (!preset) {
         return false;
       }
-      if (preset.length !== selectedGenera.length) {
+      const normalizedPreset = normalizeSelection(preset);
+      if (normalizedPreset.length !== selectedGenera.length) {
         return false;
       }
-      return preset.every((genus, index) => selectedGenera[index] === genus);
+      return normalizedPreset.every((genus, index) => selectedGenera[index] === genus);
     }
 
     function syncStateAfterSelectionChange() {
@@ -3135,8 +3268,47 @@
       return 'Demand, but less scarcity';
     }
 
+    function renderMarketHealthSectionHeader() {
+      if (isAllSelected) {
+        marketHealthHeading.textContent = 'Is the wider tarantula market growing, becoming harder to source, or levelling off?';
+        marketHealthScopeCopy.textContent = 'These metrics cover all tracked species — the widest possible lens before you narrow to a genus.';
+        marketHealthSectionNote.textContent = 'If the overall market looks flat, treat individual genus comparisons cautiously.';
+        genusAllBtn.classList.add('active');
+        return;
+      }
+      genusAllBtn.classList.remove('active');
+      const count = selectedGenera.length;
+      if (!count) {
+        marketHealthHeading.textContent = 'Add genera to see supply and demand health for your selection.';
+        marketHealthScopeCopy.textContent = 'Use the genus filter above to add genera. Market Health KPIs will reflect whichever genera are in scope.';
+        marketHealthSectionNote.textContent = 'Use the genus filter above to add genera before drawing conclusions.';
+        return;
+      }
+      if (count === 1) {
+        marketHealthHeading.textContent = `Is ${selectedGenera[0]} supply growing, tightening, or levelling off?`;
+      } else if (count <= 3) {
+        const list = selectedGenera.slice(0, -1).join(', ') + ' and ' + selectedGenera[selectedGenera.length - 1];
+        marketHealthHeading.textContent = `For ${list}: is supply growing, tightening, or levelling off?`;
+      } else {
+        marketHealthHeading.textContent = `How healthy is supply and demand across your ${count} selected genera?`;
+      }
+      marketHealthScopeCopy.textContent = 'These metrics ask whether supply and demand for your selected genera look healthy enough to support breeding investment.';
+      marketHealthSectionNote.textContent = 'If your selected genera look flat overall, treat any individual genus comparison cautiously.';
+    }
+
     function renderSelectedGenera() {
       selectedGeneraChips.innerHTML = '';
+
+      if (isAllSelected) {
+        const chip = document.createElement('div');
+        chip.className = 'selector-empty';
+        chip.textContent = 'Market Health KPIs cover all genera. Select specific genera to scope section 1 and enable comparison.';
+        selectedGeneraChips.appendChild(chip);
+        globalScopeLabel.textContent = `Current market scope: all genera • ${timeWindowOptions[selectedTimeWindow].scopeLabel}`;
+        selectorCountLabel.textContent = `All genera • ${allGenera.length} available`;
+        collapsedSelectorNote.textContent = 'All genera are in scope for Market Health KPIs. Select specific genera to narrow the focus and unlock comparison controls.';
+        return;
+      }
 
       if (!selectedGenera.length) {
         const empty = document.createElement('div');
@@ -3153,6 +3325,7 @@
           button.innerHTML = `${genus} <span class="dismiss">x</span>`;
           button.addEventListener('click', () => {
             selectedGenera = selectedGenera.filter((item) => item !== genus);
+            if (!selectedGenera.length) isAllSelected = true;
             syncStateAfterSelectionChange();
             renderAll();
           });
@@ -3171,8 +3344,15 @@
         : 'Expand to search all genera, adjust the selection, or use lifestyle shortcuts.';
     }
 
+    function getEffectiveWindowConfig() {
+      if (!isAllSelected && genusScopedOverrides[selectedTimeWindow]) {
+        return genusScopedOverrides[selectedTimeWindow];
+      }
+      return timeWindowOptions[selectedTimeWindow];
+    }
+
     function updateMarketHealthDeltas() {
-      const windowConfig = timeWindowOptions[selectedTimeWindow];
+      const windowConfig = getEffectiveWindowConfig();
       const { deltas, copy, events } = windowConfig;
       setDelta(marketObservedDelta, deltas.observed.text, deltas.observed.kind);
       setDelta(marketStockDelta, deltas.stock.text, deltas.stock.kind);
@@ -3239,7 +3419,9 @@
         button.addEventListener('click', () => {
           if (isSelected) {
             selectedGenera = selectedGenera.filter((item) => item !== genus);
+            if (!selectedGenera.length) isAllSelected = true;
           } else {
+            isAllSelected = false;
             selectedGenera = normalizeSelection([...selectedGenera, genus]);
           }
           syncStateAfterSelectionChange();
@@ -3256,6 +3438,15 @@
     }
 
     function renderComparisonState() {
+      if (isAllSelected) {
+        compareStateBadge.className = 'compare-state-badge';
+        compareStateBadge.textContent = 'All genera';
+        compareStateTitle.textContent = 'Select specific genera to enable comparison';
+        compareStateCopy.textContent = 'Market Health KPIs show all-market data. To compare a focus genus against peers, select specific genera in the genus filter above.';
+        comparisonPanelCopy.textContent = 'These controls work on a specific genus selection. Add genera in the genus filter to unlock focus and peer selection.';
+        compareModeRow.style.opacity = '0.72';
+        return;
+      }
       if (!selectedGenera.length) {
         compareStateBadge.className = 'compare-state-badge';
         compareStateBadge.textContent = 'No scope';
@@ -3781,6 +3972,7 @@
 
     function renderAll() {
       renderTimeWindow();
+      renderMarketHealthSectionHeader();
       renderSelectedGenera();
       renderSuggestions();
       renderQuickPicks();
@@ -3803,7 +3995,13 @@
 
     quickPickButtons.forEach((button) => {
       button.addEventListener('click', () => {
-        selectedGenera = normalizeSelection(selectionPresets[button.dataset.selectionAction] || []);
+        if (button.dataset.selectionAction === 'all' || button.dataset.selectionAction === 'clear-all') {
+          isAllSelected = button.dataset.selectionAction === 'all';
+          selectedGenera = [];
+        } else {
+          isAllSelected = false;
+          selectedGenera = normalizeSelection(selectionPresets[button.dataset.selectionAction] || []);
+        }
         syncStateAfterSelectionChange();
         renderAll();
       });
