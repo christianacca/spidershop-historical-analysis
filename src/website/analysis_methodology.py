@@ -61,6 +61,10 @@ def _shared_window_items() -> list[dict[str, str]]:
             "detail": "OUT rows can inherit their most recent in-stock wishlist pressure for a bounded period.",
         },
         {
+            "label": f"Price display lookback: {OOS_CARRYOVER_LOOKBACK} runs",
+            "detail": "OUT rows can also inherit their most recent in-stock price for the same bounded period. If no qualifying price is found inside that window, the Price cell falls back to N/A rather than using stale history.",
+        },
+        {
             "label": f"Current delta lookup window: {WISHLIST_DELTA_LOOKBACK} runs",
             "detail": "When a species is OUT now, momentum uses only a short carryover window.",
         },
