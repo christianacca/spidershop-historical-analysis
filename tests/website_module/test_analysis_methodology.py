@@ -73,6 +73,10 @@ class TestAnalysisMethodologyBuilder:
             for line in threshold_lines
         )
         assert any(
+            f"Price display lookback: {OOS_CARRYOVER_LOOKBACK} runs" in line
+            for line in threshold_lines
+        )
+        assert any(
             f"Small-N flattening: max-min <= {WISHLIST_SMALL_N_FLATTEN_THRESHOLD}" in line
             for line in threshold_lines
         )
@@ -253,6 +257,10 @@ class TestAnalysisMethodologyBuilder:
             "Dealer Limited History",
             "Dealer price pressure",
         ]
+        assert any(
+            f"Price display lookback: {OOS_CARRYOVER_LOOKBACK} runs" in item["label"]
+            for item in dealer_windows_card["items"]
+        )
 
         medium_branch = next(
             branch for branch in tree_tab["tree"]["branches"] if branch["label"] == "If Medium"
