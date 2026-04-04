@@ -937,3 +937,119 @@ test('stock pattern buttons include canonical values and per-pattern row counts'
   expect(labels.some(l => l.includes('Newly Observed (1)'))).toBe(true);
   expect(labels.some(l => l.includes('Always (1)'))).toBe(true);
 });
+
+// ── Price warning icons (lineage transition disclosure) ───────────────────────
+
+const WARNING_ROWS = [
+  {
+    Species: 'Alpha Spider',
+    Signal: '🔥',
+    Price: '£35.00 →',
+    'Price History': 'sparkline-data',
+    Wishlist: '12 🔥 ↑',
+    'Wishlist History': 'wishlist-sparkline',
+    'Price Evidence State': 'transition-affected',
+    'Transition Message': 'Size changed from 3 cm to 5 cm on 2026-02-04. Price may not be fully like-for-like.',
+  },
+  {
+    Species: 'Beta Spider',
+    Signal: '⚠️',
+    Price: '£25.00 →',
+    'Price History': 'sparkline-data',
+    Wishlist: '8 ⚠️ →',
+    'Wishlist History': 'wishlist-sparkline',
+    'Price Evidence State': 'standard',
+    'Transition Message': '',
+  },
+  {
+    Species: 'Gamma Spider',
+    Signal: '❌',
+    Price: '£15.00 →',
+    'Price History': 'sparkline-data',
+    Wishlist: '3 ❌ ↓',
+    'Wishlist History': 'wishlist-sparkline',
+    'Price Evidence State': 'neutralized',
+    'Transition Message': 'Size change detected but continuity is uncertain.',
+  },
+];
+
+const WARNING_COLUMNS = [
+  { key: 'Species' },
+  { key: 'Signal' },
+  { key: 'Price', showPriceWarning: true },
+  { key: 'Price History', type: 'sparkline' as const, showPriceWarning: true },
+  { key: 'Wishlist' },
+  { key: 'Wishlist History', type: 'sparkline' as const },
+  { key: 'Price Evidence State', hidden: true },
+  { key: 'Transition Message', hidden: true },
+];
+
+function renderWarningTable() {
+  return render(SortableTable, {
+    tableId: 'warning-table',
+    rows: WARNING_ROWS,
+    columns: WARNING_COLUMNS,
+    filterConfig: {
+      priceWarningStateKey: 'Price Evidence State',
+      transitionMessageKey: 'Transition Message',
+    },
+  });
+}
+
+function getVisibleCells(container: HTMLElement): HTMLTableCellElement[][] {
+  return Array.from(container.querySelectorAll('tbody tr')).map((tr) =>
+    Array.from(tr.querySelectorAll('td')),
+  );
+}
+
+test('shows warning tip on Price cell when Price Evidence State is transition-affected', () => {
+  const { container } = renderWarningTable();
+  const cells = getVisibleCells(container);
+  // Row 0 (Alpha) — Price is column index 1 (after Species=0, Signal=1... wait, columns: Species=0, Signal=1, Price=2, Price History=3, Wishlist=4, Wishlist History=5)
+  const priceTd = cells[0][2]; // Price column
+  expect(priceTd.querySelector('.warning-tip')).not.toBeNull();
+});
+
+test('shows warning tip on Price History cell when Price Evidence State is transition-affected', () => {
+  const { container } = renderWarningTable();
+  const cells = getVisibleCells(container);
+  const priceHistoryTd = cells[0][3]; // Price History column
+  expect(priceHistoryTd.querySelector('.warning-tip')).not.toBeNull();
+});
+
+test('warning tooltip text comes from Transition Message field', () => {
+  const { container } = renderWarningTable();
+  const cells = getVisibleCells(container);
+  const priceTd = cells[0][2];
+  const tipText = priceTd.querySelector('.warning-tip__text');
+  expect(tipText?.textContent).toContain('Size changed from 3 cm to 5 cm on 2026-02-04');
+});
+
+test('does NOT show warning tip on Price cell when Price Evidence State is standard', () => {
+  const { container } = renderWarningTable();
+  const cells = getVisibleCells(container);
+  const priceTd = cells[1][2]; // Row 1 (Beta) — standard state
+  expect(priceTd.querySelector('.warning-tip')).toBeNull();
+});
+
+test('shows warning tip on Price cell when Price Evidence State is neutralized', () => {
+  const { container } = renderWarningTable();
+  const cells = getVisibleCells(container);
+  const priceTd = cells[2][2]; // Row 2 (Gamma) — neutralized state
+  expect(priceTd.querySelector('.warning-tip')).not.toBeNull();
+});
+
+test('does NOT show warning tip on Wishlist cell regardless of Price Evidence State', () => {
+  const { container } = renderWarningTable();
+  const cells = getVisibleCells(container);
+  // Row 0 has transition-affected Price Evidence State but Wishlist should not show warning
+  const wishlistTd = cells[0][4]; // Wishlist column
+  expect(wishlistTd.querySelector('.warning-tip')).toBeNull();
+});
+
+test('does NOT show warning tip on Wishlist History cell regardless of Price Evidence State', () => {
+  const { container } = renderWarningTable();
+  const cells = getVisibleCells(container);
+  const wishlistHistoryTd = cells[0][5]; // Wishlist History column
+  expect(wishlistHistoryTd.querySelector('.warning-tip')).toBeNull();
+});

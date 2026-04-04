@@ -20,7 +20,7 @@ from conftest import (
 
 
 class TestGetSpeciesList:
-    """Test extraction of unique (species, size) combinations from breeder/dealer CSVs."""
+    """Test extraction of unique species names from breeder/dealer CSVs."""
 
     def test_extracts_species_from_breeder_csv_only(self):
         """Should extract species list when only breeder CSV is provided."""
@@ -28,16 +28,16 @@ class TestGetSpeciesList:
 
         breeder_csv = create_temp_csv_file(
             "Species,Size (cm),Signal\n"
-            "Aphonopelma seemanni,1.5,🔥\n"
-            "Brachypelma hamorii,2.0,⚠️\n"
+            "Aphonopelma seemanni,1.5,\U0001f525\n"
+            "Brachypelma hamorii,2.0,\u26a0\ufe0f\n"
         )
         
         try:
             species_list = get_species_list(breeder_csv_path=breeder_csv)
             
             assert len(species_list) == 2
-            assert ("Aphonopelma seemanni", "1.5") in species_list
-            assert ("Brachypelma hamorii", "2.0") in species_list
+            assert "Aphonopelma seemanni" in species_list
+            assert "Brachypelma hamorii" in species_list
         finally:
             Path(breeder_csv).unlink()
 
@@ -47,14 +47,14 @@ class TestGetSpeciesList:
 
         dealer_csv = create_temp_csv_file(
             "Species,Size (cm),Dealer Risk\n"
-            "Tliltocatl albopilosus,1.0,🔥\n"
+            "Tliltocatl albopilosus,1.0,\U0001f525\n"
         )
         
         try:
             species_list = get_species_list(dealer_csv_path=dealer_csv)
             
             assert len(species_list) == 1
-            assert ("Tliltocatl albopilosus", "1.0") in species_list
+            assert "Tliltocatl albopilosus" in species_list
         finally:
             Path(dealer_csv).unlink()
 
@@ -64,39 +64,36 @@ class TestGetSpeciesList:
 
         breeder_csv = create_temp_csv_file(
             "Species,Size (cm),Signal\n"
-            "Aphonopelma seemanni,1.5,🔥\n"
-            "Brachypelma hamorii,2.0,⚠️\n"
+            "Aphonopelma seemanni,1.5,\U0001f525\n"
+            "Brachypelma hamorii,2.0,\u26a0\ufe0f\n"
         )
         dealer_csv = create_temp_csv_file(
             "Species,Size (cm),Dealer Risk\n"
-            "Aphonopelma seemanni,1.5,🔥\n"  # Duplicate
-            "Tliltocatl albopilosus,1.0,⚠️\n"
+            "Aphonopelma seemanni,1.5,\U0001f525\n"  # Duplicate
+            "Tliltocatl albopilosus,1.0,\u26a0\ufe0f\n"
         )
         
         try:
             species_list = get_species_list(breeder_csv_path=breeder_csv, dealer_csv_path=dealer_csv)
             
             assert len(species_list) == 3  # No duplicate
-            assert ("Aphonopelma seemanni", "1.5") in species_list
-            assert ("Brachypelma hamorii", "2.0") in species_list
-            assert ("Tliltocatl albopilosus", "1.0") in species_list
+            assert "Aphonopelma seemanni" in species_list
+            assert "Brachypelma hamorii" in species_list
+            assert "Tliltocatl albopilosus" in species_list
         finally:
             Path(breeder_csv).unlink()
             Path(dealer_csv).unlink()
     
-    def test_returns_empty_when_missing_size_column(self):
-        """Should return empty list when CSV doesn't have Size column."""
+    def test_returns_empty_when_missing_species_column(self):
+        """Should return empty list when CSV doesn't have Species column."""
         from website.species_detail import get_species_list
         
-        # Breeder CSV without Size column
-        breeder_content = "Species,Signal\nTest Spider,🔥\n"
-        
-        # Dealer CSV without Size column
-        dealer_content = "Species,Dealer Risk\nOther Spider,⚠️\n"
+        # CSVs without Species column
+        breeder_content = "Signal\n\U0001f525\n"
+        dealer_content = "Dealer Risk\n\u26a0\ufe0f\n"
         
         with temp_csv_file(breeder_content) as breeder_path:
             with temp_csv_file(dealer_content) as dealer_path:
-                # Both should return empty
                 assert get_species_list(breeder_csv_path=breeder_path) == []
                 assert get_species_list(dealer_csv_path=dealer_path) == []
 
@@ -159,7 +156,7 @@ class TestGetSpeciesData:
         
         try:
             data = get_species_data(
-                "Aphonopelma seemanni", "1.5",
+                "Aphonopelma seemanni",
                 breeder_csv, dealer_csv, history_csv
             )
             
@@ -184,7 +181,7 @@ class TestGetSpeciesData:
         
         try:
             data = get_species_data(
-                "Aphonopelma seemanni", "1.5",
+                "Aphonopelma seemanni",
                 breeder_csv, dealer_csv, history_csv
             )
             
@@ -208,7 +205,7 @@ class TestGetSpeciesData:
         
         try:
             data = get_species_data(
-                "Aphonopelma seemanni", "1.5",
+                "Aphonopelma seemanni",
                 breeder_csv, dealer_csv, history_csv
             )
             
@@ -253,7 +250,7 @@ class TestBuildChartData:
         history_csv = create_temp_csv_file(create_history_csv_content(history_entries))
         
         try:
-            chart_data = build_chart_data("Aphonopelma seemanni", "1.5", history_csv)
+            chart_data = build_chart_data("Aphonopelma seemanni", history_csv)
             
             # Should have 26 runs (last 26 of 30 total)
             assert len(chart_data["runs"]) == 26
@@ -299,7 +296,7 @@ class TestBuildChartData:
         history_csv = create_temp_csv_file(create_history_csv_content(history_entries))
         
         try:
-            chart_data = build_chart_data("Aphonopelma seemanni", "1.5", history_csv)
+            chart_data = build_chart_data("Aphonopelma seemanni", history_csv)
             
             # Run 1: observed
             assert chart_data["runs"][0]["observed"] is True
@@ -326,7 +323,7 @@ class TestBuildChartData:
         )
         
         try:
-            chart_data = build_chart_data("Aphonopelma seemanni", "1.5", history_csv)
+            chart_data = build_chart_data("Aphonopelma seemanni", history_csv)
             
             assert chart_data["runs"] == []
         finally:
@@ -341,7 +338,7 @@ class TestBuildChartData:
         history_csv = create_temp_csv_file(content)
         
         try:
-            chart_data = build_chart_data("Aphonopelma seemanni", "1.5", history_csv)
+            chart_data = build_chart_data("Aphonopelma seemanni", history_csv)
             
             assert chart_data["runs"] == []
         finally:
@@ -453,14 +450,14 @@ class TestGetObservationMetadata:
         history_csv = create_temp_csv_file(create_history_csv_content(history_entries))
 
         try:
-            metadata = get_observation_metadata("Aphonopelma seemanni", "1.5", history_csv)
+            metadata = get_observation_metadata("Aphonopelma seemanni", history_csv)
 
             assert metadata["first_observed"] == "2025-01-15"
             assert metadata["latest_observed"] == "2025-01-29"
             assert metadata["observed_run_count"] == 2
             assert metadata["total_run_count"] == 5
             assert metadata["observed_runs_display"] == "2/5 runs"
-            assert metadata["has_ambiguous_pre_first_seen_runs"] is True
+            assert metadata["has_ambiguous_pre_first_seen_runs"] is False
         finally:
             Path(history_csv).unlink()
 
@@ -488,7 +485,7 @@ class TestGetObservationMetadata:
         history_csv = create_temp_csv_file(create_history_csv_content(history_entries))
 
         try:
-            metadata = get_observation_metadata("Psalmopoeus irminia", "1.2", history_csv)
+            metadata = get_observation_metadata("Psalmopoeus irminia", history_csv)
 
             assert metadata["first_observed_status"] == "new"
             assert metadata["first_observed_flag"] == "New"
@@ -518,7 +515,7 @@ class TestGetObservationMetadata:
         history_csv = create_temp_csv_file(create_history_csv_content(history_entries))
 
         try:
-            metadata = get_observation_metadata("Aphonopelma seemanni", "1.5", history_csv)
+            metadata = get_observation_metadata("Aphonopelma seemanni", history_csv)
 
             assert metadata["latest_observed_status"] == "stale"
             assert metadata["latest_observed_flag"] == "Stale"
@@ -538,7 +535,7 @@ class TestGetObservationMetadata:
         history_csv = create_temp_csv_file(create_history_csv_content(history_entries))
 
         try:
-            metadata = get_observation_metadata("Aphonopelma seemanni", "1.5", history_csv)
+            metadata = get_observation_metadata("Aphonopelma seemanni", history_csv)
 
             assert metadata["first_observed_status"] == "current"
             assert metadata["first_observed_flag"] is None
@@ -589,7 +586,6 @@ class TestGenerateSpeciesPage:
         html = generate_species_page(
             "Aphonopelma seemanni",
             "Common Name",
-            "1.5",
             species_data,
             chart_data,
             observation_metadata=observation_metadata,
@@ -649,7 +645,6 @@ class TestGenerateSpeciesPage:
         html = generate_species_page(
             "Aphonopelma seemanni",
             "Common Name",
-            "1.5",
             species_data,
             chart_data
         )
@@ -708,7 +703,6 @@ class TestGenerateSpeciesPage:
         html = generate_species_page(
             "Aphonopelma seemanni",
             "Common Name",
-            "1.5",
             species_data,
             chart_data,
             default_view="breeder"
@@ -729,7 +723,6 @@ class TestGenerateSpeciesPage:
         html = generate_species_page(
             "Aphonopelma seemanni",
             "Common Name",
-            "1.5",
             species_data,
             chart_data
         )
@@ -759,7 +752,6 @@ class TestGenerateSpeciesPage:
         html = generate_species_page(
             "Aphonopelma seemanni",
             "Common Name",
-            "1.5",
             species_data,
             chart_data,
         )
@@ -808,7 +800,7 @@ class TestGetPageUrl:
         ])
         
         with temp_csv_file(content) as csv_path:
-            result = get_page_url("Test Spider", "1.5", csv_path)
+            result = get_page_url("Test Spider", csv_path)
             assert result == "https://example.com/recent"
     
     def test_returns_none_when_species_not_found(self):
@@ -828,11 +820,11 @@ class TestGetPageUrl:
         ])
         
         with temp_csv_file(content) as csv_path:
-            result = get_page_url("Test Spider", "1.5", csv_path)
+            result = get_page_url("Test Spider", csv_path)
             assert result is None
     
-    def test_returns_none_when_size_not_found(self):
-        """Should return None when size doesn't match."""
+    def test_returns_url_regardless_of_size_variant(self):
+        """Phase 5: should return URL for species even when multiple sizes exist."""
         from website.species_detail import get_page_url
         
         content = create_history_csv_content([
@@ -848,8 +840,8 @@ class TestGetPageUrl:
         ])
         
         with temp_csv_file(content) as csv_path:
-            result = get_page_url("Test Spider", "1.5", csv_path)
-            assert result is None
+            result = get_page_url("Test Spider", csv_path)
+            assert result == "https://example.com/small"
     
     def test_returns_none_when_history_empty(self):
         """Should return None when history CSV is empty."""
@@ -858,7 +850,7 @@ class TestGetPageUrl:
         content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
         
         with temp_csv_file(content) as csv_path:
-            result = get_page_url("Test Spider", "1.5", csv_path)
+            result = get_page_url("Test Spider", csv_path)
             assert result is None
 
 
@@ -887,7 +879,6 @@ class TestSignalTooltipDrivers:
         html = generate_species_page(
             "Test Spider",
             "Common Name",
-            "1.5",
             species_data,
             chart_data,
             default_view="breeder"
@@ -926,7 +917,6 @@ class TestSignalTooltipDrivers:
         html = generate_species_page(
             "Test Spider",
             "Common Name",
-            "1.5",
             species_data,
             chart_data,
             default_view="dealer"
@@ -962,7 +952,6 @@ class TestSignalTooltipDrivers:
         html = generate_species_page(
             "Test Spider",
             "Common Name",
-            "1.5",
             species_data,
             chart_data,
             default_view="breeder"
@@ -984,7 +973,6 @@ class TestSignalTooltipDrivers:
         html = generate_species_page(
             "Test Spider",
             "Common Name",
-            "1.5",
             species_data,
             chart_data,
             default_view="dealer"
@@ -993,3 +981,399 @@ class TestSignalTooltipDrivers:
         # Check that the card exists with tooltip
         assert '<div class="stat-label">Supply Risk<span class="info-tip"' in html
         assert 'Stock: Reliability Medium (Restock Slow)' in html
+
+
+# ============================================================================
+# Phase 5 — species-level function signatures (RED tests written first — TDD)
+# ============================================================================
+
+
+class TestGetSpeciesListPhase5:
+    """Phase 5: get_species_list() returns list[str] — unique species names only."""
+
+    def test_returns_list_of_strings_not_tuples(self):
+        """Phase 5: returned items must be str, not (species, size) tuples."""
+        from website.species_detail import get_species_list
+
+        breeder_csv = create_temp_csv_file(
+            "Species,Size (cm),Signal\n"
+            "Aphonopelma seemanni,1.5,🔥\n"
+        )
+        try:
+            species_list = get_species_list(breeder_csv_path=breeder_csv)
+            assert len(species_list) == 1
+            assert isinstance(species_list[0], str)
+            assert species_list[0] == "Aphonopelma seemanni"
+        finally:
+            Path(breeder_csv).unlink()
+
+    def test_deduplicates_multi_variant_species(self):
+        """Phase 5: species with two active sizes must appear once in the list."""
+        from website.species_detail import get_species_list
+
+        breeder_csv = create_temp_csv_file(
+            "Species,Size (cm),Signal\n"
+            "Aphonopelma seemanni,1.0,🔥\n"
+            "Aphonopelma seemanni,2.0,🔥\n"
+            "Brachypelma hamorii,2.0,⚠️\n"
+        )
+        try:
+            species_list = get_species_list(breeder_csv_path=breeder_csv)
+            assert len(species_list) == 2
+            assert "Aphonopelma seemanni" in species_list
+            assert "Brachypelma hamorii" in species_list
+        finally:
+            Path(breeder_csv).unlink()
+
+    def test_merges_species_from_both_csvs(self):
+        """Phase 5: union of breeder + dealer species, no duplicates."""
+        from website.species_detail import get_species_list
+
+        breeder_csv = create_temp_csv_file(
+            "Species,Size (cm),Signal\n"
+            "Aphonopelma seemanni,1.5,🔥\n"
+            "Brachypelma hamorii,2.0,⚠️\n"
+        )
+        dealer_csv = create_temp_csv_file(
+            "Species,Size (cm),Dealer Risk\n"
+            "Aphonopelma seemanni,1.5,🔥\n"
+            "Tliltocatl albopilosus,1.0,⚠️\n"
+        )
+        try:
+            species_list = get_species_list(
+                breeder_csv_path=breeder_csv, dealer_csv_path=dealer_csv
+            )
+            assert len(species_list) == 3
+            assert "Aphonopelma seemanni" in species_list
+            assert "Brachypelma hamorii" in species_list
+            assert "Tliltocatl albopilosus" in species_list
+        finally:
+            Path(breeder_csv).unlink()
+            Path(dealer_csv).unlink()
+
+    def test_returns_sorted_list(self):
+        """Phase 5: list must be sorted alphabetically."""
+        from website.species_detail import get_species_list
+
+        breeder_csv = create_temp_csv_file(
+            "Species,Size (cm),Signal\n"
+            "Tliltocatl albopilosus,1.0,⚠️\n"
+            "Aphonopelma seemanni,1.5,🔥\n"
+        )
+        try:
+            species_list = get_species_list(breeder_csv_path=breeder_csv)
+            assert species_list == sorted(species_list)
+        finally:
+            Path(breeder_csv).unlink()
+
+
+class TestGetSpeciesDataPhase5:
+    """Phase 5: get_species_data() has no 'size' parameter."""
+
+    def test_accepts_no_size_argument(self):
+        """Phase 5: calling without size must not raise TypeError."""
+        from website.species_detail import get_species_data
+
+        breeder_csv = create_temp_csv_file(
+            "Species,Size (cm),Signal,Recommendation,OOS,OOS Runs,Stock Pattern,"
+            "Price,Price History,Wishlist,Wishlist History\n"
+            "Aphonopelma seemanni,1.5,🔥,Pair soon,OUT,3,Sustained,"
+            "£25.00 →,▄▄▃▂▁,-,-\n"
+        )
+        dealer_csv = create_temp_csv_file(
+            "Species,Size (cm),Dealer Risk,Stock Reliability,Restock Speed,"
+            "Avg OOS Duration,Price,Price History,Wishlist,Wishlist History,"
+            "Stock Availability,Dealer Recommendation\n"
+            "Aphonopelma seemanni,1.5,🔥,Low,Slow,3.0,£25.00 →,▄▄▃▂▁,-,-,  ▁▁▁,Seek breeders\n"
+        )
+        history_csv = create_temp_csv_file(
+            "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,"
+            "wishlist_count,page_url\n"
+            "2025-01-01,Aphonopelma seemanni,Costa Rican Zebra,1.5,25.00,5,"
+            "http://example.com\n"
+        )
+        try:
+            # Must not raise TypeError — no size argument
+            result = get_species_data(
+                "Aphonopelma seemanni",
+                breeder_csv, dealer_csv, history_csv
+            )
+            assert "breeder" in result
+            assert "dealer" in result
+        finally:
+            Path(breeder_csv).unlink()
+            Path(dealer_csv).unlink()
+            Path(history_csv).unlink()
+
+
+class TestBuildChartDataPhase5:
+    """Phase 5: build_chart_data() has no 'size' parameter — species-level timeline."""
+
+    def test_accepts_no_size_argument(self):
+        """Phase 5: calling without size must not raise TypeError."""
+        from website.species_detail import build_chart_data
+
+        history_csv = create_temp_csv_file(
+            "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,"
+            "wishlist_count,page_url\n"
+            "2025-01-01,Aphonopelma seemanni,Costa Rican Zebra,1.5,25.00,5,"
+            "http://example.com\n"
+        )
+        try:
+            # Must not raise TypeError
+            result = build_chart_data("Aphonopelma seemanni", history_csv)
+            assert "runs" in result
+        finally:
+            Path(history_csv).unlink()
+
+    def test_includes_multi_variant_observations(self):
+        """Phase 5: chart includes observations for ALL sizes of the species."""
+        from website.species_detail import build_chart_data
+
+        history_csv = create_temp_csv_file(
+            "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,"
+            "wishlist_count,page_url\n"
+            "2025-01-01,Aphonopelma seemanni,Costa Rican Zebra,1.0,20.00,3,http://a.com\n"
+            "2025-01-01,Aphonopelma seemanni,Costa Rican Zebra,2.0,30.00,8,http://b.com\n"
+            "2025-01-08,Aphonopelma seemanni,Costa Rican Zebra,2.0,31.00,9,http://b.com\n"
+        )
+        try:
+            result = build_chart_data("Aphonopelma seemanni", history_csv)
+            # Both runs should be included (species present in both)
+            assert len(result["runs"]) == 2
+            assert all(r["observed"] for r in result["runs"])
+        finally:
+            Path(history_csv).unlink()
+
+
+class TestGetObservationMetadataPhase5:
+    """Phase 5: get_observation_metadata() has no 'size' parameter."""
+
+    def test_accepts_no_size_argument(self):
+        """Phase 5: calling without size must not raise TypeError."""
+        from website.species_detail import get_observation_metadata
+
+        history_csv = create_temp_csv_file(
+            "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,"
+            "wishlist_count,page_url\n"
+            "2025-01-01,Aphonopelma seemanni,Costa Rican Zebra,1.5,25.00,5,"
+            "http://example.com\n"
+            "2025-01-08,Aphonopelma seemanni,Costa Rican Zebra,1.5,26.00,6,"
+            "http://example.com\n"
+        )
+        try:
+            result = get_observation_metadata("Aphonopelma seemanni", history_csv)
+            assert result is not None
+            assert "observed_run_count" in result
+        finally:
+            Path(history_csv).unlink()
+
+    def test_observation_count_includes_all_sizes(self):
+        """Phase 5: observation count reflects species-level presence (all sizes)."""
+        from website.species_detail import get_observation_metadata
+
+        # 4 total runs; species present in 3 (once with size 1.0, twice with 2.0)
+        history_csv = create_temp_csv_file(
+            "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,"
+            "wishlist_count,page_url\n"
+            "2025-01-01,Filler spider,Common,1.0,10.00,1,http://f.com\n"
+            "2025-01-01,Aphonopelma seemanni,CRZ,1.0,20.00,3,http://a.com\n"
+            "2025-01-08,Filler spider,Common,1.0,10.00,1,http://f.com\n"
+            "2025-01-08,Aphonopelma seemanni,CRZ,2.0,30.00,8,http://b.com\n"
+            "2025-01-15,Filler spider,Common,1.0,10.00,1,http://f.com\n"
+            "2025-01-15,Aphonopelma seemanni,CRZ,2.0,31.00,9,http://b.com\n"
+            "2025-01-22,Filler spider,Common,1.0,10.00,1,http://f.com\n"
+        )
+        try:
+            result = get_observation_metadata("Aphonopelma seemanni", history_csv)
+            assert result is not None
+            # Species was present in 3 of 4 runs
+            assert result["observed_run_count"] == 3
+            assert result["total_run_count"] == 4
+        finally:
+            Path(history_csv).unlink()
+
+
+# ============================================================================
+# Phase 5 — template changes: size badge removal + transition banner
+# ============================================================================
+
+
+class TestPhase5TemplateSizeBadgeRemoval:
+    """Phase 5: 'Showing size:' badge must be absent — size is no longer shown."""
+
+    def test_does_not_render_size_badge(self):
+        """Template must not include the 'Showing size: Xcm' badge after Phase 5."""
+        from website.species_detail import generate_species_page
+
+        species_data = {
+            "breeder": {
+                "signal": "🔥",
+                "oos_runs": "4",
+                "stock_pattern": "Sustained",
+                "wishlist": "12 🔥 ↑",
+                "drivers": "",
+                "lineage_status": "none",
+            },
+            "dealer": None,
+        }
+        chart_data = {"runs": []}
+
+        html = generate_species_page(
+            "Aphonopelma seemanni",
+            "Common Name",
+            species_data,
+            chart_data,
+        )
+
+        assert "Showing size:" not in html
+
+    def test_chart_table_omits_size_column(self):
+        """Chart data table must not include a 'Size (cm)' column after Phase 5."""
+        from website.species_detail import generate_species_page
+
+        species_data = {
+            "breeder": {
+                "signal": "🔥",
+                "oos_runs": "2",
+                "stock_pattern": "Sustained",
+                "wishlist": "5 🔥 →",
+                "drivers": "",
+            },
+            "dealer": None,
+        }
+        chart_data = {
+            "runs": [
+                {"date": "2025-01-01", "observed": True, "price": "25.00", "wishlist": "5"},
+                {"date": "2025-01-08", "observed": False, "price": None, "wishlist": None},
+            ]
+        }
+
+        html = generate_species_page(
+            "Aphonopelma seemanni",
+            "Common Name",
+            species_data,
+            chart_data,
+        )
+
+        # The table column header for Size (cm) must be gone
+        assert "<th>Size (cm)</th>" not in html
+
+
+class TestPhase5TransitionBanner:
+    """Phase 5: transition banner shown for confirmed/ambiguous transitions, hidden for none/multi-variant."""
+
+    def _species_data_with_lineage(self, lineage_status: str, transition_message: str = "") -> dict:
+        return {
+            "breeder": {
+                "signal": "⚠️",
+                "oos_runs": "2",
+                "stock_pattern": "Emerging",
+                "wishlist": "8 ⚠️ →",
+                "drivers": "",
+                "lineage_status": lineage_status,
+                "transition_message": transition_message,
+                "previous_size_cm": "3",
+                "current_active_size_cm": "5",
+                "transition_date": "2026-02-04",
+            },
+            "dealer": None,
+        }
+
+    def test_renders_transition_banner_for_confirmed_transition(self):
+        """Banner must appear when lineage_status is 'confirmed-transition'."""
+        from website.species_detail import generate_species_page
+
+        species_data = self._species_data_with_lineage(
+            "confirmed-transition",
+            "Size changed from 3 cm to 5 cm on 2026-02-04. Price evidence is affected.",
+        )
+        chart_data = {"runs": []}
+
+        html = generate_species_page(
+            "Test Spider",
+            "Common Name",
+            species_data,
+            chart_data,
+        )
+
+        assert 'class="transition-banner' in html
+        assert "Size changed from 3 cm to 5 cm on 2026-02-04" in html
+
+    def test_renders_transition_banner_for_ambiguous_transition(self):
+        """Banner must appear when lineage_status is 'ambiguous-transition'."""
+        from website.species_detail import generate_species_page
+
+        species_data = self._species_data_with_lineage(
+            "ambiguous-transition",
+            "Size change from 3 cm detected but continuity is uncertain.",
+        )
+        chart_data = {"runs": []}
+
+        html = generate_species_page(
+            "Test Spider",
+            "Common Name",
+            species_data,
+            chart_data,
+        )
+
+        assert 'class="transition-banner' in html
+        assert "Size change from 3 cm detected" in html
+
+    def test_does_not_render_transition_banner_for_none_status(self):
+        """Banner must NOT appear when lineage_status is 'none'."""
+        from website.species_detail import generate_species_page
+
+        species_data = self._species_data_with_lineage("none")
+        chart_data = {"runs": []}
+
+        html = generate_species_page(
+            "Test Spider",
+            "Common Name",
+            species_data,
+            chart_data,
+        )
+
+        assert 'class="transition-banner' not in html
+
+    def test_does_not_render_transition_banner_for_multi_variant(self):
+        """Banner must NOT appear when lineage_status is 'multi-variant'."""
+        from website.species_detail import generate_species_page
+
+        species_data = self._species_data_with_lineage("multi-variant")
+        chart_data = {"runs": []}
+
+        html = generate_species_page(
+            "Test Spider",
+            "Common Name",
+            species_data,
+            chart_data,
+        )
+
+        assert 'class="transition-banner' not in html
+
+    def test_does_not_render_transition_banner_when_lineage_status_absent(self):
+        """Banner must NOT appear when species_data has no lineage_status field."""
+        from website.species_detail import generate_species_page
+
+        species_data = {
+            "breeder": {
+                "signal": "🔥",
+                "oos_runs": "4",
+                "stock_pattern": "Sustained",
+                "wishlist": "12 🔥 ↑",
+                "drivers": "",
+                # No lineage_status key
+            },
+            "dealer": None,
+        }
+        chart_data = {"runs": []}
+
+        html = generate_species_page(
+            "Test Spider",
+            "Common Name",
+            species_data,
+            chart_data,
+        )
+
+        assert 'class="transition-banner' not in html

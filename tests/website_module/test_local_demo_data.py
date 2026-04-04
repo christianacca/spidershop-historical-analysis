@@ -103,7 +103,7 @@ def test_write_realistic_demo_data_covers_comprehensive_ui_states(tmp_path: Path
 
     observation_metadata = []
     for row in breeder_rows:
-        metadata = get_observation_metadata(row["Species"], row["Size (cm)"], str(history_csv))
+        metadata = get_observation_metadata(row["Species"], str(history_csv))
         assert metadata is not None, f"Expected history for {row['Species']}"
         observation_metadata.append(metadata)
 
