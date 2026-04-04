@@ -165,3 +165,37 @@ def generate_stock_availability_sparkline(key: tuple, by_run: Dict[str, List[Dic
     
     result = "".join(availability)
     return result if result.strip() else "-"
+
+
+def generate_species_stock_availability_sparkline(
+    scientific_name: str,
+    by_run: Dict[str, List[Dict[str, Any]]],
+    runs: List[str],
+    max_runs: int = 8,
+) -> str:
+    """Generate a species-level stock availability sparkline.
+
+    A species is considered IN a run when any size variant for that scientific
+    name is present (Decision 3A). The sparkline shows the last *max_runs* runs.
+
+    Args:
+        scientific_name: Scientific name to check presence for.
+        by_run: Dict mapping run timestamp → list of rows.
+        runs: Sorted list of run timestamps.
+        max_runs: Number of recent runs to include (default 8).
+
+    Returns:
+        String with ``█`` for IN-stock runs and ``·`` for OUT-of-stock runs,
+        or ``"-"`` when no runs are available.
+    """
+    if not runs:
+        return "-"
+    recent_runs = runs[-max_runs:] if len(runs) > max_runs else runs
+    availability = []
+    for run in recent_runs:
+        present = any(
+            r.get("scientific_name") == scientific_name for r in by_run.get(run, [])
+        )
+        availability.append("█" if present else " ")
+    result = "".join(availability)
+    return result if result.strip() else "-"

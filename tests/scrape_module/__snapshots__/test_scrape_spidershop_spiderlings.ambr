@@ -23,7 +23,7 @@
   
   | Species | Size (cm) | OOS | OOS Runs | Stock Pattern | Price | Price History | Wishlist | Wishlist History | Signal | Recommendation |
   |---|---:|---|---:|---|---|---|---|---|---|---|
-  | Cyriocosmus elegans | 0.5 | OUT | 4 | Sustained | £25.00 → | ▄▄▄▄▄ | 15 🔥 → | ▄▄▄▄▄ | 🔥 | Pair soon — sustained scarcity with strong buyer interest |
+  | Cyriocosmus elegans | 0.5 | OUT | 4 | Sustained | £25.00 → | ▄▄▄▄▄ | 15 ⚠️ → | ▄▄▄▄▄ | 🔥 | Pair soon — sustained scarcity |
   | Grammostola pulchra | 2.0 | IN | 0 | Newly Observed | £40.00 → | ▄ | 15 🔥 → | ▄ | ⚠️ | Monitor closely — newly observed, limited history (observed 1/5 runs) |
   | Aphonopelma seemanni | 1.0 | IN | 0 | Always | £25.00 ↑ | ▁▄▅▇█ | 5 ❌ → | ▁▄▄██ | ❌ | Avoid for profit — oversupplied |
   
@@ -33,8 +33,8 @@
   
   | Species | Size (cm) | Stock Reliability | Avg OOS Duration | Restock Speed | Price | Price History | Wishlist | Wishlist History | Stock Availability | Dealer Risk | Dealer Recommendation |
   |---|---:|---|---:|---|---|---|---|---|---|---|---|
-  | Cyriocosmus elegans | 0.5 | Low | 4.0 | Slow | £25.00 → | ▄▄▄▄▄ | 15 🔥 → | ▄▄▄▄▄ | █     | 🔥 | Actively seek breeders — high demand, poor supply |
-  | Grammostola pulchra | 2.0 | Low | 4.0 | Slow | £40.00 → | ▄ | 15 🔥 → | ▄ |     █ | 🔥 | Actively seek breeders — high demand, poor supply — limited history (observed 1/5 runs) |
+  | Cyriocosmus elegans | 0.5 | Low | 4.0 | Slow | £25.00 → | ▄▄▄▄▄ | 15 ⚠️ → | ▄▄▄▄▄ | █     | 🔥 | Actively seek breeders |
+  | Grammostola pulchra | 2.0 | Low | 4.0 | Slow | £40.00 → | ▄ | 15 🔥 → | ▄ |     █ | 🔥 | Actively seek breeders — high demand, poor supply |
   | Aphonopelma seemanni | 1.0 | High | 0 | Fast | £25.00 ↑ | ▁▄▅▇█ | 5 ❌ → | ▁▄▄██ | █████ | ❌ | No urgency / oversupplied |
   
   <details>

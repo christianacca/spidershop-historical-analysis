@@ -332,3 +332,173 @@ def get_wishlist_count(key, by_run, runs, cur_run, lookback_limit=OOS_CARRYOVER_
                 return 0
 
     return 0
+
+
+# ---------------------------------------------------------------------------
+# Phase 4 — Species-level wishlist helpers
+# ---------------------------------------------------------------------------
+
+# Allow forward-reference to LineageResult without a circular import at module level
+from typing import Any, Optional
+
+
+def get_species_wishlist_count(
+    scientific_name: str,
+    lineage_result: Any,
+    by_run: dict,
+    runs: list,
+    cur_run: str,
+    lookback_limit: int = OOS_CARRYOVER_LOOKBACK,
+) -> int:
+    """Return the effective wishlist count for a species, respecting lineage state.
+
+    Rules (Decision 4):
+    * Species IN current run, ``multi-variant``: max count across active variants.
+    * Species IN current run (other states): count for the current active row.
+    * Species OUT within *lookback_limit* runs: last known count for
+      ``current_active_size`` within the window.
+    * Otherwise: 0.
+    """
+    current_active_size = lineage_result.current_active_size
+    cur_rows = [r for r in by_run.get(cur_run, []) if r["scientific_name"] == scientific_name]
+
+    if cur_rows:
+        if lineage_result.lineage_status == "multi-variant":
+            return max(_get_wishlist_count(r) for r in cur_rows)
+        # Single active size — find the matching row
+        for r in cur_rows:
+            if r["size_cm"] == current_active_size:
+                return _get_wishlist_count(r)
+        # Fallback: use any current row for this species
+        return _get_wishlist_count(cur_rows[0])
+
+    # Species OUT — walk back for last known count for current_active_size
+    if not current_active_size:
+        return 0
+
+    try:
+        cur_idx = runs.index(cur_run)
+    except ValueError:
+        return 0
+
+    lookback_start = max(0, cur_idx - lookback_limit)
+    for i in range(cur_idx - 1, lookback_start - 1, -1):
+        rt = runs[i]
+        for row in by_run.get(rt, []):
+            if row["scientific_name"] == scientific_name and row["size_cm"] == current_active_size:
+                return _get_wishlist_count(row)
+    return 0
+
+
+def _stitched_count_for_run(
+    scientific_name: str,
+    prev_size: str,
+    curr_size: str,
+    transition_date: str,
+    run: str,
+    run_rows: list,
+) -> Optional[int]:
+    """Return wishlist count from the stitched lineage for *run*, or None if absent.
+
+    Before *transition_date*: look up *prev_size*; on/after: look up *curr_size*.
+    """
+    run_date = run[:10]
+    target_size = curr_size if run_date >= transition_date else prev_size
+    for row in run_rows:
+        if row["scientific_name"] == scientific_name and row["size_cm"] == target_size:
+            return _get_wishlist_count(row)
+    return None
+
+
+def compute_species_wishlist_delta(
+    scientific_name: str,
+    lineage_result: Any,
+    by_run: dict,
+    runs: list,
+    cur_run: str,
+    lookback_limit: int = WISHLIST_DELTA_LOOKBACK,
+    prev_lookback_limit: int = WISHLIST_DELTA_PREV_LOOKBACK,
+) -> str:
+    """Compute wishlist delta for a species, respecting lineage evidence rules.
+
+    * ``ambiguous-transition`` or ``multi-variant``: always ``"→"``.
+    * ``none``: delegates to :func:`compute_wishlist_delta` on the single k2 key.
+    * ``confirmed-transition``: stitches pre- and post-transition observations
+      to find a defensible momentum comparison.
+    """
+    status = lineage_result.lineage_status
+
+    if status in ("ambiguous-transition", "multi-variant"):
+        return "→"
+
+    current_active_size = lineage_result.current_active_size
+
+    if status == "none":
+        if not current_active_size:
+            return "→"
+        return compute_wishlist_delta(
+            (scientific_name, current_active_size),
+            by_run,
+            runs,
+            cur_run,
+            lookback_limit=lookback_limit,
+            prev_lookback_limit=prev_lookback_limit,
+        )
+
+    # confirmed-transition: stitched delta logic
+    prev_size = lineage_result.previous_size
+    transition_date = lineage_result.transition_date
+
+    try:
+        cur_idx = runs.index(cur_run)
+    except ValueError:
+        return "→"
+
+    # Step 1: Find current count reference in stitched lineage
+    current_count: Optional[int] = None
+    current_ref_idx = cur_idx
+
+    val = _stitched_count_for_run(
+        scientific_name, prev_size, current_active_size, transition_date,
+        cur_run, by_run.get(cur_run, []),
+    )
+    if val is not None:
+        current_count = val
+    else:
+        lookback_start = max(0, cur_idx - lookback_limit)
+        for i in range(cur_idx - 1, lookback_start - 1, -1):
+            rt = runs[i]
+            val = _stitched_count_for_run(
+                scientific_name, prev_size, current_active_size, transition_date,
+                rt, by_run.get(rt, []),
+            )
+            if val is not None:
+                current_count = val
+                current_ref_idx = i
+                break
+
+    if current_count is None:
+        return "→"
+
+    # Step 2: Find previous count in stitched lineage (bounded)
+    previous_count: Optional[int] = None
+    prev_start = max(0, current_ref_idx - prev_lookback_limit)
+    for i in range(current_ref_idx - 1, prev_start - 1, -1):
+        rt = runs[i]
+        val = _stitched_count_for_run(
+            scientific_name, prev_size, current_active_size, transition_date,
+            rt, by_run.get(rt, []),
+        )
+        if val is not None:
+            previous_count = val
+            break
+
+    if previous_count is None:
+        return "→"
+
+    delta = current_count - previous_count
+    if delta >= WISHLIST_DELTA_INCREASE_THRESHOLD:
+        return "↑"
+    elif delta <= WISHLIST_DELTA_DECREASE_THRESHOLD:
+        return "↓"
+    return "→"

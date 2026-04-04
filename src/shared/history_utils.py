@@ -155,6 +155,11 @@ k3 = create_species_key_with_common_name
 k2 = create_species_key
 
 
+def k1(row: Dict[str, Any]) -> str:
+    """Return the scientific name — Phase 4 species-level row identity key."""
+    return row["scientific_name"]
+
+
 # ---------------------------------------------------------------------------
 # Species-level supply timeline (Phase 2 – Size Variant Identity)
 # ---------------------------------------------------------------------------

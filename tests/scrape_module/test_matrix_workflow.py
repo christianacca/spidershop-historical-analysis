@@ -54,7 +54,7 @@ class TestPrepareMatrixAnalysis:
         prepared = prepare_matrix_analysis(history)
 
         assert prepared is not None
-        by_run, runs, current_run, previous_run, current_rows, run_index, wishlist_pressure_map = prepared
+        by_run, runs, current_run, previous_run, current_rows, run_index, wishlist_pressure_map, _ = prepared
         assert runs == ["2025-01-01", "2025-01-08"]
         assert current_run == "2025-01-08"
         assert previous_run == "2025-01-01"
@@ -102,7 +102,7 @@ class TestLookbackHelpers:
         ]
         prepared = prepare_matrix_analysis(history)
         assert prepared is not None
-        by_run, runs, current_run, _, _, run_index, _ = prepared
+        by_run, runs, current_run, _, _, run_index, _, _ = prepared
 
         rows = list(
             iter_lookback_rows_for_key(
@@ -121,7 +121,7 @@ class TestLookbackHelpers:
         ]
         prepared = prepare_matrix_analysis(history)
         assert prepared is not None
-        by_run, runs, current_run, _, _, run_index, _ = prepared
+        by_run, runs, current_run, _, _, run_index, _, _ = prepared
 
         values = collect_lookback_values_for_key(
             ("Aphonopelma seemanni", "1.0"),

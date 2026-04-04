@@ -464,21 +464,21 @@ class TestBuildBreederOpportunityTable:
         # ❌ signals should come last
         assert table[-1]["Signal"] == "❌"
 
-    def test_multiple_species_same_genus_different_sizes(self):
-        """Should handle multiple entries for same genus with different sizes."""
+    def test_multiple_sizes_same_species_produces_one_multi_variant_row(self):
+        """Phase 4: two active sizes collapse into one multi-variant species row."""
         history = [
             make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "5"),
             make_row("2025-01-01", "Aphonopelma seemanni", "2.0", "35.00", "8"),
             make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "26.00", "6"),
             make_row("2025-01-08", "Aphonopelma seemanni", "2.0", "36.00", "9"),
         ]
-        
+
         table = build_breeder_opportunity_table(history)
-        
-        # Should have 2 separate entries
-        assert len(table) == 2
-        sizes = {r["Size (cm)"] for r in table}
-        assert sizes == {"1.0", "2.0"}
+
+        # Phase 4: one row per species
+        seemanni_rows = [r for r in table if r["Species"] == "Aphonopelma seemanni"]
+        assert len(seemanni_rows) == 1
+        assert seemanni_rows[0]["Lineage Status"] == "multi-variant"
 
     def test_oos_carryover_bounded_to_3_runs(self):
         """Wishlist pressure carryover for OUT species should be bounded to 3 runs."""
@@ -1021,3 +1021,236 @@ class TestHiddenLineageMetadataColumns:
             assert row["Price Evidence State"] == "standard"
             assert row["Wishlist Evidence State"] == "standard"
             assert row["Transition Message"] == ""
+
+
+# ---------------------------------------------------------------------------
+# Phase 4: species-level row identity — acceptance scenarios
+# ---------------------------------------------------------------------------
+
+_P4_CONF_URL = "https://thespidershop.co.uk/product/p4-confirmed"
+_P4_AMB_URL_A = "https://thespidershop.co.uk/product/p4-ambiguous-a"
+_P4_AMB_URL_B = "https://thespidershop.co.uk/product/p4-ambiguous-b"
+
+_P4_FILLER = "P4 Filler species"
+
+
+def _p4frow(dt):
+    return _mrow(dt, _P4_FILLER, "2.0", "20.00", "10")
+
+
+class TestBreederPhase4AcceptanceScenarios:
+    """Phase 4: one row per species in the breeder table.
+
+    These tests are the primary regression guards for the species-level row
+    identity migration. The key assertion — exactly one row per scientific name
+    — FAILS in Phase 3 (size-keyed) for any species with multiple historical
+    size variants.
+    """
+
+    # ── Scenario A: confirmed transition ────────────────────────────────────
+
+    _SCI_A = "Phase4 Breeder Confirmed"
+
+    def _history_a(self):
+        """8 runs: 3 cm for R1–R4, 5 cm for R5–R6 (same URL → confirmed), OUT R7–R8."""
+        sci, url = self._SCI_A, _P4_CONF_URL
+        return [
+            _mrow("2025-10-01", sci, "3", "35.00", "50",  url=url), _p4frow("2025-10-01"),
+            _mrow("2025-10-08", sci, "3", "35.00", "70",  url=url), _p4frow("2025-10-08"),
+            _mrow("2025-10-15", sci, "3", "35.00", "90",  url=url), _p4frow("2025-10-15"),
+            _mrow("2025-10-22", sci, "3", "35.00", "100", url=url), _p4frow("2025-10-22"),
+            # R5: 5 cm appears (same URL, gap=1, no overlap → confirmed)
+            _mrow("2025-10-29", sci, "5", "35.00", "100", url=url), _p4frow("2025-10-29"),
+            # R6: 5 cm continues; wishlist rises
+            _mrow("2025-11-05", sci, "5", "35.00", "120", url=url), _p4frow("2025-11-05"),
+            # R7–R8: species OUT
+            _p4frow("2025-11-12"),
+            _p4frow("2025-11-19"),
+        ]
+
+    def test_scenario_a_exactly_one_row_per_species(self):
+        """Key regression guard: species with a confirmed transition yields one row."""
+        rows = [r for r in build_breeder_opportunity_table(self._history_a())
+                if r["Species"] == self._SCI_A]
+        assert len(rows) == 1, f"Expected 1 row for {self._SCI_A!r}, got {len(rows)}"
+
+    def test_scenario_a_size_is_current_active(self):
+        rows = [r for r in build_breeder_opportunity_table(self._history_a())
+                if r["Species"] == self._SCI_A]
+        assert len(rows) == 1
+        assert rows[0]["Size (cm)"] == "5"
+
+    def test_scenario_a_oos_and_pattern(self):
+        rows = [r for r in build_breeder_opportunity_table(self._history_a())
+                if r["Species"] == self._SCI_A]
+        assert len(rows) == 1
+        row = rows[0]
+        assert row["OOS"] == "OUT"
+        assert row["OOS Runs"] == "2"
+        assert row["Stock Pattern"] == "Emerging"
+
+    def test_scenario_a_signal_is_fire(self):
+        rows = [r for r in build_breeder_opportunity_table(self._history_a())
+                if r["Species"] == self._SCI_A]
+        assert len(rows) == 1
+        assert rows[0]["Signal"] == "🔥"
+
+    def test_scenario_a_wishlist_carried_and_rising(self):
+        rows = [r for r in build_breeder_opportunity_table(self._history_a())
+                if r["Species"] == self._SCI_A]
+        assert len(rows) == 1
+        wishlist = rows[0]["Wishlist"]
+        assert wishlist.startswith("120"), f"Expected count 120, got {wishlist!r}"
+        assert "🔥" in wishlist
+        assert "↑" in wishlist
+
+    def test_scenario_a_sparklines_not_suppressed(self):
+        rows = [r for r in build_breeder_opportunity_table(self._history_a())
+                if r["Species"] == self._SCI_A]
+        assert len(rows) == 1
+        assert rows[0]["Price History"] != "-"
+        assert rows[0]["Wishlist History"] != "-"
+
+    def test_scenario_a_drivers_includes_transition_clause(self):
+        rows = [r for r in build_breeder_opportunity_table(self._history_a())
+                if r["Species"] == self._SCI_A]
+        assert len(rows) == 1
+        assert "transition" in rows[0]["Drivers"].lower()
+
+    # ── Scenario B: ambiguous transition ────────────────────────────────────
+
+    _SCI_B = "Phase4 Breeder Ambiguous"
+
+    def _history_b(self):
+        """8 runs: 3 cm for R1–R4 (URL A), 5 cm for R5–R6 (URL B → ambiguous), OUT R7–R8."""
+        sci = self._SCI_B
+        return [
+            _mrow("2025-10-01", sci, "3", "35.00", "50",  url=_P4_AMB_URL_A), _p4frow("2025-10-01"),
+            _mrow("2025-10-08", sci, "3", "35.00", "70",  url=_P4_AMB_URL_A), _p4frow("2025-10-08"),
+            _mrow("2025-10-15", sci, "3", "35.00", "90",  url=_P4_AMB_URL_A), _p4frow("2025-10-15"),
+            _mrow("2025-10-22", sci, "3", "35.00", "100", url=_P4_AMB_URL_A), _p4frow("2025-10-22"),
+            # R5: 5 cm with different URL → ambiguous
+            _mrow("2025-10-29", sci, "5", "35.00", "100", url=_P4_AMB_URL_B), _p4frow("2025-10-29"),
+            _mrow("2025-11-05", sci, "5", "35.00", "120", url=_P4_AMB_URL_B), _p4frow("2025-11-05"),
+            # R7–R8: species OUT
+            _p4frow("2025-11-12"),
+            _p4frow("2025-11-19"),
+        ]
+
+    def test_scenario_b_exactly_one_row_per_species(self):
+        """Ambiguous transition still yields exactly one species row."""
+        rows = [r for r in build_breeder_opportunity_table(self._history_b())
+                if r["Species"] == self._SCI_B]
+        assert len(rows) == 1, f"Expected 1 row for {self._SCI_B!r}, got {len(rows)}"
+
+    def test_scenario_b_evidence_suppressed(self):
+        """Ambiguous transition: Price History and Wishlist History must be '-'."""
+        rows = [r for r in build_breeder_opportunity_table(self._history_b())
+                if r["Species"] == self._SCI_B]
+        assert len(rows) == 1
+        assert rows[0]["Price History"] == "-"
+        assert rows[0]["Wishlist History"] == "-"
+
+    def test_scenario_b_wishlist_delta_neutralized(self):
+        """Ambiguous transition: Wishlist delta must be '→' (continuity unconfirmed)."""
+        rows = [r for r in build_breeder_opportunity_table(self._history_b())
+                if r["Species"] == self._SCI_B]
+        assert len(rows) == 1
+        assert "→" in rows[0]["Wishlist"]
+        assert "↑" not in rows[0]["Wishlist"]
+
+    # ── Scenario C: multi-variant (overlapping sizes) ───────────────────────
+
+    _SCI_C = "Phase4 Breeder Overlap"
+
+    def _history_c(self):
+        """3 runs with both 3 cm and 5 cm active in every run → 'Always' pattern."""
+        sci = self._SCI_C
+        return [
+            make_row("2025-10-01", sci, "3", "25.00", "80"),
+            make_row("2025-10-01", sci, "5", "35.00", "120"),
+            _p4frow("2025-10-01"),
+            make_row("2025-10-08", sci, "3", "25.00", "80"),
+            make_row("2025-10-08", sci, "5", "35.00", "120"),
+            _p4frow("2025-10-08"),
+            make_row("2025-10-15", sci, "3", "25.00", "80"),
+            make_row("2025-10-15", sci, "5", "35.00", "120"),
+            _p4frow("2025-10-15"),
+        ]
+
+    def test_scenario_c_exactly_one_row_per_species(self):
+        """Multi-variant species still yields exactly one species row."""
+        rows = [r for r in build_breeder_opportunity_table(self._history_c())
+                if r["Species"] == self._SCI_C]
+        assert len(rows) == 1, f"Expected 1 row for {self._SCI_C!r}, got {len(rows)}"
+
+    def test_scenario_c_size_is_comma_separated(self):
+        """Multi-variant: Size (cm) must be the ascending comma-separated list."""
+        rows = [r for r in build_breeder_opportunity_table(self._history_c())
+                if r["Species"] == self._SCI_C]
+        assert len(rows) == 1
+        assert rows[0]["Size (cm)"] == "3, 5"
+
+    def test_scenario_c_price_is_multiple_active(self):
+        """Multi-variant: Price cell must indicate multiple active prices."""
+        rows = [r for r in build_breeder_opportunity_table(self._history_c())
+                if r["Species"] == self._SCI_C]
+        assert len(rows) == 1
+        assert rows[0]["Price"] == "Multiple active prices"
+
+    def test_scenario_c_evidence_suppressed(self):
+        """Multi-variant: Price History and Wishlist History must be '-'."""
+        rows = [r for r in build_breeder_opportunity_table(self._history_c())
+                if r["Species"] == self._SCI_C]
+        assert len(rows) == 1
+        assert rows[0]["Price History"] == "-"
+        assert rows[0]["Wishlist History"] == "-"
+
+    def test_scenario_c_signal_is_avoid(self):
+        """Always-available species must remain ❌ even with multi-variant high wishlist."""
+        rows = [r for r in build_breeder_opportunity_table(self._history_c())
+                if r["Species"] == self._SCI_C]
+        assert len(rows) == 1
+        assert rows[0]["Signal"] == "❌"
+
+    # ── Scenario D: stable single-size species (regression guard) ───────────
+
+    _SCI_D = "Phase4 Breeder Stable"
+
+    def _history_d(self):
+        """4 runs: species stable at 5 cm throughout."""
+        sci = self._SCI_D
+        return [
+            make_row("2025-10-01", sci, "5", "35.00", "10"), _p4frow("2025-10-01"),
+            make_row("2025-10-08", sci, "5", "35.00", "10"), _p4frow("2025-10-08"),
+            make_row("2025-10-15", sci, "5", "35.00", "10"), _p4frow("2025-10-15"),
+            make_row("2025-10-22", sci, "5", "35.00", "10"), _p4frow("2025-10-22"),
+        ]
+
+    def test_scenario_d_exactly_one_row_per_species(self):
+        """Stable single-size species must still produce exactly one row."""
+        rows = [r for r in build_breeder_opportunity_table(self._history_d())
+                if r["Species"] == self._SCI_D]
+        assert len(rows) == 1
+
+    def test_scenario_d_lineage_is_none(self):
+        """Stable species: Lineage Status must be 'none'."""
+        rows = [r for r in build_breeder_opportunity_table(self._history_d())
+                if r["Species"] == self._SCI_D]
+        assert len(rows) == 1
+        assert rows[0]["Lineage Status"] == "none"
+
+    def test_scenario_d_size_is_single(self):
+        """Stable species: Size (cm) must be the single observed size."""
+        rows = [r for r in build_breeder_opportunity_table(self._history_d())
+                if r["Species"] == self._SCI_D]
+        assert len(rows) == 1
+        assert rows[0]["Size (cm)"] == "5"
+
+    def test_scenario_d_no_evidence_suppression(self):
+        """Stable species: sparklines should NOT be '-'."""
+        rows = [r for r in build_breeder_opportunity_table(self._history_d())
+                if r["Species"] == self._SCI_D]
+        assert len(rows) == 1
+        assert rows[0]["Price History"] != "-"
+        assert rows[0]["Wishlist History"] != "-"

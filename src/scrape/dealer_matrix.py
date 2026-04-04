@@ -1,20 +1,27 @@
 #!/usr/bin/env python3
-from shared.history_utils import compare_prices, create_observation_coverage, format_observation_coverage, k2
+from shared.history_utils import (
+    build_species_presence_timeline,
+    compare_prices,
+    compute_species_avg_oos_duration,
+    compute_species_restock_speed,
+    compute_species_stock_reliability,
+    k2,
+)
 from shared.config import DEALER_TABLE_FILE
-from shared.sparkline_helpers import generate_stock_availability_sparkline
+from shared.sparkline_helpers import generate_species_stock_availability_sparkline
 from shared.driver_text_helpers import build_drivers_text
 from shared.price_text_helpers import format_price_cell
 from shared.summary_utils import MatrixOutputConfig, write_matrix_outputs
 from scrape.matrix_workflow import (
     LINEAGE_METADATA_COLUMNS,
+    build_species_wishlist_pressure_map,
     collect_lookback_values_for_key,
-    compute_lineage_metadata,
-    generate_price_wishlist_sparklines,
-    get_wishlist_display_metrics,
+    generate_species_price_wishlist_sparklines,
+    lineage_result_to_metadata_dict,
     prepare_matrix_analysis,
-    prepare_matrix_runs,
     sort_matrix_table,
 )
+from scrape.wishlist_analysis import compute_species_wishlist_delta, get_species_wishlist_count
 
 # =====================
 # DEALER MATRIX (Option B: Price Pressure informational)
@@ -32,28 +39,14 @@ def _generate_dealer_drivers_text(
     price_pressure: str,
     wishlist_pressure: str,
     wishlist_delta: str,
-    observation_coverage_text: str = "",
+    lineage_clause: str = "",
 ) -> str:
-    """Generate structured explanation of risk drivers using semicolon separators.
-    
-    Args:
-        reliability: Stock reliability level (High/Medium/Low)
-        speed: Restock speed (Fast/Moderate/Slow)
-        price_pressure: Price direction (↑/→/↓)
-        wishlist_pressure: Demand level (🔥/⚠️/❌)
-        wishlist_delta: Momentum (↑/→/↓)
-        observation_coverage_text: Optional sparse-history coverage text
-        
-    Returns:
-        Semicolon-separated string explaining the risk drivers
-        
-    Example:
-        "Stock: Reliability Low (Restock Slow); Demand: Wishlist 🔥 + rising; Price: Rising"
-    """
+    """Generate structured explanation of risk drivers using semicolon separators."""
     stock_section = f"Stock: Reliability {reliability} (Restock {speed})"
-    if observation_coverage_text:
-        stock_section = f"{stock_section}; Coverage: {observation_coverage_text}"
-    return build_drivers_text(stock_section, price_pressure, wishlist_pressure, wishlist_delta)
+    drivers = build_drivers_text(stock_section, price_pressure, wishlist_pressure, wishlist_delta)
+    if lineage_clause:
+        drivers = f"{drivers}; {lineage_clause}"
+    return drivers
 
 
 def build_dealer_supply_risk_table(history_rows):
@@ -61,178 +54,162 @@ def build_dealer_supply_risk_table(history_rows):
     if prepared is None:
         return []
 
-    by_run, runs, cur_run, prev_run, cur_rows, run_index, wishlist_pressure_map = prepared
-    total_runs = len(runs)
+    by_run, runs, cur_run, prev_run, cur_rows, run_index, _old_pressure_map, species_lineage_map = prepared
 
-    prev_prices = {k2(r): r.get("price_gbp", "") for r in by_run[prev_run] if r.get("price_gbp")}
-    cur_prices = {k2(r): r.get("price_gbp", "") for r in by_run[cur_run] if r.get("price_gbp")}
+    # Species-level wishlist pressure map (Phase 4)
+    species_pressure_map = build_species_wishlist_pressure_map(
+        species_lineage_map, by_run, runs, cur_run
+    )
 
-    present_runs_map = {}
-    for rt in runs:
-        for r in by_run[rt]:
-            present_runs_map.setdefault(k2(r), set()).add(rt)
-
-    # Pre-compute lineage metadata once per scientific name (Phase 3+)
-    all_sci = {k[0] for k in present_runs_map}
-    species_lineage_map = {
-        sci: compute_lineage_metadata(sci, history_rows) for sci in all_sci
-    }
-
-    table = []
+    # Price lookup helpers
+    cur_map = {k2(r): r for r in cur_rows}
+    prev_map = {k2(r): r for r in by_run[prev_run]}
 
     def last_seen_price_for_key(key):
         values = collect_lookback_values_for_key(
-            key,
-            by_run,
-            runs,
-            cur_run,
-            run_index,
+            key, by_run, runs, cur_run, run_index,
             lambda row: row.get("price_gbp", ""),
             max_values=1,
         )
         return values[0] if values else ""
 
-    for (sci, size), present_runs in present_runs_map.items():
-        observation_coverage = create_observation_coverage(history_rows, (sci, size))
-        limited_history = (
-            observation_coverage["observed_run_count"] <= 2
-            and observation_coverage["ambiguous_pre_first_seen_run_count"] > 0
-        )
-        observation_coverage_text = ""
-        present_pct = len(present_runs) / total_runs
-        reliability = (
-            "High"
-            if present_pct >= DEALER_HIGH_RELIABILITY_THRESHOLD
-            else "Medium"
-            if present_pct >= DEALER_MEDIUM_RELIABILITY_THRESHOLD
-            else "Low"
-        )
+    # Unique species across all history
+    all_sci = sorted({r["scientific_name"] for r in history_rows})
 
-        # Safe OOS event counting even if the series starts with "absent"
-        oos_events = []
-        last_present = None
-        for rt in runs:
-            present = rt in present_runs
-            if not present:
-                if last_present is True:
-                    oos_events.append(1)
-                elif last_present is False:
-                    oos_events[-1] += 1
-                else:  # last_present is None (first run)
-                    oos_events.append(1)
-            last_present = present
+    table = []
 
-        avg_oos = round(sum(oos_events) / len(oos_events), 1) if oos_events else 0
-        speed = (
-            "Slow"
-            if avg_oos >= DEALER_SLOW_RESTOCK_MIN_AVG_OOS
-            else "Moderate"
-            if avg_oos == DEALER_MODERATE_RESTOCK_AVG_OOS
-            else "Fast"
-        )
+    for sci in all_sci:
+        lineage_result = species_lineage_map[sci]
+        lineage_status = lineage_result.lineage_status
+        current_active_size = lineage_result.current_active_size or "—"
 
-        pp = compare_prices(
-            cur_prices.get((sci, size), ""),
-            prev_prices.get((sci, size), "")
-        )
-        current_or_last_price = cur_prices.get((sci, size), "") or last_seen_price_for_key((sci, size))
-        price_cell = format_price_cell(current_or_last_price, pp)
+        # Species-level presence timeline and supply metrics
+        timeline = build_species_presence_timeline(history_rows, sci)
+        ordered_runs = sorted(timeline.keys())
+        reliability = compute_species_stock_reliability(timeline)
+        avg_oos = compute_species_avg_oos_duration(timeline, ordered_runs)
+        speed = compute_species_restock_speed(avg_oos)
 
-        key = (sci, size)
-        wishlist_pressure, wishlist_delta, wishlist_count, wishlist_display = get_wishlist_display_metrics(
-            key, by_run, runs, cur_run, wishlist_pressure_map
+        # Price — "Multiple active prices" for multi-variant
+        if lineage_status == "multi-variant":
+            price_cell = "Multiple active prices"
+            pp = "→"
+        else:
+            active_key = (sci, current_active_size)
+            cur_price = cur_map.get(active_key, {}).get("price_gbp", "")
+            prev_price = prev_map.get(active_key, {}).get("price_gbp", "")
+            if not cur_price:
+                cur_price = last_seen_price_for_key(active_key)
+            if not prev_price:
+                prev_prices_vals = collect_lookback_values_for_key(
+                    active_key, by_run, runs, cur_run, run_index,
+                    lambda row: row.get("price_gbp", ""), max_values=2,
+                )
+                prev_price = prev_prices_vals[1] if len(prev_prices_vals) >= 2 else (
+                    prev_prices_vals[0] if prev_prices_vals else ""
+                )
+            pp = compare_prices(cur_price, prev_price)
+            price_cell = format_price_cell(cur_price, pp)
+
+        # Sparklines
+        price_sparkline, wishlist_sparkline = generate_species_price_wishlist_sparklines(
+            sci, lineage_result, by_run, runs, max_runs=8
         )
 
-        # Dealer risk logic: Supply-first hierarchy with demand as modifier
-        # Low reliability species escalate to 🔥 based on supply failure + demand signals
-        # Medium reliability varies between ⚠️ and 🔥 based on demand context
-        # High reliability defaults to ❌ (well-supplied) unless exceptional demand
-        
-        # Low reliability + slow restock (high risk regardless of demand)
+        # Stock availability sparkline (species-level)
+        stock_availability_sparkline = generate_species_stock_availability_sparkline(
+            sci, by_run, runs, max_runs=8
+        )
+
+        # Species-level wishlist
+        wishlist_pressure = species_pressure_map.get(sci, "❌")
+        wishlist_delta = compute_species_wishlist_delta(sci, lineage_result, by_run, runs, cur_run)
+        wishlist_count = get_species_wishlist_count(sci, lineage_result, by_run, runs, cur_run)
+        wishlist_display = f"{wishlist_count} {wishlist_pressure} {wishlist_delta}"
+
+        # Dealer risk classification (supply-first)
         if reliability == "Low" and speed == "Slow" and wishlist_pressure == "🔥":
             risk = "🔥"
             rec = "Actively seek breeders — high demand, poor supply"
         elif reliability == "Low" and speed == "Slow":
             risk = "🔥"
             rec = "Actively seek breeders"
-        # Low reliability + high wishlist (even with faster restock)
         elif reliability == "Low" and wishlist_pressure == "🔥":
             risk = "🔥"
             rec = "Actively seek breeders — high demand, unreliable supply"
-        # Low reliability + rising delta (early-stage demand growth)
         elif reliability == "Low" and wishlist_delta == "↑":
             risk = "🔥"
             rec = "Actively seek breeders — unreliable supply, surging interest"
-        # Low reliability without a fire trigger still warrants caution
         elif reliability == "Low":
             risk = "⚠️"
             rec = "Buy opportunistically — unreliable supply"
-        # Medium reliability + high wishlist + rising delta
         elif reliability == "Medium" and wishlist_pressure == "🔥" and wishlist_delta == "↑":
             risk = "🔥"
             rec = "Actively seek breeders — surging demand, variable supply"
-        # Medium reliability + high wishlist (without rising delta)
         elif reliability == "Medium" and wishlist_pressure == "🔥":
             risk = "⚠️"
-            rec = "Buy opportunistically — moderate demand, variable supply"
-        # Medium reliability with lower demand signals
+            if lineage_status == "ambiguous-transition":
+                rec = "Buy opportunistically — lineage continuity unconfirmed"
+            else:
+                rec = "Buy opportunistically — moderate demand, variable supply"
         elif reliability == "Medium":
             risk = "⚠️"
             rec = "Buy opportunistically"
-        # High reliability with low/moderate interest
         elif reliability == "High" and wishlist_pressure in ("❌", "⚠️"):
             risk = "❌"
             rec = "No urgency / oversupplied"
-        # High reliability + falling delta
         elif reliability == "High" and wishlist_delta == "↓":
             risk = "❌"
             rec = "No urgency / oversupplied — interest declining"
-        # High reliability + very high interest
         elif reliability == "High" and wishlist_pressure == "🔥":
             risk = "❌"
-            rec = "Well-supplied, but monitor demand"
-        # Fallback for any remaining cases
+            if lineage_status == "multi-variant":
+                rec = "Well-supplied, but monitor demand across active size variants"
+            else:
+                rec = "Well-supplied, but monitor demand"
         else:
             risk = "❌"
             rec = "No urgency / oversupplied"
 
-        if limited_history:
-            observation_coverage_text = format_observation_coverage(observation_coverage)
-            rec = f"{rec} — limited history ({observation_coverage_text})"
+        # Build transition clause for Drivers
+        lineage_clause = ""
+        if lineage_status == "confirmed-transition":
+            lineage_clause = (
+                f"Size transition: confirmed "
+                f"{lineage_result.previous_size}→{current_active_size} "
+                f"on {lineage_result.transition_date}"
+            )
+        elif lineage_status == "ambiguous-transition":
+            lineage_clause = (
+                f"Size transition: ambiguous "
+                f"{lineage_result.previous_size}→{current_active_size} "
+                f"on {lineage_result.transition_date}"
+            )
 
-        # Generate sparklines for historical trends (last 8 weeks)
-        # Use carry-forward to show persistent values when OUT (price/wishlist don't disappear)
-        price_history_sparkline, wishlist_history_sparkline = generate_price_wishlist_sparklines(
-            (sci, size), by_run, runs, max_runs=8
-        )
-        
-        stock_availability_sparkline = generate_stock_availability_sparkline((sci, size), by_run, runs, max_runs=8)
-        
-        # Generate structured explanation of risk drivers
         drivers = _generate_dealer_drivers_text(
             reliability=reliability,
             speed=speed,
             price_pressure=pp,
             wishlist_pressure=wishlist_pressure,
             wishlist_delta=wishlist_delta,
-            observation_coverage_text=observation_coverage_text,
+            lineage_clause=lineage_clause,
         )
 
         table.append({
             "Species": sci,
-            "Size (cm)": size,
+            "Size (cm)": current_active_size,
             "Stock Reliability": reliability,
             "Avg OOS Duration": avg_oos,
             "Restock Speed": speed,
             "Price": price_cell,
-            "Price History": price_history_sparkline,
+            "Price History": price_sparkline,
             "Wishlist": wishlist_display,
-            "Wishlist History": wishlist_history_sparkline,
+            "Wishlist History": wishlist_sparkline,
             "Stock Availability": stock_availability_sparkline,
             "Dealer Risk": risk,
             "Dealer Recommendation": rec,
             "Drivers": drivers,
-            **species_lineage_map[sci],
+            **lineage_result_to_metadata_dict(lineage_result),
         })
 
     # Sort: Dealer Risk (🔥 > ⚠️ > ❌), then Wishlist count (desc), then Avg OOS Duration (desc)

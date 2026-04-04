@@ -98,7 +98,7 @@ class TestGeneratedBreederExamples:
         assert "**Stock Pattern:** Always" in example
         assert "**Wishlist:** 8 🔥 ↓" in example
         assert "**Signal:** ❌" in example
-        assert "**Recommendation:** Avoid for profit — interest declining" in example
+        assert "**Recommendation:** Avoid for profit — oversupplied" in example
 
     def test_breeder_example_7_breeder_vs_dealer_perspective(self):
         """Example 7 should keep the breeder/dealer metric contrast intentional."""
@@ -198,9 +198,9 @@ class TestGeneratedDealerExamples:
         example = generate_dealer_example_7()
         assert "#### Example 7: Low Reliability + Surging Interest (Early Warning)" in example
         assert "**Stock Reliability:** Low" in example
-        assert "**Wishlist:** 12 ⚠️ ↑" in example
+        assert "**Wishlist:** 12 🔥 ↑" in example
         assert "**Dealer Risk:** 🔥" in example
-        assert "**Recommendation:** Actively seek breeders — unreliable supply, surging interest" in example
+        assert "**Recommendation:** Actively seek breeders — high demand, unreliable supply" in example
 
     def test_dealer_example_8_low_reliability_stable_demand(self):
         """Example 8 should demonstrate that low reliability without escalation still stays at warning level."""

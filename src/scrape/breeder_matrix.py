@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 from shared.history_utils import (
+    build_species_presence_timeline,
+    build_species_stock_pattern,
     compare_prices,
-    create_observation_coverage,
-    format_observation_coverage,
-    is_newly_observed_coverage,
+    compute_species_current_oos_runs,
     k2,
 )
 from shared.config import BREEDER_TABLE_FILE, SIGNAL_PRIORITY
@@ -12,14 +12,15 @@ from shared.price_text_helpers import format_price_cell
 from shared.summary_utils import MatrixOutputConfig, write_matrix_outputs
 from scrape.matrix_workflow import (
     LINEAGE_METADATA_COLUMNS,
+    build_species_wishlist_pressure_map,
     collect_lookback_values_for_key,
-    compute_lineage_metadata,
-    generate_price_wishlist_sparklines,
-    get_wishlist_display_metrics,
+    generate_species_price_wishlist_sparklines,
     iter_lookback_rows_for_key,
+    lineage_result_to_metadata_dict,
     prepare_matrix_analysis,
     prepare_matrix_runs,
 )
+from scrape.wishlist_analysis import compute_species_wishlist_delta, get_species_wishlist_count
 
 # =====================
 # BREEDER MATRIX (PRICE AWARE) — FIXED TO INCLUDE OUT-OF-STOCK ITEMS
@@ -55,23 +56,15 @@ def _generate_breeder_drivers_text(
     wishlist_pressure: str,
     wishlist_delta: str,
     observation_coverage_text: str = "",
+    lineage_clause: str = "",
 ) -> str:
     """Generate structured explanation of signal drivers using semicolon separators.
-    
-    Args:
-        oos_status: Current stock status (IN/OUT/IN/OUT)
-        oos_runs: Number of consecutive OOS runs
-        pattern: Stock pattern (Sustained/Emerging/Cyclical/Always/Newly Observed)
-        price_trend: Price direction (↑/→/↓)
-        wishlist_pressure: Demand level (🔥/⚠️/❌)
-        wishlist_delta: Momentum (↑/→/↓)
-        observation_coverage_text: Optional sparse-history coverage text
-        
+
+    The optional *lineage_clause* is appended after the standard three-section
+    text when a size transition exists.
+
     Returns:
-        Semicolon-separated string explaining the signal drivers
-        
-    Example:
-        "Stock: Emerging (OOS 2 runs; currently OUT); Demand: Wishlist 🔥 + rising; Price: Stable"
+        Semicolon-separated string explaining the signal drivers.
     """
     stock_details = []
     if oos_runs > 0:
@@ -79,7 +72,7 @@ def _generate_breeder_drivers_text(
         stock_details.append(f"OOS {oos_runs} run{plural}")
     if oos_status:
         stock_details.append(f"currently {oos_status}")
-    
+
     if stock_details:
         stock_section = f"Stock: {pattern} ({'; '.join(stock_details)})"
     else:
@@ -87,8 +80,12 @@ def _generate_breeder_drivers_text(
 
     if observation_coverage_text:
         stock_section = f"{stock_section}; Coverage: {observation_coverage_text}"
-    
-    return build_drivers_text(stock_section, price_trend, wishlist_pressure, wishlist_delta)
+
+    drivers = build_drivers_text(stock_section, price_trend, wishlist_pressure, wishlist_delta)
+
+    if lineage_clause:
+        drivers = f"{drivers}; {lineage_clause}"
+    return drivers
 
 
 def build_breeder_opportunity_table(history_rows):
@@ -96,180 +93,150 @@ def build_breeder_opportunity_table(history_rows):
     if prepared is None:
         return []
 
-    by_run, runs, cur_run, prev_run, cur_rows, run_index, wishlist_pressure_map = prepared
-    prev_rows = by_run[prev_run]
+    by_run, runs, cur_run, prev_run, cur_rows, run_index, _old_pressure_map, species_lineage_map = prepared
 
-    # Index rows by (species,size) for quick lookup
+    # Species-level wishlist pressure map (Phase 4)
+    species_pressure_map = build_species_wishlist_pressure_map(
+        species_lineage_map, by_run, runs, cur_run
+    )
+
+    # Index current run rows by k2 for price lookups
     cur_map = {k2(r): r for r in cur_rows}
+    prev_rows = by_run[prev_run]
     prev_map = {k2(r): r for r in prev_rows}
 
-    # Union of keys across ALL history so OUT items can appear in the breeder table
-    all_keys = set()
-    for rt in runs:
-        for r in by_run[rt]:
-            all_keys.add(k2(r))
-
-    # Pre-compute lineage metadata once per scientific name (Phase 3+)
-    all_sci = {k[0] for k in all_keys}
-    species_lineage_map = {
-        sci: compute_lineage_metadata(sci, history_rows) for sci in all_sci
-    }
-
-    # For display of OUT items: bounded last-seen row
-    def get_last_seen_row_within_lookback(key):
-        return next(iter_lookback_rows_for_key(key, by_run, runs, cur_run, run_index), None)
-
-    # Helper: last 2 price points for a key before/at current
+    # Helper: price trend for a single (sci, size) key
     def price_trend_for_key(key):
-        # If present now and present previous -> compare those
         if key in cur_map and key in prev_map:
             return compare_prices(
                 cur_map[key].get("price_gbp", ""),
-                prev_map[key].get("price_gbp", "")
+                prev_map[key].get("price_gbp", ""),
             )
-
-        # Compare the last two known prices within bounded lookback.
-        # If IN now but missing previous run (flapping), include current price.
         prices = []
         if key in cur_map:
-            current_value = cur_map[key].get("price_gbp", "")
-            if current_value:
-                prices.append(current_value)
-
+            v = cur_map[key].get("price_gbp", "")
+            if v:
+                prices.append(v)
         prices.extend(
             collect_lookback_values_for_key(
-                key,
-                by_run,
-                runs,
-                cur_run,
-                run_index,
+                key, by_run, runs, cur_run, run_index,
                 lambda row: row.get("price_gbp", ""),
                 max_values=2 - len(prices),
             )
         )
+        return compare_prices(prices[0], prices[1]) if len(prices) >= 2 else "→"
 
-        if len(prices) >= 2:
-            return compare_prices(prices[0], prices[1])
-        return "→"
+    # Unique species across all history
+    all_sci = sorted({r["scientific_name"] for r in history_rows})
 
     table = []
 
-    # Precompute membership sets per run for faster OOS counting
-    keys_by_run = {rt: {k2(r) for r in by_run[rt]} for rt in runs}
+    for sci in all_sci:
+        lineage_result = species_lineage_map[sci]
+        lineage_status = lineage_result.lineage_status
+        current_active_size = lineage_result.current_active_size or "—"
 
-    for key in sorted(all_keys):
-        in_current = key in keys_by_run[cur_run]
-        in_prev = key in keys_by_run[prev_run]
-        observation_coverage = create_observation_coverage(history_rows, key)
-        observation_coverage_text = ""
+        # Species-level presence timeline and supply metrics
+        timeline = build_species_presence_timeline(history_rows, sci)
+        ordered_runs = sorted(timeline.keys())
+        oos_runs = compute_species_current_oos_runs(timeline, ordered_runs)
+        pattern = build_species_stock_pattern(timeline, ordered_runs)
 
-        # Use current row if present, otherwise bounded last-seen row for display
-        row = cur_map.get(key) or get_last_seen_row_within_lookback(key) or {
-            "scientific_name": key[0],
-            "size_cm": key[1],
-        }
-
-        # OOS status + consecutive OOS runs (INCLUDING the current run if OUT)
+        # OOS status
+        in_current = timeline.get(cur_run, False)
         if in_current:
-            oos_status = "IN"
-            oos_runs = 0
-
-            # If it was missing last run but exists now (or flapped recently), show IN/OUT
-            if not in_prev and len(runs) >= 3:
-                # If seen before, it truly flapped
-                seen_before = any(key in keys_by_run[rt] for rt in runs[:-1])
-                if seen_before:
-                    oos_status = "IN/OUT"
+            if pattern == "Cyclical":
+                oos_status = "IN/OUT"
+            else:
+                oos_status = "IN"
         else:
             oos_status = "OUT"
-            # Count consecutive missing runs ending at current, including current as 1
-            oos_runs = 1
-            for rt in reversed(runs[:-1]):  # start from prev run backward
-                if key in keys_by_run[rt]:
-                    break
-                oos_runs += 1
 
-        # Pattern derived from OOS evidence, with a conservative sparse-history hold state.
-        is_newly_observed = is_newly_observed_coverage(observation_coverage)
+        # Newly Observed coverage text for drivers
+        observation_coverage_text = ""
+        if pattern == "Newly Observed":
+            observed_count = sum(1 for v in timeline.values() if v)
+            total_runs = len(timeline)
+            observation_coverage_text = f"observed {observed_count}/{total_runs} runs"
 
-        if is_newly_observed:
-            pattern = "Newly Observed"
-            observation_coverage_text = format_observation_coverage(observation_coverage)
-        elif oos_runs >= BREEDER_SUSTAINED_OOS_RUNS:
-            pattern = "Sustained"
-        elif oos_runs >= BREEDER_EMERGING_MIN_OOS_RUNS:
-            pattern = "Emerging"
-        elif oos_status == "IN/OUT":
-            pattern = "Cyclical"
+        # Price — "Multiple active prices" for multi-variant
+        if lineage_status == "multi-variant":
+            price_cell = "Multiple active prices"
+            price_trend = "→"
         else:
-            pattern = "Always"
+            active_key = (sci, current_active_size)
+            # Last known price via lookback
+            price_row = cur_map.get(active_key) or next(
+                iter_lookback_rows_for_key(active_key, by_run, runs, cur_run, run_index),
+                None,
+            )
+            raw_price = price_row.get("price_gbp", "") if price_row else ""
+            price_trend = price_trend_for_key(active_key)
+            price_cell = format_price_cell(raw_price, price_trend)
 
-        price_trend = price_trend_for_key(key)
-        price_cell = format_price_cell(row.get("price_gbp", ""), price_trend)
-
-        wishlist_pressure, wishlist_delta, wishlist_count, wishlist_display = get_wishlist_display_metrics(
-            key, by_run, runs, cur_run, wishlist_pressure_map
+        # Sparklines
+        price_sparkline, wishlist_sparkline = generate_species_price_wishlist_sparklines(
+            sci, lineage_result, by_run, runs, max_runs=8
         )
 
-        # Recommendation logic (conservative wishlist integration with delta)
-        # Base signal driven by Pattern + Price Trend (unchanged)
-        # Wishlist can upgrade confidence or escalate emerging signals
-        # Wishlist Delta acts as momentum modifier
-        
+        # Species-level wishlist
+        wishlist_pressure = species_pressure_map.get(sci, "❌")
+        wishlist_delta = compute_species_wishlist_delta(sci, lineage_result, by_run, runs, cur_run)
+        wishlist_count = get_species_wishlist_count(sci, lineage_result, by_run, runs, cur_run)
+        wishlist_display = f"{wishlist_count} {wishlist_pressure} {wishlist_delta}"
+
+        # Signal logic — Always is unconditionally ❌ (Decision 5: hard rule)
         if pattern == "Newly Observed":
             signal = "⚠️"
             rec = (
                 "Monitor closely — newly observed, limited history "
                 f"({observation_coverage_text})"
             )
-        # Sustained scarcity with strong buyer interest
         elif pattern == "Sustained" and price_trend in ("↑", "→") and wishlist_pressure == "🔥":
             signal = "🔥"
             rec = "Pair soon — sustained scarcity with strong buyer interest"
-        # Sustained scarcity (standard case)
         elif pattern == "Sustained" and price_trend in ("↑", "→"):
             signal = "🔥"
             rec = "Pair soon — sustained scarcity"
-        # Emerging with rising price
         elif pattern == "Emerging" and price_trend == "↑":
             signal = "🔥"
             rec = "Consider pairing — rising demand"
-        # Emerging + high wishlist + rising delta -> escalate to 🔥
         elif pattern == "Emerging" and wishlist_pressure == "🔥" and wishlist_delta == "↑":
             signal = "🔥"
             rec = "Consider pairing — emerging scarcity with surging interest"
-        # Emerging + high wishlist (without rising delta)
         elif pattern == "Emerging" and wishlist_pressure == "🔥":
-            signal = "⚠️"
-            rec = "Monitor closely — emerging scarcity and rising interest"
-        # Emerging (base case)
+            if lineage_status == "ambiguous-transition":
+                signal = "⚠️"
+                rec = "Monitor closely — emerging scarcity; lineage continuity unconfirmed"
+            else:
+                signal = "⚠️"
+                rec = "Monitor closely — emerging scarcity and rising interest"
         elif pattern == "Emerging":
             signal = "⚠️"
             rec = "Monitor closely — supply tightening"
-        # Cyclical restocking pattern
         elif pattern == "Cyclical":
             signal = "⚠️"
             rec = "Breed cautiously — wave restocking"
-        # Always available + high wishlist + falling delta
-        elif pattern == "Always" and wishlist_pressure == "🔥" and wishlist_delta == "↓":
-            signal = "❌"
-            rec = "Avoid for profit — interest declining"
-        # Always available + high wishlist (early watch signal)
-        elif pattern == "Always" and wishlist_pressure == "🔥":
-            signal = "⚠️"
-            rec = "Watch closely — high latent demand"
-        # Default: oversupplied
         else:
+            # Always — ❌ regardless of demand (Decision 5 hard rule)
             signal = "❌"
             rec = "Avoid for profit — oversupplied"
 
-        # Generate sparklines for price and wishlist trends
-        # Use carry-forward to show persistent values when OUT (price/wishlist don't disappear)
-        price_sparkline, wishlist_sparkline = generate_price_wishlist_sparklines(
-            key, by_run, runs, max_runs=8
-        )
-        
-        # Generate structured explanation of signal drivers
+        # Build transition clause for Drivers
+        lineage_clause = ""
+        if lineage_status == "confirmed-transition":
+            lineage_clause = (
+                f"Size transition: confirmed "
+                f"{lineage_result.previous_size}→{current_active_size} "
+                f"on {lineage_result.transition_date}"
+            )
+        elif lineage_status == "ambiguous-transition":
+            lineage_clause = (
+                f"Size transition: ambiguous "
+                f"{lineage_result.previous_size}→{current_active_size} "
+                f"on {lineage_result.transition_date}"
+            )
+
         drivers = _generate_breeder_drivers_text(
             oos_status=oos_status,
             oos_runs=oos_runs,
@@ -278,11 +245,12 @@ def build_breeder_opportunity_table(history_rows):
             wishlist_pressure=wishlist_pressure,
             wishlist_delta=wishlist_delta,
             observation_coverage_text=observation_coverage_text,
+            lineage_clause=lineage_clause,
         )
 
         table.append({
-            "Species": row.get("scientific_name", key[0]),
-            "Size (cm)": row.get("size_cm", key[1]),
+            "Species": sci,
+            "Size (cm)": current_active_size,
             "OOS": oos_status,
             "OOS Runs": str(oos_runs),
             "Stock Pattern": pattern,
@@ -293,7 +261,7 @@ def build_breeder_opportunity_table(history_rows):
             "Signal": signal,
             "Recommendation": rec,
             "Drivers": drivers,
-            **species_lineage_map[key[0]],
+            **lineage_result_to_metadata_dict(lineage_result),
         })
 
     # Sort: Signal priority, breeder watch-bucket precedence, then Wishlist count and OOS runs.
