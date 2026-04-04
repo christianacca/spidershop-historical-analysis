@@ -129,6 +129,65 @@ The solution must not flatten that away.
 
 ---
 
+## Normalization And Time Definitions
+
+### URL normalization
+
+For the purposes of confirmed-transition detection, `normalized product URL`
+means the result of applying all of the following transformations to `page_url`:
+
+1. trim leading and trailing whitespace,
+2. parse the URL and discard any query string,
+3. discard any fragment,
+4. lowercase the scheme and host,
+5. strip a leading `www.` from the host,
+6. collapse duplicate `/` characters in the path,
+7. strip exactly one trailing slash from the path,
+8. preserve the remaining path string as-is.
+
+Examples:
+
+1. `HTTPS://www.thespidershop.co.uk/product/foo/?bar=1#frag` normalizes to
+   `https://thespidershop.co.uk/product/foo`,
+2. `https://thespidershop.co.uk/product/foo/` normalizes to
+   `https://thespidershop.co.uk/product/foo`.
+
+This specification treats normalized product URL equality as the strongest
+positive continuity signal, not as a universal guarantee that the shop will
+never change URL structure.
+
+If URL structure changes in a way that breaks equality, the transition falls to
+the ambiguous fallback unless a future revision of this specification adds a new
+explicit secondary continuity rule.
+
+### Historical rows without usable product URLs
+
+Rows with missing URLs, blank URLs, or non-product URLs cannot satisfy the
+confirmed-transition URL gate.
+
+Transitions involving such rows are therefore ambiguous by default.
+
+This is acceptable under the conservative design because the ambiguous fallback:
+
+1. preserves one species row,
+2. preserves species-level supply interpretation,
+3. only downgrades continuity-dependent evidence.
+
+### Run definition
+
+For all rules in this document, a `run` means one successful scrape recorded in
+`spidershop_spiderlings_history.csv`.
+
+The transition window and other bounded lookbacks are counted in successful
+history runs, not in calendar weeks.
+
+Therefore:
+
+1. failed or skipped calendar weeks do not consume lookback slots,
+2. a `3-run` transition window means the next 3 successful recorded scrapes.
+
+---
+
 ## Proposed Solution Summary
 
 The proposed solution is:
@@ -246,6 +305,11 @@ Justification:
    offering distinct active variants,
 4. ambiguity should degrade to caution rather than inference.
 
+Transition-window clarification:
+
+1. the 3-run window is counted in successful recorded runs,
+2. a failed or skipped week does not consume one of the 3 available slots.
+
 ### Decision 2A: Ambiguous transition fallback behavior
 
 Requirement:
@@ -289,6 +353,16 @@ Justification:
 4. it keeps ambiguity visible in the metrics that genuinely depend on confirmed
    lineage continuity.
 
+Signal clarification:
+
+1. ambiguous transition status does not directly downgrade a breeder or dealer
+   headline by itself,
+2. it can still cause a lower headline outcome indirectly when the higher
+   outcome depended on continuity-based evidence that is no longer allowed to be
+   carried across the ambiguous handoff,
+3. in those cases, the downgrade is caused by loss of qualifying evidence, not
+   by a second hidden signal rule.
+
 ### Decision 3: Overlapping active size variants
 
 Requirement:
@@ -317,6 +391,43 @@ Justification:
 3. it prevents the system from hiding ambiguity in the one metric where size is
    most likely to matter.
 
+### Decision 3A: Species-level supply timeline
+
+Requirement:
+
+1. species-level supply metrics must have an explicit aggregation rule.
+
+Proposed solution:
+
+1. build a species-level presence timeline across successful runs,
+2. a species is considered present in a run if any size variant for that species
+   is present in that run,
+3. species-level OOS runs are counted as the number of consecutive absent
+   species-level runs ending at the current run,
+4. species-level OOS runs are not additive across lineages,
+5. breeder stock pattern is recomputed from the species-level presence timeline,
+   not from a retired-size lineage in isolation,
+6. dealer stock reliability is computed from the species-level presence ratio on
+   that timeline,
+7. dealer average OOS duration and restock speed are computed from species-level
+   absence events on that timeline.
+
+Worked clarification:
+
+1. if size `3` had 1 OOS run before size `5` appeared,
+2. and size `5` later has 2 current OOS runs,
+3. the species-level current OOS run count is `2` if the species was present in
+   between,
+4. because OOS runs are counted from the current species-level absence streak,
+   not by adding retired-lineage streaks.
+
+Justification:
+
+1. this preserves one current species-level supply interpretation,
+2. it prevents retired-size isolation from manufacturing contradictory scarcity
+   states,
+3. it gives dealer aggregation a deterministic, explainable basis.
+
 ### Decision 4: Metric ownership policy
 
 Requirement:
@@ -338,14 +449,40 @@ Proposed solution:
 | Price sparkline | Active size lineage, qualified | Allow continuity display, but mark the series as transition-affected when size changed recently | Keep useful context without implying a pure same-unit series | The user still benefits from seeing listing continuity, but needs the caveat |
 | Observation coverage | Both species and size | Show species-level familiarity plus size-level specificity | Use both layers on the detail page | This directly solves the identity/context mismatch described in the earlier recommendation |
 
+Price sparkline construction rule:
+
+1. `Price History` represents the last 8 successful runs,
+2. for a confirmed transition, the sparkline stitches pre-transition old-size
+   prices and post-transition new-size prices into one chronological lineage
+   window,
+3. if multiple sequential confirmed transitions fall within that 8-run window
+   and belong to one defensible continuing lineage, the sparkline may stitch
+   across all of them in chronological order,
+4. the hidden transition metadata still reports only the most recent transition
+   event even when the stitched sparkline includes earlier confirmed handoffs,
+5. for a non-transition species, the sparkline preserves current behavior
+   unchanged,
+6. for ambiguous transitions and multi-variant cases, `Price History` is `-`
+   unless a single lineage can still be justified conservatively.
+
 Additional wishlist rule for overlapping active variants:
 
 1. if multiple size variants are active in the current run, the row-level current
-   wishlist count must equal the highest current `wishlist_count` among the active
-   variants,
+   wishlist count must equal the highest raw current-run `wishlist_count` among
+   the active variants,
 2. the row-level wishlist delta must downgrade to `→`,
 3. the row-level wishlist history must downgrade to `-` unless a single lineage
    can still be justified conservatively.
+
+OUT-state wishlist carryover clarification:
+
+1. if the species is currently OUT and one single most-recent lineage can still
+   be identified conservatively within the standard 5-run OOS carryover window,
+   that lineage's last known wishlist count is used,
+2. if the species is currently OUT and no single most-recent lineage can be
+   identified conservatively, the row-level wishlist count is `0`,
+3. in that ambiguous OUT case, wishlist delta must be `→` and wishlist history
+   must be `-`.
 
 Justification:
 
@@ -379,6 +516,13 @@ Different between breeder and dealer:
 3. breeder recommendation text may reference transition-affected price context,
 4. dealer recommendation text should stay supply-first and only mention the size
    transition when it affects confidence or interpretation.
+
+Breeder rule preservation:
+
+1. always-available breeder cases remain `❌` even when wishlist demand is high,
+   including overlap cases,
+2. high wishlist may still appear in supporting evidence, but it must not elevate
+   an `Always` breeder row above `❌`.
 
 Justification:
 
@@ -440,6 +584,134 @@ Justification:
 
 ---
 
+## Output Schema And Metadata Columns
+
+### Public CSV schema
+
+The public breeder and dealer CSV schemas remain the current public schemas.
+
+No public column rename or merge is introduced by this feature.
+
+The scenario examples in this document therefore reflect the existing public CSV
+shape rather than a new flattened export format.
+
+### Hidden metadata columns
+
+This feature requires additional hidden metadata columns appended after
+`Drivers` in both breeder and dealer CSV outputs.
+
+Required hidden metadata columns:
+
+1. `Lineage Status`
+2. `Previous Size (cm)`
+3. `Current Active Size (cm)`
+4. `Transition Date`
+5. `Price Evidence State`
+6. `Wishlist Evidence State`
+7. `Transition Message`
+
+Allowed values:
+
+#### `Lineage Status`
+
+1. `none`
+2. `confirmed-transition`
+3. `ambiguous-transition`
+4. `multi-variant`
+
+#### `Price Evidence State`
+
+1. `standard`
+2. `transition-affected`
+3. `neutralized`
+4. `multi-variant`
+
+#### `Wishlist Evidence State`
+
+1. `standard`
+2. `carried-across-transition`
+3. `neutralized-ambiguous`
+4. `max-active-variant`
+
+### Transition metadata derivation rules
+
+The hidden transition metadata columns describe the single most recent
+transition event that is relevant to the row's current interpretive state.
+
+Required derivation rules:
+
+1. `Previous Size (cm)` is the immediately preceding size from that most recent
+   transition event, not the oldest historical size ever seen for the species,
+2. `Current Active Size (cm)` is:
+   1. the new size from that most recent transition event when the row is in
+      `confirmed-transition` or `ambiguous-transition` state,
+   2. the comma-separated ascending active-size list when the row is in
+      `multi-variant` state,
+3. `Transition Date` is the date portion of `scrape_datetime`, formatted as
+   `YYYY-MM-DD`, from the first successful recorded run in which the new size of
+   that most recent transition event was observed,
+4. this `Transition Date` derivation rule applies to both
+   `confirmed-transition` and `ambiguous-transition` states,
+5. when the current row state is `multi-variant`, `Previous Size (cm)` and
+   `Transition Date` are blank because the row is not claiming one clean current
+   handoff event,
+6. when the current row state is `none`, `Previous Size (cm)` and
+   `Transition Date` are blank.
+
+Sequential-transition clarification:
+
+1. if a lineage undergoes multiple sequential confirmed transitions such as
+   `3 -> 5 -> 7`, the hidden metadata columns report only the most recent event,
+   so `Previous Size (cm)` is `5`, `Current Active Size (cm)` is `7`, and
+   `Transition Date` is the first observed `7` date,
+2. earlier confirmed transitions remain part of historical lineage evidence but
+   are not separately surfaced in these current-row metadata columns,
+3. if a future revision needs full transition history, it must add a separate
+   history structure rather than overload the current-row metadata fields.
+
+Current-state precedence rule:
+
+1. `multi-variant` takes precedence over any historical confirmed or ambiguous
+   handoff state,
+2. `ambiguous-transition` takes precedence over `confirmed-transition` when the
+   most recent handoff cannot be confirmed,
+3. `confirmed-transition` applies only when the most recent relevant handoff is
+   confirmed and the species is not currently in a `multi-variant` state,
+4. `none` applies only when no relevant recent transition state exists,
+5. for example, if `3 -> 5` was previously a confirmed transition but the
+   current run has concurrent `5 cm` and `7 cm` listings, `Lineage Status` is
+   `multi-variant` and the current-row transition fields are blank.
+
+Website generator requirement:
+
+1. warning icons and tooltips must be driven from these hidden metadata columns,
+2. the website must not be required to re-derive lineage logic from history CSV
+   during rendering,
+3. `Transition Message` is the source of truth for the tooltip copy,
+4. the species detail page may reuse `Transition Message` for a banner and may
+   use the structured metadata columns for richer presentation.
+
+Compatibility note:
+
+1. existing tests and consumers for public column names remain valid,
+2. tests that assert the full exported field list must be updated to account for
+   the appended hidden metadata columns.
+
+### Drivers column
+
+`Drivers` is not new.
+
+It is an existing hidden CSV column and remains required.
+
+Required format:
+
+1. semicolon-separated plain-English clauses,
+2. clause order must be `Stock`, then `Demand`, then `Price`,
+3. optional transition wording may be appended after those clauses,
+4. wording must remain deterministic and programmatically generated.
+
+---
+
 ## Surface Requirements
 
 ### Main Tables
@@ -456,6 +728,10 @@ Proposed solution:
    2. the most recent last-active size when the species is currently OUT but a
       single recent lineage is still being interpreted,
    3. a comma-separated ascending list when multiple sizes are currently active,
+   4. `—` when the species is currently OUT and no single recent lineage can be
+      identified within the standard 5-run OOS carryover window,
+   5. in an ambiguous transition case, the most recent active size is still shown
+      if it is uniquely most recent within that same 5-run window,
 3. the current size or active sizes are shown as compact context,
 4. price cells that are affected by a recent confirmed size transition show a
    warning icon,
@@ -544,7 +820,9 @@ The solution is acceptable only if all of the following are true.
    1. a single size string such as `5`,
    2. a quoted comma-separated active size list such as `"3, 5"`,
    3. the most recent last-active size string such as `5` when the species is
-      currently OUT but one recent lineage is still being interpreted.
+      currently OUT but one recent lineage is still being interpreted,
+   4. `—` when the species is currently OUT and no single recent lineage can be
+      identified conservatively.
 2. `Price` must contain exactly one of:
    1. a standard value such as `£35.00 →`,
    2. a transition-affected standard value such as `£35.00 →` with a rendered
@@ -560,8 +838,11 @@ The solution is acceptable only if all of the following are true.
    1. a lineage sparkline string,
    2. `-` when continuity is ambiguous or overlapping active variants make a
       single momentum series unsafe.
-6. rendered warning icons and tooltips are website-table concerns and are not
-   encoded directly in the CSV string values shown below.
+6. `Drivers` must contain deterministic semicolon-separated explanatory text.
+7. hidden metadata columns must exist after `Drivers` exactly as specified in
+   `Output Schema And Metadata Columns`.
+8. rendered warning icons and tooltips are website-table concerns and are not
+   encoded directly in the public CSV string values shown below.
 
 ### Transition Handling
 
@@ -574,6 +855,25 @@ The solution is acceptable only if all of the following are true.
 5. ambiguous transitions downgrade continuity-dependent price and momentum
    evidence instead,
 6. overlapping active variants are not forced into one clean price series.
+
+### Stable Non-Transition Species
+
+1. species with no size transition history preserve current behavior unchanged,
+2. for those species, `Lineage Status` is `none`,
+3. for those species, `Price Evidence State` is `standard`,
+4. for those species, `Wishlist Evidence State` is `standard`,
+5. for those species, `Transition Message` is blank.
+
+### Delivery Sequencing
+
+1. the transition detection and metadata layer must be implemented and tested in
+   isolation first,
+2. an intermediate validation phase is acceptable in which hidden lineage
+   metadata is computed and audited against real history while public analysis is
+   still species-size keyed,
+3. that intermediate validation phase is not an acceptable final shipped state,
+4. the feature is only complete when table row identity becomes species-level and
+   the acceptance scenarios in this document pass.
 
 ### UX And Explainability
 
@@ -633,11 +933,25 @@ Species,Size (cm),OOS,OOS Runs,Stock Pattern,Price,Price History,Wishlist,Wishli
 Example species confirmed,5,OUT,2,Emerging,£35.00 →,▄▄▄▄▄▄▄▄,120 🔥 ↑,▁▁▂▃▄▅▆█,🔥,Consider pairing — emerging scarcity with surging interest,Stock: Emerging (OOS 2 runs; currently OUT); Demand: Wishlist High + rising; Price: Stable; Size transition: confirmed 3→5 on 2026-02-04
 ```
 
+Then the hidden breeder metadata columns must be exactly:
+
+```csv
+Lineage Status,Previous Size (cm),Current Active Size (cm),Transition Date,Price Evidence State,Wishlist Evidence State,Transition Message
+confirmed-transition,3,5,2026-02-04,transition-affected,carried-across-transition,Size changed from 3 cm to 5 cm on 2026-02-04. Wishlist continuity is treated as continuous for this listing. Price evidence is still useful, but recent movement may partly reflect the size change rather than a pure same-unit price move.
+```
+
 Then the dealer row must be exactly:
 
 ```csv
 Species,Size (cm),Stock Reliability,Avg OOS Duration,Restock Speed,Price,Price History,Wishlist,Wishlist History,Stock Availability,Dealer Risk,Dealer Recommendation,Drivers
 Example species confirmed,5,Medium,2.0,Moderate,£35.00 →,▄▄▄▄▄▄▄▄,120 🔥 ↑,▁▁▂▃▄▅▆█,██████··,🔥,"Actively seek breeders — surging demand, variable supply",Stock: Reliability Medium (Restock Moderate); Demand: Wishlist High + rising; Price: Stable; Size transition: confirmed 3→5 on 2026-02-04
+```
+
+Then the hidden dealer metadata columns must be exactly:
+
+```csv
+Lineage Status,Previous Size (cm),Current Active Size (cm),Transition Date,Price Evidence State,Wishlist Evidence State,Transition Message
+confirmed-transition,3,5,2026-02-04,transition-affected,carried-across-transition,Size changed from 3 cm to 5 cm on 2026-02-04. Wishlist continuity is treated as continuous for this listing. Price evidence is still useful, but recent movement may partly reflect the size change rather than a pure same-unit price move.
 ```
 
 Then the rendered website behavior must be exactly:
@@ -674,11 +988,25 @@ Species,Size (cm),OOS,OOS Runs,Stock Pattern,Price,Price History,Wishlist,Wishli
 Example species ambiguous,5,OUT,2,Emerging,£35.00 →,-,120 🔥 →,-,⚠️,Monitor closely — emerging scarcity; lineage continuity unconfirmed,Stock: Emerging (OOS 2 runs; currently OUT); Demand: Wishlist High (momentum neutralized; continuity unconfirmed); Price: Stable; Size transition: ambiguous 3→5 on 2026-02-04
 ```
 
+Then the hidden breeder metadata columns must be exactly:
+
+```csv
+Lineage Status,Previous Size (cm),Current Active Size (cm),Transition Date,Price Evidence State,Wishlist Evidence State,Transition Message
+ambiguous-transition,3,5,2026-02-04,neutralized,neutralized-ambiguous,Size handoff from 3 cm to 5 cm could not be confirmed as one continuing listing. Wishlist continuity is not carried across the handoff. Price and momentum evidence are shown in a conservative downgraded state.
+```
+
 Then the dealer row must be exactly:
 
 ```csv
 Species,Size (cm),Stock Reliability,Avg OOS Duration,Restock Speed,Price,Price History,Wishlist,Wishlist History,Stock Availability,Dealer Risk,Dealer Recommendation,Drivers
 Example species ambiguous,5,Medium,2.0,Moderate,£35.00 →,-,120 🔥 →,-,██████··,⚠️,Buy opportunistically — lineage continuity unconfirmed,Stock: Reliability Medium (Restock Moderate); Demand: Wishlist High (momentum neutralized; continuity unconfirmed); Price: Stable; Size transition: ambiguous 3→5 on 2026-02-04
+```
+
+Then the hidden dealer metadata columns must be exactly:
+
+```csv
+Lineage Status,Previous Size (cm),Current Active Size (cm),Transition Date,Price Evidence State,Wishlist Evidence State,Transition Message
+ambiguous-transition,3,5,2026-02-04,neutralized,neutralized-ambiguous,Size handoff from 3 cm to 5 cm could not be confirmed as one continuing listing. Wishlist continuity is not carried across the handoff. Price and momentum evidence are shown in a conservative downgraded state.
 ```
 
 Then the rendered website behavior must be exactly:
@@ -713,7 +1041,14 @@ Then the breeder row must be exactly:
 
 ```csv
 Species,Size (cm),OOS,OOS Runs,Stock Pattern,Price,Price History,Wishlist,Wishlist History,Signal,Recommendation,Drivers
-Example species overlap,"3, 5",IN,0,Always,Multiple active prices,-,120 🔥 →,-,⚠️,Watch closely — high latent demand across active size variants,Stock: Always (currently IN); Demand: Wishlist High (active variants overlap; delta neutralized); Price: Multiple active sizes
+Example species overlap,"3, 5",IN,0,Always,Multiple active prices,-,120 🔥 →,-,❌,Avoid for profit — oversupplied,Stock: Always (currently IN); Demand: Wishlist High (active variants overlap; delta neutralized); Price: Multiple active sizes
+```
+
+Then the hidden breeder metadata columns must be exactly:
+
+```csv
+Lineage Status,Previous Size (cm),Current Active Size (cm),Transition Date,Price Evidence State,Wishlist Evidence State,Transition Message
+multi-variant,,"3, 5",,multi-variant,max-active-variant,This species has multiple active size variants in the current run (3 cm and 5 cm). The row remains species-level. Current wishlist context uses the highest active variant count without summing listings. Price evidence is not shown as one clean single-line series.
 ```
 
 Then the dealer row must be exactly:
@@ -721,6 +1056,13 @@ Then the dealer row must be exactly:
 ```csv
 Species,Size (cm),Stock Reliability,Avg OOS Duration,Restock Speed,Price,Price History,Wishlist,Wishlist History,Stock Availability,Dealer Risk,Dealer Recommendation,Drivers
 Example species overlap,"3, 5",High,0.0,Fast,Multiple active prices,-,120 🔥 →,-,████████,❌,"Well-supplied, but monitor demand across active size variants",Stock: Reliability High (Restock Fast); Demand: Wishlist High (active variants overlap; delta neutralized); Price: Multiple active sizes
+```
+
+Then the hidden dealer metadata columns must be exactly:
+
+```csv
+Lineage Status,Previous Size (cm),Current Active Size (cm),Transition Date,Price Evidence State,Wishlist Evidence State,Transition Message
+multi-variant,,"3, 5",,multi-variant,max-active-variant,This species has multiple active size variants in the current run (3 cm and 5 cm). The row remains species-level. Current wishlist context uses the highest active variant count without summing listings. Price evidence is not shown as one clean single-line series.
 ```
 
 Then the rendered website behavior must be exactly:
@@ -740,6 +1082,32 @@ should be interpreted according to Scenario A if the continuity checks confirm a
 clean handoff, or Scenario B if those continuity checks do not all pass.
 
 It must not revert to multiple current breeder or dealer rows.
+
+### Scenario D: Stable species with no transition history
+
+Given:
+
+1. a species has only one historically observed size variant,
+2. no size transition metadata exists for that species,
+3. current breeder and dealer calculations are otherwise unchanged.
+
+When:
+
+1. the breeder row is generated,
+2. the dealer row is generated.
+
+Then:
+
+1. all public column values must match the pre-feature behavior exactly,
+2. the hidden metadata columns must be exactly:
+
+```csv
+Lineage Status,Previous Size (cm),Current Active Size (cm),Transition Date,Price Evidence State,Wishlist Evidence State,Transition Message
+none,,<current size>,,standard,standard,
+```
+
+3. no warning icon is rendered for `Price` or `Price History`,
+4. no species-detail transition banner is rendered.
 
 ---
 
