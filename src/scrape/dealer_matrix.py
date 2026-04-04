@@ -6,7 +6,9 @@ from shared.driver_text_helpers import build_drivers_text
 from shared.price_text_helpers import format_price_cell
 from shared.summary_utils import MatrixOutputConfig, write_matrix_outputs
 from scrape.matrix_workflow import (
+    LINEAGE_METADATA_COLUMNS,
     collect_lookback_values_for_key,
+    compute_lineage_metadata,
     generate_price_wishlist_sparklines,
     get_wishlist_display_metrics,
     prepare_matrix_analysis,
@@ -69,6 +71,12 @@ def build_dealer_supply_risk_table(history_rows):
     for rt in runs:
         for r in by_run[rt]:
             present_runs_map.setdefault(k2(r), set()).add(rt)
+
+    # Pre-compute lineage metadata once per scientific name (Phase 3+)
+    all_sci = {k[0] for k in present_runs_map}
+    species_lineage_map = {
+        sci: compute_lineage_metadata(sci, history_rows) for sci in all_sci
+    }
 
     table = []
 
@@ -223,7 +231,8 @@ def build_dealer_supply_risk_table(history_rows):
             "Stock Availability": stock_availability_sparkline,
             "Dealer Risk": risk,
             "Dealer Recommendation": rec,
-            "Drivers": drivers
+            "Drivers": drivers,
+            **species_lineage_map[sci],
         })
 
     # Sort: Dealer Risk (🔥 > ⚠️ > ❌), then Wishlist count (desc), then Avg OOS Duration (desc)
@@ -238,10 +247,11 @@ def write_dealer_outputs(table):
         indicator_field="Dealer Risk",
         indicator_labels={"🔥": "High Risk", "⚠️": "Moderate Risk", "❌": "Low Risk"},
         fallback_fieldnames=[
-        "Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration",
-        "Restock Speed", "Price", "Price History", "Wishlist",
-        "Wishlist History", "Stock Availability", "Dealer Risk",
-        "Dealer Recommendation", "Drivers",
+            "Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration",
+            "Restock Speed", "Price", "Price History", "Wishlist",
+            "Wishlist History", "Stock Availability", "Dealer Risk",
+            "Dealer Recommendation", "Drivers",
+            *LINEAGE_METADATA_COLUMNS,
         ],
         table_columns=[
             "Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration",

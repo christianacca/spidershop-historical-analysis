@@ -11,7 +11,9 @@ from shared.driver_text_helpers import build_drivers_text
 from shared.price_text_helpers import format_price_cell
 from shared.summary_utils import MatrixOutputConfig, write_matrix_outputs
 from scrape.matrix_workflow import (
+    LINEAGE_METADATA_COLUMNS,
     collect_lookback_values_for_key,
+    compute_lineage_metadata,
     generate_price_wishlist_sparklines,
     get_wishlist_display_metrics,
     iter_lookback_rows_for_key,
@@ -106,6 +108,12 @@ def build_breeder_opportunity_table(history_rows):
     for rt in runs:
         for r in by_run[rt]:
             all_keys.add(k2(r))
+
+    # Pre-compute lineage metadata once per scientific name (Phase 3+)
+    all_sci = {k[0] for k in all_keys}
+    species_lineage_map = {
+        sci: compute_lineage_metadata(sci, history_rows) for sci in all_sci
+    }
 
     # For display of OUT items: bounded last-seen row
     def get_last_seen_row_within_lookback(key):
@@ -284,7 +292,8 @@ def build_breeder_opportunity_table(history_rows):
             "Wishlist History": wishlist_sparkline,
             "Signal": signal,
             "Recommendation": rec,
-            "Drivers": drivers
+            "Drivers": drivers,
+            **species_lineage_map[key[0]],
         })
 
     # Sort: Signal priority, breeder watch-bucket precedence, then Wishlist count and OOS runs.
@@ -308,9 +317,10 @@ def write_breeder_outputs(table):
         indicator_field="Signal",
         indicator_labels={"🔥": "Hot", "⚠️": "Watch", "❌": "Avoid"},
         fallback_fieldnames=[
-        "Species", "Size (cm)", "OOS", "OOS Runs", "Stock Pattern",
-        "Price", "Price History", "Wishlist",
-        "Wishlist History", "Signal", "Recommendation", "Drivers",
+            "Species", "Size (cm)", "OOS", "OOS Runs", "Stock Pattern",
+            "Price", "Price History", "Wishlist",
+            "Wishlist History", "Signal", "Recommendation", "Drivers",
+            *LINEAGE_METADATA_COLUMNS,
         ],
         table_columns=[
             "Species", "Size (cm)", "OOS", "OOS Runs", "Stock Pattern",

@@ -3,6 +3,7 @@
 
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+from scrape.listing_lineage import LineageResult, detect_species_lineage
 from scrape.wishlist_analysis import (
     compute_wishlist_pressure,
     get_wishlist_count,
@@ -162,3 +163,49 @@ def sort_matrix_table(
             -tertiary_value_getter(row),
         )
     )
+
+
+# ---------------------------------------------------------------------------
+# Lineage metadata (Phase 3 / Phase 4)
+# ---------------------------------------------------------------------------
+
+#: Hidden metadata column names appended after ``Drivers`` in CSV output.
+LINEAGE_METADATA_COLUMNS = [
+    "Lineage Status",
+    "Previous Size (cm)",
+    "Current Active Size (cm)",
+    "Transition Date",
+    "Price Evidence State",
+    "Wishlist Evidence State",
+    "Transition Message",
+]
+
+
+def compute_lineage_metadata(
+    scientific_name: str,
+    history_rows: List[Dict[str, Any]],
+) -> Dict[str, str]:
+    """Detect listing lineage for *scientific_name* and return hidden column dict.
+
+    This is a thin delegation wrapper around
+    :func:`scrape.listing_lineage.detect_species_lineage`.  It is called
+    once per unique scientific name so that both matrix modules can attach
+    identical lineage metadata to all rows that share the same species.
+
+    Args:
+        scientific_name: Species to analyse.
+        history_rows: Full history dataset (all species, all runs).
+
+    Returns:
+        Dict with keys matching :data:`LINEAGE_METADATA_COLUMNS`.
+    """
+    result: LineageResult = detect_species_lineage(history_rows, scientific_name)
+    return {
+        "Lineage Status": result.lineage_status,
+        "Previous Size (cm)": result.previous_size,
+        "Current Active Size (cm)": result.current_active_size,
+        "Transition Date": result.transition_date,
+        "Price Evidence State": result.price_evidence_state,
+        "Wishlist Evidence State": result.wishlist_evidence_state,
+        "Transition Message": result.transition_message,
+    }

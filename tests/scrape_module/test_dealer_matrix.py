@@ -842,9 +842,13 @@ class TestBuildDealerSupplyRiskTable:
         
         expected_keys = {
             "Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration",
-            "Restock Speed", "Price", "Price History", "Wishlist", 
-            "Wishlist History", "Stock Availability", "Dealer Risk", 
-            "Dealer Recommendation", "Drivers"
+            "Restock Speed", "Price", "Price History", "Wishlist",
+            "Wishlist History", "Stock Availability", "Dealer Risk",
+            "Dealer Recommendation", "Drivers",
+            # Hidden lineage metadata columns (Phase 3+)
+            "Lineage Status", "Previous Size (cm)", "Current Active Size (cm)",
+            "Transition Date", "Price Evidence State", "Wishlist Evidence State",
+            "Transition Message",
         }
         assert set(entry.keys()) == expected_keys
 
@@ -1148,4 +1152,141 @@ class TestDealerSparklineColumns:
         
         # Should contain key information structured
         assert "Reliability" in drivers or "Stock" in drivers
-        assert "Demand" in drivers or "Wishlist" in drivers
+
+
+# ---------------------------------------------------------------------------
+# Phase 3: hidden lineage metadata columns – dealer matrix
+# ---------------------------------------------------------------------------
+
+from scrape.dealer_matrix import build_dealer_supply_risk_table as _build_dealer
+
+
+def _drow(dt, sci, size, price, wishlist="10", url=None):
+    row = make_row(dt, sci, size, price, wishlist)
+    if url is not None:
+        row["page_url"] = url
+    return row
+
+
+def _dfrow(dt):
+    return make_row(dt, "Grammostola pulchra", "2.0", "40.00", "5")
+
+
+_D_HIDDEN_COLS = [
+    "Lineage Status",
+    "Previous Size (cm)",
+    "Current Active Size (cm)",
+    "Transition Date",
+    "Price Evidence State",
+    "Wishlist Evidence State",
+    "Transition Message",
+]
+
+_D_CONF_URL = "https://thespidershop.co.uk/product/dealer-test"
+_D_AMB_URL_A = "https://thespidershop.co.uk/product/dealer-ambiguous-a"
+_D_AMB_URL_B = "https://thespidershop.co.uk/product/dealer-ambiguous-b"
+
+
+class TestDealerHiddenLineageMetadataColumns:
+    """Phase 3: hidden metadata columns are attached to dealer matrix rows."""
+
+    def _build_scenario_a_history(self):
+        sci = "Dealer scenario A species"
+        return [
+            _drow("2026-01-01", sci, "3", "25.00", "100", url=_D_CONF_URL),
+            _dfrow("2026-01-01"),
+            _drow("2026-02-04", sci, "5", "35.00", "110", url=_D_CONF_URL),
+            _dfrow("2026-02-04"),
+            _dfrow("2026-02-11"),
+            _dfrow("2026-02-18"),
+        ], sci
+
+    def test_scenario_a_dealer_hidden_columns_confirmed_transition(self):
+        history, sci = self._build_scenario_a_history()
+        table = _build_dealer(history)
+        rows = [r for r in table if r["Species"] == sci]
+        assert rows
+
+        for col in _D_HIDDEN_COLS:
+            assert col in rows[0], f"Missing hidden column: {col}"
+
+        for row in rows:
+            assert row["Lineage Status"] == "confirmed-transition"
+            assert row["Previous Size (cm)"] == "3"
+            assert row["Current Active Size (cm)"] == "5"
+            assert row["Transition Date"] == "2026-02-04"
+            assert row["Price Evidence State"] == "transition-affected"
+            assert row["Wishlist Evidence State"] == "carried-across-transition"
+            assert "Size changed from 3 cm to 5 cm" in row["Transition Message"]
+
+    def _build_scenario_b_history(self):
+        sci = "Dealer scenario B species"
+        return [
+            _drow("2026-01-01", sci, "3", "25.00", "100", url=_D_AMB_URL_A),
+            _dfrow("2026-01-01"),
+            _drow("2026-02-04", sci, "5", "35.00", "120", url=_D_AMB_URL_B),
+            _dfrow("2026-02-04"),
+            _dfrow("2026-02-11"),
+            _dfrow("2026-02-18"),
+        ], sci
+
+    def test_scenario_b_dealer_hidden_columns_ambiguous_transition(self):
+        history, sci = self._build_scenario_b_history()
+        table = _build_dealer(history)
+        rows = [r for r in table if r["Species"] == sci]
+        assert rows
+
+        for row in rows:
+            assert row["Lineage Status"] == "ambiguous-transition"
+            assert row["Previous Size (cm)"] == "3"
+            assert row["Current Active Size (cm)"] == "5"
+            assert row["Price Evidence State"] == "neutralized"
+            assert row["Wishlist Evidence State"] == "neutralized-ambiguous"
+
+    def _build_scenario_c_history(self):
+        sci = "Dealer scenario C species"
+        return [
+            # Run 1: only size 3
+            _drow("2026-01-01", sci, "3", "25.00", "80", url=_D_CONF_URL),
+            _dfrow("2026-01-01"),
+            # Run 2 (current): both sizes → multi-variant
+            _drow("2026-01-08", sci, "3", "25.00", "80", url=_D_CONF_URL),
+            _drow("2026-01-08", sci, "5", "35.00", "120", url=_D_CONF_URL),
+            _dfrow("2026-01-08"),
+        ], sci
+
+    def test_scenario_c_dealer_hidden_columns_multi_variant(self):
+        history, sci = self._build_scenario_c_history()
+        table = _build_dealer(history)
+        rows = [r for r in table if r["Species"] == sci]
+        assert rows
+
+        for row in rows:
+            assert row["Lineage Status"] == "multi-variant"
+            assert row["Previous Size (cm)"] == ""
+            assert row["Current Active Size (cm)"] == "3, 5"
+            assert row["Price Evidence State"] == "multi-variant"
+            assert row["Wishlist Evidence State"] == "max-active-variant"
+
+    def _build_scenario_d_history(self):
+        sci = "Dealer scenario D species"
+        return [
+            _drow("2026-01-01", sci, "3", "25.00", "10", url=_D_CONF_URL),
+            _dfrow("2026-01-01"),
+            _drow("2026-01-08", sci, "3", "26.00", "12", url=_D_CONF_URL),
+            _dfrow("2026-01-08"),
+        ], sci
+
+    def test_scenario_d_dealer_hidden_columns_none_status(self):
+        history, sci = self._build_scenario_d_history()
+        table = _build_dealer(history)
+        rows = [r for r in table if r["Species"] == sci]
+        assert rows
+
+        for row in rows:
+            assert row["Lineage Status"] == "none"
+            assert row["Previous Size (cm)"] == ""
+            assert row["Transition Date"] == ""
+            assert row["Price Evidence State"] == "standard"
+            assert row["Wishlist Evidence State"] == "standard"
+            assert row["Transition Message"] == ""

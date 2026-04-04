@@ -530,11 +530,15 @@ class TestBuildBreederOpportunityTable:
         assert len(table) > 0
         entry = table[0]
         
-        # Verify all expected keys exist (including new sparkline columns)
+        # Verify all expected keys exist (including sparkline and lineage metadata columns)
         expected_keys = {
             "Species", "Size (cm)", "OOS", "OOS Runs", "Stock Pattern",
-            "Price", "Price History", "Wishlist", 
-            "Wishlist History", "Signal", "Recommendation", "Drivers"
+            "Price", "Price History", "Wishlist",
+            "Wishlist History", "Signal", "Recommendation", "Drivers",
+            # Hidden lineage metadata columns (Phase 3+)
+            "Lineage Status", "Previous Size (cm)", "Current Active Size (cm)",
+            "Transition Date", "Price Evidence State", "Wishlist Evidence State",
+            "Transition Message",
         }
         assert set(entry.keys()) == expected_keys
         assert isinstance(entry["Species"], str)
@@ -840,3 +844,180 @@ class TestSparklineColumns:
         assert "Stock" in drivers or "Pattern" in drivers
         assert "Demand" in drivers or "Wishlist" in drivers
         assert "Price" in drivers
+
+
+# ---------------------------------------------------------------------------
+# Phase 3: hidden lineage metadata columns
+# ---------------------------------------------------------------------------
+
+# Helpers that create rows with custom URLs for transition scenarios.
+def _mrow(dt, sci, size, price, wishlist="10", url=None):
+    row = make_row(dt, sci, size, price, wishlist)
+    if url is not None:
+        row["page_url"] = url
+    return row
+
+
+FILLER = "Grammostola pulchra"
+
+
+def _frow(dt):
+    return make_row(dt, FILLER, "2.0", "40.00", "5")
+
+
+_HIDDEN_COLS = [
+    "Lineage Status",
+    "Previous Size (cm)",
+    "Current Active Size (cm)",
+    "Transition Date",
+    "Price Evidence State",
+    "Wishlist Evidence State",
+    "Transition Message",
+]
+
+_CONF_URL = "https://thespidershop.co.uk/product/test-confirmed"
+_AMB_URL_A = "https://thespidershop.co.uk/product/test-ambiguous-a"
+_AMB_URL_B = "https://thespidershop.co.uk/product/test-ambiguous-b"  # different URL
+
+
+class TestHiddenLineageMetadataColumns:
+    """Phase 3: hidden metadata columns are attached to each row in the table.
+
+    At Phase 3 the matrix is still (sci, size)-keyed; every row for a species
+    carries the same lineage metadata derived from detect_species_lineage().
+    """
+
+    # -- Scenario A: confirmed size transition ---------------------------------
+
+    def _build_scenario_a_history(self):
+        """Confirmed 3→5 transition: same URL, gap=1, no overlap. Currently OUT 2 runs."""
+        sci = "Scenario A species"
+        return [
+            # Run 1: 3cm present
+            _mrow("2026-01-01", sci, "3", "25.00", "100", url=_CONF_URL),
+            _frow("2026-01-01"),
+            # Run 2: 5cm appears (confirmed handoff)
+            _mrow("2026-02-04", sci, "5", "35.00", "110", url=_CONF_URL),
+            _frow("2026-02-04"),
+            # Run 3: OUT
+            _frow("2026-02-11"),
+            # Run 4: OUT (2 consecutive)
+            _frow("2026-02-18"),
+        ], sci
+
+    def test_scenario_a_breeder_hidden_columns_confirmed_transition(self):
+        history, sci = self._build_scenario_a_history()
+        table = build_breeder_opportunity_table(history)
+        rows = [r for r in table if r["Species"] == sci]
+        assert rows, f"No row found for {sci}"
+
+        # All rows for this species get the same lineage metadata
+        for row in rows:
+            for col in _HIDDEN_COLS:
+                assert col in row, f"Missing hidden column: {col}"
+            assert row["Lineage Status"] == "confirmed-transition"
+            assert row["Previous Size (cm)"] == "3"
+            assert row["Current Active Size (cm)"] == "5"
+            assert row["Transition Date"] == "2026-02-04"
+            assert row["Price Evidence State"] == "transition-affected"
+            assert row["Wishlist Evidence State"] == "carried-across-transition"
+            assert "Size changed from 3 cm to 5 cm on 2026-02-04" in row["Transition Message"]
+
+    def test_scenario_a_drivers_column_is_present(self):
+        """Drivers column is still written as part of row dict."""
+        history, sci = self._build_scenario_a_history()
+        table = build_breeder_opportunity_table(history)
+        rows = [r for r in table if r["Species"] == sci]
+        assert rows
+        assert "Drivers" in rows[0]
+        assert rows[0]["Drivers"]  # non-empty
+
+    # -- Scenario B: ambiguous transition -------------------------------------
+
+    def _build_scenario_b_history(self):
+        """Ambiguous: URL mismatch between old and new size."""
+        sci = "Scenario B species"
+        return [
+            # Run 1: 3cm with URL A
+            _mrow("2026-01-01", sci, "3", "25.00", "100", url=_AMB_URL_A),
+            _frow("2026-01-01"),
+            # Run 2: 5cm with URL B (mismatch → ambiguous)
+            _mrow("2026-02-04", sci, "5", "35.00", "120", url=_AMB_URL_B),
+            _frow("2026-02-04"),
+            # Run 3: OUT
+            _frow("2026-02-11"),
+            # Run 4: OUT (2 consecutive)
+            _frow("2026-02-18"),
+        ], sci
+
+    def test_scenario_b_breeder_hidden_columns_ambiguous_transition(self):
+        history, sci = self._build_scenario_b_history()
+        table = build_breeder_opportunity_table(history)
+        rows = [r for r in table if r["Species"] == sci]
+        assert rows
+
+        for row in rows:
+            assert row["Lineage Status"] == "ambiguous-transition"
+            assert row["Previous Size (cm)"] == "3"
+            assert row["Current Active Size (cm)"] == "5"
+            assert row["Transition Date"] == "2026-02-04"
+            assert row["Price Evidence State"] == "neutralized"
+            assert row["Wishlist Evidence State"] == "neutralized-ambiguous"
+            assert "could not be confirmed" in row["Transition Message"]
+
+    # -- Scenario C: multi-variant --------------------------------------------
+
+    def _build_scenario_c_history(self):
+        """Two sizes active in current run → multi-variant. Needs ≥2 runs."""
+        sci = "Scenario C species"
+        return [
+            # Run 1: only 3cm (to satisfy ≥2 runs requirement)
+            _mrow("2026-01-01", sci, "3", "25.00", "80", url=_CONF_URL),
+            _frow("2026-01-01"),
+            # Run 2 (current): both 3cm and 5cm active → multi-variant
+            _mrow("2026-01-08", sci, "3", "25.00", "80", url=_CONF_URL),
+            _mrow("2026-01-08", sci, "5", "35.00", "120", url=_CONF_URL),
+            _frow("2026-01-08"),
+        ], sci
+
+    def test_scenario_c_breeder_hidden_columns_multi_variant(self):
+        history, sci = self._build_scenario_c_history()
+        table = build_breeder_opportunity_table(history)
+        rows = [r for r in table if r["Species"] == sci]
+        assert rows
+
+        for row in rows:
+            assert row["Lineage Status"] == "multi-variant"
+            assert row["Previous Size (cm)"] == ""
+            assert row["Current Active Size (cm)"] == "3, 5"
+            assert row["Transition Date"] == ""
+            assert row["Price Evidence State"] == "multi-variant"
+            assert row["Wishlist Evidence State"] == "max-active-variant"
+            assert "multiple active size variants" in row["Transition Message"]
+
+    # -- Scenario D: stable single-size species --------------------------------
+
+    def _build_scenario_d_history(self):
+        """Stable: only one size ever observed, no transition."""
+        sci = "Scenario D species"
+        return [
+            _mrow("2026-01-01", sci, "3", "25.00", "10", url=_CONF_URL),
+            _frow("2026-01-01"),
+            _mrow("2026-01-08", sci, "3", "25.00", "12", url=_CONF_URL),
+            _frow("2026-01-08"),
+        ], sci
+
+    def test_scenario_d_breeder_hidden_columns_none_status(self):
+        history, sci = self._build_scenario_d_history()
+        table = build_breeder_opportunity_table(history)
+        rows = [r for r in table if r["Species"] == sci]
+        assert rows
+
+        for row in rows:
+            assert row["Lineage Status"] == "none"
+            assert row["Previous Size (cm)"] == ""
+            assert row["Current Active Size (cm)"] == "3"
+            assert row["Transition Date"] == ""
+            assert row["Price Evidence State"] == "standard"
+            assert row["Wishlist Evidence State"] == "standard"
+            assert row["Transition Message"] == ""
