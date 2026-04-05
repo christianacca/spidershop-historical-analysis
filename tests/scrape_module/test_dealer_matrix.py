@@ -1207,14 +1207,14 @@ class TestDealerHiddenLineageMetadataColumns:
         for col in _D_HIDDEN_COLS:
             assert col in rows[0], f"Missing hidden column: {col}"
 
-        for row in rows:
-            assert row["Lineage Status"] == "confirmed-transition"
-            assert row["Previous Size (cm)"] == "3"
-            assert row["Current Active Size (cm)"] == "5"
-            assert row["Transition Date"] == "2026-02-04"
-            assert row["Price Evidence State"] == "transition-affected"
-            assert row["Wishlist Evidence State"] == "carried-across-transition"
-            assert "Size changed from 3 cm to 5 cm" in row["Transition Message"]
+        row = rows[0]
+        assert row["Lineage Status"] == "confirmed-transition"
+        assert row["Previous Size (cm)"] == "3"
+        assert row["Current Active Size (cm)"] == "5"
+        assert row["Transition Date"] == "2026-02-04"
+        assert row["Price Evidence State"] == "transition-affected"
+        assert row["Wishlist Evidence State"] == "carried-across-transition"
+        assert "Size changed from 3 cm to 5 cm" in row["Transition Message"]
 
     def _build_scenario_b_history(self):
         sci = "Dealer scenario B species"
@@ -1233,12 +1233,12 @@ class TestDealerHiddenLineageMetadataColumns:
         rows = [r for r in table if r["Species"] == sci]
         assert rows
 
-        for row in rows:
-            assert row["Lineage Status"] == "ambiguous-transition"
-            assert row["Previous Size (cm)"] == "3"
-            assert row["Current Active Size (cm)"] == "5"
-            assert row["Price Evidence State"] == "neutralized"
-            assert row["Wishlist Evidence State"] == "neutralized-ambiguous"
+        row = rows[0]
+        assert row["Lineage Status"] == "ambiguous-transition"
+        assert row["Previous Size (cm)"] == "3"
+        assert row["Current Active Size (cm)"] == "5"
+        assert row["Price Evidence State"] == "neutralized"
+        assert row["Wishlist Evidence State"] == "neutralized-ambiguous"
 
     def _build_scenario_c_history(self):
         sci = "Dealer scenario C species"
@@ -1258,12 +1258,12 @@ class TestDealerHiddenLineageMetadataColumns:
         rows = [r for r in table if r["Species"] == sci]
         assert rows
 
-        for row in rows:
-            assert row["Lineage Status"] == "multi-variant"
-            assert row["Previous Size (cm)"] == ""
-            assert row["Current Active Size (cm)"] == "3, 5"
-            assert row["Price Evidence State"] == "multi-variant"
-            assert row["Wishlist Evidence State"] == "max-active-variant"
+        row = rows[0]
+        assert row["Lineage Status"] == "multi-variant"
+        assert row["Previous Size (cm)"] == ""
+        assert row["Current Active Size (cm)"] == "3, 5"
+        assert row["Price Evidence State"] == "multi-variant"
+        assert row["Wishlist Evidence State"] == "max-active-variant"
 
     def _build_scenario_d_history(self):
         sci = "Dealer scenario D species"
@@ -1280,12 +1280,12 @@ class TestDealerHiddenLineageMetadataColumns:
         rows = [r for r in table if r["Species"] == sci]
         assert rows
 
-        for row in rows:
-            assert row["Lineage Status"] == "none"
-            assert row["Previous Size (cm)"] == ""
-            assert row["Transition Date"] == ""
-            assert row["Price Evidence State"] == "standard"
-            assert row["Wishlist Evidence State"] == "standard"
+        row = rows[0]
+        assert row["Lineage Status"] == "none"
+        assert row["Previous Size (cm)"] == ""
+        assert row["Transition Date"] == ""
+        assert row["Price Evidence State"] == "standard"
+        assert row["Wishlist Evidence State"] == "standard"
 
 
 # ---------------------------------------------------------------------------
@@ -1328,47 +1328,24 @@ class TestDealerPhase4AcceptanceScenarios:
             _p4dfrow("2025-11-19"),
         ]
 
-    def test_scenario_a_exactly_one_row_per_species(self):
+    def test_scenario_a_confirmed_transition(self):
+        """Confirmed transition: one row, supply metrics correct, wishlist carries, sparklines not suppressed."""
         rows = [r for r in _build_dealer(self._history_a()) if r["Species"] == self._SCI_A]
         assert len(rows) == 1, f"Expected 1 row for {self._SCI_A!r}, got {len(rows)}"
-
-    def test_scenario_a_size_is_current_active(self):
-        rows = [r for r in _build_dealer(self._history_a()) if r["Species"] == self._SCI_A]
-        assert len(rows) == 1
-        assert rows[0]["Size (cm)"] == "5"
-
-    def test_scenario_a_stock_metrics(self):
-        rows = [r for r in _build_dealer(self._history_a()) if r["Species"] == self._SCI_A]
-        assert len(rows) == 1
         row = rows[0]
+        assert row["Size (cm)"] == "5"
         assert row["Stock Reliability"] == "Medium"
         assert row["Avg OOS Duration"] == 2.0
         assert row["Restock Speed"] == "Moderate"
-
-    def test_scenario_a_dealer_risk(self):
-        rows = [r for r in _build_dealer(self._history_a()) if r["Species"] == self._SCI_A]
-        assert len(rows) == 1
-        assert rows[0]["Dealer Risk"] == "🔥"
-
-    def test_scenario_a_wishlist_carried_and_rising(self):
-        rows = [r for r in _build_dealer(self._history_a()) if r["Species"] == self._SCI_A]
-        assert len(rows) == 1
-        wishlist = rows[0]["Wishlist"]
+        assert row["Dealer Risk"] == "🔥"
+        wishlist = row["Wishlist"]
         assert wishlist.startswith("120"), f"Expected count 120, got {wishlist!r}"
         assert "🔥" in wishlist
         assert "↑" in wishlist
-
-    def test_scenario_a_sparklines_not_suppressed(self):
-        rows = [r for r in _build_dealer(self._history_a()) if r["Species"] == self._SCI_A]
-        assert len(rows) == 1
-        assert rows[0]["Price History"] != "-"
-        assert rows[0]["Wishlist History"] != "-"
-
-    def test_scenario_a_stock_availability_reflects_species_timeline(self):
-        rows = [r for r in _build_dealer(self._history_a()) if r["Species"] == self._SCI_A]
-        assert len(rows) == 1
+        assert row["Price History"] != "-"
+        assert row["Wishlist History"] != "-"
         # Last 8 runs: 6 IN (R1-R6), 2 OUT (R7-R8) → 6 filled + 2 spaces
-        assert rows[0]["Stock Availability"] == "██████  "
+        assert row["Stock Availability"] == "██████  "
 
     # ── Scenario B: ambiguous transition ────────────────────────────────────
 
@@ -1387,21 +1364,15 @@ class TestDealerPhase4AcceptanceScenarios:
             _p4dfrow("2025-11-19"),
         ]
 
-    def test_scenario_b_exactly_one_row_per_species(self):
+    def test_scenario_b_ambiguous_transition(self):
+        """Ambiguous transition: one row, evidence suppressed, delta neutralized."""
         rows = [r for r in _build_dealer(self._history_b()) if r["Species"] == self._SCI_B]
         assert len(rows) == 1, f"Expected 1 row for {self._SCI_B!r}, got {len(rows)}"
-
-    def test_scenario_b_evidence_suppressed(self):
-        rows = [r for r in _build_dealer(self._history_b()) if r["Species"] == self._SCI_B]
-        assert len(rows) == 1
-        assert rows[0]["Price History"] == "-"
-        assert rows[0]["Wishlist History"] == "-"
-
-    def test_scenario_b_wishlist_delta_neutralized(self):
-        rows = [r for r in _build_dealer(self._history_b()) if r["Species"] == self._SCI_B]
-        assert len(rows) == 1
-        assert "→" in rows[0]["Wishlist"]
-        assert "↑" not in rows[0]["Wishlist"]
+        row = rows[0]
+        assert row["Price History"] == "-"
+        assert row["Wishlist History"] == "-"
+        assert "→" in row["Wishlist"]
+        assert "↑" not in row["Wishlist"]
 
     # ── Scenario C: multi-variant ────────────────────────────────────────────
 
@@ -1418,31 +1389,16 @@ class TestDealerPhase4AcceptanceScenarios:
             _p4dfrow("2025-10-08"),
         ]
 
-    def test_scenario_c_exactly_one_row_per_species(self):
+    def test_scenario_c_multi_variant(self):
+        """Multi-variant: one row, comma-separated sizes, suppressed evidence, ❌ risk."""
         rows = [r for r in _build_dealer(self._history_c()) if r["Species"] == self._SCI_C]
         assert len(rows) == 1, f"Expected 1 row for {self._SCI_C!r}, got {len(rows)}"
-
-    def test_scenario_c_size_is_comma_separated(self):
-        rows = [r for r in _build_dealer(self._history_c()) if r["Species"] == self._SCI_C]
-        assert len(rows) == 1
-        assert rows[0]["Size (cm)"] == "3, 5"
-
-    def test_scenario_c_price_is_multiple_active(self):
-        rows = [r for r in _build_dealer(self._history_c()) if r["Species"] == self._SCI_C]
-        assert len(rows) == 1
-        assert rows[0]["Price"] == "Multiple active prices"
-
-    def test_scenario_c_evidence_suppressed(self):
-        rows = [r for r in _build_dealer(self._history_c()) if r["Species"] == self._SCI_C]
-        assert len(rows) == 1
-        assert rows[0]["Price History"] == "-"
-        assert rows[0]["Wishlist History"] == "-"
-
-    def test_scenario_c_dealer_risk_low(self):
-        """Well-supplied multi-variant species must be ❌ regardless of wishlist."""
-        rows = [r for r in _build_dealer(self._history_c()) if r["Species"] == self._SCI_C]
-        assert len(rows) == 1
-        assert rows[0]["Dealer Risk"] == "❌"
+        row = rows[0]
+        assert row["Size (cm)"] == "3, 5"
+        assert row["Price"] == "Multiple active prices"
+        assert row["Price History"] == "-"
+        assert row["Wishlist History"] == "-"
+        assert row["Dealer Risk"] == "❌"
 
     # ── Scenario D: stable single-size (regression guard) ───────────────────
 
@@ -1457,22 +1413,12 @@ class TestDealerPhase4AcceptanceScenarios:
             make_row("2025-10-22", sci, "5", "35.00", "10"), _p4dfrow("2025-10-22"),
         ]
 
-    def test_scenario_d_exactly_one_row_per_species(self):
+    def test_scenario_d_stable_single_size(self):
+        """Stable species: one row, none lineage, single size, evidence not suppressed."""
         rows = [r for r in _build_dealer(self._history_d()) if r["Species"] == self._SCI_D]
         assert len(rows) == 1
-
-    def test_scenario_d_lineage_is_none(self):
-        rows = [r for r in _build_dealer(self._history_d()) if r["Species"] == self._SCI_D]
-        assert len(rows) == 1
-        assert rows[0]["Lineage Status"] == "none"
-
-    def test_scenario_d_size_is_single(self):
-        rows = [r for r in _build_dealer(self._history_d()) if r["Species"] == self._SCI_D]
-        assert len(rows) == 1
-        assert rows[0]["Size (cm)"] == "5"
-
-    def test_scenario_d_no_evidence_suppression(self):
-        rows = [r for r in _build_dealer(self._history_d()) if r["Species"] == self._SCI_D]
-        assert len(rows) == 1
-        assert rows[0]["Price History"] != "-"
+        row = rows[0]
+        assert row["Size (cm)"] == "5"
+        assert row["Lineage Status"] == "none"
+        assert row["Price History"] != "-"
         assert rows[0]["Wishlist History"] != "-"

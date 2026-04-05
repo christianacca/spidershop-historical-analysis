@@ -14,6 +14,7 @@ from shared.history_utils import (
     format_observation_coverage,
     group_by_run,
     is_newly_observed_coverage,
+    k1,
     k2,
 )
 
@@ -572,6 +573,10 @@ class TestBuildSpeciesStockPattern:
         )
         assert pattern != "Newly Observed"
 
+    def test_empty_ordered_runs_returns_always(self):
+        """No runs at all → 'Always' (safe default for species with no timeline data)."""
+        assert build_species_stock_pattern({}, []) == "Always"
+
 
 # ---------------------------------------------------------------------------
 # Phase 2 tests: compute_species_stock_reliability
@@ -614,6 +619,10 @@ class TestComputeSpeciesStockReliability:
         """2 present out of 10 runs = 20% → Low."""
         specs = [(f"2026-01-{i+1:02d} 10:00:00", i < 2) for i in range(10)]
         assert self._reliability(*specs) == "Low"
+
+    def test_empty_timeline_returns_low(self):
+        """Empty timeline (no runs observed) → 'Low' (conservative default)."""
+        assert compute_species_stock_reliability({}) == "Low"
 
 
 # ---------------------------------------------------------------------------
@@ -693,3 +702,15 @@ class TestComputeSpeciesRestockSpeed:
 
     def test_slow_for_greater_than_three(self):
         assert compute_species_restock_speed(4.5) == "Slow"
+
+
+# ---------------------------------------------------------------------------
+# k1 key function
+# ---------------------------------------------------------------------------
+
+class TestK1:
+    """k1 extracts scientific_name from a history row dict."""
+
+    def test_returns_scientific_name(self):
+        row = {"scientific_name": "Brachypelma hamorii", "size_cm": "3.0"}
+        assert k1(row) == "Brachypelma hamorii"

@@ -2,6 +2,7 @@
 """Tests for shared matrix workflow helpers used by breeder/dealer builders."""
 
 from scrape.matrix_workflow import (
+    build_species_wishlist_pressure_map,
     collect_lookback_values_for_key,
     generate_price_wishlist_sparklines,
     iter_lookback_rows_for_key,
@@ -146,3 +147,26 @@ class TestSortMatrixTable:
         assert table[0]["Wishlist"].startswith("8")
         assert table[1]["Signal"] == "🔥"
         assert table[2]["Signal"] == "⚠️"
+
+
+# ---------------------------------------------------------------------------
+# build_species_wishlist_pressure_map — small-N flatten branch
+# ---------------------------------------------------------------------------
+
+class TestBuildSpeciesWishlistPressureMap:
+    """Small-N flatten: all nonzero counts within WISHLIST_SMALL_N_FLATTEN_THRESHOLD → ⚠️."""
+
+    def test_small_n_flatten_assigns_moderate_to_all_nonzero(self):
+        """Counts 10 and 11 differ by 1 (≤ threshold of 1) → both species get ⚠️."""
+        history = [
+            make_row("2025-01-01", "Spider A", "1.0", "25.00", "10"),
+            make_row("2025-01-01", "Spider B", "1.0", "25.00", "11"),
+            make_row("2025-01-08", "Spider A", "1.0", "25.00", "10"),
+            make_row("2025-01-08", "Spider B", "1.0", "25.00", "11"),
+        ]
+        prepared = prepare_matrix_analysis(history)
+        assert prepared is not None
+        by_run, runs, cur_run, _, _, _, species_lineage_map = prepared
+        result = build_species_wishlist_pressure_map(species_lineage_map, by_run, runs, cur_run)
+        assert result["Spider A"] == "⚠️"
+        assert result["Spider B"] == "⚠️"

@@ -92,6 +92,35 @@ class TestNoneLineage:
         assert result.price_evidence_state == "standard"
         assert result.wishlist_evidence_state == "standard"
 
+    def test_empty_history_returns_none(self):
+        """No rows at all → none result with blank current_active_size."""
+        result = detect_species_lineage([], SCI)
+        assert result.lineage_status == "none"
+        assert result.current_active_size == ""
+
+    def test_always_multi_size_then_out_returns_none(self):
+        """Every IN run had 2+ sizes active; species now OUT.
+        _most_recent_single_size finds no single-size run → none with blank size."""
+        history = _build_history(
+            ("2026-01-01 10:00:00", [("3", PRODUCT_URL_A), ("5", PRODUCT_URL_A)]),
+            ("2026-01-08 10:00:00", [("3", PRODUCT_URL_A), ("5", PRODUCT_URL_A)]),
+            ("2026-01-15 10:00:00", []),  # OUT
+        )
+        result = detect_species_lineage(history, SCI)
+        assert result.lineage_status == "none"
+        assert result.current_active_size == ""
+
+    def test_current_size_first_appeared_with_no_prior_other_size(self):
+        """current_active_size appeared in the very first run alongside another size;
+        backward search yields no prior single-size run → none."""
+        history = _build_history(
+            ("2026-01-01 10:00:00", [("3", PRODUCT_URL_A), ("5", PRODUCT_URL_A)]),
+            ("2026-01-08 10:00:00", [("3", PRODUCT_URL_A)]),  # 3 is now the only active size
+        )
+        result = detect_species_lineage(history, SCI)
+        assert result.lineage_status == "none"
+        assert result.current_active_size == "3"
+
 
 # ---------------------------------------------------------------------------
 # Scenario: confirmed-transition (all 5 conditions met)
@@ -344,6 +373,15 @@ class TestMultiVariant:
         result = detect_species_lineage(history, SCI)
 
         assert result.lineage_status == "multi-variant"
+
+    def test_non_numeric_sizes_sorted_stably(self):
+        """Sizes that cannot be parsed as floats fall back to stable alphabetical sort."""
+        history = _build_history(
+            ("2026-01-01 10:00:00", [("XL", PRODUCT_URL_A), ("M", PRODUCT_URL_A)]),
+        )
+        result = detect_species_lineage(history, SCI)
+        assert result.lineage_status == "multi-variant"
+        assert result.current_active_size == "M, XL"
 
 
 # ---------------------------------------------------------------------------
