@@ -5,11 +5,9 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from scrape.listing_lineage import LineageResult, detect_species_lineage
 from scrape.wishlist_analysis import (
-    compute_wishlist_pressure,
-    get_wishlist_count,
-    get_wishlist_metrics,
+    get_species_wishlist_count,
 )
-from shared.config import OOS_CARRYOVER_LOOKBACK, SIGNAL_PRIORITY
+from shared.config import OOS_CARRYOVER_LOOKBACK, SIGNAL_PRIORITY, WISHLIST_SMALL_N_FLATTEN_THRESHOLD
 from shared.history_utils import group_by_run, k2
 from shared.sparkline_helpers import (
     extract_historical_values_with_carryforward,
@@ -45,12 +43,11 @@ def prepare_matrix_analysis(
         str,
         List[Dict[str, Any]],
         Dict[str, int],
-        Dict[Tuple[str, str], str],
         Dict[str, "LineageResult"],
     ]
 ]:
-    """Prepare shared matrix builder context including run indices, wishlist pressure,
-    and species-level lineage metadata.
+    """Prepare shared matrix builder context including run indices and species-level
+    lineage metadata.
 
     Phase 4: also returns ``species_lineage_map`` — a dict keyed by scientific name
     holding the :class:`~scrape.listing_lineage.LineageResult` for each species.
@@ -61,7 +58,6 @@ def prepare_matrix_analysis(
 
     by_run, runs, current_run, previous_run, current_rows = prepared
     run_index = {run_timestamp: idx for idx, run_timestamp in enumerate(runs)}
-    wishlist_pressure_map = compute_wishlist_pressure(current_rows)
 
     # Compute species-level lineage map once per scientific name (Phase 4)
     all_sci = {r["scientific_name"] for r in history_rows}
@@ -76,7 +72,6 @@ def prepare_matrix_analysis(
         previous_run,
         current_rows,
         run_index,
-        wishlist_pressure_map,
         species_lineage_map,
     )
 
@@ -123,22 +118,6 @@ def collect_lookback_values_for_key(
                 break
 
     return values
-
-
-def get_wishlist_display_metrics(
-    key: Tuple[str, str],
-    by_run: Dict[str, List[Dict[str, Any]]],
-    runs: List[str],
-    current_run: str,
-    wishlist_pressure_map: Dict[Tuple[str, str], str],
-) -> Tuple[str, str, int, str]:
-    """Return wishlist pressure, delta, count and display string for a key."""
-    wishlist_pressure, wishlist_delta = get_wishlist_metrics(
-        key, by_run, runs, current_run, wishlist_pressure_map
-    )
-    wishlist_count = get_wishlist_count(key, by_run, runs, current_run)
-    wishlist_display = f"{wishlist_count} {wishlist_pressure} {wishlist_delta}"
-    return wishlist_pressure, wishlist_delta, wishlist_count, wishlist_display
 
 
 def generate_price_wishlist_sparklines(
@@ -198,36 +177,6 @@ LINEAGE_METADATA_COLUMNS = [
 ]
 
 
-def compute_lineage_metadata(
-    scientific_name: str,
-    history_rows: List[Dict[str, Any]],
-) -> Dict[str, str]:
-    """Detect listing lineage for *scientific_name* and return hidden column dict.
-
-    This is a thin delegation wrapper around
-    :func:`scrape.listing_lineage.detect_species_lineage`.  It is called
-    once per unique scientific name so that both matrix modules can attach
-    identical lineage metadata to all rows that share the same species.
-
-    Args:
-        scientific_name: Species to analyse.
-        history_rows: Full history dataset (all species, all runs).
-
-    Returns:
-        Dict with keys matching :data:`LINEAGE_METADATA_COLUMNS`.
-    """
-    result: LineageResult = detect_species_lineage(history_rows, scientific_name)
-    return {
-        "Lineage Status": result.lineage_status,
-        "Previous Size (cm)": result.previous_size,
-        "Current Active Size (cm)": result.current_active_size,
-        "Transition Date": result.transition_date,
-        "Price Evidence State": result.price_evidence_state,
-        "Wishlist Evidence State": result.wishlist_evidence_state,
-        "Transition Message": result.transition_message,
-    }
-
-
 def lineage_result_to_metadata_dict(result: LineageResult) -> Dict[str, str]:
     """Convert a :class:`LineageResult` to the hidden metadata column dict."""
     return {
@@ -239,6 +188,29 @@ def lineage_result_to_metadata_dict(result: LineageResult) -> Dict[str, str]:
         "Wishlist Evidence State": result.wishlist_evidence_state,
         "Transition Message": result.transition_message,
     }
+
+
+def build_lineage_clause(lineage_result: LineageResult) -> str:
+    """Build the transition clause appended to Drivers text.
+
+    Returns a human-readable clause for confirmed/ambiguous transitions, or an
+    empty string for ``none`` and ``multi-variant`` states.
+    """
+    current_active_size = lineage_result.current_active_size or "—"
+    status = lineage_result.lineage_status
+    if status == "confirmed-transition":
+        return (
+            f"Size transition: confirmed "
+            f"{lineage_result.previous_size}→{current_active_size} "
+            f"on {lineage_result.transition_date}"
+        )
+    if status == "ambiguous-transition":
+        return (
+            f"Size transition: ambiguous "
+            f"{lineage_result.previous_size}→{current_active_size} "
+            f"on {lineage_result.transition_date}"
+        )
+    return ""
 
 
 # ---------------------------------------------------------------------------
@@ -386,8 +358,6 @@ def build_species_wishlist_pressure_map(
         ``{scientific_name: pressure_symbol}`` where pressure is one of
         ``"🔥"``, ``"⚠️"``, ``"❌"``.
     """
-    from scrape.wishlist_analysis import get_species_wishlist_count
-
     counts: Dict[str, int] = {
         sci: get_species_wishlist_count(sci, lr, by_run, runs, cur_run)
         for sci, lr in species_lineage_map.items()
@@ -400,8 +370,6 @@ def build_species_wishlist_pressure_map(
 
     if not nonzero:
         return result
-
-    from shared.config import WISHLIST_SMALL_N_FLATTEN_THRESHOLD
 
     nonzero.sort(key=lambda x: x[1], reverse=True)
     count_vals = [c for _, c in nonzero]

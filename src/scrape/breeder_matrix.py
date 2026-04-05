@@ -12,6 +12,7 @@ from shared.price_text_helpers import format_price_cell
 from shared.summary_utils import MatrixOutputConfig, write_matrix_outputs
 from scrape.matrix_workflow import (
     LINEAGE_METADATA_COLUMNS,
+    build_lineage_clause,
     build_species_wishlist_pressure_map,
     collect_lookback_values_for_key,
     generate_species_price_wishlist_sparklines,
@@ -93,7 +94,7 @@ def build_breeder_opportunity_table(history_rows):
     if prepared is None:
         return []
 
-    by_run, runs, cur_run, prev_run, cur_rows, run_index, _old_pressure_map, species_lineage_map = prepared
+    by_run, runs, cur_run, prev_run, cur_rows, run_index, species_lineage_map = prepared
 
     # Species-level wishlist pressure map (Phase 4)
     species_pressure_map = build_species_wishlist_pressure_map(
@@ -223,19 +224,7 @@ def build_breeder_opportunity_table(history_rows):
             rec = "Avoid for profit — oversupplied"
 
         # Build transition clause for Drivers
-        lineage_clause = ""
-        if lineage_status == "confirmed-transition":
-            lineage_clause = (
-                f"Size transition: confirmed "
-                f"{lineage_result.previous_size}→{current_active_size} "
-                f"on {lineage_result.transition_date}"
-            )
-        elif lineage_status == "ambiguous-transition":
-            lineage_clause = (
-                f"Size transition: ambiguous "
-                f"{lineage_result.previous_size}→{current_active_size} "
-                f"on {lineage_result.transition_date}"
-            )
+        lineage_clause = build_lineage_clause(lineage_result)
 
         drivers = _generate_breeder_drivers_text(
             oos_status=oos_status,

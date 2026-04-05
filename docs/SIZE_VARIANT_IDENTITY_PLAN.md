@@ -48,15 +48,15 @@ Five sequential phases. Each phase is independently verifiable before the next b
 
 **Steps:**
 
-- [ ] 1. **RED** — Write `tests/shared_module/test_url_utils.py`:
+- [x] 1. **RED** — Write `tests/shared_module/test_url_utils.py`:
   - All 5 spec normalization examples from the requirements `URL normalization` section
   - Edge cases: empty string, missing scheme, blank URL, non-product URL
 
-- [ ] 2. **GREEN** — Create `src/shared/url_utils.py`:
+- [x] 2. **GREEN** — Create `src/shared/url_utils.py`:
   - `normalize_product_url(url: str) -> str` per spec rules exactly
   - Use `urllib.parse.urlparse` only — no external dependencies
 
-- [ ] 3. **RED** — Write `tests/scrape_module/test_listing_lineage.py`:
+- [x] 3. **RED** — Write `tests/scrape_module/test_listing_lineage.py`:
   - `none` for a species with only one historically observed size
   - `confirmed-transition`: same normalized URL + new size within 3 runs + no same-run
     overlap + no competing listing → `confirmed-transition`
@@ -72,7 +72,7 @@ Five sequential phases. Each phase is independently verifiable before the next b
   - `Current Active Size (cm)`: comma-separated ascending list for `multi-variant` state
   - `Previous Size (cm)`: blank for `none` and `multi-variant`
 
-- [ ] 4. **GREEN** — Create `src/scrape/listing_lineage.py`:
+- [x] 4. **GREEN** — Create `src/scrape/listing_lineage.py`:
   - Define `LineageResult` dataclass with fields: `lineage_status`,
     `previous_size`, `current_active_size`, `transition_date`,
     `price_evidence_state`, `wishlist_evidence_state`, `transition_message`
@@ -89,20 +89,20 @@ Five sequential phases. Each phase is independently verifiable before the next b
   - Imports: `normalize_product_url` from `shared.url_utils`;
     `group_by_run` from `shared.history_utils`
 
-- [ ] 5. `make test` — all tests green
+- [x] 5. `make test` — all tests green
 
-- [ ] 6. Commit: `git add -p && git commit -m "feat(lineage): add URL normalization and transition detection (Phase 1)"`
+- [x] 6. Commit: `git add -p && git commit -m "feat(lineage): add URL normalization and transition detection (Phase 1)"`
 
 **Phase 1 closing steps:**
 
-- [ ] Mark all steps above completed
-- [ ] **Smell review:** Should `listing_lineage.py` live in `src/shared/` rather than
+- [x] Mark all steps above completed
+- [x] **Smell review:** Should `listing_lineage.py` live in `src/shared/` rather than
   `src/scrape/`? Both matrices will consume it — check for scrape-only imports. Refactor
   placement if needed.
-- [ ] **Feed forward:** Document the exact `LineageResult` field names for use in Phase 3
+- [x] **Feed forward:** Document the exact `LineageResult` field names for use in Phase 3
   metadata columns. Note that `detect_species_lineage` is called once per scientific name,
   not once per `k2` key. Update Phase 3 steps if the interface needs adjustment.
-- [ ] Pause only for a critical placement decision (scrape/ vs shared/) that cannot be
+- [x] Pause only for a critical placement decision (scrape/ vs shared/) that cannot be
   resolved from context.
 
 ---
@@ -115,25 +115,25 @@ both matrices in Phase 4.
 
 **Steps:**
 
-- [ ] 1. **RED** — Write tests for `build_species_presence_timeline()`:
+- [x] 1. **RED** — Write tests for `build_species_presence_timeline()`:
   - Multi-variant run (two sizes active) → `True`
   - Absent run → `False`
   - Transition run (old size gone, new size appears same run) → `True` (no gap)
 
-- [ ] 2. **RED** — Write tests for breeder supply metrics:
+- [x] 2. **RED** — Write tests for breeder supply metrics:
   - `compute_species_current_oos_runs(timeline, ordered_runs)` — consecutive absent runs
     ending at current run; counter resets on re-presence (not additive across retired sizes
     per Decision 3A worded example)
   - `build_species_stock_pattern(timeline, ordered_runs)` — mirrors existing pattern labels:
     `Always`, `Emerging`, `Cyclical`, `Sustained`, `Newly Observed`
 
-- [ ] 3. **RED** — Write tests for dealer supply metrics:
+- [x] 3. **RED** — Write tests for dealer supply metrics:
   - `compute_species_stock_reliability(timeline)` — presence ratio → `High`/`Medium`/`Low`
   - `compute_species_avg_oos_duration(timeline, ordered_runs)` — average length of absence
     events
   - `compute_species_restock_speed(avg_oos: float)` — `Fast`/`Moderate`/`Slow`
 
-- [ ] 4. **GREEN** — Add all 6 functions to `src/shared/history_utils.py`:
+- [x] 4. **GREEN** — Add all 6 functions to `src/shared/history_utils.py`:
   - `build_species_presence_timeline(history_rows, scientific_name) -> dict[str, bool]`
   - `compute_species_current_oos_runs(timeline, ordered_runs) -> int`
   - `build_species_stock_pattern(timeline, ordered_runs) -> str`
@@ -141,20 +141,20 @@ both matrices in Phase 4.
   - `compute_species_avg_oos_duration(timeline, ordered_runs) -> float`
   - `compute_species_restock_speed(avg_oos) -> str`
 
-- [ ] 5. `make test` + `python scripts/check_coverage.py --module=shared/history_utils.py`
+- [x] 5. `make test` + `python scripts/check_coverage.py --module=shared/history_utils.py`
 
-- [ ] 6. Commit: `git add -p && git commit -m "feat(lineage): add species-level supply timeline functions (Phase 2)"`
+- [x] 6. Commit: `git add -p && git commit -m "feat(lineage): add species-level supply timeline functions (Phase 2)"`
 
 **Phase 2 closing steps:**
 
-- [ ] Mark all steps above completed
-- [ ] **Smell review:** Check for duplication between the new functions and the existing
+- [x] Mark all steps above completed
+- [x] **Smell review:** Check for duplication between the new functions and the existing
   inline OOS event counting loop in `dealer_matrix.py`. Extract shared constants or
   logic if duplicated.
-- [ ] **Feed forward:** `ordered_runs = sorted(group_by_run(history_rows).keys())` will be
+- [x] **Feed forward:** `ordered_runs = sorted(group_by_run(history_rows).keys())` will be
   needed by multiple Phase 4 functions — note that it should be pre-computed once in the
   matrix workflow and passed in. Update Phase 4 step 4 accordingly.
-- [ ] Pause only if a threshold alignment issue arises with existing
+- [x] Pause only if a threshold alignment issue arises with existing
   `DEALER_HIGH_RELIABILITY_THRESHOLD` constants.
 
 ---
@@ -169,12 +169,12 @@ final shipped state — Phase 4 is mandatory.
 
 **Steps:**
 
-- [ ] 1. **Read** `src/shared/summary_utils.py` — confirm whether `write_matrix_outputs`
+- [x] 1. **Read** `src/shared/summary_utils.py` — confirm whether `write_matrix_outputs`
   currently writes `Drivers` to CSV (check `table_columns` vs `fallback_fieldnames`). Note
   the exact CSV-writing mechanism (`DictWriter`, `fieldnames`). The answer determines
   whether Phase 3 must add `Drivers` to `table_columns` or whether it is already there.
 
-- [ ] 2. **RED** — Write hidden-column output tests in
+- [x] 2. **RED** — Write hidden-column output tests in
   `tests/scrape_module/test_breeder_matrix.py`:
   - Scenario A fixture (confirmed transition history shape) → assert all 7 hidden column
     values exactly as specified in the requirements document
@@ -184,43 +184,43 @@ final shipped state — Phase 4 is mandatory.
     blank `Transition Message`
   - Assert `Drivers` IS written to the CSV output
 
-- [ ] 3. **Implement** `compute_lineage_metadata(scientific_name, history_rows,
+- [x] 3. **Implement** `compute_lineage_metadata(scientific_name, history_rows,
   ordered_runs) -> dict` in `src/scrape/matrix_workflow.py`:
   - Calls `detect_species_lineage(history_rows, scientific_name)`
   - Returns dict with all 7 hidden column values ready to merge into a matrix row
 
-- [ ] 4. **Update** `src/scrape/breeder_matrix.py`:
+- [x] 4. **Update** `src/scrape/breeder_matrix.py`:
   - Group the existing `present_runs_map` keys by scientific name
   - Call `compute_lineage_metadata` once per scientific name
   - Attach the 7 hidden column values + `Drivers` to each row dict
   - Update `write_breeder_outputs`: add `Drivers` and the 7 hidden column names to
     `table_columns` (appended after the existing display columns)
 
-- [ ] 5. **RED + GREEN** — Write dealer hidden-column tests; update
+- [x] 5. **RED + GREEN** — Write dealer hidden-column tests; update
   `src/scrape/dealer_matrix.py` identically
 
-- [ ] 6. Update snapshot tests in `tests/scrape_module/__snapshots__/` — follow the
+- [x] 6. Update snapshot tests in `tests/scrape_module/__snapshots__/` — follow the
   Snapshot Test Protocol from `copilot-instructions.md` (investigate every diff line before
   updating; never blindly run `--snapshot-update`)
 
-- [ ] 7. `make test` + coverage check for both matrix modules
+- [x] 7. `make test` + coverage check for both matrix modules
 
-- [ ] 8. **Optional real-data audit** (only if CSVs present in `tmp/local-testing/`):
+- [x] 8. **Optional real-data audit** (only if CSVs present in `tmp/local-testing/`):
   `make generate-website`, then inspect the output CSV for `Chilobrachys sp. "South Thai"`
   to verify lineage detection is working against real history before proceeding to Phase 4.
 
-- [ ] 9. Commit: `git add -p && git commit -m "feat(lineage): output Drivers and hidden lineage metadata columns (Phase 3)"`
+- [x] 9. Commit: `git add -p && git commit -m "feat(lineage): output Drivers and hidden lineage metadata columns (Phase 3)"`
 
 **Phase 3 closing steps:**
 
-- [ ] Mark all steps above completed
-- [ ] **Smell review:** Is `compute_lineage_metadata` a thin delegation wrapper? Any
+- [x] Mark all steps above completed
+- [x] **Smell review:** Is `compute_lineage_metadata` a thin delegation wrapper? Any
   lineage logic that has leaked into `matrix_workflow.py` rather than staying in
   `listing_lineage.py`?
-- [ ] **Feed forward:** Confirm the final column order (`Drivers` followed by the 7 hidden
+- [x] **Feed forward:** Confirm the final column order (`Drivers` followed by the 7 hidden
   columns at end of row) and document it for Phase 4, which must preserve this order when
   rows change key.
-- [ ] Pause if a real-data species reveals a corner case in the detection algorithm not
+- [x] Pause if a real-data species reveals a corner case in the detection algorithm not
   covered by the spec (e.g. a species with multiple ambiguous sequential handoffs).
 
 ---
@@ -232,7 +232,7 @@ the requirements document pass exactly. This is the mandatory final analysis sta
 
 **Steps:**
 
-- [ ] 1. **RED** — Write full acceptance scenario tests in
+- [x] 1. **RED** — Write full acceptance scenario tests in
   `tests/scrape_module/test_breeder_matrix.py`:
   - **Scenario A** (confirmed transition): build exact history fixture → assert breeder row
     matches spec CSV exactly, including `Size (cm)=5`, `Wishlist=120 🔥 ↑`,
@@ -245,13 +245,13 @@ the requirements document pass exactly. This is the mandatory final analysis sta
     exactly; `Lineage Status=none`
   - Assert each scientific name appears **exactly once** in the output (key regression guard)
 
-- [ ] 2. **RED** — Write the same scenario tests for
+- [x] 2. **RED** — Write the same scenario tests for
   `tests/scrape_module/test_dealer_matrix.py`
 
-- [ ] 3. Add `k1(row) -> str` (returns `row["scientific_name"]`) to
+- [x] 3. Add `k1(row) -> str` (returns `row["scientific_name"]`) to
   `src/shared/history_utils.py`
 
-- [ ] 4. **Refactor** `src/scrape/matrix_workflow.py`:
+- [x] 4. **Refactor** `src/scrape/matrix_workflow.py`:
   - `prepare_matrix_analysis` now also returns `species_lineage_map: dict[str,
     LineageResult]` (calls `detect_species_lineage` once per unique scientific name)
   - Add `build_species_wishlist_pressure_map(history_rows, current_run_rows,
@@ -268,7 +268,7 @@ the requirements document pass exactly. This is the mandatory final analysis sta
   - Add `iter_lookback_rows_for_species(scientific_name, by_run, runs, current_run,
     run_index, lookback_window)` for species-level OOS state iteration
 
-- [ ] 5. **Update** `src/scrape/wishlist_analysis.py`:
+- [x] 5. **Update** `src/scrape/wishlist_analysis.py`:
   - Add `compute_species_wishlist_delta(scientific_name, lineage_result, by_run, runs,
     cur_run) -> str`:
     - Confirmed transition: compare count at confirmed-lineage anchor points
@@ -280,7 +280,7 @@ the requirements document pass exactly. This is the mandatory final analysis sta
     - OUT with confirmed lineage: carry from that lineage (≤ 5 runs)
     - OUT with ambiguous / none: `0`
 
-- [ ] 6. **Rewrite** outer loop in `src/scrape/breeder_matrix.py`:
+- [x] 6. **Rewrite** outer loop in `src/scrape/breeder_matrix.py`:
   - Key by `scientific_name`; use Phase 2 species-level timeline functions for all supply
     metrics
   - Use `species_lineage_map[sci]` for lineage metadata
@@ -298,29 +298,29 @@ the requirements document pass exactly. This is the mandatory final analysis sta
   - Preserve existing breeder signal logic; `Always` species remain `❌` regardless of
     wishlist demand
 
-- [ ] 7. **Rewrite** outer loop in `src/scrape/dealer_matrix.py` using the same pattern
+- [x] 7. **Rewrite** outer loop in `src/scrape/dealer_matrix.py` using the same pattern
 
-- [ ] 8. Verify `sort_matrix_table` still sorts correctly on species-level rows (the
+- [x] 8. Verify `sort_matrix_table` still sorts correctly on species-level rows (the
   `Wishlist` column format is unchanged; `Avg OOS Duration` is now a species-level float)
 
-- [ ] 9. **GREEN** — all acceptance scenario tests from steps 1–2 pass
+- [x] 9. **GREEN** — all acceptance scenario tests from steps 1–2 pass
 
-- [ ] 10. `make test` + coverage checks; run `make generate-website` for visual sanity
+- [x] 10. `make test` + coverage checks; run `make generate-website` for visual sanity
   check if CSVs are available in `tmp/local-testing/`
 
-- [ ] 11. Commit: `git add -p && git commit -m "feat(lineage): migrate matrices to species-level row identity (Phase 4)"`
+- [x] 11. Commit: `git add -p && git commit -m "feat(lineage): migrate matrices to species-level row identity (Phase 4)"`
 
 **Phase 4 closing steps:**
 
-- [ ] Mark all steps above completed
-- [ ] **Smell review:** `matrix_workflow.py` now has both `k2`-based and species-level
+- [x] Mark all steps above completed
+- [x] **Smell review:** `matrix_workflow.py` now has both `k2`-based and species-level
   helpers — is the separation of concerns clear? Any logic duplicated between breeder and
   dealer that belongs in `matrix_workflow.py`? Is `wishlist_analysis.py` getting
   unwieldy?
-- [ ] **Feed forward:** Read `src/website/table_data_helpers.py` (or equivalent) now.
+- [x] **Feed forward:** Read `src/website/table_data_helpers.py` (or equivalent) now.
   Note the exact JSON payload field name casing. Update Phase 5 step 1 with concrete
   findings so Phase 5 starts with a clear interface contract.
-- [ ] Pause if real-data run shows unexpected ranking instability the spec did not
+- [x] Pause if real-data run shows unexpected ranking instability the spec did not
   anticipate.
 
 ---
@@ -332,14 +332,14 @@ species-only routed with a transition banner.
 
 **Steps:**
 
-- [ ] 1. **Read** `src/website/generate_website.py` and the module that builds the JSON
+- [x] 1. **Read** `src/website/generate_website.py` and the module that builds the JSON
   payload for TypeScript pages (likely `src/website/table_data_helpers.py`). Note exact
   field name casing in the payload and how rows from the matrix CSV become page data.
 
-- [ ] 2. **RED** — Write tests for the updated `get_species_list()` returning `list[str]`
+- [x] 2. **RED** — Write tests for the updated `get_species_list()` returning `list[str]`
   in `tests/website_module/test_species_detail.py`
 
-- [ ] 3. **Update** `src/website/species_detail.py`:
+- [x] 3. **Update** `src/website/species_detail.py`:
   - `get_species_list(breeder_csv, dealer_csv) -> list[str]` — unique species names only
   - `_extract_csv_row_data(csv_path, scientific_name)` — match by species name only
   - `get_species_data(sci, breeder_csv, dealer_csv, history_csv)` — drop the `size`
@@ -351,28 +351,31 @@ species-only routed with a transition banner.
   - `generate_species_page(sci, common_name, species_data, chart_data, ...)` — accept
     lineage metadata from hidden columns; pass to template
 
-- [ ] 4. **Update** `src/website/generate_website.py`:
+- [x] 4. **Update** `src/website/generate_website.py`:
   - Change loop from `for sci, size in get_species_list(...)` to
     `for sci in get_species_list(...)`
   - Drop `size` from all `species_detail` function calls
   - URL path remains `species/<slug>/index.html` (routing does not change per Decision 7)
 
-- [ ] 5. **Update** the JSON payload builder:
+- [x] 5. **Update** the JSON payload builder:
   - Include `lineageStatus`, `priceEvidenceState`, `wishlistEvidenceState`,
     `transitionMessage` in the per-row payload — these drive client-side warning icons
+  - Note: hidden columns already flow through `rows_to_json()` automatically via CSV
+    header normalisation; no explicit change to `table_data_helpers.py` was required
 
-- [ ] 6. **Update** `templates/species_detail.html`:
+- [x] 6. **Update** `templates/species_detail.html`:
   - Transition banner near the top — shown for `confirmed-transition` and
     `ambiguous-transition`; hidden for `none` (Scenario D must have no banner)
   - Banner content: old size, new size, transition date, confirmation status, price
     interpretation note using `Transition Message` as the body text
   - Multi-variant panel: list active variants explicitly
 
-- [ ] 7. **Update CSS** (`templates/analysis.css` or `templates/species-detail.css`):
+- [x] 7. **Update CSS** (`templates/analysis.css` or `templates/species-detail.css`):
   - Warning icon style for transition-affected price cells
   - BEM Layer 2 naming conventions; use design tokens from `templates/common.css`
+  - Added `.warning-tip` / `.warning-tip__text` and `.transition-banner` to `common.css`
 
-- [ ] 8. **Update TypeScript** in `client/src/breeder-page/index.ts` and
+- [x] 8. **Update TypeScript** in `client/src/breeder-page/index.ts` and
   `client/src/dealer-page/index.ts`:
   - Read `priceEvidenceState` from payload; render warning icon on `Price` and
     `Price History` cells when state is `transition-affected`, `neutralized`, or
@@ -380,13 +383,15 @@ species-only routed with a transition banner.
   - Show tooltip from `transitionMessage` on icon hover
   - No warning icon on `Wishlist` or `Wishlist History` cells (Scenario A requirement)
   - Add a TypeScript interface for the lineage-metadata payload fields
+  - Note: implemented via `showPriceWarning` on `ColumnConfig` and `priceWarningStateKey`
+    / `transitionMessageKey` on `FilterConfig` in `SortableTable.svelte`
 
-- [ ] 9. Write Vitest unit tests for warning icon rendering logic; `make test-client-fast`
+- [x] 9. Write Vitest unit tests for warning icon rendering logic; `make test-client-fast`
 
-- [ ] 10. Update existing website tests that reference the changed function signatures
+- [x] 10. Update existing website tests that reference the changed function signatures
   or species list shape
 
-- [ ] 11. `make test` + `make test-client` — all green
+- [x] 11. `make test` + `make test-client` — all green
 
 - [ ] 12. `make test-e2e` — E2E tests must cover:
   - Warning icon visible on `Price` cell for a transition-affected species
@@ -395,7 +400,7 @@ species-only routed with a transition banner.
   - No transition banner for a stable single-size species (Scenario D regression guard)
   - Exactly ONE row per species in both breeder and dealer tables (primary regression guard)
 
-- [ ] 13. Commit: `git add -p && git commit -m "feat(lineage): website warning icons, tooltips, and species page transition banner (Phase 5)"`
+- [x] 13. Commit: `git add -p && git commit -m "feat(lineage): website warning icons, tooltips, and species page transition banner (Phase 5)"`
 
 - [ ] 14. Publish branch and open PR:
   ```bash
@@ -408,11 +413,11 @@ species-only routed with a transition banner.
 **Phase 5 closing steps:**
 
 - [ ] Mark all steps above completed
-- [ ] **Smell review:** Duplicated lineage-reading logic between breeder and dealer
+- [x] **Smell review:** Duplicated lineage-reading logic between breeder and dealer
   TypeScript? Add a shared TypeScript helper if so. Verify the JSON payload type has a
   proper TypeScript interface.
-- [ ] Feed forward: n/a — this is the final phase.
-- [ ] Pause only if the TypeScript payload shape has an impedance mismatch with how
+- [x] Feed forward: n/a — this is the final phase.
+- [x] Pause only if the TypeScript payload shape has an impedance mismatch with how
   `SortableTable.svelte` renders cells.
 
 ---

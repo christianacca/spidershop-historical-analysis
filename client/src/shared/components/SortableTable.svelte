@@ -434,19 +434,27 @@
             {#if !col.hidden}
               {@const isSignalCol = col.key === (filterConfig.signalFilter?.column ?? '')}
               {@const cellValue = String(row[col.key] ?? '')}
+              {@const _warnState = (col.showPriceWarning && filterConfig.priceWarningStateKey)
+                ? String(row[filterConfig.priceWarningStateKey] ?? '')
+                : ''}
+              {@const _showPriceWarn = !!filterConfig.transitionMessageKey && (
+                _warnState === 'transition-affected' ||
+                _warnState === 'neutralized' ||
+                _warnState === 'multi-variant'
+              )}
               <td
                 class:signal-hot={isSignalCol && cellValue.includes('🔥')}
                 class:signal-watch={isSignalCol && cellValue.includes('⚠️')}
                 class:signal-avoid={isSignalCol && cellValue.includes('❌')}
               >
                 {#if col.type === 'sparkline'}
-                  <SparklineBar dto={row[col.key] as SparklineDto | string} />{#if col.showPriceWarning && filterConfig.priceWarningStateKey && filterConfig.transitionMessageKey}{@const warnState = String(row[filterConfig.priceWarningStateKey] ?? '')}{#if warnState === 'transition-affected' || warnState === 'neutralized' || warnState === 'multi-variant'}<span class="warning-tip" tabindex="0">⚠️<span class="warning-tip__text">{String(row[filterConfig.transitionMessageKey] ?? '')}</span></span>{/if}{/if}
+                  <SparklineBar dto={row[col.key] as SparklineDto | string} />{#if _showPriceWarn}<span class="warning-tip" tabindex="0">⚠️<span class="warning-tip__text">{String(row[filterConfig.transitionMessageKey ?? ''] ?? '')}</span></span>{/if}
                 {:else if col.type === 'species-link'}
                   {@const slug = slugify(cellValue)}
                   {@const viewSuffix = col.linkViewParam ? `?view=${col.linkViewParam}` : ''}
                   {#if slug}<a href="species/{slug}.html{viewSuffix}">{cellValue}</a>{:else}{cellValue}{/if}
                 {:else}
-                  {cellValue}<InfoTooltip tip={isSignalCol && filterConfig.driversKey ? String(row[filterConfig.driversKey] ?? '') : ''} />{#if col.showPriceWarning && filterConfig.priceWarningStateKey && filterConfig.transitionMessageKey}{@const warnState = String(row[filterConfig.priceWarningStateKey] ?? '')}{#if warnState === 'transition-affected' || warnState === 'neutralized' || warnState === 'multi-variant'}<span class="warning-tip" tabindex="0">⚠️<span class="warning-tip__text">{String(row[filterConfig.transitionMessageKey] ?? '')}</span></span>{/if}{/if}
+                  {cellValue}<InfoTooltip tip={isSignalCol && filterConfig.driversKey ? String(row[filterConfig.driversKey] ?? '') : ''} />{#if _showPriceWarn}<span class="warning-tip" tabindex="0">⚠️<span class="warning-tip__text">{String(row[filterConfig.transitionMessageKey ?? ''] ?? '')}</span></span>{/if}
                 {/if}
               </td>
             {/if}

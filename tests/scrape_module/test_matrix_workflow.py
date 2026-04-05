@@ -4,13 +4,11 @@
 from scrape.matrix_workflow import (
     collect_lookback_values_for_key,
     generate_price_wishlist_sparklines,
-    get_wishlist_display_metrics,
     iter_lookback_rows_for_key,
     prepare_matrix_analysis,
     prepare_matrix_runs,
     sort_matrix_table,
 )
-from scrape.wishlist_analysis import compute_wishlist_pressure
 from shared.history_utils import k2
 from conftest import make_row
 
@@ -54,39 +52,12 @@ class TestPrepareMatrixAnalysis:
         prepared = prepare_matrix_analysis(history)
 
         assert prepared is not None
-        by_run, runs, current_run, previous_run, current_rows, run_index, wishlist_pressure_map, _ = prepared
+        by_run, runs, current_run, previous_run, current_rows, run_index, _ = prepared
         assert runs == ["2025-01-01", "2025-01-08"]
         assert current_run == "2025-01-08"
         assert previous_run == "2025-01-01"
         assert current_rows == by_run[current_run]
         assert run_index == {"2025-01-01": 0, "2025-01-08": 1}
-        assert wishlist_pressure_map[("Aphonopelma seemanni", "1.0")] in {"🔥", "⚠️", "❌"}
-
-
-class TestWishlistDisplayMetrics:
-    """Wishlist helper formatting and composition behavior."""
-
-    def test_returns_pressure_delta_count_and_display(self):
-        history = [
-            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "5"),
-            make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "26.00", "11"),
-            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "1"),
-        ]
-        prepared = prepare_matrix_runs(history)
-        assert prepared is not None
-        by_run, runs, current_run, _, current_rows = prepared
-
-        pressure_map = compute_wishlist_pressure(current_rows)
-        key = k2(current_rows[0])
-
-        pressure, delta, count, display = get_wishlist_display_metrics(
-            key, by_run, runs, current_run, pressure_map
-        )
-
-        assert pressure in {"🔥", "⚠️", "❌"}
-        assert delta in {"↑", "→", "↓"}
-        assert count == 11
-        assert display == f"{count} {pressure} {delta}"
 
 
 class TestLookbackHelpers:
@@ -102,7 +73,7 @@ class TestLookbackHelpers:
         ]
         prepared = prepare_matrix_analysis(history)
         assert prepared is not None
-        by_run, runs, current_run, _, _, run_index, _, _ = prepared
+        by_run, runs, current_run, _, _, run_index, _ = prepared
 
         rows = list(
             iter_lookback_rows_for_key(
@@ -121,7 +92,7 @@ class TestLookbackHelpers:
         ]
         prepared = prepare_matrix_analysis(history)
         assert prepared is not None
-        by_run, runs, current_run, _, _, run_index, _, _ = prepared
+        by_run, runs, current_run, _, _, run_index, _ = prepared
 
         values = collect_lookback_values_for_key(
             ("Aphonopelma seemanni", "1.0"),
