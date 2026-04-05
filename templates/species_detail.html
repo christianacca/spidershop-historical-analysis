@@ -37,7 +37,7 @@
   {%- set transition_message = (species_data.breeder.transition_message if species_data.breeder else None) or (species_data.dealer.transition_message if species_data.dealer else None) or '' %}
   {% if lineage_status in ('confirmed-transition', 'ambiguous-transition') %}
   <div class="transition-banner transition-banner--{{ lineage_status }}">
-    <span class="transition-banner__icon">⚠️</span>
+    <span class="transition-banner__icon">ℹ️</span>
     <span class="transition-banner__text">{{ transition_message }}</span>
   </div>
   {% endif %}

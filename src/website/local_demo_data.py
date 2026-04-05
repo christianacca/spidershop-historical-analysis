@@ -507,7 +507,7 @@ DEMO_SPECIES: list[dict[str, Any]] = [
             "the size change rather than a pure same-unit price move."
         ),
     ),
-    # Ambiguous size transition — exercises suppressed sparklines and ⚠️ icon
+    # Ambiguous size transition — exercises suppressed sparklines and ℹ️ icon
     _species(
         "Poecilotheria metallica",
         "Gooty Sapphire Tree Spider",

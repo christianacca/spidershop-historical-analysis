@@ -866,7 +866,7 @@ def write_lineage_test_data(cwd: Path) -> None:
     """Write test data that exercises size-transition affordances.
 
     Two species:
-    - ``Chilobrachys sp. South Thai`` — confirmed-transition; has a ⚠️ warning icon on
+    - ``Chilobrachys sp. South Thai`` — confirmed-transition; has a ℹ️ info icon on
       Price / Price History cells and a transition banner on its species detail page.
     - ``Aphonopelma seemanni`` — stable standard lineage; no warning icons and no banner.
     """

@@ -763,7 +763,7 @@ def generate_dealer_example_8():
 
 
 def generate_breeder_example_9():
-    """Example 9: Confirmed Size Transition (⚠️ icon on Price and Price History)."""
+    """Example 9: Confirmed Size Transition (ℹ️ icon on Price and Price History)."""
     history = [
         # Background species for wishlist pressure context
         make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "30"),
@@ -785,7 +785,7 @@ def generate_breeder_example_9():
 
     data_table = format_scenario_table(history, "Brachypelma schroederi")
 
-    return f"""#### Example 9: Confirmed Size Transition (⚠️ icon on Price and Price History)
+    return f"""#### Example 9: Confirmed Size Transition (ℹ️ icon on Price and Price History)
 **Scenario:** A species that was listed at 2 cm, then relisted at 3 cm the following week via the same product URL, before going out of stock
 
 {data_table}
@@ -804,7 +804,7 @@ def generate_breeder_example_9():
 - **Price Evidence State:** {entry["Price Evidence State"]}
 - **Recommendation:** {entry["Recommendation"]}
 
-**Why:** The size changed from 2 cm to 3 cm in a single step via the same listing URL. The algorithm classifies this as a confirmed transition: the history is treated as continuous, the wishlist count carries across, and a ⚠️ warning icon appears on the Price and Price History columns. The ⚠️ does not reduce the signal — it is a transparency note that the price series spans two different sizes and direct comparison may not be fully like-for-like."""
+**Why:** The size changed from 2 cm to 3 cm in a single step via the same listing URL. The algorithm classifies this as a confirmed transition: the history is treated as continuous, the wishlist count carries across, and a ℹ️ icon appears on the Price and Price History columns. The ℹ️ does not reduce the signal — it is a transparency note that the price series spans two different sizes and direct comparison may not be fully like-for-like."""
 
 
 def generate_breeder_example_10():
@@ -852,7 +852,7 @@ def generate_breeder_example_10():
 - **Price Evidence State:** {entry["Price Evidence State"]}
 - **Recommendation:** {entry["Recommendation"]}
 
-**Why:** A 14-run absence (about 3.5 months) exceeds the 12-run confirmation window. Even with a URL match, a gap this long raises the possibility that the current listing is a fresh restock at a new size rather than a continuation of the same listing. Both Price History and Wishlist History show `{entry["Price History"]}` to signal that the series cannot be safely joined. A ⚠️ warning icon still appears on those cells. Wishlist momentum is also neutralized to avoid treating potentially discontinuous demand data as a meaningful trend."""
+**Why:** A 14-run absence (about 3.5 months) exceeds the 12-run confirmation window. Even with a URL match, a gap this long raises the possibility that the current listing is a fresh restock at a new size rather than a continuation of the same listing. Both Price History and Wishlist History show `{entry["Price History"]}` to signal that the series cannot be safely joined. A ℹ️ icon still appears on those cells. Wishlist momentum is also neutralized to avoid treating potentially discontinuous demand data as a meaningful trend."""
 
 
 def generate_breeder_example_11():
@@ -898,7 +898,7 @@ def generate_breeder_example_11():
 
 
 def generate_dealer_example_9():
-    """Example 9: Confirmed Size Transition (⚠️ icon on Price and Price History)."""
+    """Example 9: Confirmed Size Transition (ℹ️ icon on Price and Price History)."""
     history = [
         # Background species
         make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "30"),
@@ -920,7 +920,7 @@ def generate_dealer_example_9():
 
     data_table = format_scenario_table(history, "Brachypelma schroederi")
 
-    return f"""#### Example 9: Confirmed Size Transition (⚠️ icon on Price and Price History)
+    return f"""#### Example 9: Confirmed Size Transition (ℹ️ icon on Price and Price History)
 **Scenario:** A species that was listed at 2 cm, then relisted at 3 cm the following week via the same product URL, before going out of stock
 
 {data_table}
@@ -938,7 +938,7 @@ def generate_dealer_example_9():
 - **Price Evidence State:** {entry["Price Evidence State"]}
 - **Recommendation:** {entry["Dealer Recommendation"]}
 
-**Why:** Because the URL matched across the size change, the system treats the listing as continuous. Price and Wishlist History sparklines are stitched across the transition. The ⚠️ warning icon on Price and Price History cells flags the point where the underlying size changed. The risk classification is based on normal supply and demand logic — the warning icon is purely a data-integrity transparency note."""
+**Why:** Because the URL matched across the size change, the system treats the listing as continuous. Price and Wishlist History sparklines are stitched across the transition. The ℹ️ icon on Price and Price History cells flags the point where the underlying size changed. The risk classification is based on normal supply and demand logic — the info icon is purely a data-integrity transparency note."""
 
 
 def generate_dealer_example_10():
@@ -982,7 +982,7 @@ def generate_dealer_example_10():
 - **Price Evidence State:** {entry["Price Evidence State"]}
 - **Recommendation:** {entry["Dealer Recommendation"]}
 
-**Why:** A 14-run absence (about 3.5 months) exceeds the 12-run confirmation window. Even with a URL match, a gap this long raises the possibility that the current listing is a fresh restock at a new size rather than a continuation of the same listing. Both Price History and Wishlist History are suppressed to `{entry["Price History"]}`. The dealer risk is assessed from supply reliability and current demand alone. A ⚠️ icon on those columns signals the data gap to anyone reading the table."""
+**Why:** A 14-run absence (about 3.5 months) exceeds the 12-run confirmation window. Even with a URL match, a gap this long raises the possibility that the current listing is a fresh restock at a new size rather than a continuation of the same listing. Both Price History and Wishlist History are suppressed to `{entry["Price History"]}`. The dealer risk is assessed from supply reliability and current demand alone. A ℹ️ icon on those columns signals the data gap to anyone reading the table."""
 
 
 def generate_dealer_example_11():

@@ -11,7 +11,7 @@
 - `3, 5` — multiple size variants currently listed at the same time (multi-variant)
 - When the species is currently OUT, shows the most recently active size
 - `—` — species is currently OUT with no identifiable recent size in the standard lookback window
-- When a confirmed size transition occurred recently, a ⚠️ icon appears on the **Price** and **Price History** cells (see below)
+- When a confirmed size transition occurred recently, a ℹ️ icon appears on the **Price** and **Price History** cells (see below)
 
 **OOS** (Current Availability)
 
@@ -44,7 +44,7 @@
 - `→` — Price stable
 - `↓` — Price falling
 - `Multiple active prices` — two or more size variants are active simultaneously; no single price line is reliable
-- **⚠️ warning icon** — appears when the listing recently changed its displayed size (confirmed or ambiguous transition); hover or tap for an explanation of the size change and its effect on price interpretation
+- **ℹ️ icon** — appears when the listing recently changed its displayed size (confirmed or ambiguous transition); hover or tap for an explanation of the size change and its effect on price interpretation
 
 **Price History** (Trend Visualization)
 
@@ -55,7 +55,7 @@
 - Shows pricing stability or volatility at a glance
 - Example: `▁▂▃▄▅▆▇█` shows steady price increases over 8 weeks
 - `-` — price history is not shown when a size transition is ambiguous or two sizes are simultaneously active (price continuity cannot be guaranteed)
-- **⚠️ warning icon** — same as the Price cell; indicates price continuity may be partly affected by a recent size change
+- **ℹ️ icon** — same as the Price cell; indicates price continuity may be partly affected by a recent size change
 
 **Wishlist** (Count · Demand Tier · Momentum)
 
@@ -103,7 +103,7 @@
 - `3, 5` — multiple size variants currently listed at the same time (multi-variant)
 - When the species is currently OUT, shows the most recently active size
 - `—` — species is currently OUT with no identifiable recent size in the standard lookback window
-- When a confirmed size transition occurred recently, a ⚠️ icon appears on the **Price** and **Price History** cells (see below)
+- When a confirmed size transition occurred recently, a ℹ️ icon appears on the **Price** and **Price History** cells (see below)
 
 **Stock Reliability** (Historical Supply Pattern)
 
@@ -137,7 +137,7 @@
 - `→` — Stable pricing
 - `↓` — Prices softening
 - **Influence:** Informational only; does not affect risk classification (supply and demand signals take precedence)
-- **⚠️ warning icon** — appears when the listing recently changed its displayed size (confirmed or ambiguous transition); hover or tap for an explanation of the size change and its effect on price interpretation
+- **ℹ️ icon** — appears when the listing recently changed its displayed size (confirmed or ambiguous transition); hover or tap for an explanation of the size change and its effect on price interpretation
 
 **Price History** (Trend Visualization)
 
@@ -148,7 +148,7 @@
 - Shows pricing stability or volatility at a glance
 - Example: `▁▂▃▄▅▆▇█` shows steady price increases over 8 weeks
 - `-` — price history is not shown when a size transition is ambiguous or two sizes are simultaneously active (price continuity cannot be guaranteed)
-- **⚠️ warning icon** — same as the Price cell; indicates price continuity may be partly affected by a recent size change
+- **ℹ️ icon** — same as the Price cell; indicates price continuity may be partly affected by a recent size change
 
 **Wishlist** (Count · Demand Tier · Momentum)
 

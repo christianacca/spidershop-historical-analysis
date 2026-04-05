@@ -136,8 +136,8 @@ Each species appears **exactly once** in the breeder and dealer tables, even whe
 
 When a species' displayed size changes between scrape runs, the system attempts to determine whether this is the **same continuous listing** (a *confirmed transition*) or a genuinely distinct new listing:
 
-- **Confirmed transition** — the size change is recognized as a continuous listing; wishlist data carries across and a ⚠️ warning icon on the Price and Price History cells notes that price comparisons may not be fully like-for-like
-- **Ambiguous transition** — the lineage is unclear; price and wishlist history sparklines are suppressed and a ⚠️ warning icon is shown
+- **Confirmed transition** — the size change is recognized as a continuous listing; wishlist data carries across and a ℹ️ icon on the Price and Price History cells notes that price comparisons may not be fully like-for-like
+- **Ambiguous transition** — the lineage is unclear; price and wishlist history sparklines are suppressed and a ℹ️ icon is shown
 - **Multi-variant** — two or more sizes are simultaneously active; sizes shown as a comma-separated list; price and wishlist history are suppressed
 
 This design prevents double-counting a single animal and preserves demand trend continuity across normal size progression.

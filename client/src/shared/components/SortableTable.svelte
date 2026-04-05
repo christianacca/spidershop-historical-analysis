@@ -448,13 +448,13 @@
                 class:signal-avoid={isSignalCol && cellValue.includes('❌')}
               >
                 {#if col.type === 'sparkline'}
-                  <SparklineBar dto={row[col.key] as SparklineDto | string} />{#if _showPriceWarn}<span class="warning-tip" tabindex="0">⚠️<span class="warning-tip__text">{String(row[filterConfig.transitionMessageKey ?? ''] ?? '')}</span></span>{/if}
+                  <SparklineBar dto={row[col.key] as SparklineDto | string} />{#if _showPriceWarn}<span class="warning-tip" tabindex="0">ℹ️<span class="warning-tip__text">{String(row[filterConfig.transitionMessageKey ?? ''] ?? '')}</span></span>{/if}
                 {:else if col.type === 'species-link'}
                   {@const slug = slugify(cellValue)}
                   {@const viewSuffix = col.linkViewParam ? `?view=${col.linkViewParam}` : ''}
                   {#if slug}<a href="species/{slug}.html{viewSuffix}">{cellValue}</a>{:else}{cellValue}{/if}
                 {:else}
-                  {cellValue}<InfoTooltip tip={isSignalCol && filterConfig.driversKey ? String(row[filterConfig.driversKey] ?? '') : ''} />{#if _showPriceWarn}<span class="warning-tip" tabindex="0">⚠️<span class="warning-tip__text">{String(row[filterConfig.transitionMessageKey ?? ''] ?? '')}</span></span>{/if}
+                  {cellValue}<InfoTooltip tip={isSignalCol && filterConfig.driversKey ? String(row[filterConfig.driversKey] ?? '') : ''} />{#if _showPriceWarn}<span class="warning-tip" tabindex="0">ℹ️<span class="warning-tip__text">{String(row[filterConfig.transitionMessageKey ?? ''] ?? '')}</span></span>{/if}
                 {/if}
               </td>
             {/if}

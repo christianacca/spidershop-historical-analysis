@@ -295,7 +295,7 @@ def e2e_site_lineage(request):
     """E2E test fixture for size-transition (lineage) affordances.
 
     Two species:
-    - ``Chilobrachys sp. "South Thai"`` — confirmed-transition; has a ⚠️ warning icon on
+    - ``Chilobrachys sp. "South Thai"`` — confirmed-transition; has a ℹ️ info icon on
       Price / Price History cells and a transition banner on its species detail page.
     - ``Aphonopelma seemanni`` — standard; no warning icons, no transition banner.
 

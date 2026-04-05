@@ -98,7 +98,7 @@ def test_one_row_per_species_in_dealer_table(e2e_site_lineage) -> None:
 
 @pytest.mark.e2e
 def test_price_cell_shows_warning_icon_for_transition_species(e2e_site_lineage) -> None:
-    """Price cell must show a ⚠️ warning-tip for a confirmed-transition species."""
+    """Price cell must show a ℹ️ info-tip for a confirmed-transition species."""
     page, base_url, _errors = e2e_site_lineage
 
     page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
@@ -113,7 +113,7 @@ def test_price_cell_shows_warning_icon_for_transition_species(e2e_site_lineage) 
 
 @pytest.mark.e2e
 def test_price_history_cell_shows_warning_icon_for_transition_species(e2e_site_lineage) -> None:
-    """Price History cell must also show a ⚠️ warning-tip for a confirmed-transition species."""
+    """Price History cell must also show a ℹ️ info-tip for a confirmed-transition species."""
     page, base_url, _errors = e2e_site_lineage
 
     page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")

@@ -106,12 +106,12 @@ def _size_identity_tab() -> dict:
                         "detail": "The table merges all size variants for a species into one row. When the listed size changes between scrape runs, the system classifies the change to determine how to handle the price and wishlist history.",
                     },
                     {
-                        "label": "Confirmed transition — ⚠️ icon on Price and Price History",
-                        "detail": "The size change was matched via the same product URL within 12 runs with no same-run overlap. Wishlist history carries across the transition. The ⚠️ warning icon on Price and Price History cells notes that the price series spans two different sizes and recent price movement may partly reflect the size change rather than a pure same-unit move.",
+                        "label": "Confirmed transition — ℹ️ icon on Price and Price History",
+                        "detail": "The size change was matched via the same product URL within 12 runs with no same-run overlap. Wishlist history carries across the transition. The ℹ️ icon on Price and Price History cells notes that the price series spans two different sizes and recent price movement may partly reflect the size change rather than a pure same-unit move.",
                     },
                     {
                         "label": "Ambiguous transition — Price History and Wishlist History suppressed",
-                        "detail": "The handoff could not be confirmed: the URL differed, the gap exceeded 12 runs, or a same-run overlap occurred during the handoff window. Price History and Wishlist History are both shown as — with a ⚠️ icon. Wishlist momentum is neutralized to avoid drawing signal from discontinuous demand data.",
+                        "detail": "The handoff could not be confirmed: the URL differed, the gap exceeded 12 runs, or a same-run overlap occurred during the handoff window. Price History and Wishlist History are both shown as — with a ℹ️ icon. Wishlist momentum is neutralized to avoid drawing signal from discontinuous demand data.",
                     },
                     {
                         "label": "Multi-variant — two or more sizes active simultaneously",
