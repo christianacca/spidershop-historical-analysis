@@ -393,7 +393,7 @@ species-only routed with a transition banner.
 
 - [x] 11. `make test` + `make test-client` — all green
 
-- [ ] 12. `make test-e2e` — E2E tests must cover:
+- [x] 12. `make test-e2e` — E2E tests must cover:
   - Warning icon visible on `Price` cell for a transition-affected species
   - Tooltip text matches the `Transition Message` value from the spec
   - Transition banner shown on species page for confirmed/ambiguous cases

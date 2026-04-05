@@ -35,7 +35,7 @@ REQUIRED_LOCAL_FILES = (
     DEALER_TABLE_FILE,
 )
 
-DEMO_DATA_MARKER = "<!-- local-demo-data:v2 -->"
+DEMO_DATA_MARKER = "<!-- local-demo-data:v3 -->"
 LEGACY_DEMO_MARKERS = (
     "Rich local demo data covering sustained, emerging, cyclical, always, and newly observed states.",
     "Local preview data includes volatile, moderate, and healthy dealer supply patterns.",
@@ -56,6 +56,14 @@ BREEDER_HEADERS = [
     "Signal",
     "Recommendation",
     "Drivers",
+    # Hidden lineage metadata columns (Phase 3/4/5)
+    "Lineage Status",
+    "Previous Size (cm)",
+    "Current Active Size (cm)",
+    "Transition Date",
+    "Price Evidence State",
+    "Wishlist Evidence State",
+    "Transition Message",
 ]
 
 DEALER_HEADERS = [
@@ -72,6 +80,14 @@ DEALER_HEADERS = [
     "Dealer Risk",
     "Dealer Recommendation",
     "Drivers",
+    # Hidden lineage metadata columns (Phase 3/4/5)
+    "Lineage Status",
+    "Previous Size (cm)",
+    "Current Active Size (cm)",
+    "Transition Date",
+    "Price Evidence State",
+    "Wishlist Evidence State",
+    "Transition Message",
 ]
 
 DEMO_RUN_COUNT = 60
@@ -126,6 +142,14 @@ def _species(
     drivers: str,
     price_values: list[float | int],
     wishlist_values: list[float | int],
+    # Lineage metadata (defaults to stable single-size "none" state)
+    lineage_status: str = "none",
+    previous_size: str = "",
+    current_active_size: str | None = None,
+    transition_date: str = "",
+    price_evidence_state: str = "standard",
+    wishlist_evidence_state: str = "standard",
+    transition_message: str = "",
 ) -> dict[str, Any]:
     if len(price_values) != len(observed_runs):
         raise ValueError(f"price_values length must match observed_runs for {scientific_name}")
@@ -149,6 +173,14 @@ def _species(
         "drivers": drivers,
         "price_values": [float(value) for value in price_values],
         "wishlist_values": [int(value) for value in wishlist_values],
+        # Lineage metadata
+        "lineage_status": lineage_status,
+        "previous_size": previous_size,
+        "current_active_size": current_active_size or size_cm,
+        "transition_date": transition_date,
+        "price_evidence_state": price_evidence_state,
+        "wishlist_evidence_state": wishlist_evidence_state,
+        "transition_message": transition_message,
     }
 
 
@@ -441,6 +473,107 @@ DEMO_SPECIES: list[dict[str, Any]] = [
         price_values=[40, 39, 38, 37, 36],
         wishlist_values=[12, 10, 8, 6, 4],
     ),
+    # Confirmed size transition — exercises the warning icon and transition banner
+    _species(
+        'Chilobrachys sp. "South Thai"',
+        "South Thai Mustard",
+        "5.0",
+        _runs(50),
+        signal="🔥",
+        stock_pattern="Emerging",
+        oos_runs="2",
+        recommendation="Consider pairing — emerging scarcity with surging interest",
+        dealer_risk="🔥",
+        stock_reliability="Medium",
+        avg_oos_duration="2.0",
+        restock_speed="Moderate",
+        dealer_recommendation="Actively seek breeders — surging demand, variable supply",
+        drivers=(
+            "Stock: Emerging (OOS 2 runs; currently OUT); Demand: Wishlist High + rising; "
+            "Price: Stable; Size transition: confirmed 3→5 on 2025-12-10"
+        ),
+        price_values=_series(len(_runs(50)), 28, [28, 29, 30, 30, 30]),
+        wishlist_values=_series(len(_runs(50)), 12, [12, 13, 14, 15, 16]),
+        lineage_status="confirmed-transition",
+        previous_size="3",
+        current_active_size="5.0",
+        transition_date="2025-12-10",
+        price_evidence_state="transition-affected",
+        wishlist_evidence_state="carried-across-transition",
+        transition_message=(
+            "Size changed from 3 cm to 5 cm on 2025-12-10. "
+            "Wishlist continuity is treated as continuous for this listing. "
+            "Price evidence is still useful, but recent movement may partly reflect "
+            "the size change rather than a pure same-unit price move."
+        ),
+    ),
+    # Ambiguous size transition — exercises suppressed sparklines and ⚠️ icon
+    _species(
+        "Poecilotheria metallica",
+        "Gooty Sapphire Tree Spider",
+        "3.0",
+        _without(_runs(48), 58, 59),
+        signal="⚠️",
+        stock_pattern="Emerging",
+        oos_runs="2",
+        recommendation="Monitor closely — emerging scarcity; lineage continuity unconfirmed",
+        dealer_risk="⚠️",
+        stock_reliability="Medium",
+        avg_oos_duration="2.0",
+        restock_speed="Moderate",
+        dealer_recommendation="Buy opportunistically — lineage continuity unconfirmed",
+        drivers=(
+            "Stock: Emerging (OOS 2 runs; currently OUT); "
+            "Demand: Wishlist High (momentum neutralized; continuity unconfirmed); "
+            "Price: Stable; Size transition: ambiguous 2→3 on 2025-09-18"
+        ),
+        price_values=_series(10, 33, [33, 33, 34, 34]),
+        wishlist_values=_series(10, 9, [9, 12, 15, 16]),
+        lineage_status="ambiguous-transition",
+        previous_size="2.0",
+        current_active_size="3.0",
+        transition_date="2025-09-18",
+        price_evidence_state="neutralized",
+        wishlist_evidence_state="neutralized-ambiguous",
+        transition_message=(
+            "Size handoff from 2 cm to 3 cm on 2025-09-18 could not be confirmed "
+            "as one continuing listing. Wishlist continuity is not carried across the handoff. "
+            "Price and momentum evidence are shown in a conservative downgraded state."
+        ),
+    ),
+    # Multi-variant — exercises multiple-active-sizes row
+    _species(
+        "Tliltocatl vagans",
+        "Mexican Red Rump",
+        "2.0",
+        _runs(54),
+        signal="❌",
+        stock_pattern="Always",
+        oos_runs="0",
+        recommendation="Avoid for profit — oversupplied",
+        dealer_risk="❌",
+        stock_reliability="High",
+        avg_oos_duration="0.0",
+        restock_speed="Fast",
+        dealer_recommendation="Well-supplied, but monitor demand across active size variants",
+        drivers=(
+            "Stock: Always (currently IN); "
+            "Demand: Wishlist High (active variants overlap; delta neutralized); "
+            "Price: Multiple active sizes"
+        ),
+        price_values=_series(6, 22),
+        wishlist_values=_series(6, 16),
+        lineage_status="multi-variant",
+        current_active_size="2.0, 4.0",
+        price_evidence_state="multi-variant",
+        wishlist_evidence_state="max-active-variant",
+        transition_message=(
+            "This species has multiple active size variants in the current run "
+            "(2 cm and 4 cm). The row remains species-level. Current wishlist "
+            "context uses the highest active variant count without summing listings. "
+            "Price evidence is not shown as one clean single-line series."
+        ),
+    ),
 ]
 
 
@@ -535,23 +668,45 @@ def _build_breeder_rows(history_rows: list[dict[str, str]]) -> list[dict[str, st
         price_history = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp")
         wishlist_history = extract_historical_values_with_carryforward(key, by_run, runs, "wishlist_count")
 
+        evidence_state = species["price_evidence_state"]
+        wishlist_evidence = species["wishlist_evidence_state"]
+        suppress_sparklines = evidence_state in ("neutralized", "multi-variant")
+        price_history_cell = "-" if suppress_sparklines else price_history["unicode"]
+        wishlist_history_cell = "-" if suppress_sparklines else wishlist_history["unicode"]
+        price_cell = (
+            "Multiple active prices"
+            if evidence_state == "multi-variant"
+            else f"£{latest_price} {_price_trend_arrow(price_history['values'])}"
+        )
+        if wishlist_evidence in ("neutralized-ambiguous", "max-active-variant"):
+            wishlist_delta = "→"
+        else:
+            wishlist_delta = _delta_arrow(_recent_delta(wishlist_history["values"]))
+
         rows.append(
             {
                 "Species": species["scientific_name"],
-                "Size (cm)": species["size_cm"],
+                "Size (cm)": species["current_active_size"],
                 "OOS": "IN" if runs[-1] in _observed_run_ids(species) else "OUT",
                 "OOS Runs": species["oos_runs"],
                 "Stock Pattern": species["stock_pattern"],
-                "Price": f"£{latest_price} {_price_trend_arrow(price_history['values'])}",
-                "Price History": price_history["unicode"],
+                "Price": price_cell,
+                "Price History": price_history_cell,
                 "Wishlist": (
                     f"{latest_wishlist} {_wishlist_pressure_icon(int(latest_wishlist))} "
-                    f"{_delta_arrow(_recent_delta(wishlist_history['values']))}"
+                    f"{wishlist_delta}"
                 ),
-                "Wishlist History": wishlist_history["unicode"],
+                "Wishlist History": wishlist_history_cell,
                 "Signal": species["signal"],
                 "Recommendation": species["recommendation"],
                 "Drivers": species["drivers"],
+                "Lineage Status": species["lineage_status"],
+                "Previous Size (cm)": species["previous_size"],
+                "Current Active Size (cm)": species["current_active_size"],
+                "Transition Date": species["transition_date"],
+                "Price Evidence State": species["price_evidence_state"],
+                "Wishlist Evidence State": species["wishlist_evidence_state"],
+                "Transition Message": species["transition_message"],
             }
         )
 
@@ -570,24 +725,46 @@ def _build_dealer_rows(history_rows: list[dict[str, str]]) -> list[dict[str, str
         price_history = extract_historical_values_with_carryforward(key, by_run, runs, "price_gbp")
         wishlist_history = extract_historical_values_with_carryforward(key, by_run, runs, "wishlist_count")
 
+        evidence_state = species["price_evidence_state"]
+        wishlist_evidence = species["wishlist_evidence_state"]
+        suppress_sparklines = evidence_state in ("neutralized", "multi-variant")
+        price_history_cell = "-" if suppress_sparklines else price_history["unicode"]
+        wishlist_history_cell = "-" if suppress_sparklines else wishlist_history["unicode"]
+        price_cell = (
+            "Multiple active prices"
+            if evidence_state == "multi-variant"
+            else f"£{latest_price} {_price_trend_arrow(price_history['values'])}"
+        )
+        if wishlist_evidence in ("neutralized-ambiguous", "max-active-variant"):
+            wishlist_delta = "→"
+        else:
+            wishlist_delta = _delta_arrow(_recent_delta(wishlist_history["values"]))
+
         rows.append(
             {
                 "Species": species["scientific_name"],
-                "Size (cm)": species["size_cm"],
+                "Size (cm)": species["current_active_size"],
                 "Stock Reliability": species["stock_reliability"],
                 "Avg OOS Duration": species["avg_oos_duration"],
                 "Restock Speed": species["restock_speed"],
-                "Price": f"£{latest_price} {_price_trend_arrow(price_history['values'])}",
-                "Price History": price_history["unicode"],
+                "Price": price_cell,
+                "Price History": price_history_cell,
                 "Wishlist": (
                     f"{latest_wishlist} {_wishlist_pressure_icon(int(latest_wishlist))} "
-                    f"{_delta_arrow(_recent_delta(wishlist_history['values']))}"
+                    f"{wishlist_delta}"
                 ),
-                "Wishlist History": wishlist_history["unicode"],
+                "Wishlist History": wishlist_history_cell,
                 "Stock Availability": generate_stock_availability_sparkline(key, by_run, runs),
                 "Dealer Risk": species["dealer_risk"],
                 "Dealer Recommendation": species["dealer_recommendation"],
                 "Drivers": species["drivers"],
+                "Lineage Status": species["lineage_status"],
+                "Previous Size (cm)": species["previous_size"],
+                "Current Active Size (cm)": species["current_active_size"],
+                "Transition Date": species["transition_date"],
+                "Price Evidence State": species["price_evidence_state"],
+                "Wishlist Evidence State": species["wishlist_evidence_state"],
+                "Transition Message": species["transition_message"],
             }
         )
 
