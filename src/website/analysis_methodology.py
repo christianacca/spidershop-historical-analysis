@@ -94,7 +94,7 @@ def _core_rule_pill(page_label: str) -> dict[str, str]:
 def _size_identity_tab() -> dict:
     return {
         "id": "size-identity",
-        "label": "Size Identity",
+        "label": "Size Variants",
         "layout": "thresholds",
         "cards": [
             {
@@ -107,11 +107,11 @@ def _size_identity_tab() -> dict:
                     },
                     {
                         "label": "Confirmed transition — ⚠️ icon on Price and Price History",
-                        "detail": "The size change was matched via the same product URL within 3 runs with no same-run overlap. Wishlist history carries across the transition. The ⚠️ warning icon on Price and Price History cells notes that the price series spans two different sizes and recent price movement may partly reflect the size change rather than a pure same-unit move.",
+                        "detail": "The size change was matched via the same product URL within 12 runs with no same-run overlap. Wishlist history carries across the transition. The ⚠️ warning icon on Price and Price History cells notes that the price series spans two different sizes and recent price movement may partly reflect the size change rather than a pure same-unit move.",
                     },
                     {
                         "label": "Ambiguous transition — Price History and Wishlist History suppressed",
-                        "detail": "The handoff could not be confirmed: the URL differed, the gap exceeded 3 runs, or a same-run overlap occurred during the handoff window. Price History and Wishlist History are both shown as — with a ⚠️ icon. Wishlist momentum is neutralized to avoid drawing signal from discontinuous demand data.",
+                        "detail": "The handoff could not be confirmed: the URL differed, the gap exceeded 12 runs, or a same-run overlap occurred during the handoff window. Price History and Wishlist History are both shown as — with a ⚠️ icon. Wishlist momentum is neutralized to avoid drawing signal from discontinuous demand data.",
                     },
                     {
                         "label": "Multi-variant — two or more sizes active simultaneously",

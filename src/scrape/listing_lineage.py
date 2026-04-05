@@ -11,6 +11,13 @@ from shared.history_utils import group_by_run
 from shared.url_utils import normalize_product_url
 
 
+# Maximum run gap between the last observation of the old size and the first
+# observation of the new size for the transition to qualify as confirmed.
+# A gap larger than this is classified as ambiguous even if the URL matches.
+# Set to 12 (≈ 3 months) to accommodate growth-cycle OOS periods.
+LINEAGE_CONFIRMED_TRANSITION_GAP = 12
+
+
 @dataclass
 class LineageResult:
     """Encapsulates the result of listing lineage detection for one species."""
@@ -154,9 +161,9 @@ def detect_species_lineage(
     norm_curr = normalize_product_url(curr_url_at_first) if curr_url_at_first else ""
     url_matches = bool(norm_prev) and bool(norm_curr) and (norm_prev == norm_curr)
 
-    # Condition 3: new size appeared within 3 runs of old size's final observation
+    # Condition 3: new size appeared within LINEAGE_CONFIRMED_TRANSITION_GAP runs of old size's final observation
     gap = r_first_idx - prev_last_idx
-    within_window = gap <= 3
+    within_window = gap <= LINEAGE_CONFIRMED_TRANSITION_GAP
 
     # Conditions 4 & 5: no same-run overlap between the two sizes during handoff
     # window = [prev_last_run … r_first_current] inclusive

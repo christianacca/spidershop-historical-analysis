@@ -60,7 +60,8 @@ def prepare_matrix_analysis(
     run_index = {run_timestamp: idx for idx, run_timestamp in enumerate(runs)}
 
     # Compute species-level lineage map once per scientific name (Phase 4)
-    all_sci = {r["scientific_name"] for r in history_rows}
+    # Use dict.fromkeys to preserve first-seen order (set iteration is non-deterministic)
+    all_sci = dict.fromkeys(r["scientific_name"] for r in history_rows)
     species_lineage_map = {
         sci: detect_species_lineage(history_rows, sci) for sci in all_sci
     }
@@ -371,7 +372,7 @@ def build_species_wishlist_pressure_map(
     if not nonzero:
         return result
 
-    nonzero.sort(key=lambda x: x[1], reverse=True)
+    nonzero.sort(key=lambda x: (-x[1], x[0]))  # descending count, then alphabetical for deterministic tie-breaking
     count_vals = [c for _, c in nonzero]
     if max(count_vals) - min(count_vals) <= WISHLIST_SMALL_N_FLATTEN_THRESHOLD:
         for sci, _ in nonzero:

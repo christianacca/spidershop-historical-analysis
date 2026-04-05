@@ -773,7 +773,7 @@ def generate_breeder_example_9():
         make_row("2025-01-29", "Grammostola pulchra", "2.0", "40.00", "5"),
         make_row("2025-01-22", "Avicularia avicularia", "1.0", "28.00", "4"),
         make_row("2025-01-29", "Avicularia avicularia", "1.0", "28.00", "4"),
-        # Target: size 2.0 → 3.0 in the very next run (confirmed, gap = 1 ≤ 3)
+        # Target: size 2.0 → 3.0 in the very next run (confirmed, gap = 1 ≤ 12)
         make_row("2025-01-01", "Brachypelma schroederi", "2.0", "28.00", "12"),
         make_row("2025-01-08", "Brachypelma schroederi", "2.0", "30.00", "13"),
         make_row("2025-01-15", "Brachypelma schroederi", "3.0", "38.00", "14"),
@@ -809,24 +809,24 @@ def generate_breeder_example_9():
 
 def generate_breeder_example_10():
     """Example 10: Ambiguous Size Transition (Price History and Wishlist History suppressed)."""
-    # 7 runs: species present in runs 1-2 at size 2.0, absent for 4 runs, then
-    # back at size 3.0 in run 7. Gap = 5 > 3 → algorithm cannot confirm continuity.
-    history = [
-        # Background species
-        make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "20"),
-        make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "20"),
-        make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "20"),
-        make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "20"),
-        make_row("2025-01-29", "Grammostola pulchra", "2.0", "40.00", "20"),
-        make_row("2025-02-05", "Grammostola pulchra", "2.0", "40.00", "20"),
-        make_row("2025-02-12", "Grammostola pulchra", "2.0", "40.00", "5"),
-        make_row("2025-02-12", "Avicularia avicularia", "1.0", "28.00", "3"),
-        # Target: size 2.0 visible twice, then 4-run gap before size 3.0 re-appears
-        make_row("2025-01-01", "Acanthoscurria geniculata", "2.0", "25.00", "10"),
-        make_row("2025-01-08", "Acanthoscurria geniculata", "2.0", "26.00", "11"),
-        # Absent in runs 3-6 (jan-15, jan-22, jan-29, feb-05)
-        make_row("2025-02-12", "Acanthoscurria geniculata", "3.0", "35.00", "8"),
+    # 16 runs: species present in runs 1-2 at size 2.0, absent for 13 runs, then
+    # back at size 3.0 in run 16. Gap = 14 > 12 → algorithm cannot confirm continuity.
+    dates = [
+        "2025-01-01", "2025-01-08", "2025-01-15", "2025-01-22", "2025-01-29",
+        "2025-02-05", "2025-02-12", "2025-02-19", "2025-02-26",
+        "2025-03-05", "2025-03-12", "2025-03-19", "2025-03-26",
+        "2025-04-02", "2025-04-09", "2025-04-16",
     ]
+    history = []
+    # Background species present throughout
+    for d in dates:
+        history.append(make_row(d, "Grammostola pulchra", "2.0", "40.00", "20"))
+    history.append(make_row(dates[15], "Avicularia avicularia", "1.0", "28.00", "3"))
+    # Target: size 2.0 visible in runs 1-2, then 13-run gap before size 3.0 re-appears
+    history.append(make_row(dates[0], "Acanthoscurria geniculata", "2.0", "25.00", "10"))
+    history.append(make_row(dates[1], "Acanthoscurria geniculata", "2.0", "26.00", "11"))
+    # Absent from run 3 (2025-01-15) through run 15 (2025-04-09) — gap = 14 runs
+    history.append(make_row(dates[15], "Acanthoscurria geniculata", "3.0", "35.00", "8"))
 
     table = build_breeder_opportunity_table(history)
     entry = _get_table_entry(table, "Acanthoscurria geniculata")
@@ -834,7 +834,7 @@ def generate_breeder_example_10():
     data_table = format_scenario_table(history, "Acanthoscurria geniculata")
 
     return f"""#### Example 10: Ambiguous Size Transition (Price History and Wishlist History suppressed)
-**Scenario:** A species that disappeared for 4 weeks, then reappeared at a different size. Because the gap exceeds the 3-run confirmation window, the listing continuity cannot be confirmed
+**Scenario:** A species that disappeared for 14 weeks, then reappeared at a different size. The gap exceeds the 12-run confirmation window, so listing continuity cannot be confirmed even though the URL matched
 
 {data_table}
 
@@ -852,7 +852,7 @@ def generate_breeder_example_10():
 - **Price Evidence State:** {entry["Price Evidence State"]}
 - **Recommendation:** {entry["Recommendation"]}
 
-**Why:** The 4-run absence between the 2 cm and 3 cm sightings breaks the confirmation window. The algorithm cannot rule out that this is a different listing entirely. Both Price History and Wishlist History show `{entry["Price History"]}` to signal that the series cannot be safely joined. A ⚠️ warning icon still appears on those cells. Wishlist momentum is also neutralized to avoid treating reconnected demand data as meaningful trend evidence."""
+**Why:** A 14-run absence (about 3.5 months) exceeds the 12-run confirmation window. Even with a URL match, a gap this long raises the possibility that the current listing is a fresh restock at a new size rather than a continuation of the same listing. Both Price History and Wishlist History show `{entry["Price History"]}` to signal that the series cannot be safely joined. A ⚠️ warning icon still appears on those cells. Wishlist momentum is also neutralized to avoid treating potentially discontinuous demand data as a meaningful trend."""
 
 
 def generate_breeder_example_11():
@@ -908,7 +908,7 @@ def generate_dealer_example_9():
         make_row("2025-01-29", "Grammostola pulchra", "2.0", "40.00", "5"),
         make_row("2025-01-22", "Avicularia avicularia", "1.0", "28.00", "4"),
         make_row("2025-01-29", "Avicularia avicularia", "1.0", "28.00", "4"),
-        # Target: size 2.0 → 3.0 in the very next run (confirmed, gap = 1 ≤ 3)
+        # Target: size 2.0 → 3.0 in the very next run (confirmed, gap = 1 ≤ 12)
         make_row("2025-01-01", "Brachypelma schroederi", "2.0", "28.00", "12"),
         make_row("2025-01-08", "Brachypelma schroederi", "2.0", "30.00", "13"),
         make_row("2025-01-15", "Brachypelma schroederi", "3.0", "38.00", "14"),
@@ -943,22 +943,21 @@ def generate_dealer_example_9():
 
 def generate_dealer_example_10():
     """Example 10: Ambiguous Size Transition (Price History and Wishlist History suppressed)."""
-    history = [
-        # Background species
-        make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "20"),
-        make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "20"),
-        make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "20"),
-        make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "20"),
-        make_row("2025-01-29", "Grammostola pulchra", "2.0", "40.00", "20"),
-        make_row("2025-02-05", "Grammostola pulchra", "2.0", "40.00", "20"),
-        make_row("2025-02-12", "Grammostola pulchra", "2.0", "40.00", "5"),
-        make_row("2025-02-12", "Avicularia avicularia", "1.0", "28.00", "3"),
-        # Target: 4-run gap between old size 2.0 and new size 3.0 → ambiguous
-        make_row("2025-01-01", "Acanthoscurria geniculata", "2.0", "25.00", "10"),
-        make_row("2025-01-08", "Acanthoscurria geniculata", "2.0", "26.00", "11"),
-        # Absent in runs 3-6 (jan-15, jan-22, jan-29, feb-05)
-        make_row("2025-02-12", "Acanthoscurria geniculata", "3.0", "35.00", "8"),
+    dates = [
+        "2025-01-01", "2025-01-08", "2025-01-15", "2025-01-22", "2025-01-29",
+        "2025-02-05", "2025-02-12", "2025-02-19", "2025-02-26",
+        "2025-03-05", "2025-03-12", "2025-03-19", "2025-03-26",
+        "2025-04-02", "2025-04-09", "2025-04-16",
     ]
+    history = []
+    for d in dates:
+        history.append(make_row(d, "Grammostola pulchra", "2.0", "40.00", "20"))
+    history.append(make_row(dates[15], "Avicularia avicularia", "1.0", "28.00", "3"))
+    # Target: 14-run gap between old size 2.0 and new size 3.0 → ambiguous
+    history.append(make_row(dates[0], "Acanthoscurria geniculata", "2.0", "25.00", "10"))
+    history.append(make_row(dates[1], "Acanthoscurria geniculata", "2.0", "26.00", "11"))
+    # Absent from run 3 through run 15 — gap = 14 runs, exceeds 12-run window
+    history.append(make_row(dates[15], "Acanthoscurria geniculata", "3.0", "35.00", "8"))
 
     table = build_dealer_supply_risk_table(history)
     entry = _get_table_entry(table, "Acanthoscurria geniculata")
@@ -966,7 +965,7 @@ def generate_dealer_example_10():
     data_table = format_scenario_table(history, "Acanthoscurria geniculata")
 
     return f"""#### Example 10: Ambiguous Size Transition (Price History and Wishlist History suppressed)
-**Scenario:** A species that disappeared for 4 weeks then reappeared at a different size. Listing continuity cannot be confirmed due to the extended gap
+**Scenario:** A species that disappeared for 14 weeks then reappeared at a different size. The gap exceeds the 12-run confirmation window, so listing continuity cannot be confirmed
 
 {data_table}
 
@@ -983,7 +982,7 @@ def generate_dealer_example_10():
 - **Price Evidence State:** {entry["Price Evidence State"]}
 - **Recommendation:** {entry["Dealer Recommendation"]}
 
-**Why:** The 4-run absence breaks the confirmation window. With no way to confirm it is the same listing, both Price History and Wishlist History are suppressed to `{entry["Price History"]}`. The dealer risk is assessed from supply reliability and current demand alone, without relying on potentially discontinuous historical trend data. A ⚠️ icon on those columns signals the data gap to anyone reading the table."""
+**Why:** A 14-run absence (about 3.5 months) exceeds the 12-run confirmation window. Even with a URL match, a gap this long raises the possibility that the current listing is a fresh restock at a new size rather than a continuation of the same listing. Both Price History and Wishlist History are suppressed to `{entry["Price History"]}`. The dealer risk is assessed from supply reliability and current demand alone. A ⚠️ icon on those columns signals the data gap to anyone reading the table."""
 
 
 def generate_dealer_example_11():

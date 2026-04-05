@@ -134,22 +134,13 @@ class TestConfirmedTransition:
         )
         assert result.transition_message == expected_msg
 
-    def test_confirmed_transition_within_3_run_window(self):
-        """New size appears exactly 3 runs after old size's final run — still confirmed."""
-        history = _build_history(
-            ("2026-01-01 10:00:00", [("3", PRODUCT_URL_A)]),   # idx 0
-            ("2026-01-08 10:00:00", []),                        # gap 1 (idx 1)
-            ("2026-01-15 10:00:00", []),                        # gap 2 (idx 2)
-            ("2026-01-22 10:00:00", []),                        # gap 3 (idx 3) — still within window
-            ("2026-01-29 10:00:00", [("5", PRODUCT_URL_A)]),   # 3 runs later (idx 4 - idx 0 = 4? No, let me count)
-        )
-        # old size last seen at idx 0, new size first at idx 4 → gap = 4-0 = 4
-        # That would be OUTSIDE the 3-run window. Let me fix to be exactly at gap=3.
+    def test_confirmed_transition_within_12_run_window(self):
+        """New size appears exactly 3 runs after old size's final run — well within the 12-run window."""
         history = _build_history(
             ("2026-01-01 10:00:00", [("3", PRODUCT_URL_A)]),   # idx 0
             ("2026-01-08 10:00:00", []),                        # idx 1 (gap 1)
             ("2026-01-15 10:00:00", []),                        # idx 2 (gap 2)
-            ("2026-01-22 10:00:00", [("5", PRODUCT_URL_A)]),   # idx 3 (gap = 3-0 = 3, within window)
+            ("2026-01-22 10:00:00", [("5", PRODUCT_URL_A)]),   # idx 3 (gap = 3-0 = 3, within 12-run window)
         )
         result = detect_species_lineage(history, SCI)
         assert result.lineage_status == "confirmed-transition"
@@ -194,14 +185,23 @@ class TestAmbiguousTransition:
         assert result.wishlist_evidence_state == "neutralized-ambiguous"
         assert result.transition_message == self._ambiguous_message("3", "5", "2026-01-08")
 
-    def test_ambiguous_from_gap_greater_than_3(self):
-        """Gap > 3 runs → ambiguous."""
+    def test_ambiguous_from_gap_greater_than_12(self):
+        """Gap > 12 runs → ambiguous."""
         history = _build_history(
             ("2026-01-01 10:00:00", [("3", PRODUCT_URL_A)]),    # idx 0
             ("2026-01-08 10:00:00", []),                         # idx 1
             ("2026-01-15 10:00:00", []),                         # idx 2
             ("2026-01-22 10:00:00", []),                         # idx 3
-            ("2026-01-29 10:00:00", [("5", PRODUCT_URL_A)]),    # idx 4 — gap=4 > 3
+            ("2026-01-29 10:00:00", []),                         # idx 4
+            ("2026-02-05 10:00:00", []),                         # idx 5
+            ("2026-02-12 10:00:00", []),                         # idx 6
+            ("2026-02-19 10:00:00", []),                         # idx 7
+            ("2026-02-26 10:00:00", []),                         # idx 8
+            ("2026-03-05 10:00:00", []),                         # idx 9
+            ("2026-03-12 10:00:00", []),                         # idx 10
+            ("2026-03-19 10:00:00", []),                         # idx 11
+            ("2026-03-26 10:00:00", []),                         # idx 12
+            ("2026-04-02 10:00:00", [("5", PRODUCT_URL_A)]),    # idx 13 — gap=13 > 12
         )
         result = detect_species_lineage(history, SCI)
 

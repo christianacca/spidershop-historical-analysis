@@ -491,7 +491,7 @@ class TestAnalysisMethodologyRendering:
                 "Thresholds & Windows",
                 "Decision Tree",
                 "Rule Trace",
-                "Size Identity",
+                "Size Variants",
             ]
             assert len(tab_panels) == 4
             assert sum("is-active" in panel.get("class", []) for panel in tab_panels) == 1
