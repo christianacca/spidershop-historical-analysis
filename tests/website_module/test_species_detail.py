@@ -301,15 +301,18 @@ class TestBuildChartData:
             # Run 1: observed
             assert chart_data["runs"][0]["observed"] is True
             assert chart_data["runs"][0]["price"] == "10.0"
+            assert chart_data["runs"][0]["size"] == "1.5"
             
             # Run 2: gap (species OUT but run exists)
             assert chart_data["runs"][1]["observed"] is False
             assert chart_data["runs"][1]["price"] is None
             assert chart_data["runs"][1]["wishlist"] is None
+            assert chart_data["runs"][1]["size"] is None
             
             # Run 3: observed
             assert chart_data["runs"][2]["observed"] is True
             assert chart_data["runs"][2]["price"] == "12.0"
+            assert chart_data["runs"][2]["size"] == "1.5"
         finally:
             Path(history_csv).unlink()
 
@@ -1228,8 +1231,8 @@ class TestPhase5TemplateSizeBadgeRemoval:
 
         assert "Showing size:" not in html
 
-    def test_chart_table_omits_size_column(self):
-        """Chart data table must not include a 'Size (cm)' column after Phase 5."""
+    def test_chart_table_includes_size_column(self):
+        """Chart data table must include a 'Size (cm)' column."""
         from website.species_detail import generate_species_page
 
         species_data = {
@@ -1244,8 +1247,8 @@ class TestPhase5TemplateSizeBadgeRemoval:
         }
         chart_data = {
             "runs": [
-                {"date": "2025-01-01", "observed": True, "price": "25.00", "wishlist": "5"},
-                {"date": "2025-01-08", "observed": False, "price": None, "wishlist": None},
+                {"date": "2025-01-01", "observed": True, "price": "25.00", "wishlist": "5", "size": "1.5"},
+                {"date": "2025-01-08", "observed": False, "price": None, "wishlist": None, "size": None},
             ]
         }
 
@@ -1256,8 +1259,7 @@ class TestPhase5TemplateSizeBadgeRemoval:
             chart_data,
         )
 
-        # The table column header for Size (cm) must be gone
-        assert "<th>Size (cm)</th>" not in html
+        assert "<th>Size (cm)</th>" in html
 
 
 class TestPhase5TransitionBanner:

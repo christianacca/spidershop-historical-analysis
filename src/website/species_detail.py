@@ -208,12 +208,14 @@ def build_chart_data(
     datetime_idx = headers.index("scrape_datetime")
     price_idx = headers.index("price_gbp")
     wishlist_idx = headers.index("wishlist_count")
+    size_idx = headers.index("size_cm")
 
     all_run_dates = sorted(set(row[datetime_idx] for row in rows))
     recent_run_dates = all_run_dates[-window_size:] if len(all_run_dates) > window_size else all_run_dates
 
     # Species-level: any row for this species in a run marks it as observed
-    # When multiple rows exist for one run (multi-variant), use the first encountered
+    # When multiple rows exist for one run (multi-variant), price/wishlist come from
+    # the first encountered; all distinct sizes are collected and joined.
     observations: Dict[str, Dict] = {}
     for row in rows:
         if row[species_idx] == scientific_name:
@@ -221,8 +223,11 @@ def build_chart_data(
             if run_date not in observations:
                 observations[run_date] = {
                     "price": row[price_idx],
-                    "wishlist": row[wishlist_idx]
+                    "wishlist": row[wishlist_idx],
+                    "sizes": []
                 }
+            if row[size_idx] not in observations[run_date]["sizes"]:
+                observations[run_date]["sizes"].append(row[size_idx])
     
     # If species has NEVER been observed, return empty chart data
     if not observations:
@@ -237,11 +242,13 @@ def build_chart_data(
     for run_date in recent_run_dates:
         if run_date in observations:
             # Species was observed in this run
+            sizes = sorted(observations[run_date]["sizes"], key=lambda s: float(s) if s else 0)
             chart_data["runs"].append({
                 "date": date_to_formatted[run_date],
                 "observed": True,
                 "price": observations[run_date]["price"],
-                "wishlist": observations[run_date]["wishlist"]
+                "wishlist": observations[run_date]["wishlist"],
+                "size": ", ".join(f"{float(s):g}" for s in sizes)
             })
         else:
             # Gap: species was NOT observed in this run (out of stock)
@@ -249,7 +256,8 @@ def build_chart_data(
                 "date": date_to_formatted[run_date],
                 "observed": False,
                 "price": None,
-                "wishlist": None
+                "wishlist": None,
+                "size": None
             })
     
     return chart_data

@@ -241,6 +241,7 @@
       <thead>
         <tr>
           <th>Scrape Date</th>
+          <th>Size (cm)</th>
           <th>Price (GBP)</th>
           <th>Wishlist Count</th>
         </tr>
@@ -250,6 +251,7 @@
         {% if run.observed %}
         <tr>
           <td>{{ run.date }}</td>
+          <td>{{ run.size }}</td>
           <td>£{{ run.price }}</td>
           <td>{{ run.wishlist }}</td>
         </tr>

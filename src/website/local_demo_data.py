@@ -490,18 +490,18 @@ DEMO_SPECIES: list[dict[str, Any]] = [
         dealer_recommendation="Actively seek breeders — surging demand, variable supply",
         drivers=(
             "Stock: Emerging (OOS 2 runs; currently OUT); Demand: Wishlist High + rising; "
-            "Price: Stable; Size transition: confirmed 3→5 on 2025-12-10"
+            f"Price: Stable; Size transition: confirmed 3→5 on {DEMO_RUNS[50][:10]}"
         ),
         price_values=_series(len(_runs(50)), 28, [28, 29, 30, 30, 30]),
         wishlist_values=_series(len(_runs(50)), 12, [12, 13, 14, 15, 16]),
         lineage_status="confirmed-transition",
         previous_size="3",
         current_active_size="5.0",
-        transition_date="2025-12-10",
+        transition_date=DEMO_RUNS[50][:10],
         price_evidence_state="transition-affected",
         wishlist_evidence_state="carried-across-transition",
         transition_message=(
-            "Size changed from 3 cm to 5 cm on 2025-12-10. "
+            f"Size changed from 3 cm to 5 cm on {DEMO_RUNS[50][:10]}. "
             "Wishlist continuity is treated as continuous for this listing. "
             "Price evidence is still useful, but recent movement may partly reflect "
             "the size change rather than a pure same-unit price move."
@@ -651,6 +651,22 @@ def _build_history_rows() -> list[dict[str, str]]:
                     "page_url": _page_url(species["scientific_name"]),
                 }
             )
+
+    # Pre-transition observations for South Thai (3 cm, before the size change at run 50).
+    # Runs 34-46 are within the 26-run window; a 3-run OOS gap (47-49) precedes the 5 cm return.
+    _south_thai_name = 'Chilobrachys sp. "South Thai"'
+    for run_index in range(34, 47):
+        rows.append(
+            {
+                "scrape_datetime": DEMO_RUNS[run_index],
+                "scientific_name": _south_thai_name,
+                "common_name": "South Thai Mustard",
+                "size_cm": "3.0",
+                "price_gbp": "22.00",
+                "wishlist_count": "8",
+                "page_url": _page_url(_south_thai_name),
+            }
+        )
 
     rows.sort(key=lambda row: (row["scrape_datetime"], row["scientific_name"], row["size_cm"]))
     return rows
