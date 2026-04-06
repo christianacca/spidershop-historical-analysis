@@ -891,4 +891,20 @@ TypeScript: 0 errors on `npx tsc --noEmit` after creating types.ts and all 4 fix
 Discrepancy note: The implementation plan references spec §7.2 before the spec document
 itself. The spec §7.2 type contract matches types.ts exactly. No conflicts found between
 the three source documents (spec, plan, mockup). No findings to carry forward as blockers.
+
+[Phase 2 — 2026-04-06]
+MarketSparkline component — key findings:
+- Prior series circles (.sparkline-point-prior) must NOT receive .is-subdued when a run
+  is selected. The Phase 5 expected value of subduedTotal: 44 = 11 per sparkline × 4 cards
+  confirms only current series circles (11 non-selected per sparkline) are subdued.
+  Prior series maintains its baseline opacity: 0.45 on circles, 0.38 on polyline.
+- Hit areas: invisible <rect> elements per run slot. Width = CHART_W / (N-1). Clicking
+  fires onRunSelect(index) or onRunSelect(null) if already selected.
+- SVG dimensions: 120×56 px, topPad=6, bottomPad=14 (space for axis labels).
+- Run-axis labels at x-positions for indices 0, 5, 11 with text-anchor = start/middle/end.
+
+DevTools MCP assertions — all passed first time:
+  Default → prior polyline opacity: "0.38" ✅
+  ShowPriorFalse → polyline count: 1 ✅
+  RunSelected → { subduedCount: 11, subduedOpacity: "0.16", selectedExists: true } ✅
 ```

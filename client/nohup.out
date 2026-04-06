@@ -1,0 +1,36 @@
+
+> storybook
+> storybook dev --port 6006 --ci
+
+@storybook/core v8.6.18
+
+WARN The following packages are incompatible with Storybook 8.6.18 as they depend on different major versions of Storybook packages:
+WARN - @storybook/addon-essentials@8.6.14 (8.6.18 available!)
+WARN  Repo: https://github.com/storybookjs/storybook/tree/next/code/addons/essentials
+WARN 
+WARN 
+WARN Please consider updating your packages or contacting the maintainers for compatibility details.
+WARN For more on Storybook 8 compatibility, see the linked GitHub issue:
+WARN https://github.com/storybookjs/storybook/issues/26031
+info => Starting manager..
+info => Starting preview..
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│   [38;2;162;224;94mStorybook 8.6.18 for svelte-vite started[39m                          │
+│   265 ms for manager and 1.47 s for preview                         │
+│                                                                     │
+│   Local:            http://localhost:6006/                          │
+│   On your network:  http://192.168.0.125:6006/                      │
+│                                                                     │
+│   [38;2;243;173;56mA new version (10.3.3) is available![39m                              │
+│                                                                     │
+│   Upgrade now: [38;2;162;224;94mnpx storybook@latest upgrade[39m                         │
+│                                                                     │
+│   Read full changelog:                                              │
+│   https://github.com/storybookjs/storybook/blob/main/CHANGELOG.md   │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+2:23:43 PM [vite-plugin-svelte] src/history-page/MarketSparkline.svelte:144:4 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+2:23:44 PM [vite-plugin-svelte] src/history-page/MarketSparkline.svelte:144:4 `<rect>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
