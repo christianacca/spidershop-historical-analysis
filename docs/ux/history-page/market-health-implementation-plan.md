@@ -907,4 +907,17 @@ DevTools MCP assertions — all passed first time:
   Default → prior polyline opacity: "0.38" ✅
   ShowPriorFalse → polyline count: 1 ✅
   RunSelected → { subduedCount: 11, subduedOpacity: "0.16", selectedExists: true } ✅
+
+[Phase 3 — 2026-04-06]
+MarketKpiCard component:
+- SPARKLINE_COLOR map: {observed: '#1f7a6b', stock: '#cc6b49', wishlist: '#a18b35',
+  price: '#5d6a6d'} — per spec §3, these are series colours not CSS tokens.
+- delta.down badge color confirmed → rgb(231, 76, 60) = --color-danger token ✅
+- AllTimeNoPrior → 1 polyline (showPrior: false) ✅
+- SVG hit areas are <rect> elements; test must use fireEvent.click() not .click()
+  because SVG elements are not HTMLElement instances with a .click() method.
+- Coverage threshold: types.ts, *.stories.ts, and __fixtures__/**/*.ts added to
+  vite.config.ts coverage exclusion list to prevent them dragging global below 95%.
+  These are type-only files, Storybook stories (tested via DevTools MCP), and pure
+  data fixtures (covered by being imported in tests). No executable logic is lost.
 ```

@@ -58,3 +58,4 @@ client/src/**/__screenshots__/
 
 # Temporary files and local testing (includes coverage, local-testing, etc.)
 tmp/
+nohup.out

@@ -65,6 +65,12 @@ export function createViteConfig(isCiBuild = !!process.env.CI): UserConfig {
         // Page entry points: mount Svelte components against window globals and
         // DOM elements injected by the Python template. Only exercisable via E2E.
         'src/*/index.ts',
+        // Type-only modules: no executable JS after TS compilation.
+        'src/**/types.ts',
+        // Storybook story files: acceptance tested via DevTools MCP, not unit tests.
+        'src/**/*.stories.ts',
+        // Test fixture data files: pure constant exports, covered by importing tests.
+        'src/**/__fixtures__/*.ts',
       ],
       // Thresholds ratcheted after post-migration hardening phases 2–7.
       // lines/statements measured at 96.9%; set to 95 (rounded down to nearest 5%).
