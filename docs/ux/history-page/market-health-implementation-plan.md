@@ -859,5 +859,36 @@ For each item found, report: **PASS** / **FAIL** (spec violation — quote the s
 from one phase to the next, and from this work package to the next.*
 
 ```
-[Phase 1 — not yet started]
+[Phase 1 — 2026-04-06]
+CSS token mapping table (mock → production, verified against common.css :root block):
+  --ink        → --color-text          (#333)
+  --muted      → --color-text-muted    (#7f8c8d)
+  --accent     → --color-accent        (#3498db, blue NOT teal)
+                 NOTE: spec §3 sparkline colours (teal #1f7a6b, rust #cc6b49,
+                 amber #a18b35, muted #5d6a6d) are NOT tokens — they are series
+                 colours passed as the `color` prop to MarketSparkline (hardcoded
+                 values in fixture / story args, not in Svelte <style> blocks).
+  --accent-2   → --color-signal-watch  (#f59e0b) — closest amber; verify in Phase 2
+  --surface    → --color-surface       (#ffffff)
+  --line       → --color-border-light  (#ddd)
+  --shadow     → --shadow-sm           (0 2px 5px rgba(0,0,0,.05))
+  delta down   → --color-danger        (#e74c3c) — for .metric-delta.down badge
+  delta flat   → --color-text-muted    (#7f8c8d) — for .metric-delta.flat badge
+
+G7 token resolution check (Phase 1 pre-component gate):
+  Tokens checked in Storybook preview iframe (http://localhost:6006/iframe.html):
+  --color-text:       #333       ✅ non-empty
+  --color-accent:     #3498db    ✅ non-empty
+  --color-text-muted: #7f8c8d    ✅ non-empty
+  common.css is correctly imported in client/.storybook/preview.ts.
+
+Storybook install: v8.6.18 (@storybook/svelte-vite framework). No example stories
+created. `make storybook` added to Makefile. `storybook` + `build-storybook` scripts
+added to client/package.json.
+
+TypeScript: 0 errors on `npx tsc --noEmit` after creating types.ts and all 4 fixtures.
+
+Discrepancy note: The implementation plan references spec §7.2 before the spec document
+itself. The spec §7.2 type contract matches types.ts exactly. No conflicts found between
+the three source documents (spec, plan, mockup). No findings to carry forward as blockers.
 ```

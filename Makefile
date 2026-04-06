@@ -12,7 +12,7 @@
 #   All commands automatically activate the .venv virtual environment
 #   Ensure .venv exists and has dependencies installed first
 
-.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only seed-demo-data generate-website serve-only preview clean-cache clean-artifacts clean-all build-client test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install open-coverage check-coverage test-client test-client-fast test-client-watch open-coverage-client test-visual visual-install .check-venv .check-gh
+.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only seed-demo-data generate-website serve-only preview clean-cache clean-artifacts clean-all build-client test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install open-coverage check-coverage test-client test-client-fast test-client-watch open-coverage-client test-visual visual-install storybook .check-venv .check-gh
 .PHONY: test-client-file
 
 # Shell configuration
@@ -329,6 +329,12 @@ test-visual: visual-install
 	@echo "🔍 Running browser-backed visual contract tests..."
 	cd client && npm run test:visual
 	@echo "✅ Visual tests passed"
+
+# Start Storybook development server on port 6006.
+# Use for component visual acceptance during Phases 2–5.
+storybook:
+	@echo "📖 Starting Storybook on http://localhost:6006 ..."
+	cd client && npm run storybook
 
 # ==============================================================================
 # Cleanup
