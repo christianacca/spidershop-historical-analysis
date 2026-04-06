@@ -430,24 +430,24 @@ def generate_species_pages() -> int:
     common_name_map = _build_common_name_map(history_csv)
     
     # Generate each species page
-    for scientific_name, size in species_list:
+    for scientific_name in species_list:
         slug = slugify_species(scientific_name)
         common_name = common_name_map.get(scientific_name, "")
         
         # Get species data from all CSVs
         species_data = get_species_data(
-            scientific_name, size,
+            scientific_name,
             breeder_csv, dealer_csv, history_csv
         )
         
         # Build chart data (last 26 runs)
-        chart_data = build_chart_data(scientific_name, size, history_csv)
+        chart_data = build_chart_data(scientific_name, history_csv)
 
         # Build observation coverage metadata for species detail context
-        observation_metadata = get_observation_metadata(scientific_name, size, history_csv)
+        observation_metadata = get_observation_metadata(scientific_name, history_csv)
         
         # Get page URL from most recent observation
-        page_url = get_page_url(scientific_name, size, history_csv)
+        page_url = get_page_url(scientific_name, history_csv)
         
         # Determine default view based on which table has data
         default_view = "breeder" if species_data["breeder"] else "dealer"
@@ -456,7 +456,6 @@ def generate_species_pages() -> int:
         html = generate_species_page(
             scientific_name=scientific_name,
             common_name=common_name,
-            size=size,
             species_data=species_data,
             chart_data=chart_data,
             observation_metadata=observation_metadata,

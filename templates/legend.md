@@ -4,6 +4,15 @@
 
 ### 🧬 Breeder Opportunity Matrix — Legend
 
+**Size (cm)** (Current Listing Context)
+
+- Shows the currently active size for the species
+- `1.5` — single currently active size
+- `3, 5` — multiple size variants currently listed at the same time (multi-variant)
+- When the species is currently OUT, shows the most recently active size
+- `—` — species is currently OUT with no identifiable recent size in the standard lookback window
+- When a confirmed size transition occurred recently, a ℹ️ icon appears on the **Price** and **Price History** cells (see below)
+
 **OOS** (Current Availability)
 
 - `IN` — Species is currently listed for sale
@@ -34,6 +43,8 @@
 - `↑` — Price rising vs last observed price
 - `→` — Price stable
 - `↓` — Price falling
+- `Multiple active prices` — two or more size variants are active simultaneously; no single price line is reliable
+- **ℹ️ icon** — appears when the listing recently changed its displayed size (confirmed or ambiguous transition); hover or tap for an explanation of the size change and its effect on price interpretation
 
 **Price History** (Trend Visualization)
 
@@ -43,6 +54,8 @@
 - When species is OUT of stock, last known price is carried forward (prices persist even when not actively sold)
 - Shows pricing stability or volatility at a glance
 - Example: `▁▂▃▄▅▆▇█` shows steady price increases over 8 weeks
+- `-` — price history is not shown when a size transition is ambiguous or two sizes are simultaneously active (price continuity cannot be guaranteed)
+- **ℹ️ icon** — same as the Price cell; indicates price continuity may be partly affected by a recent size change
 
 **Wishlist** (Count · Demand Tier · Momentum)
 
@@ -60,6 +73,7 @@
 - When species is OUT of stock, last known wishlist count is carried forward (interest persists)
 - Shows demand trajectory and momentum at a glance
 - Example: `▁▂▄▆█` shows accelerating interest over 5 weeks
+- `-` — wishlist history is not shown when a size transition is ambiguous or two sizes are simultaneously active (momentum continuity cannot be guaranteed)
 
 **Signal**
 
@@ -81,6 +95,15 @@
 ---
 
 ### 🏪 Dealer Supply Risk Matrix — Legend
+
+**Size (cm)** (Current Listing Context)
+
+- Shows the currently active size for the species
+- `1.5` — single currently active size
+- `3, 5` — multiple size variants currently listed at the same time (multi-variant)
+- When the species is currently OUT, shows the most recently active size
+- `—` — species is currently OUT with no identifiable recent size in the standard lookback window
+- When a confirmed size transition occurred recently, a ℹ️ icon appears on the **Price** and **Price History** cells (see below)
 
 **Stock Reliability** (Historical Supply Pattern)
 
@@ -114,6 +137,7 @@
 - `→` — Stable pricing
 - `↓` — Prices softening
 - **Influence:** Informational only; does not affect risk classification (supply and demand signals take precedence)
+- **ℹ️ icon** — appears when the listing recently changed its displayed size (confirmed or ambiguous transition); hover or tap for an explanation of the size change and its effect on price interpretation
 
 **Price History** (Trend Visualization)
 
@@ -123,6 +147,8 @@
 - When species is OUT of stock, last known price is carried forward (prices persist even when not actively sold)
 - Shows pricing stability or volatility at a glance
 - Example: `▁▂▃▄▅▆▇█` shows steady price increases over 8 weeks
+- `-` — price history is not shown when a size transition is ambiguous or two sizes are simultaneously active (price continuity cannot be guaranteed)
+- **ℹ️ icon** — same as the Price cell; indicates price continuity may be partly affected by a recent size change
 
 **Wishlist** (Count · Demand Tier · Momentum)
 
@@ -140,6 +166,7 @@
 - When species is OUT of stock, last known wishlist count is carried forward (interest persists)
 - Shows demand trajectory and momentum at a glance
 - Example: `▁▂▄▆█` shows accelerating interest over 5 weeks
+- `-` — wishlist history is not shown when a size transition is ambiguous or two sizes are simultaneously active (momentum continuity cannot be guaranteed)
 
 **Stock Availability** (Supply Pattern Visualization)
 

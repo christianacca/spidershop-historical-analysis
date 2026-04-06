@@ -30,8 +30,17 @@
     {% if species_data.dealer %}
     <span class="badge {% if species_data.dealer.risk == '🔥' %}badge--hot{% elif species_data.dealer.risk == '⚠️' %}badge--watch{% else %}badge--avoid{% endif %}">Dealer Risk: {{ species_data.dealer.risk | default('—') }}</span>
     {% endif %}
-    <span class="badge">Showing size: {{ size }}cm</span>
   </div>
+
+  {# Phase 5: transition banner — shown for confirmed/ambiguous transitions only #}
+  {%- set lineage_status = (species_data.breeder.lineage_status if species_data.breeder else None) or (species_data.dealer.lineage_status if species_data.dealer else None) or 'none' %}
+  {%- set transition_message = (species_data.breeder.transition_message if species_data.breeder else None) or (species_data.dealer.transition_message if species_data.dealer else None) or '' %}
+  {% if lineage_status in ('confirmed-transition', 'ambiguous-transition') %}
+  <div class="transition-banner transition-banner--{{ lineage_status }}">
+    <span class="transition-banner__icon">ℹ️</span>
+    <span class="transition-banner__text">{{ transition_message }}</span>
+  </div>
+  {% endif %}
 
   <div class="meta-row">
     <div class="meta-note">Pages generated for <strong>current tables only</strong> (Breeder/Dealer CSV outputs), not all historical species.</div>
@@ -242,7 +251,7 @@
         {% if run.observed %}
         <tr>
           <td>{{ run.date }}</td>
-          <td>{{ size }}</td>
+          <td>{{ run.size }}</td>
           <td>£{{ run.price }}</td>
           <td>{{ run.wishlist }}</td>
         </tr>
@@ -254,7 +263,7 @@
       "Not observed" runs show up as gaps in the charts/strip rather than rows in this table.
     </div>
     {% else %}
-    <p class="meta-note">No historical observations found for this species and size.</p>
+    <p class="meta-note">No historical observations found for this species.</p>
     {% endif %}
 
     <div class="actions">

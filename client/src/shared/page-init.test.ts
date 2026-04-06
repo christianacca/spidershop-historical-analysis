@@ -322,12 +322,16 @@ describe('stable page configs', () => {
       showSearch: true,
       statsLabel: 'species',
       driversKey: 'Drivers',
+      priceWarningStateKey: 'Price Evidence State',
+      transitionMessageKey: 'Transition Message',
     });
     expect(BREEDER_PAGE_CONFIG.postMount).toBeUndefined();
     expect(BREEDER_PAGE_CONFIG.columns).toEqual(
       expect.arrayContaining([
         { key: 'Species', type: 'species-link', linkViewParam: 'breeder' },
         { key: 'Drivers', hidden: true },
+        { key: 'Price Evidence State', hidden: true },
+        { key: 'Transition Message', hidden: true },
       ]),
     );
   });
@@ -341,12 +345,16 @@ describe('stable page configs', () => {
       showSearch: true,
       statsLabel: 'species',
       driversKey: 'Drivers',
+      priceWarningStateKey: 'Price Evidence State',
+      transitionMessageKey: 'Transition Message',
     });
     expect(DEALER_PAGE_CONFIG.postMount).toBeUndefined();
     expect(DEALER_PAGE_CONFIG.columns).toEqual(
       expect.arrayContaining([
         { key: 'Species', type: 'species-link', linkViewParam: 'dealer' },
         { key: 'Stock Availability', type: 'sparkline' },
+        { key: 'Price Evidence State', hidden: true },
+        { key: 'Transition Message', hidden: true },
       ]),
     );
   });

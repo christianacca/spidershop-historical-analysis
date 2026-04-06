@@ -153,3 +153,212 @@ def compare_prices(price_current: str, price_previous: str) -> str:
 # Backward compatibility aliases
 k3 = create_species_key_with_common_name
 k2 = create_species_key
+
+
+def k1(row: Dict[str, Any]) -> str:
+    """Return the scientific name — Phase 4 species-level row identity key."""
+    return row["scientific_name"]
+
+
+# ---------------------------------------------------------------------------
+# Species-level supply timeline (Phase 2 – Size Variant Identity)
+# ---------------------------------------------------------------------------
+
+# Thresholds shared between species-level helpers and dealer matrix
+SPECIES_HIGH_RELIABILITY_THRESHOLD = 0.8
+SPECIES_MEDIUM_RELIABILITY_THRESHOLD = 0.4
+SPECIES_SLOW_RESTOCK_MIN_AVG_OOS = 3
+SPECIES_MODERATE_RESTOCK_AVG_OOS = 2
+
+# Breeder stock pattern thresholds (mirrors breeder_matrix.py constants)
+_SPECIES_SUSTAINED_OOS_RUNS = 4
+_SPECIES_EMERGING_MIN_OOS_RUNS = 2
+_SPECIES_NEWLY_OBSERVED_MAX_RUNS = 2
+
+
+def build_species_presence_timeline(
+    history_rows: List[Dict[str, Any]],
+    scientific_name: str,
+) -> Dict[str, bool]:
+    """Build a per-run presence timeline for *scientific_name*.
+
+    A species is considered present in a run if any size variant for that
+    scientific name appears in that run (Decision 3A).
+
+    Args:
+        history_rows: Full historical row set across all species.
+        scientific_name: The species to analyse.
+
+    Returns:
+        ``{run_timestamp: True/False}`` ordered by run timestamp.
+        Every run in the dataset is represented.
+    """
+    by_run = group_by_run(history_rows)
+    ordered_runs = sorted(by_run.keys())
+    timeline: Dict[str, bool] = {}
+    for run in ordered_runs:
+        present = any(
+            r["scientific_name"] == scientific_name for r in by_run[run]
+        )
+        timeline[run] = present
+    return timeline
+
+
+def compute_species_current_oos_runs(
+    timeline: Dict[str, bool],
+    ordered_runs: List[str],
+) -> int:
+    """Count consecutive absent runs at the end of *ordered_runs*.
+
+    Per Decision 3A: OOS runs are not additive across retired lineages.
+    The counter reflects only the current trailing absence streak.
+
+    Args:
+        timeline: ``{run_timestamp: present_bool}`` from
+            :func:`build_species_presence_timeline`.
+        ordered_runs: Sorted list of all run timestamps.
+
+    Returns:
+        Number of consecutive absent runs ending at the current run (0 if
+        the species is present in the current run).
+    """
+    count = 0
+    for run in reversed(ordered_runs):
+        if timeline.get(run, False):
+            break
+        count += 1
+    return count
+
+
+def build_species_stock_pattern(
+    timeline: Dict[str, bool],
+    ordered_runs: List[str],
+) -> str:
+    """Derive the breeder stock pattern from the species-level presence timeline.
+
+    Pattern labels mirror the existing breeder matrix classifications:
+    ``Newly Observed``, ``Sustained``, ``Emerging``, ``Cyclical``, ``Always``.
+
+    Args:
+        timeline: ``{run_timestamp: present_bool}`` from
+            :func:`build_species_presence_timeline`.
+        ordered_runs: Sorted list of all run timestamps.
+
+    Returns:
+        One of: ``"Newly Observed"``, ``"Sustained"``, ``"Emerging"``,
+        ``"Cyclical"``, ``"Always"``.
+    """
+    if not ordered_runs:
+        return "Always"
+
+    oos_runs = compute_species_current_oos_runs(timeline, ordered_runs)
+    current_run = ordered_runs[-1]
+    in_current = timeline.get(current_run, False)
+
+    # Newly Observed: observed ≤ 2 times total, all consecutive from first obs,
+    # and present in current run.
+    all_observed = [r for r in ordered_runs if timeline.get(r, False)]
+    observed_run_count = len(all_observed)
+    # Trailing consecutive presence
+    trailing_present = 0
+    for run in reversed(ordered_runs):
+        if timeline.get(run, False):
+            trailing_present += 1
+        else:
+            break
+    is_newly_observed = (
+        in_current
+        and observed_run_count <= _SPECIES_NEWLY_OBSERVED_MAX_RUNS
+        and trailing_present == observed_run_count
+    )
+
+    if is_newly_observed:
+        return "Newly Observed"
+    if oos_runs >= _SPECIES_SUSTAINED_OOS_RUNS:
+        return "Sustained"
+    if oos_runs >= _SPECIES_EMERGING_MIN_OOS_RUNS:
+        return "Emerging"
+
+    # Cyclical: currently IN, not in previous run, was seen before previous run
+    if in_current and len(ordered_runs) >= 3:
+        prev_run = ordered_runs[-2]
+        if not timeline.get(prev_run, False):
+            # Was seen before the previous run?
+            seen_before = any(timeline.get(r, False) for r in ordered_runs[:-2])
+            if seen_before:
+                return "Cyclical"
+
+    return "Always"
+
+
+def compute_species_stock_reliability(
+    timeline: Dict[str, bool],
+) -> str:
+    """Compute species stock reliability from the presence timeline.
+
+    Args:
+        timeline: ``{run_timestamp: present_bool}`` from
+            :func:`build_species_presence_timeline`.
+
+    Returns:
+        ``"High"`` (≥ 80 % presence), ``"Medium"`` (≥ 40 %), or ``"Low"``.
+    """
+    if not timeline:
+        return "Low"
+    total = len(timeline)
+    present = sum(1 for v in timeline.values() if v)
+    ratio = present / total
+    if ratio >= SPECIES_HIGH_RELIABILITY_THRESHOLD:
+        return "High"
+    if ratio >= SPECIES_MEDIUM_RELIABILITY_THRESHOLD:
+        return "Medium"
+    return "Low"
+
+
+def compute_species_avg_oos_duration(
+    timeline: Dict[str, bool],
+    ordered_runs: List[str],
+) -> float:
+    """Compute average absence event length from the presence timeline.
+
+    Mirrors the OOS event logic in the existing dealer matrix: absence events
+    at the start of history are counted (conservative design).
+
+    Args:
+        timeline: ``{run_timestamp: present_bool}``.
+        ordered_runs: Sorted run timestamps.
+
+    Returns:
+        Rounded average length of absence events (0.0 when no absence events).
+    """
+    oos_events: List[int] = []
+    last_present: Optional[bool] = None
+    for run in ordered_runs:
+        present = timeline.get(run, False)
+        if not present:
+            if last_present is True:
+                oos_events.append(1)
+            elif last_present is False:
+                oos_events[-1] += 1
+            else:  # first run in history and already absent
+                oos_events.append(1)
+        last_present = present
+    return round(sum(oos_events) / len(oos_events), 1) if oos_events else 0
+
+
+def compute_species_restock_speed(avg_oos: float) -> str:
+    """Derive restock speed label from average OOS duration.
+
+    Args:
+        avg_oos: Average OOS event length (from
+            :func:`compute_species_avg_oos_duration`).
+
+    Returns:
+        ``"Slow"`` (avg ≥ 3), ``"Moderate"`` (avg == 2), or ``"Fast"``.
+    """
+    if avg_oos >= SPECIES_SLOW_RESTOCK_MIN_AVG_OOS:
+        return "Slow"
+    if avg_oos == SPECIES_MODERATE_RESTOCK_AVG_OOS:
+        return "Moderate"
+    return "Fast"
+

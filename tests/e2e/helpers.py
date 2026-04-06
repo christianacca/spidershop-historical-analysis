@@ -860,3 +860,148 @@ def write_history_multi_date_test_data(cwd: "Path") -> None:
         "**Summary:** 3 species analyzed | 🔥 High Risk: 1 | ⚠️ Moderate Risk: 1 | ❌ Low Risk: 1\n",
         encoding="utf-8",
     )
+
+
+def write_lineage_test_data(cwd: Path) -> None:
+    """Write test data that exercises size-transition affordances.
+
+    Two species:
+    - ``Chilobrachys sp. South Thai`` — confirmed-transition; has a ℹ️ info icon on
+      Price / Price History cells and a transition banner on its species detail page.
+    - ``Aphonopelma seemanni`` — stable standard lineage; no warning icons and no banner.
+    """
+    from helpers.test_helpers import (
+        HistoryEntry,
+        BreederEntry,
+        DealerEntry,
+        create_history_csv_content,
+        create_breeder_csv_content,
+        create_dealer_csv_content,
+    )
+
+    _transition_message = (
+        "Size changed from 3 cm to 5.0 cm on 2025-12-10. "
+        "Price history may not be fully like-for-like across this transition."
+    )
+
+    history_entries = [
+        HistoryEntry(
+            scrape_datetime="2025-12-04",
+            scientific_name="Chilobrachys sp. South Thai",
+            common_name="South Thai Chilobrachys",
+            size_cm="3.0",
+            price_gbp="40.00",
+            wishlist_count="6",
+        ),
+        HistoryEntry(
+            scrape_datetime="2025-12-11",
+            scientific_name="Chilobrachys sp. South Thai",
+            common_name="South Thai Chilobrachys",
+            size_cm="5.0",
+            price_gbp="70.00",
+            wishlist_count="7",
+        ),
+        HistoryEntry(
+            scrape_datetime="2025-12-04",
+            scientific_name="Aphonopelma seemanni",
+            common_name="Costa Rican Zebra",
+            size_cm="1.5",
+            price_gbp="23.00",
+            wishlist_count="3",
+        ),
+        HistoryEntry(
+            scrape_datetime="2025-12-11",
+            scientific_name="Aphonopelma seemanni",
+            common_name="Costa Rican Zebra",
+            size_cm="1.5",
+            price_gbp="23.00",
+            wishlist_count="4",
+        ),
+    ]
+
+    (cwd / "spidershop_spiderlings_scrape.csv").write_text(
+        create_history_csv_content([history_entries[1], history_entries[3]]),
+        encoding="utf-8",
+    )
+    (cwd / "spidershop_spiderlings_history.csv").write_text(
+        create_history_csv_content(history_entries),
+        encoding="utf-8",
+    )
+
+    (cwd / "breeder_opportunity_table.csv").write_text(
+        create_breeder_csv_content([
+            BreederEntry(
+                species='Chilobrachys sp. "South Thai"',
+                size_cm="5.0",
+                signal="⚠️",
+                oos_runs="0",
+                stock_pattern="Always",
+                price="£70.00 ↑",
+                price_history="▁▇",
+                wishlist="7 ⚠️ ↑",
+                lineage_status="confirmed-transition",
+                previous_size_cm="3",
+                current_active_size_cm="5.0",
+                transition_date="2025-12-10",
+                price_evidence_state="transition-affected",
+                wishlist_evidence_state="standard",
+                transition_message=_transition_message,
+            ),
+            BreederEntry(
+                species="Aphonopelma seemanni",
+                size_cm="1.5",
+                signal="❌",
+                oos_runs="0",
+                stock_pattern="Always",
+                price="£23.00 →",
+                price_history="▄▄",
+                wishlist="4 ❌ ↑",
+                lineage_status="none",
+                price_evidence_state="standard",
+                wishlist_evidence_state="standard",
+            ),
+        ]),
+        encoding="utf-8",
+    )
+
+    (cwd / "dealer_supply_risk_table.csv").write_text(
+        create_dealer_csv_content([
+            DealerEntry(
+                species='Chilobrachys sp. "South Thai"',
+                size_cm="5.0",
+                risk="❌",
+                stock_reliability="High",
+                restock_speed="Fast",
+                price="£70.00 ↑",
+                price_history="▁▇",
+                lineage_status="confirmed-transition",
+                previous_size_cm="3",
+                current_active_size_cm="5.0",
+                transition_date="2025-12-10",
+                price_evidence_state="transition-affected",
+                wishlist_evidence_state="standard",
+                transition_message=_transition_message,
+            ),
+            DealerEntry(
+                species="Aphonopelma seemanni",
+                size_cm="1.5",
+                risk="❌",
+                stock_reliability="High",
+                restock_speed="Fast",
+                price="£23.00 →",
+                price_history="▄▄",
+                lineage_status="none",
+                price_evidence_state="standard",
+                wishlist_evidence_state="standard",
+            ),
+        ]),
+        encoding="utf-8",
+    )
+
+    (cwd / "analysis_summary.md").write_text(
+        "## 🧬 Breeder Opportunity Matrix (Top 10)\n\n"
+        "**Summary:** 2 species analyzed | 🔥 Hot: 0 | ⚠️ Watch: 1 | ❌ Avoid: 1\n\n"
+        "## 🏪 Dealer Supply Risk Matrix (Top 10)\n\n"
+        "**Summary:** 2 species analyzed | 🔥 High Risk: 0 | ⚠️ Moderate Risk: 0 | ❌ Low Risk: 2\n",
+        encoding="utf-8",
+    )

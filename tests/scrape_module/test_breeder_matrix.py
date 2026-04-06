@@ -464,21 +464,21 @@ class TestBuildBreederOpportunityTable:
         # ❌ signals should come last
         assert table[-1]["Signal"] == "❌"
 
-    def test_multiple_species_same_genus_different_sizes(self):
-        """Should handle multiple entries for same genus with different sizes."""
+    def test_multiple_sizes_same_species_produces_one_multi_variant_row(self):
+        """Phase 4: two active sizes collapse into one multi-variant species row."""
         history = [
             make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "5"),
             make_row("2025-01-01", "Aphonopelma seemanni", "2.0", "35.00", "8"),
             make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "26.00", "6"),
             make_row("2025-01-08", "Aphonopelma seemanni", "2.0", "36.00", "9"),
         ]
-        
+
         table = build_breeder_opportunity_table(history)
-        
-        # Should have 2 separate entries
-        assert len(table) == 2
-        sizes = {r["Size (cm)"] for r in table}
-        assert sizes == {"1.0", "2.0"}
+
+        # Phase 4: one row per species
+        seemanni_rows = [r for r in table if r["Species"] == "Aphonopelma seemanni"]
+        assert len(seemanni_rows) == 1
+        assert seemanni_rows[0]["Lineage Status"] == "multi-variant"
 
     def test_oos_carryover_bounded_to_3_runs(self):
         """Wishlist pressure carryover for OUT species should be bounded to 3 runs."""
@@ -530,11 +530,15 @@ class TestBuildBreederOpportunityTable:
         assert len(table) > 0
         entry = table[0]
         
-        # Verify all expected keys exist (including new sparkline columns)
+        # Verify all expected keys exist (including sparkline and lineage metadata columns)
         expected_keys = {
             "Species", "Size (cm)", "OOS", "OOS Runs", "Stock Pattern",
-            "Price", "Price History", "Wishlist", 
-            "Wishlist History", "Signal", "Recommendation", "Drivers"
+            "Price", "Price History", "Wishlist",
+            "Wishlist History", "Signal", "Recommendation", "Drivers",
+            # Hidden lineage metadata columns (Phase 3+)
+            "Lineage Status", "Previous Size (cm)", "Current Active Size (cm)",
+            "Transition Date", "Price Evidence State", "Wishlist Evidence State",
+            "Transition Message",
         }
         assert set(entry.keys()) == expected_keys
         assert isinstance(entry["Species"], str)
@@ -840,3 +844,323 @@ class TestSparklineColumns:
         assert "Stock" in drivers or "Pattern" in drivers
         assert "Demand" in drivers or "Wishlist" in drivers
         assert "Price" in drivers
+
+
+# ---------------------------------------------------------------------------
+# Phase 3: hidden lineage metadata columns
+# ---------------------------------------------------------------------------
+
+# Helpers that create rows with custom URLs for transition scenarios.
+def _mrow(dt, sci, size, price, wishlist="10", url=None):
+    row = make_row(dt, sci, size, price, wishlist)
+    if url is not None:
+        row["page_url"] = url
+    return row
+
+
+FILLER = "Grammostola pulchra"
+
+
+def _frow(dt):
+    return make_row(dt, FILLER, "2.0", "40.00", "5")
+
+
+_HIDDEN_COLS = [
+    "Lineage Status",
+    "Previous Size (cm)",
+    "Current Active Size (cm)",
+    "Transition Date",
+    "Price Evidence State",
+    "Wishlist Evidence State",
+    "Transition Message",
+]
+
+_CONF_URL = "https://thespidershop.co.uk/product/test-confirmed"
+_AMB_URL_A = "https://thespidershop.co.uk/product/test-ambiguous-a"
+_AMB_URL_B = "https://thespidershop.co.uk/product/test-ambiguous-b"  # different URL
+
+
+class TestHiddenLineageMetadataColumns:
+    """Phase 3: hidden metadata columns are attached to each row in the table.
+
+    At Phase 3 the matrix is still (sci, size)-keyed; every row for a species
+    carries the same lineage metadata derived from detect_species_lineage().
+    """
+
+    # -- Scenario A: confirmed size transition ---------------------------------
+
+    def _build_scenario_a_history(self):
+        """Confirmed 3→5 transition: same URL, gap=1, no overlap. Currently OUT 2 runs."""
+        sci = "Scenario A species"
+        return [
+            # Run 1: 3cm present
+            _mrow("2026-01-01", sci, "3", "25.00", "100", url=_CONF_URL),
+            _frow("2026-01-01"),
+            # Run 2: 5cm appears (confirmed handoff)
+            _mrow("2026-02-04", sci, "5", "35.00", "110", url=_CONF_URL),
+            _frow("2026-02-04"),
+            # Run 3: OUT
+            _frow("2026-02-11"),
+            # Run 4: OUT (2 consecutive)
+            _frow("2026-02-18"),
+        ], sci
+
+    def test_scenario_a_breeder_hidden_columns_confirmed_transition(self):
+        history, sci = self._build_scenario_a_history()
+        table = build_breeder_opportunity_table(history)
+        rows = [r for r in table if r["Species"] == sci]
+        assert rows, f"No row found for {sci}"
+
+        row = rows[0]
+        for col in _HIDDEN_COLS:
+            assert col in row, f"Missing hidden column: {col}"
+        assert row["Lineage Status"] == "confirmed-transition"
+        assert row["Previous Size (cm)"] == "3"
+        assert row["Current Active Size (cm)"] == "5"
+        assert row["Transition Date"] == "2026-02-04"
+        assert row["Price Evidence State"] == "transition-affected"
+        assert row["Wishlist Evidence State"] == "carried-across-transition"
+        assert "Size changed from 3 cm to 5 cm on 2026-02-04" in row["Transition Message"]
+        assert "Drivers" in row and row["Drivers"]
+
+    # -- Scenario B: ambiguous transition -------------------------------------
+
+    def _build_scenario_b_history(self):
+        """Ambiguous: URL mismatch between old and new size."""
+        sci = "Scenario B species"
+        return [
+            # Run 1: 3cm with URL A
+            _mrow("2026-01-01", sci, "3", "25.00", "100", url=_AMB_URL_A),
+            _frow("2026-01-01"),
+            # Run 2: 5cm with URL B (mismatch → ambiguous)
+            _mrow("2026-02-04", sci, "5", "35.00", "120", url=_AMB_URL_B),
+            _frow("2026-02-04"),
+            # Run 3: OUT
+            _frow("2026-02-11"),
+            # Run 4: OUT (2 consecutive)
+            _frow("2026-02-18"),
+        ], sci
+
+    def test_scenario_b_breeder_hidden_columns_ambiguous_transition(self):
+        history, sci = self._build_scenario_b_history()
+        table = build_breeder_opportunity_table(history)
+        rows = [r for r in table if r["Species"] == sci]
+        assert rows
+
+        row = rows[0]
+        assert row["Lineage Status"] == "ambiguous-transition"
+        assert row["Previous Size (cm)"] == "3"
+        assert row["Current Active Size (cm)"] == "5"
+        assert row["Transition Date"] == "2026-02-04"
+        assert row["Price Evidence State"] == "neutralized"
+        assert row["Wishlist Evidence State"] == "neutralized-ambiguous"
+        assert "could not be confirmed" in row["Transition Message"]
+
+    # -- Scenario C: multi-variant --------------------------------------------
+
+    def _build_scenario_c_history(self):
+        """Two sizes active in current run → multi-variant. Needs ≥2 runs."""
+        sci = "Scenario C species"
+        return [
+            # Run 1: only 3cm (to satisfy ≥2 runs requirement)
+            _mrow("2026-01-01", sci, "3", "25.00", "80", url=_CONF_URL),
+            _frow("2026-01-01"),
+            # Run 2 (current): both 3cm and 5cm active → multi-variant
+            _mrow("2026-01-08", sci, "3", "25.00", "80", url=_CONF_URL),
+            _mrow("2026-01-08", sci, "5", "35.00", "120", url=_CONF_URL),
+            _frow("2026-01-08"),
+        ], sci
+
+    def test_scenario_c_breeder_hidden_columns_multi_variant(self):
+        history, sci = self._build_scenario_c_history()
+        table = build_breeder_opportunity_table(history)
+        rows = [r for r in table if r["Species"] == sci]
+        assert rows
+
+        row = rows[0]
+        assert row["Lineage Status"] == "multi-variant"
+        assert row["Previous Size (cm)"] == ""
+        assert row["Current Active Size (cm)"] == "3, 5"
+        assert row["Transition Date"] == ""
+        assert row["Price Evidence State"] == "multi-variant"
+        assert row["Wishlist Evidence State"] == "max-active-variant"
+        assert "multiple active size variants" in row["Transition Message"]
+
+    # -- Scenario D: stable single-size species --------------------------------
+
+    def _build_scenario_d_history(self):
+        """Stable: only one size ever observed, no transition."""
+        sci = "Scenario D species"
+        return [
+            _mrow("2026-01-01", sci, "3", "25.00", "10", url=_CONF_URL),
+            _frow("2026-01-01"),
+            _mrow("2026-01-08", sci, "3", "25.00", "12", url=_CONF_URL),
+            _frow("2026-01-08"),
+        ], sci
+
+    def test_scenario_d_breeder_hidden_columns_none_status(self):
+        history, sci = self._build_scenario_d_history()
+        table = build_breeder_opportunity_table(history)
+        rows = [r for r in table if r["Species"] == sci]
+        assert rows
+
+        row = rows[0]
+        assert row["Lineage Status"] == "none"
+        assert row["Previous Size (cm)"] == ""
+        assert row["Current Active Size (cm)"] == "3"
+        assert row["Transition Date"] == ""
+        assert row["Price Evidence State"] == "standard"
+        assert row["Wishlist Evidence State"] == "standard"
+        assert row["Transition Message"] == ""
+
+
+# ---------------------------------------------------------------------------
+# Phase 4: species-level row identity — acceptance scenarios
+# ---------------------------------------------------------------------------
+
+_P4_CONF_URL = "https://thespidershop.co.uk/product/p4-confirmed"
+_P4_AMB_URL_A = "https://thespidershop.co.uk/product/p4-ambiguous-a"
+_P4_AMB_URL_B = "https://thespidershop.co.uk/product/p4-ambiguous-b"
+
+_P4_FILLER = "P4 Filler species"
+
+
+def _p4frow(dt):
+    return _mrow(dt, _P4_FILLER, "2.0", "20.00", "10")
+
+
+class TestBreederPhase4AcceptanceScenarios:
+    """Phase 4: one row per species in the breeder table.
+
+    These tests are the primary regression guards for the species-level row
+    identity migration. The key assertion — exactly one row per scientific name
+    — FAILS in Phase 3 (size-keyed) for any species with multiple historical
+    size variants.
+    """
+
+    # ── Scenario A: confirmed transition ────────────────────────────────────
+
+    _SCI_A = "Phase4 Breeder Confirmed"
+
+    def _history_a(self):
+        """8 runs: 3 cm for R1–R4, 5 cm for R5–R6 (same URL → confirmed), OUT R7–R8."""
+        sci, url = self._SCI_A, _P4_CONF_URL
+        return [
+            _mrow("2025-10-01", sci, "3", "35.00", "50",  url=url), _p4frow("2025-10-01"),
+            _mrow("2025-10-08", sci, "3", "35.00", "70",  url=url), _p4frow("2025-10-08"),
+            _mrow("2025-10-15", sci, "3", "35.00", "90",  url=url), _p4frow("2025-10-15"),
+            _mrow("2025-10-22", sci, "3", "35.00", "100", url=url), _p4frow("2025-10-22"),
+            # R5: 5 cm appears (same URL, gap=1, no overlap → confirmed)
+            _mrow("2025-10-29", sci, "5", "35.00", "100", url=url), _p4frow("2025-10-29"),
+            # R6: 5 cm continues; wishlist rises
+            _mrow("2025-11-05", sci, "5", "35.00", "120", url=url), _p4frow("2025-11-05"),
+            # R7–R8: species OUT
+            _p4frow("2025-11-12"),
+            _p4frow("2025-11-19"),
+        ]
+
+    def test_scenario_a_confirmed_transition(self):
+        """Confirmed transition: one row, supply metrics correct, wishlist carries, sparklines not suppressed."""
+        rows = [r for r in build_breeder_opportunity_table(self._history_a())
+                if r["Species"] == self._SCI_A]
+        assert len(rows) == 1, f"Expected 1 row for {self._SCI_A!r}, got {len(rows)}"
+        row = rows[0]
+        assert row["Size (cm)"] == "5"
+        assert row["OOS"] == "OUT"
+        assert row["OOS Runs"] == "2"
+        assert row["Stock Pattern"] == "Emerging"
+        assert row["Signal"] == "🔥"
+        wishlist = row["Wishlist"]
+        assert wishlist.startswith("120"), f"Expected count 120, got {wishlist!r}"
+        assert "🔥" in wishlist
+        assert "↑" in wishlist
+        assert row["Price History"] != "-"
+        assert row["Wishlist History"] != "-"
+        assert "transition" in row["Drivers"].lower()
+
+    # ── Scenario B: ambiguous transition ────────────────────────────────────
+
+    _SCI_B = "Phase4 Breeder Ambiguous"
+
+    def _history_b(self):
+        """8 runs: 3 cm for R1–R4 (URL A), 5 cm for R5–R6 (URL B → ambiguous), OUT R7–R8."""
+        sci = self._SCI_B
+        return [
+            _mrow("2025-10-01", sci, "3", "35.00", "50",  url=_P4_AMB_URL_A), _p4frow("2025-10-01"),
+            _mrow("2025-10-08", sci, "3", "35.00", "70",  url=_P4_AMB_URL_A), _p4frow("2025-10-08"),
+            _mrow("2025-10-15", sci, "3", "35.00", "90",  url=_P4_AMB_URL_A), _p4frow("2025-10-15"),
+            _mrow("2025-10-22", sci, "3", "35.00", "100", url=_P4_AMB_URL_A), _p4frow("2025-10-22"),
+            # R5: 5 cm with different URL → ambiguous
+            _mrow("2025-10-29", sci, "5", "35.00", "100", url=_P4_AMB_URL_B), _p4frow("2025-10-29"),
+            _mrow("2025-11-05", sci, "5", "35.00", "120", url=_P4_AMB_URL_B), _p4frow("2025-11-05"),
+            # R7–R8: species OUT
+            _p4frow("2025-11-12"),
+            _p4frow("2025-11-19"),
+        ]
+
+    def test_scenario_b_ambiguous_transition(self):
+        """Ambiguous transition: one row, evidence suppressed, wishlist delta neutralized."""
+        rows = [r for r in build_breeder_opportunity_table(self._history_b())
+                if r["Species"] == self._SCI_B]
+        assert len(rows) == 1, f"Expected 1 row for {self._SCI_B!r}, got {len(rows)}"
+        row = rows[0]
+        assert row["Price History"] == "-"
+        assert row["Wishlist History"] == "-"
+        assert "→" in row["Wishlist"]
+        assert "↑" not in row["Wishlist"]
+
+    # ── Scenario C: multi-variant (overlapping sizes) ───────────────────────
+
+    _SCI_C = "Phase4 Breeder Overlap"
+
+    def _history_c(self):
+        """3 runs with both 3 cm and 5 cm active in every run → 'Always' pattern."""
+        sci = self._SCI_C
+        return [
+            make_row("2025-10-01", sci, "3", "25.00", "80"),
+            make_row("2025-10-01", sci, "5", "35.00", "120"),
+            _p4frow("2025-10-01"),
+            make_row("2025-10-08", sci, "3", "25.00", "80"),
+            make_row("2025-10-08", sci, "5", "35.00", "120"),
+            _p4frow("2025-10-08"),
+            make_row("2025-10-15", sci, "3", "25.00", "80"),
+            make_row("2025-10-15", sci, "5", "35.00", "120"),
+            _p4frow("2025-10-15"),
+        ]
+
+    def test_scenario_c_multi_variant(self):
+        """Multi-variant: one row, comma-separated sizes, suppressed evidence, ❌ signal."""
+        rows = [r for r in build_breeder_opportunity_table(self._history_c())
+                if r["Species"] == self._SCI_C]
+        assert len(rows) == 1, f"Expected 1 row for {self._SCI_C!r}, got {len(rows)}"
+        row = rows[0]
+        assert row["Size (cm)"] == "3, 5"
+        assert row["Price"] == "Multiple active prices"
+        assert row["Price History"] == "-"
+        assert row["Wishlist History"] == "-"
+        assert row["Signal"] == "❌"
+
+    # ── Scenario D: stable single-size species (regression guard) ───────────
+
+    _SCI_D = "Phase4 Breeder Stable"
+
+    def _history_d(self):
+        """4 runs: species stable at 5 cm throughout."""
+        sci = self._SCI_D
+        return [
+            make_row("2025-10-01", sci, "5", "35.00", "10"), _p4frow("2025-10-01"),
+            make_row("2025-10-08", sci, "5", "35.00", "10"), _p4frow("2025-10-08"),
+            make_row("2025-10-15", sci, "5", "35.00", "10"), _p4frow("2025-10-15"),
+            make_row("2025-10-22", sci, "5", "35.00", "10"), _p4frow("2025-10-22"),
+        ]
+
+    def test_scenario_d_stable_single_size(self):
+        """Stable species: one row, none lineage, single size, evidence not suppressed."""
+        rows = [r for r in build_breeder_opportunity_table(self._history_d())
+                if r["Species"] == self._SCI_D]
+        assert len(rows) == 1
+        row = rows[0]
+        assert row["Size (cm)"] == "5"
+        assert row["Lineage Status"] == "none"
+        assert row["Price History"] != "-"
+        assert row["Wishlist History"] != "-"

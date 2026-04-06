@@ -14,7 +14,6 @@ from shared.config import (
     OOS_CARRYOVER_LOOKBACK,
     WISHLIST_DELTA_LOOKBACK,
     WISHLIST_DELTA_PREV_LOOKBACK,
-    WISHLIST_SMALL_N_FLATTEN_THRESHOLD
 )
 from shared.history_utils import k2
 
@@ -44,116 +43,6 @@ def _get_wishlist_count(row):
         return int(row.get("wishlist_count", "0") or "0")
     except (ValueError, TypeError):
         return 0
-
-
-def compute_wishlist_pressure(rows):
-    """
-    Compute relative wishlist pressure for rows in the current run.
-    
-    Returns a dict mapping (scientific_name, size_cm) -> pressure symbol.
-    
-    Pressure symbols:
-    - 🔥 = High wishlist pressure (top ~25% of non-zero wishlist counts)
-    - ⚠️ = Moderate wishlist pressure (middle range)
-    - ❌ = Low or no wishlist pressure (bottom tier or zero)
-    
-    IMPORTANT: Wishlist pressure is RELATIVE per run, not absolute.
-    🔥 does NOT mean high absolute count; it reflects ranking within the current distribution.
-    This prevents popularity bias and adapts to site growth or shrinkage.
-    
-    Uses relative ranking to avoid site-growth drift and popularity bias.
-    This is run per-scrape to ensure bands adapt to current distribution.
-    """
-    # Extract wishlist counts, filtering to current rows only
-    wishlist_data = [(k2(r), _get_wishlist_count(r)) for r in rows]
-    
-    if not wishlist_data:
-        return {}
-    
-    # Separate zero and non-zero counts
-    zero_keys = {k for k, c in wishlist_data if c == 0}
-    nonzero = [(k, c) for k, c in wishlist_data if c > 0]
-    
-    result = {}
-    
-    # All zeros get ❌
-    for k in zero_keys:
-        result[k] = "❌"
-    
-    if not nonzero:
-        return result
-    
-    # Sort non-zero by count descending
-    nonzero.sort(key=lambda x: x[1], reverse=True)
-    
-    # Small-N flattening: if all wishlist counts are very close (max - min ≤ threshold),
-    # then the distribution is too flat to meaningfully rank.
-    # Conservative interpretation: assign ⚠️ to all non-zero to avoid artificial 🔥.
-    counts = [c for _, c in nonzero]
-    if counts and max(counts) - min(counts) <= WISHLIST_SMALL_N_FLATTEN_THRESHOLD:
-        for k, _ in nonzero:
-            result[k] = "⚠️"
-        return result
-    
-    # Use percentile-based bands:
-    # Top 25% = 🔥 (high pressure)
-    # Next 50% = ⚠️ (moderate)
-    # Bottom 25% = ❌ (low)
-    n = len(nonzero)
-    high_cutoff = max(1, n // 4)  # top 25%
-    low_cutoff = max(1, (3 * n) // 4)  # bottom 25%
-    
-    for i, (k, _) in enumerate(nonzero):
-        if i < high_cutoff:
-            result[k] = "🔥"
-        elif i < low_cutoff:
-            result[k] = "⚠️"
-        else:
-            result[k] = "❌"
-    
-    return result
-
-
-def get_oos_wishlist_carryover(key, by_run, runs, cur_run, lookback_limit=OOS_CARRYOVER_LOOKBACK):
-    """
-    For OUT-of-stock species, carry forward wishlist pressure from the most recent run
-    where it was IN stock, within a bounded lookback window.
-    
-    Args:
-        key: (scientific_name, size_cm) tuple
-        by_run: dict mapping run datetime -> list of rows
-        runs: sorted list of run datetimes
-        cur_run: current run datetime
-        lookback_limit: max number of recent runs to look back (default 5)
-    
-    Returns:
-        Wishlist pressure symbol (🔥/⚠️/❌) or None if not found
-    
-    Rationale:
-        Wishlist interest often peaks just before sell-out.
-        This prevents under-valuing OUT species with real latent demand.
-        Keeps behavior conservative and bounded.
-    """
-    # Find the index of the current run
-    try:
-        cur_idx = runs.index(cur_run)
-    except ValueError:
-        return None
-    
-    # Look back through recent runs (excluding current)
-    lookback_start = max(0, cur_idx - lookback_limit)
-    for i in range(cur_idx - 1, lookback_start - 1, -1):
-        rt = runs[i]
-        # Check if key exists in this run
-        run_rows = by_run[rt]
-        run_map = _build_key_map(run_rows)
-        
-        if key in run_map:
-            # Found the species in this run - compute its pressure
-            pressure_map = compute_wishlist_pressure(run_rows)
-            return pressure_map.get(key, "❌")
-    
-    return None
 
 
 def compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=WISHLIST_DELTA_LOOKBACK, prev_lookback_limit=WISHLIST_DELTA_PREV_LOOKBACK):
@@ -248,87 +137,171 @@ def compute_wishlist_delta(key, by_run, runs, cur_run, lookback_limit=WISHLIST_D
         return "→"
 
 
-def get_wishlist_metrics(key, by_run, runs, cur_run, wishlist_pressure_map):
-    """Get wishlist pressure and delta for a species with OOS carryover logic.
+# ---------------------------------------------------------------------------
+# Phase 4 — Species-level wishlist helpers
+# ---------------------------------------------------------------------------
 
-    Consolidates the repeated pattern from breeder and dealer matrices:
-    - If the species is IN the current run, look up its pressure directly.
-    - If the species is OUT, carry forward the last known pressure (bounded lookback ≤ 5 runs).
-    - Wishlist delta is always computed with its own conservative bounded lookback (≤ 3 runs).
+# Allow forward-reference to LineageResult without a circular import at module level
+from typing import Any, Optional
 
-    Args:
-        key: (scientific_name, size_cm) tuple identifying the species/size.
-        by_run: dict mapping run datetime -> list of row dicts.
-        runs: sorted list of run datetimes.
-        cur_run: datetime of the current run.
-        wishlist_pressure_map: pre-computed pressure map for the current run
-            (from ``compute_wishlist_pressure``).
 
-    Returns:
-        Tuple of (wishlist_pressure, wishlist_delta) where each value is
-        one of the standard symbols (🔥/⚠️/❌ and ↑/→/↓ respectively).
+def get_species_wishlist_count(
+    scientific_name: str,
+    lineage_result: Any,
+    by_run: dict,
+    runs: list,
+    cur_run: str,
+    lookback_limit: int = OOS_CARRYOVER_LOOKBACK,
+) -> int:
+    """Return the effective wishlist count for a species, respecting lineage state.
+
+    Rules (Decision 4):
+    * Species IN current run, ``multi-variant``: max count across active variants.
+    * Species IN current run (other states): count for the current active row.
+    * Species OUT within *lookback_limit* runs: last known count for
+      ``current_active_size`` within the window.
+    * Otherwise: 0.
     """
-    cur_keys = set(_build_key_map(by_run[cur_run]).keys())
+    current_active_size = lineage_result.current_active_size
+    cur_rows = [r for r in by_run.get(cur_run, []) if r["scientific_name"] == scientific_name]
 
-    if key in cur_keys:
-        wishlist_pressure = wishlist_pressure_map.get(key, "❌")
-    else:
-        carried = get_oos_wishlist_carryover(key, by_run, runs, cur_run)
-        wishlist_pressure = carried if carried else "❌"
+    if cur_rows:
+        if lineage_result.lineage_status == "multi-variant":
+            return max(_get_wishlist_count(r) for r in cur_rows)
+        # Single active size — find the matching row
+        for r in cur_rows:
+            if r["size_cm"] == current_active_size:
+                return _get_wishlist_count(r)
+        # Fallback: use any current row for this species
+        return _get_wishlist_count(cur_rows[0])
 
-    wishlist_delta = compute_wishlist_delta(key, by_run, runs, cur_run)
+    # Species OUT — walk back for last known count for current_active_size
+    if not current_active_size:
+        return 0
 
-    return wishlist_pressure, wishlist_delta
-
-
-def get_wishlist_count(key, by_run, runs, cur_run, lookback_limit=OOS_CARRYOVER_LOOKBACK):
-    """Get the most recent known wishlist count for a species.
-
-    If the species is IN the current run, returns its current wishlist count.
-    If the species is OUT, walks back up to *lookback_limit* runs and returns
-    the count from the most recent IN-stock run, or 0 if none found within
-    the window.
-
-    The window deliberately matches OOS_CARRYOVER_LOOKBACK (5 runs) so
-    that the raw count used for sort ordering expires at exactly the same time as
-    the pressure tier (❌).  This keeps the two signals consistent: once a species
-    has been OOS long enough for demand to be considered unreliable, the count also
-    resets to 0 and no longer inflates its ranking.
-
-    Args:
-        key: (scientific_name, size_cm) tuple.
-        by_run: dict mapping run datetime -> list of row dicts.
-        runs: sorted list of run datetimes.
-        cur_run: datetime of the current run.
-        lookback_limit: max runs to look back for an OOS species (default 5).
-
-    Returns:
-        int: wishlist count (0 if unavailable within the window).
-    """
     try:
         cur_idx = runs.index(cur_run)
     except ValueError:
         return 0
 
-    cur_rows = by_run[cur_run]
-    cur_map = _build_key_map(cur_rows)
-
-    if key in cur_map:
-        try:
-            return int(cur_map[key].get("wishlist_count", "0") or "0")
-        except (ValueError, TypeError):
-            return 0
-
-    # OUT — walk back within the bounded window for the last known count.
     lookback_start = max(0, cur_idx - lookback_limit)
     for i in range(cur_idx - 1, lookback_start - 1, -1):
         rt = runs[i]
-        run_rows = by_run[rt]
-        run_map = _build_key_map(run_rows)
-        if key in run_map:
-            try:
-                return int(run_map[key].get("wishlist_count", "0") or "0")
-            except (ValueError, TypeError):
-                return 0
-
+        for row in by_run.get(rt, []):
+            if row["scientific_name"] == scientific_name and row["size_cm"] == current_active_size:
+                return _get_wishlist_count(row)
     return 0
+
+
+def _stitched_count_for_run(
+    scientific_name: str,
+    prev_size: str,
+    curr_size: str,
+    transition_date: str,
+    run: str,
+    run_rows: list,
+) -> Optional[int]:
+    """Return wishlist count from the stitched lineage for *run*, or None if absent.
+
+    Before *transition_date*: look up *prev_size*; on/after: look up *curr_size*.
+    """
+    run_date = run[:10]
+    target_size = curr_size if run_date >= transition_date else prev_size
+    for row in run_rows:
+        if row["scientific_name"] == scientific_name and row["size_cm"] == target_size:
+            return _get_wishlist_count(row)
+    return None
+
+
+def compute_species_wishlist_delta(
+    scientific_name: str,
+    lineage_result: Any,
+    by_run: dict,
+    runs: list,
+    cur_run: str,
+    lookback_limit: int = WISHLIST_DELTA_LOOKBACK,
+    prev_lookback_limit: int = WISHLIST_DELTA_PREV_LOOKBACK,
+) -> str:
+    """Compute wishlist delta for a species, respecting lineage evidence rules.
+
+    * ``ambiguous-transition`` or ``multi-variant``: always ``"→"``.
+    * ``none``: delegates to :func:`compute_wishlist_delta` on the single k2 key.
+    * ``confirmed-transition``: stitches pre- and post-transition observations
+      to find a defensible momentum comparison.
+    """
+    status = lineage_result.lineage_status
+
+    if status in ("ambiguous-transition", "multi-variant"):
+        return "→"
+
+    current_active_size = lineage_result.current_active_size
+
+    if status == "none":
+        if not current_active_size:
+            return "→"
+        return compute_wishlist_delta(
+            (scientific_name, current_active_size),
+            by_run,
+            runs,
+            cur_run,
+            lookback_limit=lookback_limit,
+            prev_lookback_limit=prev_lookback_limit,
+        )
+
+    # confirmed-transition: stitched delta logic
+    prev_size = lineage_result.previous_size
+    transition_date = lineage_result.transition_date
+
+    try:
+        cur_idx = runs.index(cur_run)
+    except ValueError:
+        return "→"
+
+    # Step 1: Find current count reference in stitched lineage
+    current_count: Optional[int] = None
+    current_ref_idx = cur_idx
+
+    val = _stitched_count_for_run(
+        scientific_name, prev_size, current_active_size, transition_date,
+        cur_run, by_run.get(cur_run, []),
+    )
+    if val is not None:
+        current_count = val
+    else:
+        lookback_start = max(0, cur_idx - lookback_limit)
+        for i in range(cur_idx - 1, lookback_start - 1, -1):
+            rt = runs[i]
+            val = _stitched_count_for_run(
+                scientific_name, prev_size, current_active_size, transition_date,
+                rt, by_run.get(rt, []),
+            )
+            if val is not None:
+                current_count = val
+                current_ref_idx = i
+                break
+
+    if current_count is None:
+        return "→"
+
+    # Step 2: Find previous count in stitched lineage (bounded)
+    previous_count: Optional[int] = None
+    prev_start = max(0, current_ref_idx - prev_lookback_limit)
+    for i in range(current_ref_idx - 1, prev_start - 1, -1):
+        rt = runs[i]
+        val = _stitched_count_for_run(
+            scientific_name, prev_size, current_active_size, transition_date,
+            rt, by_run.get(rt, []),
+        )
+        if val is not None:
+            previous_count = val
+            break
+
+    if previous_count is None:
+        return "→"
+
+    delta = current_count - previous_count
+    if delta >= WISHLIST_DELTA_INCREASE_THRESHOLD:
+        return "↑"
+    elif delta <= WISHLIST_DELTA_DECREASE_THRESHOLD:
+        return "↓"
+    return "→"

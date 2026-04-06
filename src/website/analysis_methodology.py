@@ -91,6 +91,38 @@ def _core_rule_pill(page_label: str) -> dict[str, str]:
     return _pill(f"Core {page_label} rule", "hot")
 
 
+def _size_identity_tab() -> dict:
+    return {
+        "id": "size-identity",
+        "label": "Size Variants",
+        "layout": "thresholds",
+        "cards": [
+            {
+                "title": "One Row Per Species",
+                "pills": [_pill("Single row per species"), _pill("Size changes tracked")],
+                "items": [
+                    {
+                        "label": "Each species appears exactly once",
+                        "detail": "The table merges all size variants for a species into one row. When the listed size changes between scrape runs, the system classifies the change to determine how to handle the price and wishlist history.",
+                    },
+                    {
+                        "label": "Confirmed transition — ℹ️ icon on Price and Price History",
+                        "detail": "The size change was matched via the same product URL within 12 runs with no same-run overlap. Wishlist history carries across the transition. The ℹ️ icon on Price and Price History cells notes that the price series spans two different sizes and recent price movement may partly reflect the size change rather than a pure same-unit move.",
+                    },
+                    {
+                        "label": "Ambiguous transition — Price History and Wishlist History suppressed",
+                        "detail": "The handoff could not be confirmed: the URL differed, the gap exceeded 12 runs, or a same-run overlap occurred during the handoff window. Price History and Wishlist History are both shown as — with a ℹ️ icon. Wishlist momentum is neutralized to avoid drawing signal from discontinuous demand data.",
+                    },
+                    {
+                        "label": "Multi-variant — two or more sizes active simultaneously",
+                        "detail": "Two or more sizes are listed in the same scrape run. The Size column shows all active sizes (comma-separated), Price shows 'Multiple active prices', and both history sparklines are suppressed. Wishlist uses the highest active variant count as a conservative demand indicator.",
+                    },
+                ],
+            },
+        ],
+    }
+
+
 def build_breeder_methodology() -> MethodologyDict:
     """Return structured methodology content for the breeder analysis page."""
     return {
@@ -279,6 +311,7 @@ def build_breeder_methodology() -> MethodologyDict:
                     ],
                 },
             },
+            _size_identity_tab(),
         ],
     }
 
@@ -469,6 +502,7 @@ def build_dealer_methodology() -> MethodologyDict:
                     ],
                 },
             },
+            _size_identity_tab(),
         ],
     }
 

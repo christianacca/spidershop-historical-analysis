@@ -2,15 +2,14 @@
 """Tests for shared matrix workflow helpers used by breeder/dealer builders."""
 
 from scrape.matrix_workflow import (
+    build_species_wishlist_pressure_map,
     collect_lookback_values_for_key,
     generate_price_wishlist_sparklines,
-    get_wishlist_display_metrics,
     iter_lookback_rows_for_key,
     prepare_matrix_analysis,
     prepare_matrix_runs,
     sort_matrix_table,
 )
-from scrape.wishlist_analysis import compute_wishlist_pressure
 from shared.history_utils import k2
 from conftest import make_row
 
@@ -54,39 +53,12 @@ class TestPrepareMatrixAnalysis:
         prepared = prepare_matrix_analysis(history)
 
         assert prepared is not None
-        by_run, runs, current_run, previous_run, current_rows, run_index, wishlist_pressure_map = prepared
+        by_run, runs, current_run, previous_run, current_rows, run_index, _ = prepared
         assert runs == ["2025-01-01", "2025-01-08"]
         assert current_run == "2025-01-08"
         assert previous_run == "2025-01-01"
         assert current_rows == by_run[current_run]
         assert run_index == {"2025-01-01": 0, "2025-01-08": 1}
-        assert wishlist_pressure_map[("Aphonopelma seemanni", "1.0")] in {"🔥", "⚠️", "❌"}
-
-
-class TestWishlistDisplayMetrics:
-    """Wishlist helper formatting and composition behavior."""
-
-    def test_returns_pressure_delta_count_and_display(self):
-        history = [
-            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "5"),
-            make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "26.00", "11"),
-            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "1"),
-        ]
-        prepared = prepare_matrix_runs(history)
-        assert prepared is not None
-        by_run, runs, current_run, _, current_rows = prepared
-
-        pressure_map = compute_wishlist_pressure(current_rows)
-        key = k2(current_rows[0])
-
-        pressure, delta, count, display = get_wishlist_display_metrics(
-            key, by_run, runs, current_run, pressure_map
-        )
-
-        assert pressure in {"🔥", "⚠️", "❌"}
-        assert delta in {"↑", "→", "↓"}
-        assert count == 11
-        assert display == f"{count} {pressure} {delta}"
 
 
 class TestLookbackHelpers:
@@ -175,3 +147,26 @@ class TestSortMatrixTable:
         assert table[0]["Wishlist"].startswith("8")
         assert table[1]["Signal"] == "🔥"
         assert table[2]["Signal"] == "⚠️"
+
+
+# ---------------------------------------------------------------------------
+# build_species_wishlist_pressure_map — small-N flatten branch
+# ---------------------------------------------------------------------------
+
+class TestBuildSpeciesWishlistPressureMap:
+    """Small-N flatten: all nonzero counts within WISHLIST_SMALL_N_FLATTEN_THRESHOLD → ⚠️."""
+
+    def test_small_n_flatten_assigns_moderate_to_all_nonzero(self):
+        """Counts 10 and 11 differ by 1 (≤ threshold of 1) → both species get ⚠️."""
+        history = [
+            make_row("2025-01-01", "Spider A", "1.0", "25.00", "10"),
+            make_row("2025-01-01", "Spider B", "1.0", "25.00", "11"),
+            make_row("2025-01-08", "Spider A", "1.0", "25.00", "10"),
+            make_row("2025-01-08", "Spider B", "1.0", "25.00", "11"),
+        ]
+        prepared = prepare_matrix_analysis(history)
+        assert prepared is not None
+        by_run, runs, cur_run, _, _, _, species_lineage_map = prepared
+        result = build_species_wishlist_pressure_map(species_lineage_map, by_run, runs, cur_run)
+        assert result["Spider A"] == "⚠️"
+        assert result["Spider B"] == "⚠️"

@@ -130,6 +130,18 @@ Wishlist Delta measures **meaningful change in buyer interest** over time.
 
 Wishlist Delta acts as a **momentum modifier**, not a standalone signal.
 
+### One Row Per Species (Size Variant Identity)
+
+Each species appears **exactly once** in the breeder and dealer tables, even when its listed size changes over time.
+
+When a species' displayed size changes between scrape runs, the system attempts to determine whether this is the **same continuous listing** (a *confirmed transition*) or a genuinely distinct new listing:
+
+- **Confirmed transition** — the size change is recognized as a continuous listing; wishlist data carries across and a ℹ️ icon on the Price and Price History cells notes that price comparisons may not be fully like-for-like
+- **Ambiguous transition** — the lineage is unclear; price and wishlist history sparklines are suppressed and a ℹ️ icon is shown
+- **Multi-variant** — two or more sizes are simultaneously active; sizes shown as a comma-separated list; price and wishlist history are suppressed
+
+This design prevents double-counting a single animal and preserves demand trend continuity across normal size progression.
+
 ---
 
 ## Analysis Outputs

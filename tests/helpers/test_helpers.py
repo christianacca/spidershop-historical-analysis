@@ -53,6 +53,13 @@ class BreederEntry:
     signal: str = "🔥"
     recommendation: str = ""
     drivers: str = ""
+    lineage_status: str = "none"
+    previous_size_cm: str = ""
+    current_active_size_cm: str = ""
+    transition_date: str = ""
+    price_evidence_state: str = "standard"
+    wishlist_evidence_state: str = "standard"
+    transition_message: str = ""
 
 
 @dataclass
@@ -74,6 +81,13 @@ class DealerEntry:
     risk: str = "🔥"
     dealer_recommendation: str = ""
     drivers: str = ""
+    lineage_status: str = "none"
+    previous_size_cm: str = ""
+    current_active_size_cm: str = ""
+    transition_date: str = ""
+    price_evidence_state: str = "standard"
+    wishlist_evidence_state: str = "standard"
+    transition_message: str = ""
 
 
 def create_temp_markdown_file(content: str) -> str:
@@ -230,6 +244,8 @@ def _field_name_to_csv_header(field_name: str, dataclass_type=None) -> str:
         "size_cm": "Size (cm)",
         "risk": "Dealer Risk",
         "avg_oos_duration": "Avg OOS Duration",
+        "previous_size_cm": "Previous Size (cm)",
+        "current_active_size_cm": "Current Active Size (cm)",
     }
     
     if field_name in special_cases:

@@ -427,6 +427,9 @@ def generate_breeder_examples():
         generate_breeder_example_6(),
         generate_breeder_example_7(),
         generate_breeder_example_8(),
+        generate_breeder_example_9(),
+        generate_breeder_example_10(),
+        generate_breeder_example_11(),
     ]
     
     header = """### 📖 Breeder Matrix — Practical Examples
@@ -449,6 +452,9 @@ def generate_dealer_examples():
         generate_dealer_example_6(),
         generate_dealer_example_7(),
         generate_dealer_example_8(),
+        generate_dealer_example_9(),
+        generate_dealer_example_10(),
+        generate_dealer_example_11(),
     ]
     
     header = """### 📖 Dealer Matrix — Practical Examples
@@ -754,6 +760,268 @@ def generate_dealer_example_8():
 - **Recommendation:** {entry["Dealer Recommendation"]}
 
 **Why:** Low reliability alone is already a dealer warning sign because supply is weak. Without slow restock, Hot wishlist pressure, or rising momentum, the row stays at `⚠️ Moderate Risk` rather than escalating to `🔥`, but it also never drops to fully healthy `❌ Low Risk`."""
+
+
+def generate_breeder_example_9():
+    """Example 9: Confirmed Size Transition (ℹ️ icon on Price and Price History)."""
+    history = [
+        # Background species for wishlist pressure context
+        make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "30"),
+        make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "30"),
+        make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "30"),
+        make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "5"),
+        make_row("2025-01-29", "Grammostola pulchra", "2.0", "40.00", "5"),
+        make_row("2025-01-22", "Avicularia avicularia", "1.0", "28.00", "4"),
+        make_row("2025-01-29", "Avicularia avicularia", "1.0", "28.00", "4"),
+        # Target: size 2.0 → 3.0 in the very next run (confirmed, gap = 1 ≤ 12)
+        make_row("2025-01-01", "Brachypelma schroederi", "2.0", "28.00", "12"),
+        make_row("2025-01-08", "Brachypelma schroederi", "2.0", "30.00", "13"),
+        make_row("2025-01-15", "Brachypelma schroederi", "3.0", "38.00", "14"),
+        # OUT in last 2 runs (Emerging pattern)
+    ]
+
+    table = build_breeder_opportunity_table(history)
+    entry = _get_table_entry(table, "Brachypelma schroederi")
+
+    data_table = format_scenario_table(history, "Brachypelma schroederi")
+
+    return f"""#### Example 9: Confirmed Size Transition (ℹ️ icon on Price and Price History)
+**Scenario:** A species that was listed at 2 cm, then relisted at 3 cm the following week via the same product URL, before going out of stock
+
+{data_table}
+
+**Analysis Result:**
+
+- **Size (cm):** {entry["Size (cm)"]}
+- **OOS:** {entry["OOS"]}
+- **OOS Runs:** {entry["OOS Runs"]}
+- **Stock Pattern:** {entry["Stock Pattern"]}
+- **Price:** {entry["Price"]}
+- **Price History:** {entry["Price History"]}
+- **Wishlist:** {entry["Wishlist"]}
+- **Signal:** {entry["Signal"]}
+- **Lineage Status:** {entry["Lineage Status"]}
+- **Price Evidence State:** {entry["Price Evidence State"]}
+- **Recommendation:** {entry["Recommendation"]}
+
+**Why:** The size changed from 2 cm to 3 cm in a single step via the same listing URL. The algorithm classifies this as a confirmed transition: the history is treated as continuous, the wishlist count carries across, and a ℹ️ icon appears on the Price and Price History columns. The ℹ️ does not reduce the signal — it is a transparency note that the price series spans two different sizes and direct comparison may not be fully like-for-like."""
+
+
+def generate_breeder_example_10():
+    """Example 10: Ambiguous Size Transition (Price History and Wishlist History suppressed)."""
+    # 16 runs: species present in runs 1-2 at size 2.0, absent for 13 runs, then
+    # back at size 3.0 in run 16. Gap = 14 > 12 → algorithm cannot confirm continuity.
+    dates = [
+        "2025-01-01", "2025-01-08", "2025-01-15", "2025-01-22", "2025-01-29",
+        "2025-02-05", "2025-02-12", "2025-02-19", "2025-02-26",
+        "2025-03-05", "2025-03-12", "2025-03-19", "2025-03-26",
+        "2025-04-02", "2025-04-09", "2025-04-16",
+    ]
+    history = []
+    # Background species present throughout
+    for d in dates:
+        history.append(make_row(d, "Grammostola pulchra", "2.0", "40.00", "20"))
+    history.append(make_row(dates[15], "Avicularia avicularia", "1.0", "28.00", "3"))
+    # Target: size 2.0 visible in runs 1-2, then 13-run gap before size 3.0 re-appears
+    history.append(make_row(dates[0], "Acanthoscurria geniculata", "2.0", "25.00", "10"))
+    history.append(make_row(dates[1], "Acanthoscurria geniculata", "2.0", "26.00", "11"))
+    # Absent from run 3 (2025-01-15) through run 15 (2025-04-09) — gap = 14 runs
+    history.append(make_row(dates[15], "Acanthoscurria geniculata", "3.0", "35.00", "8"))
+
+    table = build_breeder_opportunity_table(history)
+    entry = _get_table_entry(table, "Acanthoscurria geniculata")
+
+    data_table = format_scenario_table(history, "Acanthoscurria geniculata")
+
+    return f"""#### Example 10: Ambiguous Size Transition (Price History and Wishlist History suppressed)
+**Scenario:** A species that disappeared for 14 weeks, then reappeared at a different size. The gap exceeds the 12-run confirmation window, so listing continuity cannot be confirmed even though the URL matched
+
+{data_table}
+
+**Analysis Result:**
+
+- **Size (cm):** {entry["Size (cm)"]}
+- **OOS:** {entry["OOS"]}
+- **Stock Pattern:** {entry["Stock Pattern"]}
+- **Price:** {entry["Price"]}
+- **Price History:** {entry["Price History"]}
+- **Wishlist:** {entry["Wishlist"]}
+- **Wishlist History:** {entry["Wishlist History"]}
+- **Signal:** {entry["Signal"]}
+- **Lineage Status:** {entry["Lineage Status"]}
+- **Price Evidence State:** {entry["Price Evidence State"]}
+- **Recommendation:** {entry["Recommendation"]}
+
+**Why:** A 14-run absence (about 3.5 months) exceeds the 12-run confirmation window. Even with a URL match, a gap this long raises the possibility that the current listing is a fresh restock at a new size rather than a continuation of the same listing. Both Price History and Wishlist History show `{entry["Price History"]}` to signal that the series cannot be safely joined. A ℹ️ icon still appears on those cells. Wishlist momentum is also neutralized to avoid treating potentially discontinuous demand data as a meaningful trend."""
+
+
+def generate_breeder_example_11():
+    """Example 11: Multi-Variant (two active sizes simultaneously)."""
+    # Final run has BOTH size 2.0 AND size 3.0 for the same species →
+    # algorithm returns lineage_status = "multi-variant".
+    history = [
+        # Background species
+        make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "8"),
+        make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "8"),
+        make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "8"),
+        make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "5"),
+        make_row("2025-01-22", "Brachypelma hamorii", "1.5", "30.00", "4"),
+        # Target species in runs 1-3 at size 2.0, then BOTH sizes active in run 4
+        make_row("2025-01-01", "Psalmopoeus cambridgei", "2.0", "25.00", "5"),
+        make_row("2025-01-08", "Psalmopoeus cambridgei", "2.0", "25.00", "6"),
+        make_row("2025-01-15", "Psalmopoeus cambridgei", "2.0", "25.00", "7"),
+        make_row("2025-01-22", "Psalmopoeus cambridgei", "2.0", "25.00", "7"),
+        make_row("2025-01-22", "Psalmopoeus cambridgei", "3.0", "35.00", "15"),
+    ]
+
+    table = build_breeder_opportunity_table(history)
+    entry = _get_table_entry(table, "Psalmopoeus cambridgei")
+
+    return f"""#### Example 11: Multi-Variant (two active sizes in the same run)
+**Scenario:** A species currently listed at both 2 cm and 3 cm in the same scrape run. The system cannot merge them into a single price series
+
+**Analysis Result:**
+
+- **Size (cm):** {entry["Size (cm)"]}
+- **OOS:** {entry["OOS"]}
+- **Stock Pattern:** {entry["Stock Pattern"]}
+- **Price:** {entry["Price"]}
+- **Price History:** {entry["Price History"]}
+- **Wishlist:** {entry["Wishlist"]}
+- **Wishlist History:** {entry["Wishlist History"]}
+- **Signal:** {entry["Signal"]}
+- **Lineage Status:** {entry["Lineage Status"]}
+- **Price Evidence State:** {entry["Price Evidence State"]}
+- **Recommendation:** {entry["Recommendation"]}
+
+**Why:** When two distinct size listings are active at the same time for the same species, the row shows all active sizes in the Size column (comma-separated). Price is shown as "{entry["Price"]}" because there is no single clean price. Price History and Wishlist History are both suppressed to `{entry["Price History"]}` since the historical series cannot be attributed to either size in isolation. Wishlist uses the highest active variant count as a conservative demand indicator."""
+
+
+def generate_dealer_example_9():
+    """Example 9: Confirmed Size Transition (ℹ️ icon on Price and Price History)."""
+    history = [
+        # Background species
+        make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "30"),
+        make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "30"),
+        make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "30"),
+        make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "5"),
+        make_row("2025-01-29", "Grammostola pulchra", "2.0", "40.00", "5"),
+        make_row("2025-01-22", "Avicularia avicularia", "1.0", "28.00", "4"),
+        make_row("2025-01-29", "Avicularia avicularia", "1.0", "28.00", "4"),
+        # Target: size 2.0 → 3.0 in the very next run (confirmed, gap = 1 ≤ 12)
+        make_row("2025-01-01", "Brachypelma schroederi", "2.0", "28.00", "12"),
+        make_row("2025-01-08", "Brachypelma schroederi", "2.0", "30.00", "13"),
+        make_row("2025-01-15", "Brachypelma schroederi", "3.0", "38.00", "14"),
+        # OUT in last 2 runs
+    ]
+
+    table = build_dealer_supply_risk_table(history)
+    entry = _get_table_entry(table, "Brachypelma schroederi")
+
+    data_table = format_scenario_table(history, "Brachypelma schroederi")
+
+    return f"""#### Example 9: Confirmed Size Transition (ℹ️ icon on Price and Price History)
+**Scenario:** A species that was listed at 2 cm, then relisted at 3 cm the following week via the same product URL, before going out of stock
+
+{data_table}
+
+**Analysis Result:**
+
+- **Size (cm):** {entry["Size (cm)"]}
+- **Stock Reliability:** {entry["Stock Reliability"]}
+- **Restock Speed:** {entry["Restock Speed"]}
+- **Price:** {entry["Price"]}
+- **Price History:** {entry["Price History"]}
+- **Wishlist:** {entry["Wishlist"]}
+- **Dealer Risk:** {entry["Dealer Risk"]}
+- **Lineage Status:** {entry["Lineage Status"]}
+- **Price Evidence State:** {entry["Price Evidence State"]}
+- **Recommendation:** {entry["Dealer Recommendation"]}
+
+**Why:** Because the URL matched across the size change, the system treats the listing as continuous. Price and Wishlist History sparklines are stitched across the transition. The ℹ️ icon on Price and Price History cells flags the point where the underlying size changed. The risk classification is based on normal supply and demand logic — the info icon is purely a data-integrity transparency note."""
+
+
+def generate_dealer_example_10():
+    """Example 10: Ambiguous Size Transition (Price History and Wishlist History suppressed)."""
+    dates = [
+        "2025-01-01", "2025-01-08", "2025-01-15", "2025-01-22", "2025-01-29",
+        "2025-02-05", "2025-02-12", "2025-02-19", "2025-02-26",
+        "2025-03-05", "2025-03-12", "2025-03-19", "2025-03-26",
+        "2025-04-02", "2025-04-09", "2025-04-16",
+    ]
+    history = []
+    for d in dates:
+        history.append(make_row(d, "Grammostola pulchra", "2.0", "40.00", "20"))
+    history.append(make_row(dates[15], "Avicularia avicularia", "1.0", "28.00", "3"))
+    # Target: 14-run gap between old size 2.0 and new size 3.0 → ambiguous
+    history.append(make_row(dates[0], "Acanthoscurria geniculata", "2.0", "25.00", "10"))
+    history.append(make_row(dates[1], "Acanthoscurria geniculata", "2.0", "26.00", "11"))
+    # Absent from run 3 through run 15 — gap = 14 runs, exceeds 12-run window
+    history.append(make_row(dates[15], "Acanthoscurria geniculata", "3.0", "35.00", "8"))
+
+    table = build_dealer_supply_risk_table(history)
+    entry = _get_table_entry(table, "Acanthoscurria geniculata")
+
+    data_table = format_scenario_table(history, "Acanthoscurria geniculata")
+
+    return f"""#### Example 10: Ambiguous Size Transition (Price History and Wishlist History suppressed)
+**Scenario:** A species that disappeared for 14 weeks then reappeared at a different size. The gap exceeds the 12-run confirmation window, so listing continuity cannot be confirmed
+
+{data_table}
+
+**Analysis Result:**
+
+- **Size (cm):** {entry["Size (cm)"]}
+- **Stock Reliability:** {entry["Stock Reliability"]}
+- **Price:** {entry["Price"]}
+- **Price History:** {entry["Price History"]}
+- **Wishlist:** {entry["Wishlist"]}
+- **Wishlist History:** {entry["Wishlist History"]}
+- **Dealer Risk:** {entry["Dealer Risk"]}
+- **Lineage Status:** {entry["Lineage Status"]}
+- **Price Evidence State:** {entry["Price Evidence State"]}
+- **Recommendation:** {entry["Dealer Recommendation"]}
+
+**Why:** A 14-run absence (about 3.5 months) exceeds the 12-run confirmation window. Even with a URL match, a gap this long raises the possibility that the current listing is a fresh restock at a new size rather than a continuation of the same listing. Both Price History and Wishlist History are suppressed to `{entry["Price History"]}`. The dealer risk is assessed from supply reliability and current demand alone. A ℹ️ icon on those columns signals the data gap to anyone reading the table."""
+
+
+def generate_dealer_example_11():
+    """Example 11: Multi-Variant (two active sizes simultaneously)."""
+    history = [
+        # Background species
+        make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "8"),
+        make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "8"),
+        make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "8"),
+        make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "5"),
+        make_row("2025-01-22", "Brachypelma hamorii", "1.5", "30.00", "4"),
+        # Target: both sizes active in final run
+        make_row("2025-01-01", "Psalmopoeus cambridgei", "2.0", "25.00", "5"),
+        make_row("2025-01-08", "Psalmopoeus cambridgei", "2.0", "25.00", "6"),
+        make_row("2025-01-15", "Psalmopoeus cambridgei", "2.0", "25.00", "7"),
+        make_row("2025-01-22", "Psalmopoeus cambridgei", "2.0", "25.00", "7"),
+        make_row("2025-01-22", "Psalmopoeus cambridgei", "3.0", "35.00", "15"),
+    ]
+
+    table = build_dealer_supply_risk_table(history)
+    entry = _get_table_entry(table, "Psalmopoeus cambridgei")
+
+    return f"""#### Example 11: Multi-Variant (two active sizes in the same run)
+**Scenario:** A species currently listed at both 2 cm and 3 cm simultaneously
+
+**Analysis Result:**
+
+- **Size (cm):** {entry["Size (cm)"]}
+- **Stock Reliability:** {entry["Stock Reliability"]}
+- **Price:** {entry["Price"]}
+- **Price History:** {entry["Price History"]}
+- **Wishlist:** {entry["Wishlist"]}
+- **Wishlist History:** {entry["Wishlist History"]}
+- **Dealer Risk:** {entry["Dealer Risk"]}
+- **Lineage Status:** {entry["Lineage Status"]}
+- **Price Evidence State:** {entry["Price Evidence State"]}
+- **Recommendation:** {entry["Dealer Recommendation"]}
+
+**Why:** With two active listings at different sizes, the system cannot produce a single clean price or history series. Price shows "{entry["Price"]}" instead of a specific value, and both history sparklines are suppressed. The supply reliability and stock availability are assessed at species level (present if any size is listed). Wishlist uses the highest active variant count, making the pressure conservative rather than inflated."""
 
 
 if __name__ == "__main__":

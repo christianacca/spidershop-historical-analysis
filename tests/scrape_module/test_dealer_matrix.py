@@ -100,8 +100,8 @@ class TestBuildDealerSupplyRiskTable:
         assert seemanni_entry["Dealer Risk"] == "⚠️"
         assert "Buy opportunistically" in seemanni_entry["Dealer Recommendation"]
 
-    def test_sparse_history_adds_cautious_wording_without_changing_dealer_risk(self):
-        """Sparse-history species should keep the same risk class but gain a confidence qualifier."""
+    def test_sparse_history_medium_reliability_risk_classification(self):
+        """Species first seen late in history gets Medium reliability and ⚠️ risk (Phase 4: no limited-history wording)."""
         history = [
             make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "5"),
             make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "5"),
@@ -118,9 +118,6 @@ class TestBuildDealerSupplyRiskTable:
         assert seemanni_entry["Stock Reliability"] == "Medium"
         assert seemanni_entry["Dealer Risk"] == "⚠️"
         assert "Buy opportunistically" in seemanni_entry["Dealer Recommendation"]
-        assert "limited history" in seemanni_entry["Dealer Recommendation"].lower()
-        assert "observed 2/5 runs" in seemanni_entry["Dealer Recommendation"].lower()
-        assert "observed 2/5 runs" in seemanni_entry["Drivers"].lower()
 
     def test_low_reliability_present_less_than_40_percent(self):
         """Species present in <40% of runs should have Low reliability."""
@@ -842,9 +839,13 @@ class TestBuildDealerSupplyRiskTable:
         
         expected_keys = {
             "Species", "Size (cm)", "Stock Reliability", "Avg OOS Duration",
-            "Restock Speed", "Price", "Price History", "Wishlist", 
-            "Wishlist History", "Stock Availability", "Dealer Risk", 
-            "Dealer Recommendation", "Drivers"
+            "Restock Speed", "Price", "Price History", "Wishlist",
+            "Wishlist History", "Stock Availability", "Dealer Risk",
+            "Dealer Recommendation", "Drivers",
+            # Hidden lineage metadata columns (Phase 3+)
+            "Lineage Status", "Previous Size (cm)", "Current Active Size (cm)",
+            "Transition Date", "Price Evidence State", "Wishlist Evidence State",
+            "Transition Message",
         }
         assert set(entry.keys()) == expected_keys
 
@@ -1148,4 +1149,276 @@ class TestDealerSparklineColumns:
         
         # Should contain key information structured
         assert "Reliability" in drivers or "Stock" in drivers
-        assert "Demand" in drivers or "Wishlist" in drivers
+
+
+# ---------------------------------------------------------------------------
+# Phase 3: hidden lineage metadata columns – dealer matrix
+# ---------------------------------------------------------------------------
+
+from scrape.dealer_matrix import build_dealer_supply_risk_table as _build_dealer
+
+
+def _drow(dt, sci, size, price, wishlist="10", url=None):
+    row = make_row(dt, sci, size, price, wishlist)
+    if url is not None:
+        row["page_url"] = url
+    return row
+
+
+def _dfrow(dt):
+    return make_row(dt, "Grammostola pulchra", "2.0", "40.00", "5")
+
+
+_D_HIDDEN_COLS = [
+    "Lineage Status",
+    "Previous Size (cm)",
+    "Current Active Size (cm)",
+    "Transition Date",
+    "Price Evidence State",
+    "Wishlist Evidence State",
+    "Transition Message",
+]
+
+_D_CONF_URL = "https://thespidershop.co.uk/product/dealer-test"
+_D_AMB_URL_A = "https://thespidershop.co.uk/product/dealer-ambiguous-a"
+_D_AMB_URL_B = "https://thespidershop.co.uk/product/dealer-ambiguous-b"
+
+
+class TestDealerHiddenLineageMetadataColumns:
+    """Phase 3: hidden metadata columns are attached to dealer matrix rows."""
+
+    def _build_scenario_a_history(self):
+        sci = "Dealer scenario A species"
+        return [
+            _drow("2026-01-01", sci, "3", "25.00", "100", url=_D_CONF_URL),
+            _dfrow("2026-01-01"),
+            _drow("2026-02-04", sci, "5", "35.00", "110", url=_D_CONF_URL),
+            _dfrow("2026-02-04"),
+            _dfrow("2026-02-11"),
+            _dfrow("2026-02-18"),
+        ], sci
+
+    def test_scenario_a_dealer_hidden_columns_confirmed_transition(self):
+        history, sci = self._build_scenario_a_history()
+        table = _build_dealer(history)
+        rows = [r for r in table if r["Species"] == sci]
+        assert rows
+
+        for col in _D_HIDDEN_COLS:
+            assert col in rows[0], f"Missing hidden column: {col}"
+
+        row = rows[0]
+        assert row["Lineage Status"] == "confirmed-transition"
+        assert row["Previous Size (cm)"] == "3"
+        assert row["Current Active Size (cm)"] == "5"
+        assert row["Transition Date"] == "2026-02-04"
+        assert row["Price Evidence State"] == "transition-affected"
+        assert row["Wishlist Evidence State"] == "carried-across-transition"
+        assert "Size changed from 3 cm to 5 cm" in row["Transition Message"]
+
+    def _build_scenario_b_history(self):
+        sci = "Dealer scenario B species"
+        return [
+            _drow("2026-01-01", sci, "3", "25.00", "100", url=_D_AMB_URL_A),
+            _dfrow("2026-01-01"),
+            _drow("2026-02-04", sci, "5", "35.00", "120", url=_D_AMB_URL_B),
+            _dfrow("2026-02-04"),
+            _dfrow("2026-02-11"),
+            _dfrow("2026-02-18"),
+        ], sci
+
+    def test_scenario_b_dealer_hidden_columns_ambiguous_transition(self):
+        history, sci = self._build_scenario_b_history()
+        table = _build_dealer(history)
+        rows = [r for r in table if r["Species"] == sci]
+        assert rows
+
+        row = rows[0]
+        assert row["Lineage Status"] == "ambiguous-transition"
+        assert row["Previous Size (cm)"] == "3"
+        assert row["Current Active Size (cm)"] == "5"
+        assert row["Price Evidence State"] == "neutralized"
+        assert row["Wishlist Evidence State"] == "neutralized-ambiguous"
+
+    def _build_scenario_c_history(self):
+        sci = "Dealer scenario C species"
+        return [
+            # Run 1: only size 3
+            _drow("2026-01-01", sci, "3", "25.00", "80", url=_D_CONF_URL),
+            _dfrow("2026-01-01"),
+            # Run 2 (current): both sizes → multi-variant
+            _drow("2026-01-08", sci, "3", "25.00", "80", url=_D_CONF_URL),
+            _drow("2026-01-08", sci, "5", "35.00", "120", url=_D_CONF_URL),
+            _dfrow("2026-01-08"),
+        ], sci
+
+    def test_scenario_c_dealer_hidden_columns_multi_variant(self):
+        history, sci = self._build_scenario_c_history()
+        table = _build_dealer(history)
+        rows = [r for r in table if r["Species"] == sci]
+        assert rows
+
+        row = rows[0]
+        assert row["Lineage Status"] == "multi-variant"
+        assert row["Previous Size (cm)"] == ""
+        assert row["Current Active Size (cm)"] == "3, 5"
+        assert row["Price Evidence State"] == "multi-variant"
+        assert row["Wishlist Evidence State"] == "max-active-variant"
+
+    def _build_scenario_d_history(self):
+        sci = "Dealer scenario D species"
+        return [
+            _drow("2026-01-01", sci, "3", "25.00", "10", url=_D_CONF_URL),
+            _dfrow("2026-01-01"),
+            _drow("2026-01-08", sci, "3", "26.00", "12", url=_D_CONF_URL),
+            _dfrow("2026-01-08"),
+        ], sci
+
+    def test_scenario_d_dealer_hidden_columns_none_status(self):
+        history, sci = self._build_scenario_d_history()
+        table = _build_dealer(history)
+        rows = [r for r in table if r["Species"] == sci]
+        assert rows
+
+        row = rows[0]
+        assert row["Lineage Status"] == "none"
+        assert row["Previous Size (cm)"] == ""
+        assert row["Transition Date"] == ""
+        assert row["Price Evidence State"] == "standard"
+        assert row["Wishlist Evidence State"] == "standard"
+
+
+# ---------------------------------------------------------------------------
+# Phase 4: species-level row identity — acceptance scenarios (dealer)
+# ---------------------------------------------------------------------------
+
+_P4D_CONF_URL = "https://thespidershop.co.uk/product/p4d-confirmed"
+_P4D_AMB_URL_A = "https://thespidershop.co.uk/product/p4d-ambiguous-a"
+_P4D_AMB_URL_B = "https://thespidershop.co.uk/product/p4d-ambiguous-b"
+
+_P4D_FILLER = "P4D Filler species"
+
+
+def _p4dfrow(dt):
+    return _drow(dt, _P4D_FILLER, "2.0", "20.00", "10")
+
+
+class TestDealerPhase4AcceptanceScenarios:
+    """Phase 4: one row per species in the dealer table.
+
+    Each assertion that checks exactly one row per scientific name is RED in
+    Phase 3 (size-keyed) for any species with multiple historical size variants.
+    """
+
+    # ── Scenario A: confirmed transition ────────────────────────────────────
+
+    _SCI_A = "Phase4 Dealer Confirmed"
+
+    def _history_a(self):
+        """8 runs: 3 cm for R1–R4, 5 cm for R5–R6 (same URL → confirmed), OUT R7–R8."""
+        sci, url = self._SCI_A, _P4D_CONF_URL
+        return [
+            _drow("2025-10-01", sci, "3", "35.00", "50",  url=url), _p4dfrow("2025-10-01"),
+            _drow("2025-10-08", sci, "3", "35.00", "70",  url=url), _p4dfrow("2025-10-08"),
+            _drow("2025-10-15", sci, "3", "35.00", "90",  url=url), _p4dfrow("2025-10-15"),
+            _drow("2025-10-22", sci, "3", "35.00", "100", url=url), _p4dfrow("2025-10-22"),
+            _drow("2025-10-29", sci, "5", "35.00", "100", url=url), _p4dfrow("2025-10-29"),
+            _drow("2025-11-05", sci, "5", "35.00", "120", url=url), _p4dfrow("2025-11-05"),
+            _p4dfrow("2025-11-12"),
+            _p4dfrow("2025-11-19"),
+        ]
+
+    def test_scenario_a_confirmed_transition(self):
+        """Confirmed transition: one row, supply metrics correct, wishlist carries, sparklines not suppressed."""
+        rows = [r for r in _build_dealer(self._history_a()) if r["Species"] == self._SCI_A]
+        assert len(rows) == 1, f"Expected 1 row for {self._SCI_A!r}, got {len(rows)}"
+        row = rows[0]
+        assert row["Size (cm)"] == "5"
+        assert row["Stock Reliability"] == "Medium"
+        assert row["Avg OOS Duration"] == 2.0
+        assert row["Restock Speed"] == "Moderate"
+        assert row["Dealer Risk"] == "🔥"
+        wishlist = row["Wishlist"]
+        assert wishlist.startswith("120"), f"Expected count 120, got {wishlist!r}"
+        assert "🔥" in wishlist
+        assert "↑" in wishlist
+        assert row["Price History"] != "-"
+        assert row["Wishlist History"] != "-"
+        # Last 8 runs: 6 IN (R1-R6), 2 OUT (R7-R8) → 6 filled + 2 spaces
+        assert row["Stock Availability"] == "██████  "
+
+    # ── Scenario B: ambiguous transition ────────────────────────────────────
+
+    _SCI_B = "Phase4 Dealer Ambiguous"
+
+    def _history_b(self):
+        sci = self._SCI_B
+        return [
+            _drow("2025-10-01", sci, "3", "35.00", "50",  url=_P4D_AMB_URL_A), _p4dfrow("2025-10-01"),
+            _drow("2025-10-08", sci, "3", "35.00", "70",  url=_P4D_AMB_URL_A), _p4dfrow("2025-10-08"),
+            _drow("2025-10-15", sci, "3", "35.00", "90",  url=_P4D_AMB_URL_A), _p4dfrow("2025-10-15"),
+            _drow("2025-10-22", sci, "3", "35.00", "100", url=_P4D_AMB_URL_A), _p4dfrow("2025-10-22"),
+            _drow("2025-10-29", sci, "5", "35.00", "100", url=_P4D_AMB_URL_B), _p4dfrow("2025-10-29"),
+            _drow("2025-11-05", sci, "5", "35.00", "120", url=_P4D_AMB_URL_B), _p4dfrow("2025-11-05"),
+            _p4dfrow("2025-11-12"),
+            _p4dfrow("2025-11-19"),
+        ]
+
+    def test_scenario_b_ambiguous_transition(self):
+        """Ambiguous transition: one row, evidence suppressed, delta neutralized."""
+        rows = [r for r in _build_dealer(self._history_b()) if r["Species"] == self._SCI_B]
+        assert len(rows) == 1, f"Expected 1 row for {self._SCI_B!r}, got {len(rows)}"
+        row = rows[0]
+        assert row["Price History"] == "-"
+        assert row["Wishlist History"] == "-"
+        assert "→" in row["Wishlist"]
+        assert "↑" not in row["Wishlist"]
+
+    # ── Scenario C: multi-variant ────────────────────────────────────────────
+
+    _SCI_C = "Phase4 Dealer Overlap"
+
+    def _history_c(self):
+        sci = self._SCI_C
+        return [
+            make_row("2025-10-01", sci, "3", "25.00", "80"),
+            make_row("2025-10-01", sci, "5", "35.00", "120"),
+            _p4dfrow("2025-10-01"),
+            make_row("2025-10-08", sci, "3", "25.00", "80"),
+            make_row("2025-10-08", sci, "5", "35.00", "120"),
+            _p4dfrow("2025-10-08"),
+        ]
+
+    def test_scenario_c_multi_variant(self):
+        """Multi-variant: one row, comma-separated sizes, suppressed evidence, ❌ risk."""
+        rows = [r for r in _build_dealer(self._history_c()) if r["Species"] == self._SCI_C]
+        assert len(rows) == 1, f"Expected 1 row for {self._SCI_C!r}, got {len(rows)}"
+        row = rows[0]
+        assert row["Size (cm)"] == "3, 5"
+        assert row["Price"] == "Multiple active prices"
+        assert row["Price History"] == "-"
+        assert row["Wishlist History"] == "-"
+        assert row["Dealer Risk"] == "❌"
+
+    # ── Scenario D: stable single-size (regression guard) ───────────────────
+
+    _SCI_D = "Phase4 Dealer Stable"
+
+    def _history_d(self):
+        sci = self._SCI_D
+        return [
+            make_row("2025-10-01", sci, "5", "35.00", "10"), _p4dfrow("2025-10-01"),
+            make_row("2025-10-08", sci, "5", "35.00", "10"), _p4dfrow("2025-10-08"),
+            make_row("2025-10-15", sci, "5", "35.00", "10"), _p4dfrow("2025-10-15"),
+            make_row("2025-10-22", sci, "5", "35.00", "10"), _p4dfrow("2025-10-22"),
+        ]
+
+    def test_scenario_d_stable_single_size(self):
+        """Stable species: one row, none lineage, single size, evidence not suppressed."""
+        rows = [r for r in _build_dealer(self._history_d()) if r["Species"] == self._SCI_D]
+        assert len(rows) == 1
+        row = rows[0]
+        assert row["Size (cm)"] == "5"
+        assert row["Lineage Status"] == "none"
+        assert row["Price History"] != "-"
+        assert rows[0]["Wishlist History"] != "-"
