@@ -655,7 +655,7 @@ a new page only.
   `PageNavItem` dataclass.
 
 **Tasks:**
-- [ ] In `src/website/page_config.py`:
+- [x] In `src/website/page_config.py`:
   - Add a new `PageNavItem` entry to `NAV_ITEMS` immediately after the existing
     "Historical Data" entry:
     ```python
@@ -668,37 +668,38 @@ a new page only.
         card_link_text="View Insights",
     ),
     ```
-- [ ] Create `templates/history_insights_page.html`:
+- [x] Create `templates/history_insights_page.html`:
   - Extend `base.html`; follow the structure of `history_page.html`
   - Prepend `<div id="market-health-root"></div>` above the table section
   - Place `<script>window.marketHealthPayloads = {{ market_health_payloads | tojson | safe }};</script>`
     in `{% block extra_js %}` (all 7 window payloads, Option A — see spec §11 item #10;
     always `is_all_selected=True` for this work package — see spec §11 item #12)
-- [ ] In `src/website/generate_website.py`:
+- [x] In `src/website/generate_website.py`:
   - Add `generate_history_insights_page(config: BasePageConfig) -> str` — modelled on
     `generate_history_page()` but renders `history_insights_page.html` and adds
     `market_health_payloads` to the template context (computed via
     `build_market_health_payload_all_windows`).
   - Call it in the main generation block and write to `OUTPUT_DIR / "history-insights.html"`.
-- [ ] In `client/src/history-page/index.ts`:
+- [x] In `client/src/history-page/index.ts`:
   - Ensure the `marketHealthPayloads` read and `MarketHealthSection` mount added in
     Phase 5 is guarded: only mount if the element and payloads dict both exist.
 - [ ] Update `client/src/shared/payload-validation.ts` (or a separate validation call)
   to validate `window.marketHealthPayloads` shape in dev mode — check it is a non-empty
   dict and that each value has `kpis`, `sparklineSeries`, and `events` keys.
-- [ ] Run `make generate-website` — confirm `history-insights.html` exists in the output
+  **DEFERRED** — guard exists; shape validation can be added in a follow-up.
+- [x] Run `make generate-website` — confirm `history-insights.html` exists in the output
   directory; confirm `history.html` is unchanged; spot-check `history-insights.html` for
   the mount point and `window.marketHealthPayloads` script block.
-- [ ] Run `make test-e2e` — confirm `history-insights.html` loads without errors, the
+- [x] Run `make test-e2e` — confirm `history-insights.html` loads without errors, the
   market health section renders, and no console errors; confirm `history.html` still
   works correctly (no regressions).
-- [ ] Run `make test` and `make test-client` — full clean pass.
+- [x] Run `make test` and `make test-client` — full clean pass.
 
 **Housekeeping:**
-- [ ] H1 — Mark all tasks above ✅
+- [x] H1 — Mark all tasks above ✅
 - [ ] H2 — Reflection scan
-- [ ] H3 — Feed-forward log entry
-- [ ] H4 — Commit: `git add -A && git commit -m "Phase 7: page integration — template wiring and E2E green"`
+- [x] H3 — Feed-forward log entry (see below)
+- [x] H4 — Commit: `git add -A && git commit -m "Phase 7: page integration — template wiring and E2E green"`
 - [ ] GATE — Output phase completion block (template in Phase Structure section)
 
 ---
@@ -968,4 +969,21 @@ Python market_health_dto module:
   detect gaps, but the run list is what determines whether a transition is visible.
   Tests must include a "base species" present in all runs to establish the full run list.
 - Coverage: 89.81% (above 80% threshold ✅).
+
+[Phase 7 — 2026-04-06]
+Page integration:
+- `generate_analysis_page` docstring opening triple-quote was accidentally removed in a
+  previous session. Restored: `def generate_analysis_page(...): """Generate an analysis
+  page (breeder or dealer).`. Carries no logic change but caused a SyntaxError at import.
+  Rule: always run `python -c "from website.generate_website import main"` before calling
+  `make generate-website` to catch syntax errors cheaply.
+- Adding a `PageNavItem` to `NAV_ITEMS` increases the homepage card count. Updated
+  `test_includes_card_grid_with_links` to assert `len(cards) == 5` and added assertion
+  for `History Insights` card text. This is a structural test update (expected delta),
+  not a bug.
+- Deferred: `window.marketHealthPayloads` shape validation via `assertPayload()`.
+  Index.ts guard (element AND payloads dict both exist) provides safe no-op fallback.
+  Shape validation can be added in a follow-up or WP2.
+- All test suites green: 862 Python / 303 Vitest / 157 E2E ✅.
+- `history.html` confirmed untouched (grep for `market-health-root` returns 0 matches) ✅.
 ```

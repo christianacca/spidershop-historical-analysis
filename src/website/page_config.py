@@ -45,6 +45,14 @@ NAV_ITEMS: List[PageNavItem] = [
         card_link_text="View History",
     ),
     PageNavItem(
+        icon="📈",
+        label="History Insights",
+        url="history-insights.html",
+        active_page="history-insights",
+        card_description="Market Health KPIs, supply trends, and pricing signals derived from historical scrape data.",
+        card_link_text="View Insights",
+    ),
+    PageNavItem(
         icon="🌱",
         label="Breeder Opportunities",
         url="breeder.html",

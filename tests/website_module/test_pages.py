@@ -71,14 +71,15 @@ class TestGenerateHomepage:
         card_grid = soup.find('div', class_='card-grid')
         assert card_grid is not None
         
-        # Should have 4 cards
+        # Should have 5 cards (snapshot, history, history-insights, breeder, dealer)
         cards = card_grid.find_all('div', class_='card')
-        assert len(cards) == 4
+        assert len(cards) == 5
         
         # Check card content
         card_texts = [card.text for card in cards]
         assert any('Latest Snapshot' in text for text in card_texts)
         assert any('Historical Data' in text for text in card_texts)
+        assert any('History Insights' in text for text in card_texts)
         assert any('Breeder Opportunities' in text for text in card_texts)
         assert any('Dealer Supply Risk' in text for text in card_texts)
 

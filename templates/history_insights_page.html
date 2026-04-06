@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}{% endblock %}
+{% block extra_js %}
+<script>
+window.marketHealthPayloads = {{ market_health_payloads | tojson | safe }};
+</script>
+<script type="module" src="{{ path_prefix }}history-page.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="content">
+    <h2>{{ page_title }}</h2>
+    <p>{{ description }}</p>
+
+    <div id="market-health-root"></div>
+</div>
+{% endblock %}
