@@ -56,17 +56,25 @@ def format_price_trend(price_trend: str) -> str:
     return PRICE_TEXT.get(price_trend, price_trend)
 
 
-def build_demand_section(wishlist_pressure: str, wishlist_delta: str) -> str:
+def build_demand_section(wishlist_pressure: str, wishlist_delta: str, qualifier: str = "") -> str:
     """Build standardized demand section for driver text.
 
     Args:
         wishlist_pressure: Demand level (🔥/⚠️/❌)
         wishlist_delta: Momentum (↑/→/↓)
+        qualifier: Optional parenthetical context when the delta is forced neutral
+            (e.g. ``"momentum neutralized; continuity unconfirmed"``).  When
+            provided the standard ``"+ delta_text"`` suffix is replaced with
+            ``"(<qualifier>)"``.
 
     Returns:
-        Formatted demand section (e.g., "Demand: Wishlist High + rising")
+        Formatted demand section (e.g., "Demand: Wishlist High + rising" or
+        "Demand: Wishlist High (momentum neutralized; continuity unconfirmed)")
     """
-    return f"Demand: Wishlist {format_wishlist_pressure(wishlist_pressure)} + {format_delta(wishlist_delta)}"
+    pressure_text = format_wishlist_pressure(wishlist_pressure)
+    if qualifier:
+        return f"Demand: Wishlist {pressure_text} ({qualifier})"
+    return f"Demand: Wishlist {pressure_text} + {format_delta(wishlist_delta)}"
 
 
 def build_price_section(price_trend: str) -> str:
@@ -81,7 +89,34 @@ def build_price_section(price_trend: str) -> str:
     return f"Price: {format_price_trend(price_trend)}"
 
 
-def build_drivers_text(stock_section: str, price_trend: str, wishlist_pressure: str, wishlist_delta: str) -> str:
+def lineage_driver_overrides(lineage_status: str) -> tuple[str, str]:
+    """Return ``(demand_qualifier, price_override)`` for a given lineage status.
+
+    Centralises the mapping so neither breeder nor dealer matrix needs to
+    duplicate the same ``if/elif`` block.
+
+    Returns:
+        ``demand_qualifier`` — passed to :func:`build_demand_section` to replace
+        the standard ``"+ delta"`` suffix with a parenthetical explanation.
+
+        ``price_override`` — when non-empty, replaces the standard
+        ``"Price: <trend>"`` string entirely.
+    """
+    if lineage_status == "multi-variant":
+        return "active variants overlap; delta neutralized", "Price: Multiple active sizes"
+    if lineage_status == "ambiguous-transition":
+        return "momentum neutralized; continuity unconfirmed", ""
+    return "", ""
+
+
+def build_drivers_text(
+    stock_section: str,
+    price_trend: str,
+    wishlist_pressure: str,
+    wishlist_delta: str,
+    demand_qualifier: str = "",
+    price_override: str = "",
+) -> str:
     """Build standardized drivers text combining stock, demand, and price sections.
 
     Args:
@@ -89,11 +124,16 @@ def build_drivers_text(stock_section: str, price_trend: str, wishlist_pressure: 
         price_trend: Price direction (↑/→/↓)
         wishlist_pressure: Demand level (🔥/⚠️/❌)
         wishlist_delta: Momentum (↑/→/↓)
+        demand_qualifier: Optional qualifier passed through to
+            :func:`build_demand_section` — replaces the standard delta suffix
+            with a parenthetical explanation.
+        price_override: When non-empty, replaces the standard
+            ``"Price: <trend>"`` text entirely (e.g. ``"Price: Multiple active sizes"``).
 
     Returns:
         Semicolon-separated driver explanation
         (e.g., "Stock: Emerging (OOS 2 runs); Demand: Wishlist High + rising; Price: Stable")
     """
-    demand_section = build_demand_section(wishlist_pressure, wishlist_delta)
-    price_section = build_price_section(price_trend)
+    demand_section = build_demand_section(wishlist_pressure, wishlist_delta, demand_qualifier)
+    price_section = price_override if price_override else build_price_section(price_trend)
     return f"{stock_section}; {demand_section}; {price_section}"
