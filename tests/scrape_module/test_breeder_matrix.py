@@ -845,6 +845,52 @@ class TestSparklineColumns:
         assert "Demand" in drivers or "Wishlist" in drivers
         assert "Price" in drivers
 
+    def test_sparkline_suppressed_when_oos_exceeds_carryover_window(self):
+        """Price History and Wishlist History should be '-' when species OOS > 5 runs."""
+        filler = "Grammostola pulchra"
+        history = [
+            # Run 1: Both present — gives sparklines prior data
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "10"),
+            make_row("2025-01-01", filler, "2.0", "40.00", "5"),
+            # Runs 2–7: seemanni absent (6 consecutive OOS runs, exceeds lookback of 5)
+            make_row("2025-01-08", filler, "2.0", "40.00", "5"),
+            make_row("2025-01-15", filler, "2.0", "40.00", "5"),
+            make_row("2025-01-22", filler, "2.0", "40.00", "5"),
+            make_row("2025-01-29", filler, "2.0", "40.00", "5"),
+            make_row("2025-02-05", filler, "2.0", "40.00", "5"),
+            make_row("2025-02-12", filler, "2.0", "40.00", "5"),
+        ]
+
+        table = build_breeder_opportunity_table(history)
+        entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+
+        assert entry["Price History"] == "-"
+        assert entry["Wishlist History"] == "-"
+
+    def test_sparkline_not_suppressed_at_carryover_boundary(self):
+        """Price History and Wishlist History should be populated when species OOS exactly 5 runs."""
+        filler = "Grammostola pulchra"
+        history = [
+            # Runs 1-2: Both present — sparklines will carry-forward from run 2
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "25.00", "10"),
+            make_row("2025-01-01", filler, "2.0", "40.00", "5"),
+            make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "26.00", "11"),
+            make_row("2025-01-08", filler, "2.0", "40.00", "5"),
+            # Runs 3–7: seemanni absent (exactly 5 consecutive OOS runs — at window boundary)
+            make_row("2025-01-15", filler, "2.0", "40.00", "5"),
+            make_row("2025-01-22", filler, "2.0", "40.00", "5"),
+            make_row("2025-01-29", filler, "2.0", "40.00", "5"),
+            make_row("2025-02-05", filler, "2.0", "40.00", "5"),
+            make_row("2025-02-12", filler, "2.0", "40.00", "5"),
+        ]
+
+        table = build_breeder_opportunity_table(history)
+        entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+
+        sparkline_chars = "▁▂▃▄▅▆▇█"
+        assert any(c in sparkline_chars for c in entry["Price History"])
+        assert any(c in sparkline_chars for c in entry["Wishlist History"])
+
 
 # ---------------------------------------------------------------------------
 # Phase 3: hidden lineage metadata columns
