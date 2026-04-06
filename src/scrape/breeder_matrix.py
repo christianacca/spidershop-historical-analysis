@@ -6,7 +6,7 @@ from shared.history_utils import (
     compute_species_current_oos_runs,
     k2,
 )
-from shared.config import BREEDER_TABLE_FILE, SIGNAL_PRIORITY
+from shared.config import BREEDER_TABLE_FILE, OOS_CARRYOVER_LOOKBACK, SIGNAL_PRIORITY
 from shared.driver_text_helpers import build_drivers_text
 from shared.price_text_helpers import format_price_cell
 from shared.summary_utils import MatrixOutputConfig, write_matrix_outputs
@@ -179,6 +179,8 @@ def build_breeder_opportunity_table(history_rows):
         price_sparkline, wishlist_sparkline = generate_species_price_wishlist_sparklines(
             sci, lineage_result, by_run, runs, max_runs=8
         )
+        if oos_runs > OOS_CARRYOVER_LOOKBACK:
+            price_sparkline = wishlist_sparkline = "-"
 
         # Species-level wishlist
         wishlist_pressure = species_pressure_map.get(sci, "❌")

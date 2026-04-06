@@ -3,11 +3,12 @@ from shared.history_utils import (
     build_species_presence_timeline,
     compare_prices,
     compute_species_avg_oos_duration,
+    compute_species_current_oos_runs,
     compute_species_restock_speed,
     compute_species_stock_reliability,
     k2,
 )
-from shared.config import DEALER_TABLE_FILE
+from shared.config import DEALER_TABLE_FILE, OOS_CARRYOVER_LOOKBACK
 from shared.sparkline_helpers import generate_species_stock_availability_sparkline
 from shared.driver_text_helpers import build_drivers_text
 from shared.price_text_helpers import format_price_cell
@@ -90,6 +91,7 @@ def build_dealer_supply_risk_table(history_rows):
         reliability = compute_species_stock_reliability(timeline)
         avg_oos = compute_species_avg_oos_duration(timeline, ordered_runs)
         speed = compute_species_restock_speed(avg_oos)
+        oos_runs = compute_species_current_oos_runs(timeline, ordered_runs)
 
         # Price — "Multiple active prices" for multi-variant
         if lineage_status == "multi-variant":
@@ -116,6 +118,8 @@ def build_dealer_supply_risk_table(history_rows):
         price_sparkline, wishlist_sparkline = generate_species_price_wishlist_sparklines(
             sci, lineage_result, by_run, runs, max_runs=8
         )
+        if oos_runs > OOS_CARRYOVER_LOOKBACK:
+            price_sparkline = wishlist_sparkline = "-"
 
         # Stock availability sparkline (species-level)
         stock_availability_sparkline = generate_species_stock_availability_sparkline(
