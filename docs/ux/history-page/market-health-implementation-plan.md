@@ -920,4 +920,17 @@ MarketKpiCard component:
   vite.config.ts coverage exclusion list to prevent them dragging global below 95%.
   These are type-only files, Storybook stories (tested via DevTools MCP), and pure
   data fixtures (covered by being imported in tests). No executable logic is lost.
+
+[Phase 4 — 2026-04-06]
+MarketEventsCard component:
+- CRITICAL: `events` is a reserved/special prop name in Svelte 5. Using `events` as a
+  prop causes the prop to be undefined at runtime (the component receives no value).
+  Renamed to `eventsData` throughout — component, test, and stories.
+  Rule: never name a Svelte 5 component prop `events`.
+- {#each [a.x, a.y, a.z] as item} with an inline prop-derived array produced the same
+  undefined error. Switched to {#snippet} + {@render} to render each tile explicitly.
+  Both issues resolved by renaming the prop.
+- DevTools MCP assertions:
+  CurrentQuarter → tileCount:4, all copies non-empty ✅
+  AllTime → values ["286 total", "172 total", "391 total", "214 total"] (all "N total") ✅
 ```

@@ -507,3 +507,18 @@ WARN     at async Mi.ensureExtracted (/Users/christian.crowhurst/Documents/git/s
 WARN     at async Mi.getIndexAndStats (/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/client/node_modules/@storybook/core/dist/core-server/index.cjs:36421:97)
 WARN     at async Mi.getIndex (/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/client/node_modules/@storybook/core/dist/core-server/index.cjs:36414:13)
 2:34:53 PM [vite] (client) hmr update /@id/__x00__virtual:/@storybook/builder-vite/vite-app.js
+WARN 🚨 Unable to index ./src/history-page/MarketEventsCard.stories.ts:
+WARN   NoMetaError: CSF: missing default export /Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/client/src/history-page/MarketEventsCard.stories.ts (line 1, col 0)
+WARN 
+WARN More info: https://storybook.js.org/docs/writing-stories#default-export
+WARN     at X.parse (/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/client/node_modules/@storybook/core/dist/csf-tools/index.cjs:494:13)
+WARN     at Object.createIndex (/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/client/node_modules/@storybook/core/dist/core-server/presets/common-preset.cjs:10145:80)
+WARN     at async Mi.extractStories (/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/client/node_modules/@storybook/core/dist/core-server/index.cjs:36254:13)
+WARN     at async /Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/client/node_modules/@storybook/core/dist/core-server/index.cjs:36174:24
+WARN     at async Promise.all (index 2)
+WARN     at async Promise.all (index 0)
+WARN     at async Mi.updateExtracted (/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/client/node_modules/@storybook/core/dist/core-server/index.cjs:36162:5)
+WARN     at async Mi.ensureExtracted (/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/client/node_modules/@storybook/core/dist/core-server/index.cjs:36197:5)
+WARN     at async Mi.getIndexAndStats (/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/client/node_modules/@storybook/core/dist/core-server/index.cjs:36421:97)
+WARN     at async Mi.getIndex (/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/client/node_modules/@storybook/core/dist/core-server/index.cjs:36414:13)
+2:47:28 PM [vite] (client) hmr update /@id/__x00__virtual:/@storybook/builder-vite/vite-app.js
