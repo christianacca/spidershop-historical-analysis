@@ -10,7 +10,7 @@ from shared.history_utils import (
 )
 from shared.config import DEALER_TABLE_FILE, OOS_CARRYOVER_LOOKBACK
 from shared.sparkline_helpers import generate_species_stock_availability_sparkline
-from shared.driver_text_helpers import build_drivers_text
+from shared.driver_text_helpers import build_drivers_text, lineage_driver_overrides
 from shared.price_text_helpers import format_price_cell
 from shared.summary_utils import MatrixOutputConfig, write_matrix_outputs
 from scrape.matrix_workflow import (
@@ -42,10 +42,23 @@ def _generate_dealer_drivers_text(
     wishlist_pressure: str,
     wishlist_delta: str,
     lineage_clause: str = "",
+    lineage_status: str = "none",
 ) -> str:
-    """Generate structured explanation of risk drivers using semicolon separators."""
+    """Generate structured explanation of risk drivers using semicolon separators.
+
+    For ``multi-variant`` and ``ambiguous-transition`` lineage states the demand
+    and price sections include parenthetical qualifiers that explain why certain
+    values are forced neutral or suppressed.
+    """
     stock_section = f"Stock: Reliability {reliability} (Restock {speed})"
-    drivers = build_drivers_text(stock_section, price_pressure, wishlist_pressure, wishlist_delta)
+
+    demand_qualifier, price_override = lineage_driver_overrides(lineage_status)
+
+    drivers = build_drivers_text(
+        stock_section, price_pressure, wishlist_pressure, wishlist_delta,
+        demand_qualifier=demand_qualifier,
+        price_override=price_override,
+    )
     if lineage_clause:
         drivers = f"{drivers}; {lineage_clause}"
     return drivers
@@ -186,6 +199,7 @@ def build_dealer_supply_risk_table(history_rows):
             wishlist_pressure=wishlist_pressure,
             wishlist_delta=wishlist_delta,
             lineage_clause=lineage_clause,
+            lineage_status=lineage_status,
         )
 
         table.append({

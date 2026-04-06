@@ -1155,6 +1155,15 @@ class TestBreederPhase4AcceptanceScenarios:
         assert "→" in row["Wishlist"]
         assert "↑" not in row["Wishlist"]
 
+    def test_scenario_b_drivers_explain_ambiguous_demand(self):
+        """Ambiguous transition: Drivers demand section must explain neutralized delta."""
+        rows = [r for r in build_breeder_opportunity_table(self._history_b())
+                if r["Species"] == self._SCI_B]
+        drivers = rows[0]["Drivers"]
+        assert "momentum neutralized; continuity unconfirmed" in drivers, (
+            f"Expected ambiguous demand qualifier in Drivers, got: {drivers!r}"
+        )
+
     # ── Scenario C: multi-variant (overlapping sizes) ───────────────────────
 
     _SCI_C = "Phase4 Breeder Overlap"
@@ -1185,6 +1194,19 @@ class TestBreederPhase4AcceptanceScenarios:
         assert row["Price History"] == "-"
         assert row["Wishlist History"] == "-"
         assert row["Signal"] == "❌"
+
+    def test_scenario_c_drivers_explain_multi_variant_price_and_demand(self):
+        """Multi-variant: Drivers price section must say 'Multiple active sizes',
+        demand must explain overlapping variants."""
+        rows = [r for r in build_breeder_opportunity_table(self._history_c())
+                if r["Species"] == self._SCI_C]
+        drivers = rows[0]["Drivers"]
+        assert "Price: Multiple active sizes" in drivers, (
+            f"Expected 'Price: Multiple active sizes' in Drivers, got: {drivers!r}"
+        )
+        assert "active variants overlap; delta neutralized" in drivers, (
+            f"Expected multi-variant demand qualifier in Drivers, got: {drivers!r}"
+        )
 
     # ── Scenario D: stable single-size species (regression guard) ───────────
 

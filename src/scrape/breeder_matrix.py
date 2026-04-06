@@ -7,7 +7,7 @@ from shared.history_utils import (
     k2,
 )
 from shared.config import BREEDER_TABLE_FILE, OOS_CARRYOVER_LOOKBACK, SIGNAL_PRIORITY
-from shared.driver_text_helpers import build_drivers_text
+from shared.driver_text_helpers import build_drivers_text, lineage_driver_overrides
 from shared.price_text_helpers import format_price_cell
 from shared.summary_utils import MatrixOutputConfig, write_matrix_outputs
 from scrape.matrix_workflow import (
@@ -58,11 +58,16 @@ def _generate_breeder_drivers_text(
     wishlist_delta: str,
     observation_coverage_text: str = "",
     lineage_clause: str = "",
+    lineage_status: str = "none",
 ) -> str:
     """Generate structured explanation of signal drivers using semicolon separators.
 
     The optional *lineage_clause* is appended after the standard three-section
     text when a size transition exists.
+
+    For ``multi-variant`` and ``ambiguous-transition`` lineage states the demand
+    and price sections include parenthetical qualifiers that explain why certain
+    values are forced neutral or suppressed.
 
     Returns:
         Semicolon-separated string explaining the signal drivers.
@@ -82,7 +87,13 @@ def _generate_breeder_drivers_text(
     if observation_coverage_text:
         stock_section = f"{stock_section}; Coverage: {observation_coverage_text}"
 
-    drivers = build_drivers_text(stock_section, price_trend, wishlist_pressure, wishlist_delta)
+    demand_qualifier, price_override = lineage_driver_overrides(lineage_status)
+
+    drivers = build_drivers_text(
+        stock_section, price_trend, wishlist_pressure, wishlist_delta,
+        demand_qualifier=demand_qualifier,
+        price_override=price_override,
+    )
 
     if lineage_clause:
         drivers = f"{drivers}; {lineage_clause}"
@@ -237,6 +248,7 @@ def build_breeder_opportunity_table(history_rows):
             wishlist_delta=wishlist_delta,
             observation_coverage_text=observation_coverage_text,
             lineage_clause=lineage_clause,
+            lineage_status=lineage_status,
         )
 
         table.append({

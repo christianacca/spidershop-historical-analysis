@@ -7,6 +7,7 @@ from shared.driver_text_helpers import (
     build_demand_section,
     build_price_section,
     build_drivers_text,
+    lineage_driver_overrides,
 )
 
 
@@ -72,6 +73,19 @@ class TestBuildDemandSection:
     def test_falls_back_to_raw_values_for_unknown_inputs(self):
         assert build_demand_section("X", "Y") == "Demand: Wishlist X + Y"
 
+    def test_qualifier_replaces_delta_suffix(self):
+        """When qualifier is provided, it appears in parens instead of '+ delta'."""
+        result = build_demand_section("🔥", "→", qualifier="momentum neutralized; continuity unconfirmed")
+        assert result == "Demand: Wishlist High (momentum neutralized; continuity unconfirmed)"
+
+    def test_qualifier_multi_variant(self):
+        result = build_demand_section("🔥", "→", qualifier="active variants overlap; delta neutralized")
+        assert result == "Demand: Wishlist High (active variants overlap; delta neutralized)"
+
+    def test_empty_qualifier_uses_standard_format(self):
+        """Passing an empty qualifier string falls back to the standard format."""
+        assert build_demand_section("🔥", "↑", qualifier="") == "Demand: Wishlist High + rising"
+
 
 class TestBuildPriceSection:
     """Test price section builder."""
@@ -86,6 +100,26 @@ class TestBuildPriceSection:
 
     def test_falls_back_to_raw_value_for_unknown_input(self):
         assert build_price_section("X") == "Price: X"
+
+
+class TestLineageDriverOverrides:
+    """Test lineage_driver_overrides — centralised derivation of demand/price qualifiers."""
+
+    def test_multi_variant_returns_both_overrides(self):
+        demand_q, price_o = lineage_driver_overrides("multi-variant")
+        assert demand_q == "active variants overlap; delta neutralized"
+        assert price_o == "Price: Multiple active sizes"
+
+    def test_ambiguous_transition_returns_demand_qualifier_only(self):
+        demand_q, price_o = lineage_driver_overrides("ambiguous-transition")
+        assert demand_q == "momentum neutralized; continuity unconfirmed"
+        assert price_o == ""
+
+    @pytest.mark.parametrize("status", ["none", "confirmed-transition", "", "unknown"])
+    def test_no_override_for_other_statuses(self, status):
+        demand_q, price_o = lineage_driver_overrides(status)
+        assert demand_q == ""
+        assert price_o == ""
 
 
 class TestBuildDriversText:
@@ -117,3 +151,49 @@ class TestBuildDriversText:
             wishlist_delta="↑",
         )
         assert result == "Stock: Reliability Low (Restock Slow); Demand: Wishlist Moderate + rising; Price: Rising"
+
+    def test_demand_qualifier_replaces_delta_suffix(self):
+        """demand_qualifier is forwarded to build_demand_section."""
+        result = build_drivers_text(
+            stock_section="Stock: Emerging (OOS 2 runs; currently OUT)",
+            price_trend="→",
+            wishlist_pressure="🔥",
+            wishlist_delta="→",
+            demand_qualifier="momentum neutralized; continuity unconfirmed",
+        )
+        assert result == (
+            "Stock: Emerging (OOS 2 runs; currently OUT); "
+            "Demand: Wishlist High (momentum neutralized; continuity unconfirmed); "
+            "Price: Stable"
+        )
+
+    def test_price_override_replaces_price_section(self):
+        """price_override replaces the Price section entirely."""
+        result = build_drivers_text(
+            stock_section="Stock: Always (currently IN)",
+            price_trend="→",
+            wishlist_pressure="🔥",
+            wishlist_delta="→",
+            price_override="Price: Multiple active sizes",
+        )
+        assert result == (
+            "Stock: Always (currently IN); "
+            "Demand: Wishlist High + stable; "
+            "Price: Multiple active sizes"
+        )
+
+    def test_demand_qualifier_and_price_override_together(self):
+        """Both overrides active simultaneously (multi-variant case)."""
+        result = build_drivers_text(
+            stock_section="Stock: Always (currently IN)",
+            price_trend="→",
+            wishlist_pressure="🔥",
+            wishlist_delta="→",
+            demand_qualifier="active variants overlap; delta neutralized",
+            price_override="Price: Multiple active sizes",
+        )
+        assert result == (
+            "Stock: Always (currently IN); "
+            "Demand: Wishlist High (active variants overlap; delta neutralized); "
+            "Price: Multiple active sizes"
+        )
