@@ -1,8 +1,9 @@
 # Market Health — Handoff Spec
 
 **Section:** 1. Market Health KPIs  
+**Work package:** WP1 of 5 (see §12 for staged delivery model)  
 **Source mock:** [`history-kpi-concepts-mockup.html`](./history-kpi-concepts-mockup.html)  
-**Branch:** `history-page-kpis`
+**Branch:** `history-page-market-health`
 
 This document is the source of truth for implementing the Market Health section of the
 History page. It covers metric definitions, copy contracts, component boundaries,
@@ -111,12 +112,14 @@ the genus selection changes. The section note is static.
 
 **Copy states** (select from this set; do not generate free-form prose):
 
-| When | Copy sentence |
+> **Mode note:** The table shows All-mode canonical copy (used when `isAllSelected: true`). For genus-scoped mode Python substitutes: "Breadth is ahead of" → "Species breadth across your selected genera is ahead of"; "the catalog" → "your selection"; "across tracked species" → "across your selected genera". Python performs this substitution at render time — the Svelte component always receives a fully-resolved string.
+
+| When | Copy sentence (All-mode; see mode note for genus-scoped) |
 |---|---|
-| delta ≥ +3 | `"Species breadth across your selected genera is ahead of {prior_label}, so your selection still looks alive on assortment even while actual stock is getting tighter."` |
-| 0 ≤ delta ≤ +2 | `"Species breadth is only slightly ahead of {prior_label}, so the selection still looks broad without signalling a step-change in assortment."` |
+| delta ≥ +3 | `"Breadth is ahead of {prior_label}, so the market still looks alive on assortment even while actual stock is getting tighter."` |
+| 0 ≤ delta ≤ +2 | `"Breadth is only slightly ahead of {prior_label}, so the catalog still looks broad without signalling a step-change in assortment."` |
 | delta < 0 | `"Fewer species are being seen in-stock than at {prior_label}, which may suggest some genera are becoming harder to source."` |
-| all-time | `"All-time view is best read as structural context: the selection is broad enough to support opportunity hunting, but this lens is not about recent acceleration."` |
+| all-time | `"All-time view is best read as structural context: the catalog is broad enough to support opportunity hunting, but this lens is not about recent acceleration."` |
 
 ---
 
@@ -146,7 +149,7 @@ the genus selection changes. The section note is static.
 
 | Field | Details |
 |---|---|
-| **What it measures** | Median `wishlist_count` across all IN-stock listings **within the selected genera** at the most recent run within the active window |
+| **What it measures** | Median `wishlist_count` across all IN-stock **species** within the selected genera at the most recent run. One data point per species: for species with multiple active size variants, the highest `wishlist_count` among active variants is used (per SIZE_VARIANT_IDENTITY_REQUIREMENTS Decision 4). |
 | **Value format** | Integer — e.g. `18` |
 | **Delta format** | `+N vs {prior_label}` · `No prior comparison` |
 | **Delta CSS class** | `""` (positive) · `"flat"` (all-time or no change) |
@@ -168,7 +171,7 @@ the genus selection changes. The section note is static.
 
 | Field | Details |
 |---|---|
-| **What it measures** | Median `price_gbp` across all IN-stock listings **within the selected genera** at the most recent run within the active window |
+| **What it measures** | Median `price_gbp` across all IN-stock **species** within the selected genera at the most recent run. One data point per species: for species with multiple active size variants, the price from the current active size lineage is used (per SIZE_VARIANT_IDENTITY_REQUIREMENTS Decision 4). |
 | **Value format** | `GBP NN` — e.g. `GBP 24` |
 | **Delta format** | `+GBP N vs {prior_label}` · `No prior comparison` |
 | **Delta CSS class** | `"flat"` (0 change) · `""` (positive) · `"down"` (negative) |
@@ -194,8 +197,10 @@ the genus selection changes. The section note is static.
 - X-axis: evenly spaced — left = period start, right = period end.
 - Y-axis: auto-range — current and prior series share the same scale for the same metric.
 - **Current series**: solid line, 2.5px stroke. Filled circles at each point (r=2.7px; r=4.4px when run-selected).
-- **Prior series**: dashed line, same colour, `stroke-opacity: 0.65`. Open/lighter circles (r=2.2px; r=3.4px when run-selected).
+- **Prior series**: dashed line, same colour, CSS `opacity: 0.38` on the `<polyline>`. Open/lighter circles (r=2.2px; r=3.4px when run-selected), CSS `opacity: 0.45`.
 - Prior series hidden (not rendered) when `showPrior = false` (all-time window only).
+- **Baseline axis line**: horizontal `<line>` at `y = chartHeight − bottomPadding`, `stroke: #d7cfc0`, `stroke-width: 1`. Renders for all windows.
+- **Run-axis labels**: three `<text>` elements at x-positions 0, 5, 11 (0-indexed). Default labels for weekly data: `"Run 1"`, `"Run 6"`, `"Run 12"`. Window config may override with human-readable labels (e.g. `"Jan"`, `"Jun"`, `"Dec"` for year windows; `"Start"`, `"Middle"`, `"Now"` for all-time).
 
 ### 4.2 Run-selection interaction
 
@@ -204,20 +209,22 @@ All 4 sparklines are coupled — clicking any data point selects that run index 
 | State | Behaviour |
 |---|---|
 | No run selected | All points normal size and opacity |
-| Run N selected | Selected point: larger radius. All other points: `.is-subdued` (opacity 0.3) |
+| Run N selected | Selected point: larger radius. All other points: `.is-subdued` (CSS `opacity: 0.16`) |
 | "Clear run focus" button | Hidden when no run selected; visible when one is selected |
-| Selection note | Changes from "Optional: click a run…" to "Run N selected. Same moment highlighted across all four KPI cards." |
+| Selection note | Changes from `"Optional: click a run…"` to `"Run {n+1} selected. The same moment is now highlighted across all four KPI cards."` |
+
+> **Index convention:** Internal run index is 0-based. All user-facing displays are 1-based: index `n` is displayed as `Run n+1`.
 
 ### 4.3 Prior-period legend key
 
 The "Matched prior-period overlay" key item in the sparkline support row is **hidden** when
 `showPrior = false`.
 
-### 4.4 Basis note (dynamic)
+### 4.4 Sparkline basis note (dynamic)
 
-The note below the sparkline legend changes per window:
+The note below the sparkline legend (rendered in `#market-sparkline-basis-note`, sourced from `sparklineBasisNote` in the payload) changes per window:
 
-| Window | Basis note |
+| Window | Sparkline basis note |
 |---|---|
 | This month | `"Compare within a row. Solid shows this month; dashed shows the matched point last month."` |
 | Last month | `"Compare within a row. Solid shows last month; dashed shows the prior full month."` |
@@ -226,6 +233,19 @@ The note below the sparkline legend changes per window:
 | This year | `"Compare within a row. Solid shows this year to date; dashed shows the matched point last year."` |
 | Last year | `"Compare within a row. Solid shows last year; dashed shows the prior full year."` |
 | All time | `"All-time view has no dashed overlay. Compare within a row; each metric keeps its own vertical scale."` |
+
+### 4.5 Run readout text
+
+Each KPI card has a `<p class="sparkline-readout">` element below the sparkline SVG. Its text updates whenever `selectedRun` changes.
+
+| State | Readout text |
+|---|---|
+| No run selected, `showPrior: true` | `"{metric label} shown as active window vs matched prior-period overlay."` |
+| No run selected, `showPrior: false` | `"{metric label} shown as {windowScopeLabel} context with no prior-period overlay."` |
+| Run N selected, `showPrior: true` | `"{pointLabel}: {currentValue} current vs {priorValue} matched prior period."` |
+| Run N selected, `showPrior: false` | `"{pointLabel}: {currentValue} within {windowScopeLabel}, with no prior-period overlay."` |
+
+`pointLabel` is window-specific (e.g. `"Run 4"` for weekly windows, `"Mar"` for year windows). Default: `"Run {n+1}"` (1-indexed). `windowScopeLabel` = human-readable window scope string (e.g. `"current quarter"`, `"all time"`).
 
 ---
 
@@ -243,6 +263,13 @@ The note below the sparkline legend changes per window:
 | `droppedListings` | Listings removed | `N vs {period}` | `N total` |
 | `restocks` | OUT → IN restocks | `N vs {period}` | `N total` |
 | `oosFlips` | IN → OUT stockouts | `+N vs {period}` | `N total` |
+
+> **Species-level counting:** All four event counts are species-level. A confirmed size
+> transition (same `page_url`, same species, ≤3-run window per SIZE_VARIANT_IDENTITY_REQUIREMENTS
+> Decision 2) must **not** be counted as a `droppedListings` + `newListings` pair — it is
+> the same listing continuing. Restocks and stockouts are species-level: a species restocks
+> when it goes from absent to present (any active size variant); a species stockouts when
+> it goes from present to absent (all size variants absent).
 
 ### 5.3 Copy rules — bounded set
 
@@ -262,13 +289,17 @@ Copy is selected from a small fixed set per event type; do not generate prose dy
 |---|---|
 | low count | `"Some churn is present, but the removal count is too small to imply retreat."` |
 | notable count but offset by inflow | `"Churn also rose, but the balance still favors broader assortment rather than retreat."` |
+| removals outpace inflow | `"Removals are outpacing new additions, which suggests the listing set is contracting rather than growing."` |
 | all-time | `"All-time churn is useful for scale, but weak for saying what changed recently."` |
 
 **OUT → IN restocks:**
 
+> Active = restock count ≥ 1 for the period.
+
 | When | Copy |
 |---|---|
-| active | `"Movement is active; stock is not simply frozen, even though the in-stock rate is weaker than {prior_label}."` |
+| active (count ≥ 1) | `"Movement is active; stock is not simply frozen, even though the in-stock rate is weaker than {prior_label}."` |
+| inactive (count = 0) | `"No OUT-to-IN restocks occurred this period. If the in-stock rate is also falling, supply may have stalled rather than just tightened."` |
 | all-time | `"This shows how much movement exists in the market overall, not whether it is improving now."` |
 
 **IN → OUT stockouts:**
@@ -276,6 +307,7 @@ Copy is selected from a small fixed set per event type; do not generate prose dy
 | When | Copy |
 |---|---|
 | stockouts up vs prior | `"More listings are moving from IN to OUT than at the same point last {period}, which helps explain why availability is softer even while breadth is still expanding."` |
+| stockouts down vs prior | `"Fewer listings moved from IN to OUT than at the same point last {period}, which is consistent with availability stabilising."` |
 | all-time | `"Use this as structural supply-friction context, not as a directional signal about what changed recently."` |
 
 ### 5.4 Title and subtitle (dynamic per window)
@@ -294,15 +326,17 @@ Copy is selected from a small fixed set per event type; do not generate prose dy
 
 ## 6. Time Window Behaviour Summary
 
-| Window | `showPrior` | Delta basis | Prior label token |
-|---|---|---|---|
-| This month | `true` | vs prior month MTD | `"prior month MTD"` |
-| Last month | `true` | vs prior full month | `"prior full month"` / `"Jan"` etc. |
-| Current quarter | `true` | vs prior quarter QTD | `"prior quarter QTD"` |
-| Last quarter | `true` | vs prior full quarter | `"Q3 '25"` (named quarter) |
-| This year | `true` | vs prior year YTD | `"prior year YTD"` |
-| Last year | `true` | vs prior full year | `"2024"` (named year) |
-| All time | `false` | `"No prior comparison"` + `flat` class | n/a |
+The `{prior_label}` token in §3/§5 copy sentences resolves to the **copy sentence label** (natural-language form). The delta badge text uses the **prior label token** (technical form). Python computes both and provides fully-resolved strings; the Svelte component does no token substitution.
+
+| Window | `showPrior` | Delta basis | Prior label token (delta badge) | Copy sentence label (`{prior_label}`) |
+|---|---|---|---|---|
+| This month | `true` | vs prior month MTD | `"prior month MTD"` | `"the same point last month"` |
+| Last month | `true` | vs prior full month | `"prior full month"` / `"Jan"` etc. | `"the prior full month"` / `"Jan"` etc. |
+| Current quarter | `true` | vs prior quarter QTD | `"prior quarter QTD"` | `"the same point last quarter"` |
+| Last quarter | `true` | vs prior full quarter | `"Q3 '25"` (named quarter) | `"Q3 '25"` (named quarter already natural) |
+| This year | `true` | vs prior year YTD | `"prior year YTD"` | `"the same point last year"` |
+| Last year | `true` | vs prior full year | `"2024"` (named year) | `"2024"` (named year already natural) |
+| All time | `false` | `"No prior comparison"` + `flat` class | n/a | n/a |
 
 ---
 
@@ -329,13 +363,17 @@ Copy is selected from a small fixed set per event type; do not generate prose dy
 
 export interface MarketHealthPayload {
   windowId: WindowId;
-  windowLabel: string;
-  basisNote: string;           // human-readable basis sentence for sparkline legend
-  showPrior: boolean;          // drives prior sparkline series visibility
-  compareNote: string;         // drives sparkline-support basis note text
-  isAllSelected: boolean;      // true = All-mode (all tracked species); false = genus-scoped
-  generaCount: number;         // drives heading adaptation (0 = empty genus-scoped state)
-  scopeLabel: string;          // e.g. "Avicularia, Caribena and 2 more" for heading copy
+  windowLabel: string;          // window display name; available for client-side use but has no
+                                // fixed DOM target in Market Health — do not require for rendering
+  windowBasisNote: string;      // renders as filter-panel period summary below time-window buttons
+                                // (#time-window-basis-note)
+  showPrior: boolean;           // drives prior sparkline series visibility
+  sparklineBasisNote: string;   // renders in sparkline support row (#market-sparkline-basis-note);
+                                // values defined in §4.4
+  isAllSelected: boolean;       // true = All-mode (all tracked species); false = genus-scoped
+  generaCount: number;          // drives heading adaptation (0 = empty genus-scoped state)
+  scopeLabel: string;           // ≤3 genera: "Avicularia, Caribena and Psalmopoeus";
+                                // 4+: "your {N} selected genera"; All-mode: "" (empty)
 
   kpis: {
     observed: KpiCardData;
@@ -355,13 +393,16 @@ export interface MarketHealthPayload {
 }
 
 export interface KpiCardData {
+  id: 'observed' | 'stock' | 'wishlist' | 'price';  // used by MarketKpiCard to look up the
+                                                      // constant tooltip text (see §7.2 note)
   title: string;                          // static heading e.g. "Observed species"
   value: string;                          // formatted value e.g. "184" or "61%"
   delta: string;                          // formatted delta e.g. "+7 vs prior quarter QTD"
   deltaClass: '' | 'down' | 'flat';       // maps to CSS modifier on .metric-delta
-  copy: string;                           // one interpretation sentence (see §3)
+  copy: string;                           // one interpretation sentence (see §3); fully resolved,
+                                          // no {token} substitution needed by the component
   // NOTE: the `?` info-icon tooltip text (e.g. "Of species seen in-stock this period…") is
-  // a hardcoded constant inside MarketKpiCard.svelte, keyed by metric ID. It is NOT in the
+  // a hardcoded constant inside MarketKpiCard.svelte, keyed by `id`. It is NOT in the
   // payload because it never varies by window, genus selection, or data.
 }
 
@@ -409,10 +450,8 @@ Proposed location: `client/src/history-page/__fixtures__/`
 | `marketHealth.lastQuarter.ts` | Completed period — named quarter label, completed data |
 | `marketHealth.allTime.ts` | All-time window — `showPrior: false`, flat deltas, `"No prior comparison"` values |
 | `marketHealth.stockUnderPressure.ts` | Stock delta ≤ −7, wishlist rising — highest-stakes KPI read |
-| `marketHealth.runSelected.ts` | Same data as `currentQuarter`, with `selectedRun: 8` (tests run-selection state) |
 
-> `runSelected` doesn't need a separate fixture file — the `selectedRun` prop can be set
-> in the Storybook story args directly. Use a fixture only if the data shape differs.
+> `selectedRun` is seeded via `initialSelectedRun` prop in Storybook story args. No separate fixture file is needed.
 
 ### 8.2 Canonical fixture — current quarter
 
@@ -423,38 +462,45 @@ import type { MarketHealthPayload } from '../types';
 export const marketHealthCurrentQuarter: MarketHealthPayload = {
   windowId: 'current-quarter',
   windowLabel: 'Current quarter',
-  basisNote: 'Comparison basis: quarter to date vs prior quarter QTD.',
+  windowBasisNote: 'Comparison basis: quarter to date vs prior quarter QTD.',
   showPrior: true,
-  compareNote: 'Compare within a row. Solid shows the current quarter; dashed shows the matched point last quarter.',
+  sparklineBasisNote: 'Compare within a row. Solid shows the current quarter; dashed shows the matched point last quarter.',
+  isAllSelected: true,
+  generaCount: 0,
+  scopeLabel: '',
 
   kpis: {
     observed: {
+      id: 'observed',
       title: 'Observed species',
       value: '184',
       delta: '+7 vs prior quarter QTD',
       deltaClass: '',
-      copy: 'Breadth is ahead of prior quarter QTD, so the market still looks alive on assortment even while actual stock is getting tighter.',
+      copy: 'Breadth is ahead of the same point last quarter, so the market still looks alive on assortment even while actual stock is getting tighter.',
     },
     stock: {
+      id: 'stock',
       title: 'In-stock rate',
       value: '61%',
       delta: '-4 pts vs prior quarter QTD',
       deltaClass: 'down',
-      copy: '61% of tracked listings are available now. That is 4 percentage points lower than prior quarter QTD, so availability is slipping even while the catalog remains broad.',
+      copy: 'Availability is a touch weaker than the same point last quarter. That reads more like a near-term tightening than a structural collapse.',
     },
     wishlist: {
+      id: 'wishlist',
       title: 'Median wishlist',
       value: '18',
       delta: '+3 vs prior quarter QTD',
       deltaClass: '',
-      copy: 'Across tracked species, median wishlist demand is ahead of prior quarter QTD, reinforcing the idea that interest is improving while availability slips.',
+      copy: 'Median wishlist counts are modestly above the same point last quarter, which suggests demand is holding without obviously overheating.',
     },
     price: {
+      id: 'price',
       title: 'Median price',
       value: 'GBP 24',
       delta: '+GBP 1 vs prior quarter QTD',
-      deltaClass: 'flat',
-      copy: 'Prices edged up a little relative to prior quarter QTD, which fits a market that is tightening gradually rather than repricing sharply.',
+      deltaClass: '',
+      copy: 'Prices edged up a little relative to the same point last quarter, which fits a market that is tightening gradually rather than repricing sharply.',
     },
   },
 
@@ -488,7 +534,7 @@ export const marketHealthCurrentQuarter: MarketHealthPayload = {
     droppedListings: {
       label: 'Listings removed',
       value: '17 vs prior quarter QTD',
-      copy: "There is real churn, but not enough to erase the stronger inflow.",
+      copy: "Churn also rose, but the balance still favors broader assortment rather than retreat.",
     },
     restocks: {
       label: 'OUT → IN restocks',
@@ -511,9 +557,9 @@ export const marketHealthCurrentQuarter: MarketHealthPayload = {
 export const marketHealthAllTime: MarketHealthPayload = {
   windowId: 'all-time',
   windowLabel: 'All time',
-  basisNote: 'Comparison basis: structural context only, with no prior-period delta.',
+  windowBasisNote: 'Comparison basis: structural context only, with no prior-period delta.',
   showPrior: false,
-  compareNote: 'All-time view has no dashed overlay. Compare within a row; each metric keeps its own vertical scale.',
+  sparklineBasisNote: 'All-time view has no dashed overlay. Compare within a row; each metric keeps its own vertical scale.',
 
   kpis: {
     observed: { ..., delta: 'No prior comparison', deltaClass: 'flat', copy: 'All-time view is best read as structural context...' },
@@ -605,17 +651,44 @@ template string.
 | 5 | **Responsive grid** | KPI grid: 4-column → 2-column at < 760px (matches existing CSS breakpoint). Events grid: 2-column at all widths. |
 | 6 | **Residual CSS** | `.pulse-series`, `.pulse-end-label`, `.pulse-end-label[hidden]`, `.pulse-end-label.prior`, `.pulse-selection-note`, `.pulse-scale-note` are present in the mock CSS but unused. Remove before implementation. |
 | 7 | **Empty genus state** | When `generaCount === 0` AND `isAllSelected === false`, show the empty-state heading and hide all KPI cards and event tiles. The section remains visible as a structural placeholder. |
-| 8 | **`scopeLabel` format** | For ≤ 3 genera: `"Avicularia, Caribena and Psalmopoeus"`. For 4+: `"your 4 selected genera"`. Computed server-side; passed in payload so the client does not need to re-derive the genus list. |
-| 9 | **`isAllSelected` default** | `true` — the page generates with All-mode as the default. The Python generator passes the active genus selection and whether it is “All”. Selecting a specific genus requires a new page render (static site). |
+| 8 | **`scopeLabel` format** | For ≤ 3 genera: natural list `"Avicularia, Caribena and Psalmopoeus"`. For 4+: `"your {N} selected genera"`. All-mode: `""` (empty string — heading templates for All-mode do not reference the scope label). Computed server-side. |
+| 9 | **`isAllSelected` default** | `true` — the page generates with All-mode as the default. The Python generator passes the active genus selection and whether it is "All". Selecting a specific genus requires a new page render (static site). |
+| 10 | **Multi-window payload injection** | **Resolved → Option A.** All 7 window payloads are pre-embedded in the page as `window.marketHealthPayloads` (a `Record<WindowId, MarketHealthPayload>` dict). The Svelte island reads the active window's payload when the user clicks a time-window button. This matches the mock architecture and the existing `window.*` pattern used throughout the site. |
+| 11 | **Genus-scoped and species-level KPI scope** | **Resolved → All-mode only for WP1; lazy-load JSON for WP-Arch.** WP1 produces only market-wide KPI data (`isAllSelected: true`). The type contract already carries `isAllSelected`, `generaCount`, and `scopeLabel` so genus-scoped heading/copy adaptation is ready, but KPI *values* are all-mode only in this work package. Pre-embedding all genus × window combinations inline is ruled out: ~68 genera × 7 windows = 476 payloads, and the same problem recurs at species level (~180 species × 7 windows = 1,260 payloads). Instead, **WP-Arch** will deliver a lazy-load static JSON pattern — Python pre-generates `market-health/genus/{slug}.json` and `market-health/species/{slug}.json` files (one per scope × window set); the Svelte island fetches the relevant file on first selection. This scales to any granularity, requires no server, and adds one shared loading-state pattern reused by all WPs. |
+| 12 | **Run display is 1-indexed** | **Resolved.** Internal run index is 0-based. All user-facing labels are 1-based: index n is displayed as "Run n+1". Selection note format: `"Run {n+1} selected. The same moment is now highlighted across all four KPI cards."` |
 
 ---
 
 ## 12. What This Spec Intentionally Excludes
 
-- **Breeder Opportunity section** — covered by a separate spec once this one is implemented.
-- **Bias Control section** — same.
-- **Time window filter UI** — that is a separate panel component.
-- **Genus selector UI** — the filter panel component itself is out of scope for this spec.
-  How the selection (and whether “All” is active) is communicated to the Python generator
-  is covered in the implementation plan.
+### Staged delivery model
+
+The mock defines four sections delivered across five work packages (the extra WP adds the
+filter architecture that all section WPs share). Each WP has its own spec and implementation
+plan:
+
+| WP | Scope | Dependency |
+|---|---|---|
+| **WP1 (this spec)** | Section 1 — Market Health KPIs (all-mode only) | None |
+| **WP-Arch** | Filter architecture — genus selector UI, lazy-load JSON generator (`market-health/genus/{slug}.json`, `market-health/species/{slug}.json`), Svelte fetch hook + loading state | WP1 merged |
+| WP2 | Section 2 — Breeder Opportunity KPIs (consumes WP-Arch fetch hook; genus-scoped from day one) | WP-Arch merged |
+| WP3 | Section 3 — Bias Control KPIs | WP2 merged |
+| WP4 | Section 4 — Filtered Data Preview | WP3 merged |
+
+**New page, not replacement.** WP1 delivers a new `history-insights.html` page that
+appears in the top nav and homepage card grid alongside the existing `history.html`. The
+existing History page is not modified or removed until all work packages are merged.
+At that point the old page is retired and `history-insights.html` becomes the canonical
+History page.
+
+### Items explicitly excluded from this spec
+
+- **Breeder Opportunity section (Section 2)** — WP2; separate spec after WP1 merges.
+- **Bias Control section (Section 3)** — WP3.
+- **Filtered Data Preview (Section 4)** — WP4.
+- **Replacing `history.html`** — deferred until all work packages are merged.
+- **Time window filter UI** — separate panel component; out of scope for this spec.
+- **Genus selector UI and per-genus/species KPI data** — delivered by WP-Arch. WP-Arch
+  adds the genus selector panel, the lazy-load static JSON generator, and the Svelte fetch
+  hook. WP1 must not build any of this — WP-Arch's spec does not exist yet.
 - **CSV export** — not relevant to this section.
