@@ -952,4 +952,20 @@ MarketHealthSection island:
   StockUnderPressure → {deltaHasDown:true, copySnippet starts "49% of listings..."} ✅
   RunSelected → {selectionNote:"Run 9 selected...", clearBtnVisible:true,
     subduedTotal:44} ✅
+
+[Phase 6 — 2026-04-06]
+Python market_health_dto module:
+- `make test` tests must import from `website.market_health_dto` (not `src.website.`)
+  because make runs tests from tmp/local-testing/ where src/ is not a sub-package.
+- `showPrior` rule: True for non-all-time windows when ≥2 scrapes exist in the window.
+  Fewer than 2 scrapes → showPrior=False (safe fallback, consistent with plan §6 rule).
+  Not purely a window-type property because the component expects a meaningful prior
+  series when showPrior=True.
+- Events computation (`_compute_events`) requires ALL species' rows to establish the
+  full set of scrape run timestamps. If only Species A is tracked and A was absent
+  from run 2, run 2 won't appear in `runs` (since rows are sparse — only in-stock rows
+  exist). Fix: `_find_last_seen_idx` / `_find_next_seen_idx` look across all rows to
+  detect gaps, but the run list is what determines whether a transition is visible.
+  Tests must include a "base species" present in all runs to establish the full run list.
+- Coverage: 89.81% (above 80% threshold ✅).
 ```
