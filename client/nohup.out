@@ -522,3 +522,185 @@ WARN     at async Mi.ensureExtracted (/Users/christian.crowhurst/Documents/git/s
 WARN     at async Mi.getIndexAndStats (/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/client/node_modules/@storybook/core/dist/core-server/index.cjs:36421:97)
 WARN     at async Mi.getIndex (/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/client/node_modules/@storybook/core/dist/core-server/index.cjs:36414:13)
 2:47:28 PM [vite] (client) hmr update /@id/__x00__virtual:/@storybook/builder-vite/vite-app.js
+WARN 🚨 Unable to index ./src/history-page/MarketHealthSection.stories.ts:
+WARN   NoMetaError: CSF: missing default export /Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/client/src/history-page/MarketHealthSection.stories.ts (line 1, col 0)
+WARN 
+WARN More info: https://storybook.js.org/docs/writing-stories#default-export
+WARN     at X.parse (/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/client/node_modules/@storybook/core/dist/csf-tools/index.cjs:494:13)
+WARN     at Object.createIndex (/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/client/node_modules/@storybook/core/dist/core-server/presets/common-preset.cjs:10145:80)
+WARN     at async Mi.extractStories (/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/client/node_modules/@storybook/core/dist/core-server/index.cjs:36254:13)
+WARN     at async /Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/client/node_modules/@storybook/core/dist/core-server/index.cjs:36174:24
+WARN     at async Promise.all (index 3)
+WARN     at async Promise.all (index 0)
+WARN     at async Mi.updateExtracted (/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/client/node_modules/@storybook/core/dist/core-server/index.cjs:36162:5)
+WARN     at async Mi.ensureExtracted (/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/client/node_modules/@storybook/core/dist/core-server/index.cjs:36197:5)
+WARN     at async Mi.getIndexAndStats (/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/client/node_modules/@storybook/core/dist/core-server/index.cjs:36421:97)
+WARN     at async Mi.getIndex (/Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/client/node_modules/@storybook/core/dist/core-server/index.cjs:36414:13)
+2:53:26 PM [vite] (client) hmr update /@id/__x00__virtual:/@storybook/builder-vite/vite-app.js
+2:53:35 PM [vite] (client) page reload coverage/index.html
+2:53:35 PM [vite] (client) page reload coverage/breeder-page/index.html
+2:53:35 PM [vite] (client) page reload coverage/dealer-page/config.ts.html
+2:53:35 PM [vite] (client) page reload coverage/breeder-page/config.ts.html
+2:53:35 PM [vite] (client) page reload coverage/dealer-page/index.html
+2:53:35 PM [vite] (client) page reload coverage/history-page/DateFilter.svelte.html
+2:53:35 PM [vite] (client) page reload coverage/history-page/HistoryTable.svelte.html
+2:53:35 PM [vite] (client) page reload coverage/history-page/MarketKpiCard.svelte.html
+2:53:35 PM [vite] (client) page reload coverage/history-page/MarketSparkline.svelte.html
+2:53:35 PM [vite] (client) page reload coverage/history-page/config.ts.html
+2:53:35 PM [vite] (client) page reload coverage/snapshot-page/config.ts.html
+2:53:35 PM [vite] (client) page reload coverage/snapshot-page/index.html
+2:53:35 PM [vite] (client) page reload coverage/shared/csv-utils.ts.html
+2:53:35 PM [vite] (client) page reload coverage/shared/constants.ts.html
+2:53:35 PM [vite] (client) page reload coverage/shared/dom-utils.ts.html
+2:53:35 PM [vite] (client) page reload coverage/history-page/index.html
+2:53:35 PM [vite] (client) page reload coverage/shared/filter-config.ts.html
+2:53:35 PM [vite] (client) page reload coverage/shared/index.html
+2:53:35 PM [vite] (client) page reload coverage/shared/payload-validation.ts.html
+2:53:35 PM [vite] (client) page reload coverage/shared/page-init.ts.html
+2:53:35 PM [vite] (client) page reload coverage/shared/sort-state.svelte.ts.html
+2:53:35 PM [vite] (client) page reload coverage/shared/page-entry.ts.html
+2:53:35 PM [vite] (client) page reload coverage/species-page/charts.ts.html
+2:53:35 PM [vite] (client) page reload coverage/shared/table-utils.ts.html
+2:53:35 PM [vite] (client) page reload coverage/species-page/index.html
+2:53:35 PM [vite] (client) page reload coverage/test-utils/design-tokens.ts.html
+2:53:35 PM [vite] (client) page reload coverage/test-utils/index.html
+2:53:35 PM [vite] (client) page reload coverage/history-page/history-utils.ts.html
+2:53:35 PM [vite] (client) page reload coverage/shared/components/FilterButton.svelte.html
+2:53:35 PM [vite] (client) page reload coverage/shared/components/FiltersPanel.svelte.html
+2:53:35 PM [vite] (client) page reload coverage/shared/components/InfoTooltip.svelte.html
+2:53:35 PM [vite] (client) page reload coverage/shared/components/FilterSection.svelte.html
+2:53:35 PM [vite] (client) page reload coverage/shared/components/RangeSlider.svelte.html
+2:53:35 PM [vite] (client) page reload coverage/shared/components/TableStats.svelte.html
+2:53:35 PM [vite] (client) page reload coverage/shared/components/SortableTable.svelte.html
+2:53:35 PM [vite] (client) page reload coverage/shared/components/SearchInput.svelte.html
+2:53:35 PM [vite] (client) page reload coverage/shared/components/ToggleButton.svelte.html
+2:53:35 PM [vite] (client) page reload coverage/shared/components/SparklineBar.svelte.html
+2:53:35 PM [vite] (client) page reload coverage/shared/components/index.html
+2:53:50 PM [vite] (client) page reload coverage/index.html
+2:53:50 PM [vite] (client) page reload coverage/breeder-page/config.ts.html
+2:53:50 PM [vite] (client) page reload coverage/breeder-page/index.html
+2:53:50 PM [vite] (client) page reload coverage/dealer-page/index.html
+2:53:50 PM [vite] (client) page reload coverage/dealer-page/config.ts.html
+2:53:50 PM [vite] (client) page reload coverage/history-page/index.html
+2:53:50 PM [vite] (client) page reload coverage/history-page/DateFilter.svelte.html
+2:53:50 PM [vite] (client) page reload coverage/history-page/HistoryTable.svelte.html
+2:53:50 PM [vite] (client) page reload coverage/history-page/MarketEventsCard.svelte.html
+2:53:50 PM [vite] (client) page reload coverage/history-page/MarketHealthSection.svelte.html
+2:53:50 PM [vite] (client) page reload coverage/history-page/MarketKpiCard.svelte.html
+2:53:50 PM [vite] (client) page reload coverage/history-page/MarketSparkline.svelte.html
+2:53:50 PM [vite] (client) page reload coverage/history-page/config.ts.html
+2:53:50 PM [vite] (client) page reload coverage/history-page/history-utils.ts.html
+2:53:50 PM [vite] (client) page reload coverage/shared/constants.ts.html
+2:53:50 PM [vite] (client) page reload coverage/shared/index.html
+2:53:50 PM [vite] (client) page reload coverage/shared/csv-utils.ts.html
+2:53:50 PM [vite] (client) page reload coverage/shared/dom-utils.ts.html
+2:53:50 PM [vite] (client) page reload coverage/shared/filter-config.ts.html
+2:53:50 PM [vite] (client) page reload coverage/shared/page-entry.ts.html
+2:53:51 PM [vite] (client) page reload coverage/shared/page-init.ts.html
+2:53:51 PM [vite] (client) page reload coverage/shared/payload-validation.ts.html
+2:53:51 PM [vite] (client) page reload coverage/shared/sort-state.svelte.ts.html
+2:53:51 PM [vite] (client) page reload coverage/shared/table-utils.ts.html
+2:53:51 PM [vite] (client) page reload coverage/shared/components/index.html
+2:53:51 PM [vite] (client) page reload coverage/shared/components/FilterButton.svelte.html
+2:53:51 PM [vite] (client) page reload coverage/shared/components/FilterSection.svelte.html
+2:53:51 PM [vite] (client) page reload coverage/shared/components/FiltersPanel.svelte.html
+2:53:51 PM [vite] (client) page reload coverage/shared/components/InfoTooltip.svelte.html
+2:53:51 PM [vite] (client) page reload coverage/shared/components/RangeSlider.svelte.html
+2:53:51 PM [vite] (client) page reload coverage/shared/components/SearchInput.svelte.html
+2:53:51 PM [vite] (client) page reload coverage/shared/components/SortableTable.svelte.html
+2:53:51 PM [vite] (client) page reload coverage/shared/components/SparklineBar.svelte.html
+2:53:51 PM [vite] (client) page reload coverage/shared/components/TableStats.svelte.html
+2:53:51 PM [vite] (client) page reload coverage/shared/components/ToggleButton.svelte.html
+2:53:51 PM [vite] (client) page reload coverage/snapshot-page/index.html
+2:53:51 PM [vite] (client) page reload coverage/snapshot-page/config.ts.html
+2:53:51 PM [vite] (client) page reload coverage/species-page/index.html
+2:53:51 PM [vite] (client) page reload coverage/species-page/charts.ts.html
+2:53:51 PM [vite] (client) page reload coverage/test-utils/index.html
+2:53:51 PM [vite] (client) page reload coverage/test-utils/design-tokens.ts.html
+2:53:59 PM [vite-plugin-svelte] src/history-page/MarketHealthSection.svelte:13:42 This reference only captures the initial value of `initialSelectedRun`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+2:55:27 PM [vite] (client) hmr update /src/history-page/MarketHealthSection.svelte
+2:55:28 PM [vite-plugin-svelte] src/history-page/MarketHealthSection.svelte:13:42 This reference only captures the initial value of `initialSelectedRun`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+2:56:34 PM [vite] (client) page reload coverage/index.html
+2:56:34 PM [vite] (client) page reload coverage/dealer-page/config.ts.html
+2:56:34 PM [vite] (client) page reload coverage/dealer-page/index.html
+2:56:34 PM [vite] (client) page reload coverage/breeder-page/config.ts.html
+2:56:34 PM [vite] (client) page reload coverage/history-page/DateFilter.svelte.html
+2:56:34 PM [vite] (client) page reload coverage/breeder-page/index.html
+2:56:34 PM [vite] (client) page reload coverage/history-page/HistoryTable.svelte.html
+2:56:34 PM [vite] (client) page reload coverage/history-page/MarketEventsCard.svelte.html
+2:56:34 PM [vite] (client) page reload coverage/history-page/MarketKpiCard.svelte.html
+2:56:34 PM [vite] (client) page reload coverage/history-page/MarketSparkline.svelte.html
+2:56:34 PM [vite] (client) page reload coverage/history-page/MarketHealthSection.svelte.html
+2:56:34 PM [vite] (client) page reload coverage/history-page/index.html
+2:56:34 PM [vite] (client) page reload coverage/snapshot-page/config.ts.html
+2:56:34 PM [vite] (client) page reload coverage/history-page/config.ts.html
+2:56:34 PM [vite] (client) page reload coverage/species-page/charts.ts.html
+2:56:34 PM [vite] (client) page reload coverage/history-page/history-utils.ts.html
+2:56:34 PM [vite] (client) page reload coverage/species-page/index.html
+2:56:34 PM [vite] (client) page reload coverage/snapshot-page/index.html
+2:56:34 PM [vite] (client) page reload coverage/shared/csv-utils.ts.html
+2:56:34 PM [vite] (client) page reload coverage/shared/constants.ts.html
+2:56:34 PM [vite] (client) page reload coverage/shared/dom-utils.ts.html
+2:56:34 PM [vite] (client) page reload coverage/shared/filter-config.ts.html
+2:56:34 PM [vite] (client) page reload coverage/shared/page-entry.ts.html
+2:56:34 PM [vite] (client) page reload coverage/shared/index.html
+2:56:34 PM [vite] (client) page reload coverage/shared/page-init.ts.html
+2:56:34 PM [vite] (client) page reload coverage/shared/payload-validation.ts.html
+2:56:34 PM [vite] (client) page reload coverage/shared/sort-state.svelte.ts.html
+2:56:34 PM [vite] (client) page reload coverage/shared/table-utils.ts.html
+2:56:34 PM [vite] (client) page reload coverage/test-utils/design-tokens.ts.html
+2:56:34 PM [vite] (client) page reload coverage/test-utils/index.html
+2:56:34 PM [vite] (client) page reload coverage/shared/components/FilterButton.svelte.html
+2:56:34 PM [vite] (client) page reload coverage/shared/components/FilterSection.svelte.html
+2:56:34 PM [vite] (client) page reload coverage/shared/components/InfoTooltip.svelte.html
+2:56:34 PM [vite] (client) page reload coverage/shared/components/FiltersPanel.svelte.html
+2:56:34 PM [vite] (client) page reload coverage/shared/components/SortableTable.svelte.html
+2:56:34 PM [vite] (client) page reload coverage/shared/components/SparklineBar.svelte.html
+2:56:34 PM [vite] (client) page reload coverage/shared/components/RangeSlider.svelte.html
+2:56:34 PM [vite] (client) page reload coverage/shared/components/ToggleButton.svelte.html
+2:56:34 PM [vite] (client) page reload coverage/shared/components/SearchInput.svelte.html
+2:56:34 PM [vite] (client) page reload coverage/shared/components/TableStats.svelte.html
+2:56:34 PM [vite] (client) page reload coverage/shared/components/index.html
+2:56:50 PM [vite] (client) page reload coverage/index.html
+2:56:50 PM [vite] (client) page reload coverage/breeder-page/index.html
+2:56:50 PM [vite] (client) page reload coverage/breeder-page/config.ts.html
+2:56:50 PM [vite] (client) page reload coverage/dealer-page/index.html
+2:56:50 PM [vite] (client) page reload coverage/dealer-page/config.ts.html
+2:56:50 PM [vite] (client) page reload coverage/history-page/index.html
+2:56:50 PM [vite] (client) page reload coverage/history-page/DateFilter.svelte.html
+2:56:50 PM [vite] (client) page reload coverage/history-page/HistoryTable.svelte.html
+2:56:50 PM [vite] (client) page reload coverage/history-page/MarketEventsCard.svelte.html
+2:56:50 PM [vite] (client) page reload coverage/history-page/MarketHealthSection.svelte.html
+2:56:50 PM [vite] (client) page reload coverage/history-page/MarketKpiCard.svelte.html
+2:56:50 PM [vite] (client) page reload coverage/history-page/MarketSparkline.svelte.html
+2:56:50 PM [vite] (client) page reload coverage/history-page/config.ts.html
+2:56:50 PM [vite] (client) page reload coverage/history-page/history-utils.ts.html
+2:56:50 PM [vite] (client) page reload coverage/shared/index.html
+2:56:50 PM [vite] (client) page reload coverage/shared/constants.ts.html
+2:56:50 PM [vite] (client) page reload coverage/shared/csv-utils.ts.html
+2:56:50 PM [vite] (client) page reload coverage/shared/dom-utils.ts.html
+2:56:50 PM [vite] (client) page reload coverage/shared/filter-config.ts.html
+2:56:50 PM [vite] (client) page reload coverage/shared/page-entry.ts.html
+2:56:50 PM [vite] (client) page reload coverage/shared/page-init.ts.html
+2:56:50 PM [vite] (client) page reload coverage/shared/payload-validation.ts.html
+2:56:50 PM [vite] (client) page reload coverage/shared/sort-state.svelte.ts.html
+2:56:50 PM [vite] (client) page reload coverage/shared/table-utils.ts.html
+2:56:50 PM [vite] (client) page reload coverage/shared/components/index.html
+2:56:50 PM [vite] (client) page reload coverage/shared/components/FilterButton.svelte.html
+2:56:50 PM [vite] (client) page reload coverage/shared/components/FilterSection.svelte.html
+2:56:50 PM [vite] (client) page reload coverage/shared/components/FiltersPanel.svelte.html
+2:56:50 PM [vite] (client) page reload coverage/shared/components/InfoTooltip.svelte.html
+2:56:50 PM [vite] (client) page reload coverage/shared/components/RangeSlider.svelte.html
+2:56:50 PM [vite] (client) page reload coverage/shared/components/SearchInput.svelte.html
+2:56:50 PM [vite] (client) page reload coverage/shared/components/SortableTable.svelte.html
+2:56:50 PM [vite] (client) page reload coverage/shared/components/SparklineBar.svelte.html
+2:56:50 PM [vite] (client) page reload coverage/shared/components/TableStats.svelte.html
+2:56:50 PM [vite] (client) page reload coverage/shared/components/ToggleButton.svelte.html
+2:56:50 PM [vite] (client) page reload coverage/snapshot-page/index.html
+2:56:50 PM [vite] (client) page reload coverage/snapshot-page/config.ts.html
+2:56:50 PM [vite] (client) page reload coverage/species-page/index.html
+2:56:50 PM [vite] (client) page reload coverage/species-page/charts.ts.html
+2:56:50 PM [vite] (client) page reload coverage/test-utils/index.html
+2:56:50 PM [vite] (client) page reload coverage/test-utils/design-tokens.ts.html

@@ -933,4 +933,23 @@ MarketEventsCard component:
 - DevTools MCP assertions:
   CurrentQuarter → tileCount:4, all copies non-empty ✅
   AllTime → values ["286 total", "172 total", "391 total", "214 total"] (all "N total") ✅
+
+[Phase 5 — 2026-04-06]
+MarketHealthSection island:
+- Svelte 5 scoped CSS overrides the UA-stylesheet `[hidden] { display:none }` rule
+  because scoped selectors (`.foo .svelte-HASH`) have higher specificity than the
+  attribute selector alone. Fix: add `.legend-prior-key[hidden], .clear-run-btn[hidden]
+  { display: none; }` in the component's <style> block. This is a pattern to remember
+  for any component that uses `hidden` alongside a named `display` rule.
+- `$state(initialSelectedRun ?? null)` with `initialSelectedRun` as a prop triggers
+  the Svelte compiler warning `state_referenced_locally`. This is intentional — seeding
+  state from prop is the correct Svelte 5 pattern when you want one-way initialisation
+  without reactive tracking. The warning is advisory, not a build error.
+- DevTools MCP assertions — all passed:
+  CurrentQuarter → {kpiCardCount:4, priorKeyVisible:true,
+    selectionNote:"Optional...", clearBtnHidden:true} ✅
+  AllTime → {priorKeyHidden:true, priorPolylineCount:0} ✅
+  StockUnderPressure → {deltaHasDown:true, copySnippet starts "49% of listings..."} ✅
+  RunSelected → {selectionNote:"Run 9 selected...", clearBtnVisible:true,
+    subduedTotal:44} ✅
 ```
