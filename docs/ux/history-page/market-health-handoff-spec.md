@@ -45,29 +45,63 @@ set) within the genera already in scope here."*
 
 ## 2. Section Layout
 
+The entire section is wrapped in a **card container** (border, large border-radius, padding).
+
 ```
-┌─ Section header ─────────────────────────────────────────────────────────────┐
-│  Eyebrow: "1. Market Health KPIs"                                            │
-│  Heading: dynamic — see §2.1 below                                          │
-│  Sub-copy: dynamic — see §2.1 below                                         │
-│  Section note (static)                                                      │
-└──────────────────────────────────────────────────────────────────────────────┘
-
-┌─ KPI Grid (4 cards) ─────────────────────────────────────────────────────────┐
-│  [Observed species]  [In-stock rate]  [Median wishlist]  [Median price]      │
-│  Each card: title · value · delta badge · copy sentence · sparkline          │
-└──────────────────────────────────────────────────────────────────────────────┘
-
-┌─ Sparkline support row ──────────────────────────────────────────────────────┐
-│  Legend: "Active window" (solid) · "Matched prior-period overlay" (dashed)   │
-│  Basis note (dynamic per window)                                              │
-│  Selection note · "Clear run focus" button (hidden until a run is selected)  │
-└──────────────────────────────────────────────────────────────────────────────┘
-
-┌─ Events mini-grid ───────────────────────────────────────────────────────────┐
-│  [Listings added]  [Listings removed]  [OUT→IN restocks]  [IN→OUT stockouts] │
-└──────────────────────────────────────────────────────────────────────────────┘
+┌─ Section wrapper (card: border, radius-card-lg, padding) ─────────────────────────────┐
+│                                                                                        │
+│  ┌─ Section header (flex: row, gap ~18px) ──────────────────────────────────────────┐ │
+│  │                                                                                  │ │
+│  │  Left column (flex: 1 1 auto)            Right column (max-width ~38ch)         │ │
+│  │  ─────────────────────────────────────   ─────────────────────────────────────  │ │
+│  │  Eyebrow: "1. Market Health KPIs" [pill] Section note (italic, static)          │ │
+│  │  Heading: dynamic — see §2.1 below                                              │ │
+│  │  Sub-copy: dynamic — see §2.1 below                                             │ │
+│  │                                                                                  │ │
+│  └──────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                        │
+│  ┌─ KPI Grid (4 cards) ───────────────────────────────────────────────────────────┐   │
+│  │  [Observed species]  [In-stock rate]  [Median wishlist]  [Median price]        │   │
+│  │  Each card: title + ? info button · value · delta badge (pill) · copy · spark  │   │
+│  └────────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                        │
+│  ┌─ Sparkline support row ────────────────────────────────────────────────────────┐   │
+│  │  Legend: "Active window" (solid) · "Matched prior-period overlay" (dashed)     │   │
+│  │  Basis note (dynamic per window)                                                │   │
+│  │  Selection note · "Clear run focus" button (hidden until a run is selected)    │   │
+│  └────────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                        │
+│  ┌─ Events mini-grid ─────────────────────────────────────────────────────────────┐   │
+│  │  [Listings added]  [Listings removed]  [OUT→IN restocks]  [IN→OUT stockouts]   │   │
+│  └────────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                        │
+└────────────────────────────────────────────────────────────────────────────────────────┘
 ```
+
+**Section header layout rule:** The section header is a flex row — heading+copy block on
+the left grows to fill space; the section note is pinned to the right with `max-width ~38ch`.
+Do **not** use a `<header>` HTML element for the section header — `common.css` applies
+`background: var(--color-primary)` to `header {}` globally, which would produce an
+unintended dark background. Use `<div class="section-header">` instead.
+
+**Eyebrow pill:** The eyebrow label ("1. Market Health KPIs") is styled as a teal pill:
+`background: rgba(31, 122, 107, 0.1)`, `color: #1f7a6b` (or token `--color-market-health`
+once defined), `border-radius: 999px`, `padding: 5px 9px`, `font-weight: 700`.
+
+**Delta badge visual states (all three use pill shape — `border-radius: 999px`):**
+
+| Class | Background | Text colour | Intended signal |
+|---|---|---|---|
+| `""` (positive/neutral) | `rgba(31, 122, 107, 0.12)` | `#1f7a6b` (teal) | Up / healthy |
+| `"down"` | `rgba(178, 76, 61, 0.12)` | `#b24c3d` (red-amber) | Down / unhealthy |
+| `"flat"` | `rgba(127, 140, 141, 0.12)` | `#7f8c8d` (muted) | Neutral / all-time |
+
+Note: the "down" background red is `rgba(178, 76, 61, 0.12)` — slightly different from
+`--color-danger: #e74c3c`. The existing `.down` rule may use `--color-danger`; verify
+against the mock at implementation time.
+
+**KPI card border-radius:** Cards use a larger-than-default radius (~16–18px). A new token
+`--radius-card-lg` will be required in `common.css` (see Phase 10).
 
 ---
 

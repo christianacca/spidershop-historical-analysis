@@ -843,6 +843,220 @@ For each item found, report: **PASS** / **FAIL** (spec violation — quote the s
 
 ---
 
+## Phase 10 — Visual Fidelity Pass
+
+**Context:** A DevTools MCP review on 2026-04-07 (after PR #158 was opened) revealed that the
+live `history-insights.html` page diverges significantly from the mock's Section 1. Eight
+specific gaps were identified — five of these are spec gaps (information that was missing from
+the plan/spec), two are implementation bugs, and one is a missing CSS token. This phase closes
+all eight gaps. No logic, data contract, or Python changes are required.
+
+**Spec drift that triggered this phase:**
+- §2 layout diagram was incomplete (showed stacked header; mock shows two-column)
+- §2 had no CSS visual spec for the eyebrow pill or delta badge states
+- §2 had no note about the `<header>` HTML element conflict with `common.css`
+→ **These were corrected directly in the spec (§2) before this phase was written.**
+
+### Identified gaps (from DevTools MCP audit 2026-04-07)
+
+| ID | Gap | Root cause | Severity |
+|---|---|---|---|
+| G10.1 | Section header has dark navy background (`rgb(44,62,80)`) | `<header>` HTML element inherits `common.css header { background: var(--color-primary) }`. Storybook does not reproduce this because it omits the global page stylesheet context. | **High** — makes heading text invisible |
+| G10.2 | `--font-lg` undefined — section `<h2>` has no font-size | Token used in `MarketHealthSection.svelte` but absent from `common.css ` | **High** — heading renders with browser default size |
+| G10.3 | `--color-text-primary` undefined — heading falls back to inherited colour | Token used in `MarketHealthSection.svelte` but absent from `common.css` | Medium |
+| G10.4 | Section header is stacked (flex-column), not two-column | Spec §2 diagram incorrectly showed a stacked layout | Medium |
+| G10.5 | Eyebrow is plain uppercase text, not a teal pill badge | Eyebrow pill CSS spec was missing from the plan | Medium |
+| G10.6 | Delta badge positive state renders as muted gray, not teal | Positive badge CSS spec was missing; only `.down` and `.flat` were specified | Medium |
+| G10.7 | KPI card border-radius is 6px (`--radius-md`); mock uses ~18px | No large card-radius token existed; plan said "use existing tokens" | Low–medium |
+| G10.8 | `.market-health-section` has no card wrapper styling | Section card wrapper (border, radius, padding) was not mentioned in any previous phase | Low–medium |
+
+**Important:** G10.1 and G10.2 are the most visually severe. Fix them first; the others are
+progressive improvements. The dark header (G10.1) was not caught in Phase 8 because Storybook
+renders components without the page-level `header` selector — the conflict only surfaces in the
+generated site.
+
+---
+
+**Pre-flight (do before writing any code):**
+- [ ] Re-run the DevTools MCP gap verification on the live site to confirm all 8 gaps
+  are still present as described. (Command: navigate to `http://localhost:8000/history-insights.html`,
+  then run `evaluate_script` from the G10 acceptance check below.)
+- [ ] Read `templates/common.css (:root block)` — confirm the five new tokens listed below
+  are not already defined under a different name before adding them.
+
+---
+
+**Tasks — Token additions (`templates/common.css` `:root` block):**
+
+Add the five tokens below to the `/* === Font sizes ===*/`, `/* === Surfaces ===*/`, and
+`/* === Border radius ===*/` sub-sections respectively. Do not reorder or reorganise the
+existing token blocks.
+
+- [ ] `--font-lg: 1.4rem` — large heading font size (~23px); add to `Font sizes` group
+- [ ] `--color-text-primary: #2c3e50` — alias of `--color-text-heading`; add to `Text` group
+  with comment `/* alias of --color-text-heading — use for primary headings */`
+- [ ] `--radius-pill: 999px` — for pill/chip shape elements; add to `Border radius` group
+- [ ] `--radius-card-lg: 16px` — large card / section card rounding; add to `Border radius` group
+- [ ] `--color-market-health: #1f7a6b` — teal accent for Market Health section and eyebrow;
+  add to the `Brand / Accent` group with comment
+  `/* teal — Market Health section accent, also the observed-sparkline series colour */`
+
+After adding: run `make test-client-fast` to confirm no existing Vitest tests break.
+Run `make test-visual` to confirm no existing visual contracts break.
+
+---
+
+**Tasks — `MarketHealthSection.svelte`:**
+
+Fix G10.1, G10.2, G10.3, G10.4, G10.5, G10.8.
+
+- [ ] **G10.1 FIX:** Change `<header class="section-header">` to `<div class="section-header">`.
+  This removes the conflict with `common.css header {}`. Verify by running
+  `evaluate_script` on the live site: the section header background must NOT be dark navy.
+- [ ] **G10.4 FIX:** Update `.section-header` CSS to `flex-direction: row; align-items: flex-start; gap: var(--spacing-lg)`.
+  Wrap the eyebrow + h2 + sub-copy in a `<div class="section-title">` (flex item, `flex: 1 1 auto`).
+  Move `.section-note` outside `.section-title` so it is the second flex child of `.section-header`
+  (`flex: none; max-width: 38ch; align-self: flex-start`).
+- [ ] **G10.5 FIX:** Update `.section-eyebrow` CSS:
+  ```css
+  .section-eyebrow {
+    display: inline-block;
+    background: rgba(31, 122, 107, 0.1);  /* tinted --color-market-health */
+    color: var(--color-market-health);
+    border-radius: var(--radius-pill);
+    padding: 5px 9px;
+    font-size: var(--font-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  ```
+  Note: the `rgba(31, 122, 107, 0.1)` value is a tinted opacity variant of
+  `--color-market-health`. Because CSS has no native way to inline-apply an opacity
+  modifier to a custom property without `color-mix()`, this explicit `rgba()` value is an
+  accepted exception to the no-hardcoded-colour rule. Document it in the feed-forward log.
+- [ ] **G10.8 ENHANCE:** Add card wrapper treatment to `.market-health-section`:
+  ```css
+  .market-health-section {
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-card-lg);
+    padding: var(--spacing-xl);
+  }
+  ```
+  The mock uses a warm cream background; in production the section sits inside `.content`
+  (white), so the background is intentionally left to inherit. This is a by-design
+  approximation: document in the feed-forward log.
+- [ ] G10.2 / G10.3: Once `--font-lg` and `--color-text-primary` are added to `common.css`,
+  the existing `.section-header h2` rule (`font-size: var(--font-lg); color: var(--color-text-primary)`)
+  will resolve correctly — no CSS change required in the component.
+- [ ] Run `make test-client-fast` — green.
+- [ ] Run `make test-visual` — add / update the visual contract for `MarketHealthSection` to assert:
+  - Section header background is NOT dark navy (`rgb(44, 62, 80)`)
+  - Eyebrow is a pill shape (`border-radius: 999px`)
+  - Section header is a row (`.section-header flex-direction: row`)
+
+---
+
+**Tasks — `MarketKpiCard.svelte`:**
+
+Fix G10.6, G10.7.
+
+- [ ] **G10.6 FIX:** Replace the existing `.metric-delta` / `.metric-delta.down` / `.metric-delta.flat`
+  CSS block so that **all three states use pill shape** (`border-radius: var(--radius-pill)`):
+  ```css
+  /* Positive / neutral (default, class "") — teal pill */
+  .metric-delta {
+    border-radius: var(--radius-pill);
+    background: rgba(31, 122, 107, 0.12);  /* tinted --color-market-health */
+    color: var(--color-market-health);
+    font-size: var(--font-sm);
+    font-weight: 600;
+    padding: 3px 8px;
+  }
+  /* Negative — red-amber pill */
+  .metric-delta.down {
+    background: rgba(178, 76, 61, 0.12);   /* tinted; close to but not --color-danger */
+    color: #b24c3d;
+  }
+  /* Neutral / all-time — muted pill */
+  .metric-delta.flat {
+    background: rgba(127, 140, 141, 0.12); /* tinted --color-text-muted */
+    color: var(--color-text-muted);
+  }
+  ```
+  Same rationale as G10.5 for the `rgba()` values — document in feed-forward log.
+  The `.down` red uses `#b24c3d` (mock value) not `--color-danger` (#e74c3c) — this is a
+  visual approximation; note it as by-design or adjust `--color-danger` if preferred.
+- [ ] **G10.7 ENHANCE:** Change `.kpi-card` `border-radius` from `var(--radius-md)` (6px)
+  to `var(--radius-card-lg)` (16px). No other card properties need changing.
+- [ ] **G10.7 ENHANCE:** Change `.metric-value` `font-size` from `1.6rem` to `1.9rem`
+  to better match the mock's 32px value. (`1.9rem` ≈ 30.4px at base-16; close enough.)
+- [ ] Run `make test-client-fast` — green.
+- [ ] Run `make test-visual` — update the `MarketKpiCard` visual contract to assert:
+  - `.metric-delta` has `border-radius: 999px`
+  - `.metric-delta` (positive) has a non-gray background (teal tint, not `--color-surface-light`)
+  - `.kpi-card` `border-radius === "16px"`
+
+---
+
+**Tasks — Preview site and Storybook acceptance check:**
+
+- [ ] Run `make preview` (regenerate site + serve at `http://localhost:8000`).
+- [ ] Navigate to `http://localhost:8000/history-insights.html` via Chrome DevTools MCP.
+- [ ] Open the mock in parallel:
+  `file:///Users/christian.crowhurst/Documents/git/spidershop-historical-analysis/docs/ux/history-page/history-kpi-concepts-mockup.html`
+- [ ] Take screenshots of both and compare Section 1 visually.
+- [ ] Run `evaluate_script` to confirm all 8 gaps are closed:
+  ```js
+  const sectionHeader = document.querySelector('.section-header');
+  const h2 = document.querySelector('#market-health-heading');
+  const eyebrow = document.querySelector('.section-eyebrow');
+  const delta = document.querySelector('.metric-delta');
+  const deltaDown = document.querySelector('.metric-delta.down');
+  const kpiCard = document.querySelector('.kpi-card');
+  const section = document.querySelector('.market-health-section');
+  const s = (el) => el ? window.getComputedStyle(el) : null;
+  return {
+    'G10.1 header-bg NOT dark':  s(sectionHeader)?.backgroundColor,
+    'G10.2 h2 fontSize':         s(h2)?.fontSize,
+    'G10.3 h2 color':            s(h2)?.color,
+    'G10.4 header flex-direction': s(sectionHeader)?.flexDirection,
+    'G10.5 eyebrow borderRadius':  s(eyebrow)?.borderRadius,
+    'G10.6 delta borderRadius':    s(delta)?.borderRadius,
+    'G10.6 delta-down color':      s(deltaDown)?.color,
+    'G10.7 kpiCard borderRadius':  s(kpiCard)?.borderRadius,
+    'G10.8 section borderRadius':  s(section)?.borderRadius,
+  };
+  // Expected:
+  // G10.1: NOT "rgb(44, 62, 80)" — any non-dark value
+  // G10.2: "22.4px" (1.4rem) or similar non-empty
+  // G10.3: NOT empty / NOT "rgb(0,0,0)" inherit-fallback
+  // G10.4: "row"
+  // G10.5: "999px"
+  // G10.6 delta borderRadius: "999px"
+  // G10.6 delta-down color: NOT the gray muted color
+  // G10.7: "16px"
+  // G10.8: "16px"
+  ```
+
+---
+
+**Housekeeping:**
+- [ ] H1 — Mark every task checkbox above as ✅
+- [ ] H2 — Reflection: scan all changed files against the code smell checklist; specific items to watch:
+  - Confirm no `rgba()` hardcoded colour in `<style>` blocks that **is not** documented as an accepted exception to the token rule
+  - Confirm `<header>` is not re-introduced for the section container anywhere
+  - Confirm `--font-lg` and `--color-text-primary` are used **only** in components, never re-defined inline
+- [ ] H3 — Feed-forward log entry including:
+  - List of all 8 gaps and their resolution status
+  - Note on accepted rgba() exceptions (G10.5, G10.6)
+  - Note on by-design colour approximations (warm background, .down badge red)
+- [ ] H4 — Commit: `git add -A && git commit -m "Phase 10: visual fidelity — header fix, section layout, eyebrow pill, delta badge, card radius"`
+  then `git log --oneline -1` to confirm.
+- [ ] GATE — Output the phase completion block.
+
+---
+
 ## What Is Not In Scope for This Work Package
 
 | Item | Status |
