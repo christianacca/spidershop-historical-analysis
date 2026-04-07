@@ -12,6 +12,54 @@ describe('MarketHealthSection', () => {
     expect(container.querySelectorAll('.kpi-card')).toHaveLength(4);
   });
 
+  it('renders section eyebrow with static text', () => {
+    const { container } = render(MarketHealthSection, {
+      payload: marketHealthCurrentQuarter,
+    });
+    const eyebrow = container.querySelector('.section-eyebrow');
+    expect(eyebrow?.textContent?.trim()).toBe('1. Market Health KPIs');
+  });
+
+  it('renders all-mode heading when isAllSelected is true', () => {
+    const { container } = render(MarketHealthSection, {
+      payload: marketHealthCurrentQuarter,
+    });
+    const heading = container.querySelector('#market-health-heading');
+    expect(heading?.textContent).toContain('wider tarantula market');
+  });
+
+  it('renders all-mode scope copy when isAllSelected is true', () => {
+    const { container } = render(MarketHealthSection, {
+      payload: marketHealthCurrentQuarter,
+    });
+    const copy = container.querySelector('#market-health-scope-copy');
+    expect(copy?.textContent).toContain('all tracked species');
+  });
+
+  it('renders all-mode section note when isAllSelected is true', () => {
+    const { container } = render(MarketHealthSection, {
+      payload: marketHealthCurrentQuarter,
+    });
+    const note = container.querySelector('.section-note');
+    expect(note?.textContent).toContain('overall market looks flat');
+  });
+
+  it('legend current key label is "Active window"', () => {
+    const { container } = render(MarketHealthSection, {
+      payload: marketHealthCurrentQuarter,
+    });
+    const key = container.querySelector('.legend-current-key');
+    expect(key?.textContent?.trim()).toBe('Active window');
+  });
+
+  it('legend prior key label is "Matched prior-period overlay"', () => {
+    const { container } = render(MarketHealthSection, {
+      payload: marketHealthCurrentQuarter,
+    });
+    const key = container.querySelector('.legend-prior-key');
+    expect(key?.textContent?.trim()).toBe('Matched prior-period overlay');
+  });
+
   it('prior legend key is visible when showPrior is true', () => {
     const { container } = render(MarketHealthSection, {
       payload: marketHealthCurrentQuarter,

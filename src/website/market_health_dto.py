@@ -643,7 +643,12 @@ def _observed_copy(delta: Optional[int], prior_label: str, is_all_time: bool) ->
             " enough to support opportunity hunting, but this lens is not about recent"
             " acceleration."
         )
-    if delta is None or delta >= 3:
+    if delta is None:
+        return (
+            "Breadth within the selected window gives a picture of available assortment,"
+            " but no prior period is available for comparison."
+        )
+    if delta >= 3:
         return (
             f"Breadth is ahead of {prior_label}, so the market still looks alive on"
             " assortment even while actual stock is getting tighter."
@@ -694,7 +699,12 @@ def _wishlist_copy(delta: Optional[int], prior_label: str, is_all_time: bool) ->
             "All-time wishlist levels show the long-run demand floor for your selected"
             " genera, not whether interest just strengthened this month or quarter."
         )
-    if delta is None or delta >= 4:
+    if delta is None:
+        return (
+            "Wishlist interest is visible for the selected window,"
+            " but no prior period is available for comparison."
+        )
+    if delta >= 4:
         return (
             f"Median wishlist counts are ahead of {prior_label}, reinforcing the idea"
             " that interest is improving while availability slips."
@@ -716,7 +726,12 @@ def _price_copy(delta: Optional[int], prior_label: str, is_all_time: bool) -> st
             " shorter windows when you are deciding whether recent conditions have"
             " shifted."
         )
-    if delta is None or delta >= 2:
+    if delta is None:
+        return (
+            "Price data is available for the selected window,"
+            " but no prior period is available for comparison."
+        )
+    if delta >= 2:
         return (
             f"Prices are somewhat firmer than {prior_label}, but the move is still"
             " smaller than the availability shift. Supply pressure remains the more"
@@ -728,7 +743,10 @@ def _price_copy(delta: Optional[int], prior_label: str, is_all_time: bool) -> st
             " that is tightening gradually rather than repricing sharply."
         )
     if delta == 0:
-        return f"Prices are holding steady vs {prior_label}."
+        return (
+            "Price is steady, so the main movement appears to be availability rather"
+            " than inflation."
+        )
     return (
         f"Prices have softened vs {prior_label}, which runs counter to the"
         " tighter-supply read."
@@ -887,8 +905,8 @@ def build_market_health_payload(
         "windowId": window_id,
         "windowLabel": _WINDOW_LABELS.get(window_id, window_id),
         "windowBasisNote": _WINDOW_BASIS_NOTES.get(window_id, ""),
-        # showPrior: True for non-all-time windows with ≥2 scrapes; False otherwise.
-        "showPrior": show_prior and len(win_runs) >= 2,
+        # showPrior: True for non-all-time windows with prior data and ≥2 current scrapes.
+        "showPrior": effective_show_prior and len(win_runs) >= 2,
         "sparklineBasisNote": _SPARKLINE_BASIS_NOTES.get(window_id, ""),
         "isAllSelected": is_all_selected,
         "generaCount": 0 if is_all_selected else len(selected_genera),

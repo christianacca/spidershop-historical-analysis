@@ -178,7 +178,11 @@ class TestMedianPrice:
 
 class TestPriorPeriodBoundary:
     def test_current_quarter_show_prior_true(self):
-        rows = [_row(RUN1, "A"), _row(RUN3, "A")]
+        """showPrior=True requires both current AND prior period data to exist."""
+        rows = [
+            _row(RUN1, "A"), _row(RUN3, "A"),
+            _row(PRIOR_RUN1, "A"), _row(PRIOR_RUN3, "A"),
+        ]
         result = build_market_health_payload(
             rows, "current-quarter", [], is_all_selected=True, reference_dt=REF_DT
         )
@@ -425,3 +429,91 @@ class TestAllWindowsFunction:
             assert "kpis" in payload, f"missing kpis in {window_id}"
             assert "sparklineSeries" in payload, f"missing sparklineSeries in {window_id}"
             assert "events" in payload, f"missing events in {window_id}"
+
+
+class TestPriceCopyDeltaZero:
+    """Price copy for delta=0 must match spec §3.4."""
+
+    def test_price_copy_delta_zero_references_availability_not_prior_label(self):
+        """spec §3.4: delta=0 → 'Price is steady, so the main movement appears to be
+        availability rather than inflation.' — no prior_label reference."""
+        rows_current = [
+            _row(RUN1, "A", price="20.00"), _row(RUN2, "A", price="20.00"), _row(RUN3, "A", price="20.00"),
+        ]
+        rows_prior = [
+            _row(PRIOR_RUN1, "A", price="20.00"), _row(PRIOR_RUN2, "A", price="20.00"),
+            _row(PRIOR_RUN3, "A", price="20.00"),
+        ]
+        result = build_market_health_payload(
+            rows_current + rows_prior,
+            "current-quarter",
+            [],
+            is_all_selected=True,
+            reference_dt=REF_DT,
+        )
+        copy = result["kpis"]["price"]["copy"]
+        assert "availability" in copy.lower(), f"Expected 'availability' in copy, got: {copy!r}"
+        assert "inflation" in copy.lower(), f"Expected 'inflation' in copy, got: {copy!r}"
+        # Must NOT say "steady vs" which would reference a prior label comparison pattern
+        assert "prior quarter" not in copy, f"delta=0 copy must not reference prior period: {copy!r}"
+
+
+class TestNoPriorDataCopy:
+    """When effective_show_prior is False (no prior rows) for a comparative window,
+    copy must use a neutral no-comparison statement instead of phrases that imply a
+    comparison happened (spec §3 — copy states only define delta-based branches; the
+    delta=None non-all-time case must not fall into a positive/negative branch)."""
+
+    # RUN1-3 in Q1 2026; deliberately omit Q4 2025 rows so prior_rows = [].
+    _ONLY_CURRENT = [
+        _row(RUN1, "A", price="20.00", wishlist="10"),
+        _row(RUN2, "A", price="21.00", wishlist="11"),
+        _row(RUN3, "A", price="22.00", wishlist="12"),
+    ]
+
+    def test_observed_no_prior_copy_does_not_imply_comparison(self):
+        result = build_market_health_payload(
+            self._ONLY_CURRENT, "current-quarter", [], is_all_selected=True,
+            reference_dt=REF_DT
+        )
+        copy = result["kpis"]["observed"]["copy"]
+        # These phrases all imply a comparison occurred — must be absent when no prior data
+        forbidden = ["ahead of", "behind", "fewer species are being seen in-stock than at"]
+        for phrase in forbidden:
+            assert phrase not in copy.lower(), (
+                f"No-prior observed copy must not contain {phrase!r}: {copy!r}"
+            )
+
+    def test_wishlist_no_prior_copy_does_not_imply_comparison(self):
+        result = build_market_health_payload(
+            self._ONLY_CURRENT, "current-quarter", [], is_all_selected=True,
+            reference_dt=REF_DT
+        )
+        copy = result["kpis"]["wishlist"]["copy"]
+        forbidden = ["ahead of", "above", "softer than", "modestly above"]
+        for phrase in forbidden:
+            assert phrase not in copy.lower(), (
+                f"No-prior wishlist copy must not contain {phrase!r}: {copy!r}"
+            )
+
+    def test_price_no_prior_copy_does_not_imply_comparison(self):
+        result = build_market_health_payload(
+            self._ONLY_CURRENT, "current-quarter", [], is_all_selected=True,
+            reference_dt=REF_DT
+        )
+        copy = result["kpis"]["price"]["copy"]
+        forbidden = ["firmer than", "edged up", "softened vs", "holding steady"]
+        for phrase in forbidden:
+            assert phrase not in copy.lower(), (
+                f"No-prior price copy must not contain {phrase!r}: {copy!r}"
+            )
+
+    def test_show_prior_false_when_no_prior_rows(self):
+        """showPrior must be False when prior_rows is empty, even for a comparative window."""
+        result = build_market_health_payload(
+            self._ONLY_CURRENT, "current-quarter", [], is_all_selected=True,
+            reference_dt=REF_DT
+        )
+        assert result["showPrior"] is False, (
+            "showPrior should be False when there are no prior-period rows"
+        )

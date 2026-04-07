@@ -21,9 +21,53 @@
       ? 'Optional: click a run to highlight that moment across all sparklines.'
       : `Run ${selectedRun + 1} selected. The same moment is now highlighted across all four KPI cards.`,
   );
+
+  // Heading/copy logic per spec §2.1
+  const heading = $derived((): string => {
+    if (payload.isAllSelected) {
+      return 'Is the wider tarantula market growing, becoming harder to source, or levelling off?';
+    }
+    if (payload.generaCount === 0) {
+      return 'Add genera to see supply and demand health for your selection.';
+    }
+    if (payload.generaCount === 1) {
+      return `Is ${payload.scopeLabel} supply growing, tightening, or levelling off?`;
+    }
+    if (payload.generaCount <= 3) {
+      return `For ${payload.scopeLabel}: is supply growing, tightening, or levelling off?`;
+    }
+    return `How healthy is supply and demand across your ${payload.generaCount} selected genera?`;
+  });
+
+  const scopeCopy = $derived((): string => {
+    if (payload.isAllSelected) {
+      return 'These metrics cover all tracked species \u2014 the widest possible lens before you narrow to a genus.';
+    }
+    if (payload.generaCount === 0) {
+      return 'Use the genus filter above to add genera. Market Health KPIs will reflect whichever genera are in scope.';
+    }
+    return 'These metrics ask whether supply and demand for your selected genera look healthy enough to support breeding investment.';
+  });
+
+  const sectionNote = $derived((): string => {
+    if (payload.isAllSelected) {
+      return 'If the overall market looks flat, treat individual genus comparisons cautiously.';
+    }
+    if (payload.generaCount === 0) {
+      return 'Use the genus filter above to add genera before drawing conclusions.';
+    }
+    return 'If your selected genera look flat overall, treat any individual genus comparison cautiously.';
+  });
 </script>
 
 <section class="market-health-section">
+  <header class="section-header">
+    <p class="section-eyebrow">1. Market Health KPIs</p>
+    <h2 id="market-health-heading">{heading()}</h2>
+    <p id="market-health-scope-copy" class="section-scope-copy">{scopeCopy()}</p>
+    <p class="section-note">{sectionNote()}</p>
+  </header>
+
   <div class="kpi-grid">
     <MarketKpiCard
       card={payload.kpis.observed}
@@ -61,13 +105,13 @@
         <svg width="16" height="4" aria-hidden="true">
           <line x1="0" y1="2" x2="16" y2="2" stroke="currentColor" stroke-width="2" />
         </svg>
-        Current
+        Active window
       </span>
       <span class="legend-prior-key" hidden={!payload.showPrior}>
         <svg width="16" height="4" aria-hidden="true">
           <line x1="0" y1="2" x2="16" y2="2" stroke="currentColor" stroke-width="2" stroke-dasharray="4 2" />
         </svg>
-        Prior
+        Matched prior-period overlay
       </span>
     </div>
 
@@ -92,6 +136,40 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
+  }
+
+  .section-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .section-eyebrow {
+    margin: 0;
+    font-size: var(--font-sm);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+  }
+
+  .section-header h2 {
+    margin: 0;
+    font-size: var(--font-lg);
+    color: var(--color-text-primary);
+  }
+
+  .section-scope-copy {
+    margin: 0;
+    font-size: var(--font-base);
+    color: var(--color-text-muted);
+  }
+
+  .section-note {
+    margin: 0;
+    font-size: var(--font-sm);
+    font-style: italic;
+    color: var(--color-text-muted);
   }
 
   .kpi-grid {
