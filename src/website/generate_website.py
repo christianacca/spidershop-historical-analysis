@@ -245,6 +245,10 @@ def generate_history_insights_page(config: BasePageConfig) -> str:
 
     Reads the history CSV, builds MarketHealthPayload dicts for all 7 windows,
     and injects them as ``window.marketHealthPayloads`` into the Jinja template.
+
+    The reference date for all KPI windows is the most recent scrape_datetime in
+    the history CSV (not the wall clock).  This makes the static page meaningful
+    regardless of when it was generated — the windows are relative to the data.
     """
     headers, rows = read_csv_file(config.csv_filename)
     col_names = headers if headers else [
@@ -253,10 +257,25 @@ def generate_history_insights_page(config: BasePageConfig) -> str:
     ]
     history_rows = [dict(zip(col_names, row)) for row in (rows or [])]
 
+    # Use the most recent scrape run as the reference date so that KPI windows
+    # are relative to the data, not the wall clock.
+    reference_dt: Optional[datetime] = None
+    if history_rows:
+        latest_str = max(
+            (r.get("scrape_datetime", "") for r in history_rows),
+            default="",
+        )
+        if latest_str:
+            try:
+                reference_dt = datetime.fromisoformat(latest_str)
+            except (ValueError, TypeError):
+                pass
+
     market_health_payloads = build_market_health_payload_all_windows(
         history_rows,
         selected_genera=[],
         is_all_selected=True,
+        reference_dt=reference_dt,
     )
 
     template = jinja_env.get_template("history_insights_page.html")

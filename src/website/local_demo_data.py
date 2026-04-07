@@ -94,7 +94,12 @@ DEMO_RUN_COUNT = 60
 
 
 def _build_demo_runs() -> list[str]:
-    start = datetime(2024, 10, 17, 9, 0, 0)
+    # Anchor the most recent run to today so the demo data always falls within
+    # recent time windows.  generate_history_insights_page uses the last run date
+    # as reference_dt for KPI windows, so the page stays meaningful regardless
+    # of when it was generated.
+    end = datetime.now().replace(hour=9, minute=0, second=0, microsecond=0)
+    start = end - timedelta(weeks=DEMO_RUN_COUNT - 1)
     return [
         (start + timedelta(weeks=offset)).strftime("%Y-%m-%d %H:%M:%S")
         for offset in range(DEMO_RUN_COUNT)
