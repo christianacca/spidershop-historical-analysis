@@ -38,7 +38,16 @@
 </script>
 
 <article class="kpi-card">
-  <h3 class="kpi-title" title={TOOLTIP[card.id]}>{card.title}</h3>
+  <div class="metric-title-row">
+    <h3 class="kpi-title">{card.title}</h3>
+    <details class="metric-info">
+      <summary class="metric-info-button" aria-label="What is {card.title}?">?</summary>
+      <div class="metric-popover">
+        <strong>What this means</strong>
+        <p>{TOOLTIP[card.id]}</p>
+      </div>
+    </details>
+  </div>
 
   <div class="kpi-value-row">
     <span class="metric-value">{card.value}</span>
@@ -77,7 +86,75 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
     margin: 0;
-    cursor: help;
+  }
+
+  .metric-title-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+  }
+
+  .metric-info {
+    position: relative;
+    flex: 0 0 auto;
+  }
+
+  .metric-info summary {
+    list-style: none;
+  }
+
+  .metric-info summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .metric-info-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(31, 42, 44, 0.16);
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+    font-size: 0.84rem;
+    font-weight: 800;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .metric-info[open] .metric-info-button {
+    border-color: rgba(31, 122, 107, 0.24);
+    color: var(--color-market-health);
+    background: rgba(31, 122, 107, 0.08);
+  }
+
+  .metric-popover {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: min(280px, 70vw);
+    padding: 12px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border-light);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-md);
+    z-index: 10;
+    font-size: var(--font-sm);
+    line-height: 1.5;
+    color: var(--color-text);
+  }
+
+  .metric-popover strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--color-text-heading);
+    font-weight: 700;
+  }
+
+  .metric-popover p {
+    margin: 0;
   }
 
   .kpi-value-row {

@@ -59,21 +59,20 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
-    padding: var(--spacing-sm);
-    background: var(--color-surface-light);
-    border-radius: var(--radius-sm);
+    padding: 14px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-card-lg);
   }
 
   .event-label {
     font-size: var(--font-sm);
     color: var(--color-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
     font-weight: 600;
   }
 
   .event-value {
-    font-size: 1rem;
+    font-size: 1.35rem;
     font-weight: 700;
     color: var(--color-text-heading);
   }

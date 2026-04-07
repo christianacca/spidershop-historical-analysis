@@ -146,7 +146,7 @@
   .section-header {
     display: flex;
     flex-direction: row;
-    align-items: flex-start;
+    align-items: flex-end;
     gap: var(--spacing-lg);
   }
 
@@ -185,7 +185,7 @@
   .section-note {
     flex: none;
     max-width: 38ch;
-    align-self: flex-start;
+    align-self: flex-end;
     margin: 0;
     font-size: var(--font-sm);
     font-style: italic;
@@ -238,9 +238,10 @@
   .clear-run-btn {
     margin-left: auto;
     font-size: var(--font-sm);
-    padding: 2px 8px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--color-border-light);
+    font-weight: 700;
+    padding: 6px 10px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(31, 42, 44, 0.12);
     background: var(--color-surface);
     color: var(--color-text-muted);
     cursor: pointer;
