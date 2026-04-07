@@ -652,7 +652,6 @@ footer a:hover {
 
 /* Content-disclosure Details Elements */
 /* Deliberately NOT applied to all <details> — component-owned details (e.g. .metric-info) must not inherit these styles */
-details.instruction-box,
 details.analysis-methodology,
 details.legend-box,
 details.examples-box {
@@ -663,7 +662,6 @@ details.examples-box {
     border: 1px solid #e1e8ed;
 }
 
-details.instruction-box summary,
 details.analysis-methodology summary,
 details.legend-box summary,
 details.examples-box summary {
@@ -675,14 +673,12 @@ details.examples-box summary {
     transition: background 0.3s;
 }
 
-details.instruction-box summary:hover,
 details.analysis-methodology summary:hover,
 details.legend-box summary:hover,
 details.examples-box summary:hover {
     background: var(--color-surface-light);
 }
 
-details.instruction-box[open] summary,
 details.analysis-methodology[open] summary,
 details.legend-box[open] summary,
 details.examples-box[open] summary {
@@ -690,14 +686,12 @@ details.examples-box[open] summary {
     border-bottom: 1px solid var(--color-border-alt);
 }
 
-details.instruction-box p,
 details.analysis-methodology p,
 details.legend-box p,
 details.examples-box p {
     margin: 15px 0;
 }
 
-details.instruction-box ul,
 details.analysis-methodology ul,
 details.legend-box ul,
 details.examples-box ul {
@@ -706,7 +700,6 @@ details.examples-box ul {
     margin-bottom: 10px;
 }
 
-details.instruction-box hr,
 details.analysis-methodology hr,
 details.legend-box hr,
 details.examples-box hr {

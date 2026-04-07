@@ -122,9 +122,10 @@ describe('tokenRgb — one-call helper for visual assertions', () => {
 // ── Suite 5: Global details CSS scoping ───────────────────────────────────────
 //
 // The global details styles (white bg, border, padding) in common.css are
-// intentionally scoped to specific classes only: .legend-box, .examples-box,
-// .instruction-box, .analysis-methodology.  Component-owned <details> elements
-// (e.g. .metric-info in MarketKpiCard) must NOT inherit these styles.
+// intentionally scoped to specific classes only: .analysis-methodology,
+// .legend-box, .examples-box.  .instruction-box is NOT in this list — it has
+// its own distinct blue styling in analysis.css.  Component-owned <details>
+// elements (e.g. .metric-info in MarketKpiCard) must NOT inherit these styles.
 
 describe('details CSS scoping — box styles only apply to explicit classes', () => {
   let detailEl: HTMLDetailsElement;
