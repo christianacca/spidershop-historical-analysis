@@ -343,7 +343,7 @@ def generate_analysis_page(config: BasePageConfig) -> str:
     legend_html = None
     legend_markdown = getattr(config, 'legend_markdown', None)
     if legend_markdown:
-        legend_with_wrapper = f'<details id="legend-section" markdown="1">\n<summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>\n\n{legend_markdown}\n\n</details>'
+        legend_with_wrapper = f'<details id="legend-section" class="legend-box" markdown="1">\n<summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>\n\n{legend_markdown}\n\n</details>'
         legend_html = parse_markdown_to_html(legend_with_wrapper)
     
     # Enumerate headers and rows for template

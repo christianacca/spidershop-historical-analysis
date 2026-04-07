@@ -103,7 +103,7 @@ describe('MarketKpiCard — info button closed-state appearance', () => {
     expect(color).toBe('rgb(93, 106, 109)');
   });
 
-  it('details.metric-info has no background or border (global details rule must be reset)', () => {
+  it('details.metric-info has no background or border (global details CSS rule is scoped to explicit classes; must not apply here)', () => {
     const { container } = render(MarketKpiCard, defaultProps());
     const details = container.querySelector('details.metric-info') as HTMLElement;
     const s = window.getComputedStyle(details);

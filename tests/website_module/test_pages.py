@@ -414,6 +414,9 @@ class TestGenerateSnapshotPage:
             # Legend details must have id="legend-section" so the anchor link can target it
             assert legend_details[0].get('id') == 'legend-section', \
                 "Legend <details> must have id='legend-section' for the anchor link to work"
+            # Legend details must have class="legend-box" so CSS box styles apply
+            assert 'legend-box' in (legend_details[0].get('class') or []), \
+                "Legend <details> must have class='legend-box' for CSS styling"
 
     def test_omits_legend_when_none(self):
         """Should omit legend when not provided."""
@@ -448,6 +451,8 @@ class TestGenerateSnapshotPage:
             example_details = [d for d in details_elements if 'Practical Examples' in d.text]
             assert len(example_details) == 1, "Should have a Practical Examples details element"
             assert example_details[0].get('open') is None, "Practical Examples should start collapsed"
+            assert 'examples-box' in (example_details[0].get('class') or []), \
+                "Examples <details> must have class='examples-box' for CSS styling"
 
     def test_includes_instruction_box_for_breeder_page(self):
         """Should include 'How to use this page' instruction box for breeder pages."""

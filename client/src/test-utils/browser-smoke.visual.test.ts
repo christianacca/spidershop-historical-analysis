@@ -118,3 +118,51 @@ describe('tokenRgb — one-call helper for visual assertions', () => {
     expect(result).toBeUndefined();
   });
 });
+
+// ── Suite 5: Global details CSS scoping ───────────────────────────────────────
+//
+// The global details styles (white bg, border, padding) in common.css are
+// intentionally scoped to specific classes only: .legend-box, .examples-box,
+// .instruction-box, .analysis-methodology.  Component-owned <details> elements
+// (e.g. .metric-info in MarketKpiCard) must NOT inherit these styles.
+
+describe('details CSS scoping — box styles only apply to explicit classes', () => {
+  let detailEl: HTMLDetailsElement;
+  let legendEl: HTMLDetailsElement;
+
+  beforeEach(() => {
+    detailEl = document.createElement('details');
+    legendEl = document.createElement('details');
+    legendEl.className = 'legend-box';
+    document.body.appendChild(detailEl);
+    document.body.appendChild(legendEl);
+  });
+
+  afterEach(() => {
+    document.body.removeChild(detailEl);
+    document.body.removeChild(legendEl);
+  });
+
+  it('bare <details> without a class has no background (transparent)', () => {
+    const bg = window.getComputedStyle(detailEl).backgroundColor;
+    // Must NOT be white rgb(255,255,255)
+    expect(bg).not.toBe('rgb(255, 255, 255)');
+    // Must be transparent
+    expect(bg).toBe('rgba(0, 0, 0, 0)');
+  });
+
+  it('bare <details> without a class has no border', () => {
+    const borderWidth = window.getComputedStyle(detailEl).borderTopWidth;
+    expect(borderWidth).toBe('0px');
+  });
+
+  it('details.legend-box has white background (global rule applies)', () => {
+    const bg = window.getComputedStyle(legendEl).backgroundColor;
+    expect(bg).toBe('rgb(255, 255, 255)');
+  });
+
+  it('details.legend-box has a visible border (global rule applies)', () => {
+    const borderWidth = window.getComputedStyle(legendEl).borderTopWidth;
+    expect(parseFloat(borderWidth)).toBeGreaterThan(0);
+  });
+});
