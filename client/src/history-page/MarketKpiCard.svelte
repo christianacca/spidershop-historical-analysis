@@ -94,12 +94,20 @@
   }
 
   .metric-info {
+    /* Reset global details rule from common.css (background, padding, border, radius, margin) */
+    background: transparent;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    margin: 0;
     position: relative;
     flex: 0 0 auto;
   }
 
   .metric-info summary {
     list-style: none;
+    /* Reset global details summary padding from common.css (it adds 10px which breaks the 24px button) */
+    padding: 0;
   }
 
   .metric-info summary::-webkit-details-marker {

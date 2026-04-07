@@ -102,6 +102,15 @@ describe('MarketKpiCard — info button closed-state appearance', () => {
     // --color-text-label = #5d6a6d = rgb(93, 106, 109)
     expect(color).toBe('rgb(93, 106, 109)');
   });
+
+  it('details.metric-info has no background or border (global details rule must be reset)', () => {
+    const { container } = render(MarketKpiCard, defaultProps());
+    const details = container.querySelector('details.metric-info') as HTMLElement;
+    const s = window.getComputedStyle(details);
+    expect(s.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    expect(s.borderTopWidth).toBe('0px');
+    expect(s.padding).toBe('0px');
+  });
 });
 
 describe('MarketKpiCard — delta display', () => {
