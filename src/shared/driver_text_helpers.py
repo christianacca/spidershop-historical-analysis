@@ -19,6 +19,17 @@ PRICE_TEXT = {
     "↓": "Falling"
 }
 
+LINEAGE_OVERRIDES = {
+    "multi-variant": (
+        "active variants overlap; delta neutralized",
+        "Price: Multiple active sizes"
+    ),
+    "ambiguous-transition": (
+        "momentum neutralized; continuity unconfirmed",
+        ""
+    ),
+}
+
 
 def format_wishlist_pressure(wishlist_pressure: str) -> str:
     """Convert wishlist pressure emoji to human-readable text.
@@ -102,11 +113,7 @@ def lineage_driver_overrides(lineage_status: str) -> tuple[str, str]:
         ``price_override`` — when non-empty, replaces the standard
         ``"Price: <trend>"`` string entirely.
     """
-    if lineage_status == "multi-variant":
-        return "active variants overlap; delta neutralized", "Price: Multiple active sizes"
-    if lineage_status == "ambiguous-transition":
-        return "momentum neutralized; continuity unconfirmed", ""
-    return "", ""
+    return LINEAGE_OVERRIDES.get(lineage_status, ("", ""))
 
 
 def build_drivers_text(
