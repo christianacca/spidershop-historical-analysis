@@ -830,7 +830,6 @@ def build_market_health_payload(
     # showPrior is a property of the window type only (all-time = False, others = True).
     # effective_show_prior additionally requires that prior data actually exists.
     effective_show_prior = show_prior and has_prior_data
-    effective_show_prior = show_prior and has_prior_data
 
     # Edge case: no data at all — return safe empty payload
     if not has_current_data:
