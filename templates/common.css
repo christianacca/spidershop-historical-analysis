@@ -650,8 +650,12 @@ footer a:hover {
     font-size: 0.9rem !important;
 }
 
-/* General Details Element */
-details {
+/* Content-disclosure Details Elements */
+/* Deliberately NOT applied to all <details> — component-owned details (e.g. .metric-info) must not inherit these styles */
+details.instruction-box,
+details.analysis-methodology,
+details.legend-box,
+details.examples-box {
     background: white;
     padding: 15px;
     border-radius: 8px;
@@ -659,7 +663,10 @@ details {
     border: 1px solid #e1e8ed;
 }
 
-details summary {
+details.instruction-box summary,
+details.analysis-methodology summary,
+details.legend-box summary,
+details.examples-box summary {
     cursor: pointer;
     font-weight: 600;
     color: var(--color-primary);
@@ -668,26 +675,41 @@ details summary {
     transition: background 0.3s;
 }
 
-details summary:hover {
+details.instruction-box summary:hover,
+details.analysis-methodology summary:hover,
+details.legend-box summary:hover,
+details.examples-box summary:hover {
     background: var(--color-surface-light);
 }
 
-details[open] summary {
+details.instruction-box[open] summary,
+details.analysis-methodology[open] summary,
+details.legend-box[open] summary,
+details.examples-box[open] summary {
     margin-bottom: 15px;
     border-bottom: 1px solid var(--color-border-alt);
 }
 
-details p {
+details.instruction-box p,
+details.analysis-methodology p,
+details.legend-box p,
+details.examples-box p {
     margin: 15px 0;
 }
 
-details ul {
+details.instruction-box ul,
+details.analysis-methodology ul,
+details.legend-box ul,
+details.examples-box ul {
     margin-left: 30px;
     margin-top: 10px;
     margin-bottom: 10px;
 }
 
-details hr {
+details.instruction-box hr,
+details.analysis-methodology hr,
+details.legend-box hr,
+details.examples-box hr {
     margin: 30px 0;
     border: none;
     border-top: 2px solid var(--color-border);

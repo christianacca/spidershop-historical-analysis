@@ -1,5 +1,5 @@
 
-<details>
+<details class="legend-box">
 <summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>
 
 ### 🧬 Breeder Opportunity Matrix — Legend
