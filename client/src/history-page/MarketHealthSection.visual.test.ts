@@ -48,3 +48,12 @@ describe('MarketHealthSection — G10.5 eyebrow pill', () => {
     expect(numericValue).toBeGreaterThanOrEqual(999);
   });
 });
+
+describe('MarketHealthSection — Gap 3: clear-run button pill shape', () => {
+  it('clear-run button has pill border-radius (999px)', () => {
+    const { container } = render(MarketHealthSection, defaultProps({ initialSelectedRun: 0 }));
+    const btn = container.querySelector('.clear-run-btn') as HTMLElement;
+    const radius = parseFloat(window.getComputedStyle(btn).borderRadius);
+    expect(radius).toBeGreaterThanOrEqual(999);
+  });
+});

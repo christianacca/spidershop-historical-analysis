@@ -81,3 +81,43 @@ describe('MarketKpiCard', () => {
     expect(onRunSelect).toHaveBeenCalled();
   });
 });
+
+describe('MarketKpiCard — ? info button (gap 5)', () => {
+  it('each card contains a details.metric-info element', () => {
+    const { container } = render(MarketKpiCard, defaultProps());
+    expect(container.querySelector('details.metric-info')).toBeTruthy();
+  });
+
+  it('summary has aria-label containing the card title', () => {
+    const { container } = render(MarketKpiCard, defaultProps());
+    const summary = container.querySelector('details.metric-info summary') as HTMLElement;
+    expect(summary).toBeTruthy();
+    expect(summary.getAttribute('aria-label')).toContain('Observed species');
+  });
+
+  it('summary text is "?"', () => {
+    const { container } = render(MarketKpiCard, defaultProps());
+    const summary = container.querySelector('details.metric-info summary') as HTMLElement;
+    expect(summary.textContent?.trim()).toBe('?');
+  });
+
+  it('popover contains the tooltip text for the observed KPI', () => {
+    const { container } = render(MarketKpiCard, defaultProps({ id: 'observed' }));
+    const popover = container.querySelector('.metric-popover') as HTMLElement;
+    expect(popover).toBeTruthy();
+    expect(popover.textContent).toContain('distinct species');
+  });
+
+  it('popover contains the tooltip text for the stock KPI', () => {
+    const { container } = render(MarketKpiCard, defaultProps({ id: 'stock' }));
+    const popover = container.querySelector('.metric-popover') as HTMLElement;
+    expect(popover.textContent).toContain('in-stock at the most recent run');
+  });
+
+  it('metric-title-row wraps both the h3 and the info button', () => {
+    const { container } = render(MarketKpiCard, defaultProps());
+    const titleRow = container.querySelector('.metric-title-row') as HTMLElement;
+    expect(titleRow.querySelector('h3')).toBeTruthy();
+    expect(titleRow.querySelector('details.metric-info')).toBeTruthy();
+  });
+});
