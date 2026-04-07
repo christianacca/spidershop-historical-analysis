@@ -11,6 +11,7 @@
     --color-primary-light:      #34495e; /* slightly lighter navy — subheadings, th bg */
     --color-accent:             #3498db; /* blue — buttons, links, borders, active states */
     --color-accent-hover:       #2980b9; /* darker blue — hover state for accent elements */
+    --color-market-health:      #1f7a6b; /* teal — Market Health section accent, also the observed-sparkline series colour */
 
     /* === Status === */
     --color-success:            #27ae60; /* green — download / success actions */
@@ -35,6 +36,7 @@
     /* === Text === */
     --color-text:               #333;
     --color-text-heading:       #2c3e50; /* alias of --color-primary */
+    --color-text-primary:       #2c3e50; /* alias of --color-text-heading — use for primary headings */
     --color-text-muted:         #7f8c8d;
     --color-text-dim:           #607080; /* species-detail muted tones */
 
@@ -67,13 +69,16 @@
     --spacing-xl:   30px;
 
     /* === Border radius === */
-    --radius-sm:    4px;
-    --radius-md:    6px;
-    --radius-lg:    8px;
+    --radius-sm:        4px;
+    --radius-md:        6px;
+    --radius-lg:        8px;
+    --radius-pill:      999px; /* pill / chip shape elements */
+    --radius-card-lg:   16px;  /* large card / section card rounding */
 
     /* === Font sizes === */
     --font-sm:      0.9rem;
     --font-base:    0.95rem;
+    --font-lg:      1.4rem; /* large heading font size (~23px) */
 }
 
 /* Reset and Base Styles */

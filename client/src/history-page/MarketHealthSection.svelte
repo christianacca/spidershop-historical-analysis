@@ -61,12 +61,14 @@
 </script>
 
 <section class="market-health-section">
-  <header class="section-header">
-    <p class="section-eyebrow">1. Market Health KPIs</p>
-    <h2 id="market-health-heading">{heading()}</h2>
-    <p id="market-health-scope-copy" class="section-scope-copy">{scopeCopy()}</p>
+  <div class="section-header">
+    <div class="section-title">
+      <p class="section-eyebrow">1. Market Health KPIs</p>
+      <h2 id="market-health-heading">{heading()}</h2>
+      <p id="market-health-scope-copy" class="section-scope-copy">{scopeCopy()}</p>
+    </div>
     <p class="section-note">{sectionNote()}</p>
-  </header>
+  </div>
 
   <div class="kpi-grid">
     <MarketKpiCard
@@ -136,21 +138,36 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-card-lg);
+    padding: var(--spacing-xl);
   }
 
   .section-header {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--spacing-lg);
+  }
+
+  .section-title {
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xs);
   }
 
   .section-eyebrow {
+    display: inline-block;
     margin: 0;
+    background: rgba(31, 122, 107, 0.1); /* tinted --color-market-health; rgba() required: no CSS-native opacity modifier for custom properties without color-mix() */
+    color: var(--color-market-health);
+    border-radius: var(--radius-pill);
+    padding: 5px 9px;
     font-size: var(--font-sm);
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: var(--color-text-muted);
   }
 
   .section-header h2 {
@@ -166,6 +183,9 @@
   }
 
   .section-note {
+    flex: none;
+    max-width: 38ch;
+    align-self: flex-start;
     margin: 0;
     font-size: var(--font-sm);
     font-style: italic;

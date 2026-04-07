@@ -62,7 +62,7 @@
   .kpi-card {
     background: var(--color-surface);
     border: 1px solid var(--color-border-light);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-card-lg);
     padding: var(--spacing-md);
     box-shadow: var(--shadow-sm);
     display: flex;
@@ -94,21 +94,25 @@
     line-height: 1;
   }
 
+  /* Positive/neutral (default, class "") — teal pill */
   .metric-delta {
+    border-radius: var(--radius-pill);
+    background: rgba(31, 122, 107, 0.12); /* tinted --color-market-health; rgba() required: no CSS-native opacity modifier for custom properties without color-mix() */
+    color: var(--color-market-health);
     font-size: var(--font-sm);
     font-weight: 600;
-    color: var(--color-text-muted);
-    padding: 2px 6px;
-    border-radius: var(--radius-sm);
-    background: var(--color-surface-light);
+    padding: 3px 8px;
   }
 
+  /* Negative — red-amber pill */
   .metric-delta.down {
-    color: var(--color-danger);
-    background: color-mix(in srgb, var(--color-danger) 12%, var(--color-surface));
+    background: rgba(178, 76, 61, 0.12); /* tinted; close to but not --color-danger (#e74c3c) */
+    color: #b24c3d;
   }
 
+  /* Neutral / all-time — muted pill */
   .metric-delta.flat {
+    background: rgba(127, 140, 141, 0.12); /* tinted --color-text-muted */
     color: var(--color-text-muted);
   }
 
