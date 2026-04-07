@@ -8,13 +8,92 @@ import os
 from pathlib import Path
 from bs4 import BeautifulSoup
 from conftest import page_config, temp_csv_file
-from website.generate_website import generate_homepage, generate_analysis_page, generate_snapshot_page, generate_history_page, main, OUTPUT_DIR
+from website.generate_website import generate_homepage, generate_analysis_page, generate_snapshot_page, generate_history_page, generate_history_insights_page, main, OUTPUT_DIR
+from website.page_config import BasePageConfig
 
 
 def _table_json(html: str) -> list:
     """Extract and parse the window['...Data'] JSON from a rendered page."""
     m = re.search(r"window\['[^']+Data'\]\s*=\s*(\[.*?\])\s*;", html, re.DOTALL)
     return json.loads(m.group(1)) if m else []
+
+
+class TestGenerateHistoryInsightsPage:
+    """Tests for history-insights page generation — KPI window reference date."""
+
+    def _make_history_csv(self, tmp_path, run_dates: list) -> str:
+        """Write a minimal history CSV with one species across given run dates."""
+        csv_path = tmp_path / "spidershop_spiderlings_history.csv"
+        header = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url"
+        rows = [
+            f"{dt},Aphonopelma seemanni,Costa Rican Zebra,1.5,25.00,10,https://example.com/1"
+            for dt in run_dates
+        ]
+        csv_path.write_text("\n".join([header] + rows) + "\n", encoding="utf-8")
+        return str(csv_path)
+
+    def _config(self, csv_filename: str) -> BasePageConfig:
+        return BasePageConfig(
+            title="Market Health",
+            description="Test",
+            csv_filename=csv_filename,
+            table_id="history-table",
+            active_page="history-insights",
+        )
+
+    def test_kpi_values_are_non_zero_when_history_has_data(self, tmp_path):
+        """KPI observed value must be > 0 when history rows exist.
+
+        Regression test: previously all KPIs showed 0 because the window
+        reference was datetime.now() instead of the last scrape datetime.
+        """
+        runs = [
+            "2020-01-01T06:10:00",  # old run — far in the past
+            "2020-01-08T06:10:00",
+            "2020-01-15T06:10:00",
+        ]
+        csv_path = self._make_history_csv(tmp_path, runs)
+        html = generate_history_insights_page(self._config(csv_path))
+        # The injected payload must contain non-zero observed species
+        # (not the empty-payload '0' placeholder).
+        # We check the raw JSON blob injected into the page.
+        import json
+        m = re.search(r'window\.marketHealthPayloads\s*=\s*(\{.*?\});', html, re.DOTALL)
+        assert m, "marketHealthPayloads JSON not found in generated HTML"
+        payloads = json.loads(m.group(1))
+        # 'all-time' window always covers all rows regardless of reference date
+        all_time = payloads["all-time"]
+        assert all_time["kpis"]["observed"]["value"] != "0", (
+            "'all-time' KPI should show non-zero observed species when history has data"
+        )
+
+    def test_kpi_window_relative_to_last_scrape_not_wall_clock(self, tmp_path):
+        """current-quarter window must contain runs relative to the last scrape date,
+        not datetime.now().
+
+        Regression test: when site is generated after a quarter boundary but the
+        most recent scrape is from just before, the current-quarter window is empty
+        under the old wall-clock reference — fixed by passing reference_dt.
+        """
+        # Place all runs in Q1 2020 (well before today)
+        runs = [
+            "2020-01-01T06:10:00",
+            "2020-01-08T06:10:00",
+            "2020-01-15T06:10:00",
+        ]
+        csv_path = self._make_history_csv(tmp_path, runs)
+        html = generate_history_insights_page(self._config(csv_path))
+        import json
+        m = re.search(r'window\.marketHealthPayloads\s*=\s*(\{.*?\});', html, re.DOTALL)
+        assert m, "marketHealthPayloads JSON not found"
+        payloads = json.loads(m.group(1))
+        # With reference_dt = Jan 15 2020, current-quarter = Q1 2020.
+        # That window contains all 3 runs, so observed must be 1 (not 0).
+        current_q = payloads["current-quarter"]
+        assert current_q["kpis"]["observed"]["value"] != "0", (
+            "current-quarter KPI must use last-scrape reference_dt, not datetime.now(). "
+            "Got 0 — window fell outside data range."
+        )
 
 
 class TestGenerateHomepage:
