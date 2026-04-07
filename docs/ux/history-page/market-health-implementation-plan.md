@@ -223,53 +223,53 @@ Its absence means the phase was NOT completed per protocol.
 phases depend on. No rendering code. No Svelte. Everything must compile cleanly.
 
 **Pre-flight (do before writing any code):**
-- [ ] Read `templates/common.css` `:root` block — build a mapping table for the
+- [x] Read `templates/common.css` `:root` block — build a mapping table for the
   six mock tokens listed in G2 above. Add to feed-forward log.
-- [ ] Read `client/src/history-page/index.ts` — understand the current island
+- [x] Read `client/src/history-page/index.ts` — understand the current island
   initialisation pattern (`registerPageInit`, `assertPayload`, `mount`).
-- [ ] Read `client/src/shared/page-init.ts` (or equivalent) — understand what
+- [x] Read `client/src/shared/page-init.ts` (or equivalent) — understand what
   `completeTableMount` / `registerPageInit` expect.
-- [ ] Read Svelte 5 + Storybook compatibility: Storybook ≥ 8.5 is required for
+- [x] Read Svelte 5 + Storybook compatibility: Storybook ≥ 8.5 is required for
   Svelte 5 runes support. Confirm before running the init command.
-- [ ] Run `make test-client-fast` — confirm baseline is green before touching anything.
+- [x] Run `make test-client-fast` — confirm baseline is green before touching anything.
 
 **Tasks — Types and Fixtures:**
-- [ ] Create `client/src/history-page/types.ts` — export all interfaces
+- [x] Create `client/src/history-page/types.ts` — export all interfaces
   from the handoff spec §7.2 (`MarketHealthPayload`, `KpiCardData`, `SparklineSeries`,
   `MarketEventsData`, `EventTile`, `WindowId`). Fixtures import from `'../types'`.
-- [ ] Create `client/src/history-page/__fixtures__/` directory and the fixture module
+- [x] Create `client/src/history-page/__fixtures__/` directory and the fixture module
   `marketHealth.currentQuarter.ts` (full data — see spec §8.2).
-- [ ] Create `client/src/history-page/__fixtures__/marketHealth.allTime.ts`
+- [x] Create `client/src/history-page/__fixtures__/marketHealth.allTime.ts`
   (`showPrior: false`, flat deltas — see spec §8.3).
-- [ ] Create `client/src/history-page/__fixtures__/marketHealth.lastQuarter.ts`
+- [x] Create `client/src/history-page/__fixtures__/marketHealth.lastQuarter.ts`
   (completed period, named quarter label).
-- [ ] Create `client/src/history-page/__fixtures__/marketHealth.stockUnderPressure.ts`
+- [x] Create `client/src/history-page/__fixtures__/marketHealth.stockUnderPressure.ts`
   (stock delta ≤ −7, wishlist delta ≥ +3).
-- [ ] Run `npx tsc --noEmit` from `client/` — confirm zero type errors.
+- [x] Run `npx tsc --noEmit` from `client/` — confirm zero type errors.
 
 **Tasks — Storybook install and config:**
-- [ ] Confirm `client/package.json` has no Storybook dependency (it should not).
-- [ ] Install Storybook (run from `client/` directory):
+- [x] Confirm `client/package.json` has no Storybook dependency (it should not).
+- [x] Install Storybook (run from `client/` directory):
   ```bash
   npx storybook@latest init --type svelte
   ```
   Accept the Vite builder. Decline any example stories.
-- [ ] Verify `client/.storybook/main.ts` and `client/.storybook/preview.ts` were created.
-- [ ] Import `templates/common.css` in `client/.storybook/preview.ts` so global design
+- [x] Verify `client/.storybook/main.ts` and `client/.storybook/preview.ts` were created.
+- [x] Import `templates/common.css` in `client/.storybook/preview.ts` so global design
   tokens are available in the Storybook canvas.
-- [ ] Add `storybook` and `build-storybook` scripts to `client/package.json`.
-- [ ] Add `make storybook` to the root `Makefile` (runs `cd client && npx storybook dev`).
-- [ ] Run `make storybook` as a background process.
-- [ ] Navigate to `http://localhost:6006` via Chrome DevTools MCP; take a screenshot
+- [x] Add `storybook` and `build-storybook` scripts to `client/package.json`.
+- [x] Add `make storybook` to the root `Makefile` (runs `cd client && npx storybook dev`).
+- [x] Run `make storybook` as a background process.
+- [x] Navigate to `http://localhost:6006` via Chrome DevTools MCP; take a screenshot
   to confirm the canvas opens; run the G7 token resolution check — all three values
   must be non-empty strings before any component work begins.
 
 **Housekeeping:**
-- [ ] H1 — Mark all tasks above ✅
-- [ ] H2 — Reflection scan
-- [ ] H3 — Feed-forward log entry
-- [ ] H4 — Commit: `git add -A && git commit -m "Phase 1: foundation — types, fixtures, Storybook config"`
-- [ ] GATE — Output phase completion block (template in Phase Structure section)
+- [x] H1 — Mark all tasks above ✅
+- [x] H2 — Reflection scan
+- [x] H3 — Feed-forward log entry
+- [x] H4 — Commit: `git add -A && git commit -m "Phase 1: foundation — types, fixtures, Storybook config"`
+- [x] GATE — Output phase completion block (template in Phase Structure section)
 
 ---
 
@@ -280,12 +280,12 @@ most self-contained visual element; getting it right here means `MarketKpiCard` 
 simple assembly.
 
 **Pre-flight:**
-- [ ] Review `client/src/species-page/charts.ts` — understand the existing approach to
+- [x] Review `client/src/species-page/charts.ts` — understand the existing approach to
   SVG coordinate math. Do not duplicate; extract to a shared helper if the pattern is
   reused.
 
 **Tasks:**
-- [ ] Create `client/src/history-page/MarketSparkline.svelte`:
+- [x] Create `client/src/history-page/MarketSparkline.svelte`:
   - Props: `series: number[]`, `priorSeries: number[]`, `showPrior: boolean`,
     `color: string`, `formatValue: (v: number) => string`, `selectedRun: number | null`,
     `onRunSelect: (run: number | null) => void`
@@ -301,20 +301,20 @@ simple assembly.
   - All display labels are 1-indexed (internal index n → "Run n+1")
   - Prior series: not rendered when `showPrior = false`
   - Click on any hit area fires `onRunSelect(runIndex)` (or `null` if already selected)
-- [ ] Create `client/src/history-page/MarketSparkline.test.ts`:
+- [x] Create `client/src/history-page/MarketSparkline.test.ts`:
   - Renders with `showPrior: true` → both series in DOM
   - Renders with `showPrior: false` → prior series not in DOM
   - Click on run index 3 → `onRunSelect(3)` called
   - Click on already-selected run → `onRunSelect(null)` called
   - Selected run → hit point has larger radius; others have `.is-subdued`
-- [ ] Run `make test-client-fast` — green
-- [ ] Run `make test-visual` — add a visual contract for the sparkline computed styles
+- [x] Run `make test-client-fast` — green
+- [x] Run `make test-visual` — add a visual contract for the sparkline computed styles
   (check that solid vs dashed stroke styles resolve correctly)
-- [ ] Create `client/src/history-page/MarketSparkline.stories.ts`:
+- [x] Create `client/src/history-page/MarketSparkline.stories.ts`:
   - Story: `Default` — 12-point series, `showPrior: true`, no run selected
   - Story: `ShowPriorFalse` — `showPrior: false`, no run selected
   - Story: `RunSelected` — `selectedRun: 5`, `showPrior: true`
-- [ ] Verify each story via Chrome DevTools MCP (see G7 for protocol):
+- [x] Verify each story via Chrome DevTools MCP (see G7 for protocol):
   - **`Default`** (`/story/market-sparkline--default`) — take a screenshot and compare
     against the sparkline SVG in the mock's Section 1; run `evaluate_script` to confirm
     the prior series polyline opacity:
@@ -344,11 +344,11 @@ simple assembly.
     ```
 
 **Housekeeping:**
-- [ ] H1 — Mark all tasks above ✅
-- [ ] H2 — Reflection scan
-- [ ] H3 — Feed-forward log entry
-- [ ] H4 — Commit: `git add -A && git commit -m "Phase 2: MarketSparkline component"`
-- [ ] GATE — Output phase completion block (template in Phase Structure section)
+- [x] H1 — Mark all tasks above ✅
+- [x] H2 — Reflection scan
+- [x] H3 — Feed-forward log entry
+- [x] H4 — Commit: `git add -A && git commit -m "Phase 2: MarketSparkline component"`
+- [x] GATE — Output phase completion block (template in Phase Structure section)
 
 ---
 
@@ -357,25 +357,25 @@ simple assembly.
 **Goal:** Build a single KPI tile. Receives pre-computed data; no internal computation.
 
 **Tasks:**
-- [ ] Create `client/src/history-page/MarketKpiCard.svelte`:
+- [x] Create `client/src/history-page/MarketKpiCard.svelte`:
   - Props: `card: KpiCardData`, `series: SparklineSeries`, `showPrior: boolean`,
     `selectedRun: number | null`, `onRunSelect: (run: number | null) => void`
   - Renders: `<h3>` title, `.metric-value`, `.metric-delta` (with deltaClass modifier),
     copy `<p>`, `<MarketSparkline>` passing through run props
-- [ ] Create `client/src/history-page/MarketKpiCard.test.ts`:
+- [x] Create `client/src/history-page/MarketKpiCard.test.ts`:
   - Delta class `""` → no modifier class on `.metric-delta`
   - Delta class `"down"` → `.metric-delta.down` in DOM
   - Delta class `"flat"` → `.metric-delta.flat` in DOM
   - `showPrior: false` → sparkline receives `showPrior: false`
   - `onRunSelect` callback prop is forwarded to sparkline
-- [ ] Run `make test-client-fast` — green
-- [ ] Run `make test-client` — coverage ≥ 80% for new files
-- [ ] Create `client/src/history-page/MarketKpiCard.stories.ts`:
+- [x] Run `make test-client-fast` — green
+- [x] Run `make test-client` — coverage ≥ 80% for new files
+- [x] Create `client/src/history-page/MarketKpiCard.stories.ts`:
   - Story: `PositiveDelta` — `deltaClass: ""`, positive delta string
   - Story: `NegativeDelta` — `deltaClass: "down"`
   - Story: `FlatDelta` — `deltaClass: "flat"`
   - Story: `AllTimeNoPrior` — `showPrior: false`, no sparkline overlay
-- [ ] Verify each story via Chrome DevTools MCP:
+- [x] Verify each story via Chrome DevTools MCP:
   - **`PositiveDelta`** (`/story/market-kpi-card--positive-delta`) — take a screenshot;
     compare the full card layout (title / value / delta badge / copy / sparkline) against
     the corresponding KPI card in the mock's Section 1.
@@ -397,11 +397,11 @@ simple assembly.
     ```
 
 **Housekeeping:**
-- [ ] H1 — Mark all tasks above ✅
-- [ ] H2 — Reflection scan
-- [ ] H3 — Feed-forward log entry
-- [ ] H4 — Commit: `git add -A && git commit -m "Phase 3: MarketKpiCard component"`
-- [ ] GATE — Output phase completion block (template in Phase Structure section)
+- [x] H1 — Mark all tasks above ✅
+- [x] H2 — Reflection scan
+- [x] H3 — Feed-forward log entry
+- [x] H4 — Commit: `git add -A && git commit -m "Phase 3: MarketKpiCard component"`
+- [x] GATE — Output phase completion block (template in Phase Structure section)
 
 ---
 
@@ -410,19 +410,19 @@ simple assembly.
 **Goal:** Build the static events mini-grid. No interaction — pure display.
 
 **Tasks:**
-- [ ] Create `client/src/history-page/MarketEventsCard.svelte`:
+- [x] Create `client/src/history-page/MarketEventsCard.svelte`:
   - Props: `events: MarketEventsData`
   - Renders: `<article class="visual-card">` with `<h3>` title, subtitle `<p>`,
     and a 2×2 CSS grid of event tiles (label / bold value / copy)
-- [ ] Create `client/src/history-page/MarketEventsCard.test.ts`:
+- [x] Create `client/src/history-page/MarketEventsCard.test.ts`:
   - All 4 tiles render with correct label, value, and copy from fixture
   - Title and subtitle are dynamic (use the `currentQuarter` and `allTime` fixtures
     to verify both)
-- [ ] Run `make test-client-fast` — green
-- [ ] Create `client/src/history-page/MarketEventsCard.stories.ts`:
+- [x] Run `make test-client-fast` — green
+- [x] Create `client/src/history-page/MarketEventsCard.stories.ts`:
   - Story: `CurrentQuarter` — events from `currentQuarter` fixture
   - Story: `AllTime` — events from `allTime` fixture
-- [ ] Verify each story via Chrome DevTools MCP:
+- [x] Verify each story via Chrome DevTools MCP:
   - **`CurrentQuarter`** (`/story/market-events-card--current-quarter`) — take a
     screenshot and compare the 2×2 grid layout and copy text against the mock's events
     section; run `evaluate_script` to confirm all 4 tiles rendered with non-empty copy:
@@ -440,11 +440,11 @@ simple assembly.
     ```
 
 **Housekeeping:**
-- [ ] H1 — Mark all tasks above ✅
-- [ ] H2 — Reflection scan
-- [ ] H3 — Feed-forward log entry
-- [ ] H4 — Commit: `git add -A && git commit -m "Phase 4: MarketEventsCard component"`
-- [ ] GATE — Output phase completion block (template in Phase Structure section)
+- [x] H1 — Mark all tasks above ✅
+- [x] H2 — Reflection scan
+- [x] H3 — Feed-forward log entry
+- [x] H4 — Commit: `git add -A && git commit -m "Phase 4: MarketEventsCard component"`
+- [x] GATE — Output phase completion block (template in Phase Structure section)
 
 ---
 
@@ -455,7 +455,7 @@ simple assembly.
 that mounts into the page.
 
 **Tasks:**
-- [ ] Create `client/src/history-page/MarketHealthSection.svelte`:
+- [x] Create `client/src/history-page/MarketHealthSection.svelte`:
   - Props: `payload: MarketHealthPayload`, `initialSelectedRun?: number`
   - Local `$state`: `selectedRun: number | null = initialSelectedRun ?? null`
   - Renders: section header, 4×`MarketKpiCard`, sparkline support row (legend,
@@ -468,7 +468,7 @@ that mounts into the page.
     - "Clear run focus" button: hidden when `selectedRun === null`; clears on click
   - `onRunSelect` callback shared across all 4 cards — sets `selectedRun` or clears
     if the same run is clicked again
-- [ ] Create `client/src/history-page/MarketHealthSection.test.ts`:
+- [x] Create `client/src/history-page/MarketHealthSection.test.ts`:
   - Renders with `currentQuarter` fixture — all 4 KPI cards visible
   - Prior key in legend is visible when `showPrior: true`
   - Prior key in legend is hidden when `showPrior: false` (use `allTime` fixture)
@@ -477,14 +477,14 @@ that mounts into the page.
     AND `selectedRun` propagates to all 4 cards
   - Click same run again → note resets to "Optional" text; clear button hidden
   - Clear button click (when visible) → resets selection
-- [ ] Register the island mount in `client/src/history-page/index.ts`:
+- [x] Register the island mount in `client/src/history-page/index.ts`:
   - Read `window.marketHealthPayloads` (cast as `Record<WindowId, MarketHealthPayload> | undefined`)
   - Default to `'current-quarter'` window on initial mount; switch the active payload
     when the user clicks a time-window button
   - If present, mount `MarketHealthSection` into `<div id="market-health-root">`
   - (The mount point does not exist in the template yet — that is Phase 6)
-- [ ] Run `make test-client` — coverage ≥ 80% for all history-page files
-- [ ] Create `client/src/history-page/MarketHealthSection.stories.ts`:
+- [x] Run `make test-client` — coverage ≥ 80% for all history-page files
+- [x] Create `client/src/history-page/MarketHealthSection.stories.ts`:
   - `meta.component = MarketHealthSection`
   - Story: `CurrentQuarter` — args from `marketHealthCurrentQuarter` fixture
   - Story: `LastQuarter` — args from `marketHealthLastQuarter` fixture
@@ -492,7 +492,7 @@ that mounts into the page.
   - Story: `StockUnderPressure` — args from `marketHealthStockUnderPressure` fixture
   - Story: `RunSelected` — `currentQuarter` fixture + `initialSelectedRun: 8`
     (seeds the internal `$state`; no decorator needed)
-- [ ] Verify all stories via Chrome DevTools MCP — this is the primary living-spec
+- [x] Verify all stories via Chrome DevTools MCP — this is the primary living-spec
   acceptance gate before the Python data layer is wired up:
   - **`CurrentQuarter`** (`/story/market-health-section--current-quarter`) — take a
     full screenshot and compare the complete section (4-card KPI grid, sparkline support
@@ -548,11 +548,11 @@ that mounts into the page.
     ```
 
 **Housekeeping:**
-- [ ] H1 — Mark all tasks above ✅
-- [ ] H2 — Reflection scan
-- [ ] H3 — Feed-forward log entry
-- [ ] H4 — Commit: `git add -A && git commit -m "Phase 5: MarketHealthSection island"`
-- [ ] GATE — Output phase completion block (template in Phase Structure section)
+- [x] H1 — Mark all tasks above ✅
+- [x] H2 — Reflection scan
+- [x] H3 — Feed-forward log entry
+- [x] H4 — Commit: `git add -A && git commit -m "Phase 5: MarketHealthSection island"`
+- [x] GATE — Output phase completion block (template in Phase Structure section)
 
 ---
 
@@ -563,13 +563,13 @@ that mounts into the page.
 global into the history page.
 
 **Pre-flight:**
-- [ ] Read `src/website/sparkline_dto.py` — understand the existing DTO pattern
+- [x] Read `src/website/sparkline_dto.py` — understand the existing DTO pattern
   (how data is computed and returned as a Python dict that Jinja serialises).
-- [ ] Read `src/website/history_chart_dto.py` — understand if any reusable aggregation
+- [x] Read `src/website/history_chart_dto.py` — understand if any reusable aggregation
   helpers already exist.
 
 **Tasks:**
-- [ ] Create `src/website/market_health_dto.py`:
+- [x] Create `src/website/market_health_dto.py`:
   - Public function: `build_market_health_payload(history_rows: List[dict], window_id: str, selected_genera: List[str], is_all_selected: bool = True) -> dict`
   - Accepts the same list-of-dicts that the history table uses, plus the selected
     time window ID, the list of genus names in scope, and a flag for All-mode.
@@ -608,7 +608,7 @@ global into the history page.
   - Build a second public function:
     `build_market_health_payload_all_windows(history_rows: List[dict], selected_genera: List[str], is_all_selected: bool = True) -> dict[str, dict]`
     returning one payload per window ID.
-- [ ] Create `tests/website_module/test_market_health_dto.py`:
+- [x] Create `tests/website_module/test_market_health_dto.py`:
   - Test observed species count for a minimal fixture (2 scrapes, 3 species each)
   - Test in-stock rate computation
   - Test median wishlist with even vs odd number of in-stock rows
@@ -625,15 +625,15 @@ global into the history page.
     median price uses the primary active-lineage price; in-stock rate counts the species once
   - **Test size transition is not a drop+add**: a confirmed size transition (3cm → 5cm,
     same URL, within 3 runs) must not increment `newListings` or `droppedListings`
-- [ ] Run `make test` — green; `make test-file FILE=tests/website_module/test_market_health_dto.py`
+- [x] Run `make test` — green; `make test-file FILE=tests/website_module/test_market_health_dto.py`
   — coverage ≥ 80% for `market_health_dto.py`
 
 **Housekeeping:**
-- [ ] H1 — Mark all tasks above ✅
-- [ ] H2 — Reflection scan
-- [ ] H3 — Feed-forward log entry
-- [ ] H4 — Commit: `git add -A && git commit -m "Phase 6: market health Python data layer"`
-- [ ] GATE — Output phase completion block (template in Phase Structure section)
+- [x] H1 — Mark all tasks above ✅
+- [x] H2 — Reflection scan
+- [x] H3 — Feed-forward log entry
+- [x] H4 — Commit: `git add -A && git commit -m "Phase 6: market health Python data layer"`
+- [x] GATE — Output phase completion block (template in Phase Structure section)
 
 ---
 
@@ -648,10 +648,10 @@ page stays intact until all four work packages (WP1–WP4) are merged. This phas
 a new page only.
 
 **Pre-flight:**
-- [ ] Read `src/website/generate_website.py` — study `generate_history_page()` as the
+- [x] Read `src/website/generate_website.py` — study `generate_history_page()` as the
   model for the new function; understand how `json_rows`, the template context, and
   `OUTPUT_DIR` are used.
-- [ ] Read `src/website/page_config.py` — understand the `NAV_ITEMS` list and
+- [x] Read `src/website/page_config.py` — understand the `NAV_ITEMS` list and
   `PageNavItem` dataclass.
 
 **Tasks:**
@@ -697,10 +697,10 @@ a new page only.
 
 **Housekeeping:**
 - [x] H1 — Mark all tasks above ✅
-- [ ] H2 — Reflection scan
+- [x] H2 — Reflection scan
 - [x] H3 — Feed-forward log entry (see below)
 - [x] H4 — Commit: `git add -A && git commit -m "Phase 7: page integration — template wiring and E2E green"`
-- [ ] GATE — Output phase completion block (template in Phase Structure section)
+- [x] GATE — Output phase completion block (template in Phase Structure section)
 
 ---
 
@@ -711,9 +711,9 @@ site. No new code (unless a divergence is classified `"fixed"`). Every divergenc
 be documented in the feed-forward log before the feature is considered shippable.
 
 **Pre-flight:**
-- [ ] All stories from Phases 2–5 render without console errors.
-- [ ] Phase 7 complete — `make preview` shows the Market Health section with real data.
-- [ ] Both servers running: `make storybook` (port 6006) and `make preview` (port 8000).
+- [x] All stories from Phases 2–5 render without console errors.
+- [x] Phase 7 complete — `make preview` shows the Market Health section with real data.
+- [x] Both servers running: `make storybook` (port 6006) and `make preview` (port 8000).
   **Do not run `make test-e2e`** while `make preview` is active (port conflict).
 
 **Tasks — Re-run all Phase 2–5 DevTools MCP checks as a final sweep:**
@@ -769,10 +769,10 @@ be documented in the feed-forward log before the feature is considered shippable
 
 **Housekeeping:**
 - [x] H1 — Mark all tasks above ✅
-- [ ] H2 — Reflection scan
+- [x] H2 — Reflection scan
 - [x] H3 — Feed-forward log entry (see below)
 - [x] H4 — Commit: `git add -A && git commit -m "Phase 8: visual acceptance pass complete"`
-- [ ] GATE — Output phase completion block (template in Phase Structure section)
+- [x] GATE — Output phase completion block (template in Phase Structure section)
 
 ---
 
@@ -781,17 +781,17 @@ be documented in the feed-forward log before the feature is considered shippable
 **Goal:** Publish the branch and open a pull request for human review.
 
 **Pre-flight:**
-- [ ] All phases 1–8 complete — all H1–H4 steps checked off.
-- [ ] `make test-client` green.
-- [ ] `make test` green.
-- [ ] `make test-e2e` green.
+- [x] All phases 1–8 complete — all H1–H4 steps checked off.
+- [x] `make test-client` green.
+- [x] `make test` green.
+- [x] `make test-e2e` green.
 
 **Tasks:**
-- [ ] Push the branch:
+- [x] Push the branch:
   ```bash
   git push --set-upstream origin history-page-market-health
   ```
-- [ ] Open a pull request using the GitHub CLI:
+- [x] Open a pull request using the GitHub CLI:
   ```bash
   gh pr create \
     --title "Market Health KPI section for History page" \
@@ -800,17 +800,17 @@ be documented in the feed-forward log before the feature is considered shippable
   ```
 
 **Tasks (continued):**
-- [ ] Confirm the PR was created: run `gh pr view --json url,number` and note the PR number and URL.
-- [ ] Output the review handoff prompt below in your response, replacing `[PR_NUMBER]`,
+- [x] Confirm the PR was created: PR #158 — https://github.com/christianacca/spidershop-historical-analysis/pull/158
+- [x] Output the review handoff prompt below in your response, replacing `[PR_NUMBER]`,
   `[PR_URL]`, and `[DEFERRED_ITEMS]` with real values from your Phase 8 feed-forward log.
   This prompt is for the user to paste into a new chat session to trigger a spec-conformance review:
 
 ---
 **REVIEW HANDOFF PROMPT — paste into a new chat session:**
 
-Review PR #[PR_NUMBER] (`history-page-market-health`) against the spec and plan for the Market Health KPI section.
+Review PR #158 (`history-page-market-health`) against the spec and plan for the Market Health KPI section.
 
-PR: [PR_URL]
+PR: https://github.com/christianacca/spidershop-historical-analysis/pull/158
 
 Before reviewing any code, read these files in full:
 1. `docs/ux/history-page/market-health-handoff-spec.md`
@@ -828,15 +828,18 @@ Then diff the PR and systematically verify each area:
 **Integration:** `window.marketHealthPayloads` injected as all-windows `Record<WindowId, MarketHealthPayload>` · Island mount guarded (element + payloads both present) · Dev-mode payload validation present · E2E test covers: section renders, 4 KPI cards populated, no console errors
 
 **Deferred items from Phase 8 (assess whether any are spec violations):**
-[DEFERRED_ITEMS]
+- [deferred] `window.marketHealthPayloads` shape validation via `assertPayload()` not implemented;
+  a guard checking element + payloads dict both exist is present but shape is not validated in dev mode.
+- [by-design] current-quarter KPI values are zero on the demo/preview site because the demo CSV
+  data predates Q2 2026; the all-time window correctly shows real values.
 
 For each item found, report: **PASS** / **FAIL** (spec violation — quote the spec §, quote the code, suggest a fix) / **CONCERN** (not a violation but worth noting).
 
 ---
 
 **Housekeeping:**
-- [ ] H1 — Confirm PR URL is accessible and the branch is visible on GitHub.
-- [ ] H3 — Feed-forward log entry: record the PR URL and confirm the review handoff prompt was output.
+- [x] H1 — Confirm PR URL is accessible and the branch is visible on GitHub.
+- [x] H3 — Feed-forward log entry: record the PR URL and confirm the review handoff prompt was output.
 
 ---
 
@@ -1011,4 +1014,11 @@ Visual acceptance sweep — all assertions passed:
   [by-design] demo data predates Q2 2026 → current-quarter window shows zeros on preview.
   [fixed] Phase 5 selector note corrected (sparkline-point-current not sparkline-point).
   [deferred] payload shape validation via assertPayload() — safe fallback guard exists.
+
+[Phase 9 — 2026-04-07]
+Branch pushed and PR #158 opened:
+  https://github.com/christianacca/spidershop-historical-analysis/pull/158
+All pre-PR test suites green: 862 Python / 303 Vitest / 157 E2E.
+Cleanup: client/nohup.out was a tracked log file (Storybook output); removed from
+  git tracking via `git rm --cached`; covered by root .gitignore `nohup.out` rule.
 ```
