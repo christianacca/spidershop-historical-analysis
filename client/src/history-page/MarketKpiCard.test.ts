@@ -121,3 +121,18 @@ describe('MarketKpiCard — ? info button (gap 5)', () => {
     expect(titleRow.querySelector('details.metric-info')).toBeTruthy();
   });
 });
+
+describe('MarketKpiCard — card layout structure', () => {
+  it('metric-value is NOT wrapped in a kpi-value-row element', () => {
+    const { container } = render(MarketKpiCard, defaultProps());
+    expect(container.querySelector('.kpi-value-row')).toBeNull();
+  });
+
+  it('metric-value and metric-delta are direct children of kpi-card', () => {
+    const { container } = render(MarketKpiCard, defaultProps());
+    const card = container.querySelector('.kpi-card') as HTMLElement;
+    const directChildren = Array.from(card.children).map(el => el.className.replace(/svelte-\w+\s*/g, '').trim());
+    expect(directChildren).toContain('metric-value');
+    expect(directChildren.some(c => c.startsWith('metric-delta'))).toBe(true);
+  });
+});

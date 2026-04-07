@@ -38,6 +38,7 @@
     --color-text-heading:       #2c3e50; /* alias of --color-primary */
     --color-text-primary:       #2c3e50; /* alias of --color-text-heading — use for primary headings */
     --color-text-muted:         #7f8c8d;
+    --color-text-label:         #5d6a6d; /* darker muted — KPI card labels and ? button colour */
     --color-text-dim:           #607080; /* species-detail muted tones */
 
     /* === Surfaces === */
@@ -54,6 +55,7 @@
     --color-border:             #dee2e6;
     --color-border-light:       #ddd;
     --color-border-alt:         #e1e8ed;
+    --color-border-warm:        #d7cfc0; /* warm sand — KPI card borders */
 
     /* === Shadows === */
     --shadow-sm:                0 2px 5px rgba(0, 0, 0, 0.05);

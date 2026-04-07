@@ -49,10 +49,8 @@
     </details>
   </div>
 
-  <div class="kpi-value-row">
-    <span class="metric-value">{card.value}</span>
-    <span class="metric-delta {card.deltaClass}">{card.delta}</span>
-  </div>
+  <span class="metric-value">{card.value}</span>
+  <span class="metric-delta {card.deltaClass}">{card.delta}</span>
 
   <p class="kpi-copy">{card.copy}</p>
 
@@ -69,22 +67,22 @@
 
 <style>
   .kpi-card {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border-light);
-    border-radius: var(--radius-card-lg);
+    background: linear-gradient(rgba(255, 255, 255, 0.96), rgba(247, 242, 232, 0.92)); /* warm gradient — matches mock; gradient required, not a single token */
+    border: 1px solid var(--color-border-warm);
+    border-radius: 18px; /* mock uses 18px; --radius-card-lg is 16px (used by event tiles), so overridden here */
     padding: var(--spacing-md);
-    box-shadow: var(--shadow-sm);
+    min-height: 140px;
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-xs);
+    gap: var(--spacing-sm);
   }
 
   .kpi-title {
     font-size: var(--font-sm);
-    font-weight: 600;
-    color: var(--color-text-muted);
+    font-weight: 700;
+    color: var(--color-text-label);
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     margin: 0;
   }
 
@@ -112,12 +110,12 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     border-radius: var(--radius-pill);
     border: 1px solid rgba(31, 42, 44, 0.16);
-    background: var(--color-surface);
-    color: var(--color-text-muted);
+    background: rgba(255, 255, 255, 0.9); /* semi-transparent white; rgba() required — no CSS-native opacity modifier for custom properties without color-mix() */
+    color: var(--color-text-label);
     font-size: 0.84rem;
     font-weight: 800;
     cursor: pointer;
@@ -157,28 +155,24 @@
     margin: 0;
   }
 
-  .kpi-value-row {
-    display: flex;
-    align-items: baseline;
-    gap: var(--spacing-sm);
-    flex-wrap: wrap;
-  }
-
   .metric-value {
-    font-size: 1.6rem;
-    font-weight: 700;
+    font-size: 2rem;
+    font-weight: 750;
+    letter-spacing: -0.03em;
     color: var(--color-text-heading);
     line-height: 1;
   }
 
   /* Positive/neutral (default, class "") — teal pill */
   .metric-delta {
+    display: inline-flex;
+    width: fit-content;
     border-radius: var(--radius-pill);
     background: rgba(31, 122, 107, 0.12); /* tinted --color-market-health; rgba() required: no CSS-native opacity modifier for custom properties without color-mix() */
     color: var(--color-market-health);
     font-size: var(--font-sm);
-    font-weight: 600;
-    padding: 3px 8px;
+    font-weight: 700;
+    padding: 4px 8px;
   }
 
   /* Negative — red-amber pill */
@@ -200,3 +194,4 @@
     margin: 0;
   }
 </style>
+

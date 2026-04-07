@@ -1,0 +1,117 @@
+/**
+ * MarketKpiCard — browser-backed visual contracts.
+ *
+ * Phase 10c gap verification (against docs/ux/history-page/history-kpi-concepts-mockup.html):
+ * - Card border-radius 18px (mock) not 16px
+ * - Card border warm sand (#d7cfc0)
+ * - Card background is a gradient (not solid white)
+ * - metric-value font-size 32px (2rem)
+ * - metric-info-button 24×24px
+ * - metric-info-button closed-state background is white (not teal-tinted)
+ * - metric-info-button closed-state color is --color-text-label (not teal)
+ * - metric-delta display is inline-flex
+ */
+import { describe, it, expect } from 'vitest';
+import { render } from '@testing-library/svelte';
+import MarketKpiCard from './MarketKpiCard.svelte';
+import type { KpiCardData, SparklineSeries } from './types.js';
+
+const SERIES: SparklineSeries = {
+  current: [170, 172, 173, 175, 176, 178, 180, 181, 183, 184, 184, 184],
+  prior:   [165, 166, 168, 169, 171, 172, 174, 175, 176, 177, 177, 177],
+};
+
+function defaultProps(cardOverrides: Partial<KpiCardData> = {}) {
+  return {
+    card: {
+      id: 'observed' as KpiCardData['id'],
+      title: 'Observed species',
+      value: '184',
+      delta: '+7 vs prior quarter QTD',
+      deltaClass: '',
+      copy: 'Breadth is ahead.',
+      ...cardOverrides,
+    },
+    series: SERIES,
+    showPrior: true,
+    selectedRun: null as number | null,
+    onRunSelect: () => {},
+  };
+}
+
+describe('MarketKpiCard — card shape (border-radius)', () => {
+  it('kpi-card has border-radius 18px (not 16px from --radius-card-lg)', () => {
+    const { container } = render(MarketKpiCard, defaultProps());
+    const card = container.querySelector('.kpi-card') as HTMLElement;
+    const radius = parseFloat(window.getComputedStyle(card).borderRadius);
+    expect(radius).toBe(18);
+  });
+});
+
+describe('MarketKpiCard — card border color (warm sand)', () => {
+  it('kpi-card border-color is warm sand rgb(215, 207, 192)', () => {
+    const { container } = render(MarketKpiCard, defaultProps());
+    const card = container.querySelector('.kpi-card') as HTMLElement;
+    const borderColor = window.getComputedStyle(card).borderTopColor;
+    expect(borderColor).toBe('rgb(215, 207, 192)');
+  });
+});
+
+describe('MarketKpiCard — card background (gradient)', () => {
+  it('kpi-card background-image is a gradient (not solid white)', () => {
+    const { container } = render(MarketKpiCard, defaultProps());
+    const card = container.querySelector('.kpi-card') as HTMLElement;
+    const bgImage = window.getComputedStyle(card).backgroundImage;
+    expect(bgImage).toContain('gradient');
+  });
+});
+
+describe('MarketKpiCard — metric-value size', () => {
+  it('metric-value font-size is 32px (2rem)', () => {
+    const { container } = render(MarketKpiCard, defaultProps());
+    const value = container.querySelector('.metric-value') as HTMLElement;
+    const fontSize = parseFloat(window.getComputedStyle(value).fontSize);
+    expect(fontSize).toBe(32);
+  });
+});
+
+describe('MarketKpiCard — info button size', () => {
+  it('metric-info-button is 24×24px', () => {
+    const { container } = render(MarketKpiCard, defaultProps());
+    const btn = container.querySelector('.metric-info-button') as HTMLElement;
+    const s = window.getComputedStyle(btn);
+    expect(parseFloat(s.width)).toBe(24);
+    expect(parseFloat(s.height)).toBe(24);
+  });
+});
+
+describe('MarketKpiCard — info button closed-state appearance', () => {
+  it('metric-info-button background is white (not teal-tinted) when closed', () => {
+    const { container } = render(MarketKpiCard, defaultProps());
+    const btn = container.querySelector('.metric-info-button') as HTMLElement;
+    const bg = window.getComputedStyle(btn).backgroundColor;
+    // rgb(255, 255, 255) is white — must NOT be teal rgba(31, 122, 107, ...)
+    // getComputedStyle resolves rgba(255,255,255,0.9) as rgba(255,255,255,0.9) or rgb(255,255,255)
+    expect(bg).not.toContain('31, 122, 107');
+  });
+
+  it('metric-info-button color is --color-text-label (not teal) when closed', () => {
+    const { container } = render(MarketKpiCard, defaultProps());
+    const btn = container.querySelector('.metric-info-button') as HTMLElement;
+    const color = window.getComputedStyle(btn).color;
+    // --color-text-label = #5d6a6d = rgb(93, 106, 109)
+    expect(color).toBe('rgb(93, 106, 109)');
+  });
+});
+
+describe('MarketKpiCard — delta display', () => {
+  it('metric-delta is NOT a full-width block (width is fit-content)', () => {
+    const { container } = render(MarketKpiCard, defaultProps());
+    const delta = container.querySelector('.metric-delta') as HTMLElement;
+    const card = container.querySelector('.kpi-card') as HTMLElement;
+    const deltaWidth = parseFloat(window.getComputedStyle(delta).width);
+    const cardWidth = parseFloat(window.getComputedStyle(card).width);
+    // delta should be noticeably narrower than card (fit-content, not full-width block)
+    expect(deltaWidth).toBeLessThan(cardWidth * 0.9);
+  });
+});
