@@ -27,13 +27,13 @@
     runLabels = ['Run 1', 'Run 6', 'Run 12'],
   }: Props = $props();
 
-  // --- Layout constants ---
-  const W = 120;
-  const H = 56;
-  const TOP_PAD    = 6;
-  const BOTTOM_PAD = 14; // space for axis labels
-  const LEFT_PAD   = 0;
-  const RIGHT_PAD  = 0;
+  // --- Layout constants (match mock: viewBox 268×82, padding left/right 14, top 10, bottom 18) ---
+  const W = 268;
+  const H = 82;
+  const TOP_PAD    = 10;
+  const BOTTOM_PAD = 18; // space for axis labels
+  const LEFT_PAD   = 14;
+  const RIGHT_PAD  = 14;
   const CHART_H = H - TOP_PAD - BOTTOM_PAD;
   const CHART_W = W - LEFT_PAD - RIGHT_PAD;
   const N = 12;
@@ -43,16 +43,21 @@
     return LEFT_PAD + (i / (N - 1)) * CHART_W;
   }
 
+  // Auto-range: match mock's Math.max(range, 1) approach.
+  // Higher values plot HIGHER (lower y) — maxValue maps to TOP_PAD.
   function autoRange(curr: number[], prior: number[], usePrior: boolean): { min: number; max: number } {
     const all = usePrior ? [...curr, ...prior] : [...curr];
     const min = Math.min(...all);
     const max = Math.max(...all);
-    return { min, max: max === min ? min + 1 : max };
+    return { min, max };
+  }
+
+  function range(min: number, max: number): number {
+    return Math.max(max - min, 1);
   }
 
   function yAt(v: number, min: number, max: number): number {
-    const t = (v - min) / (max - min);
-    return TOP_PAD + CHART_H - t * CHART_H;
+    return TOP_PAD + ((max - v) / range(min, max)) * CHART_H;
   }
 
   function toPoints(values: number[], min: number, max: number): string {
@@ -60,11 +65,11 @@
   }
 
   // Reactive derived values
-  let range = $derived(autoRange(series, priorSeries, showPrior && priorSeries.length > 0));
-  let currentPoints = $derived(toPoints(series, range.min, range.max));
-  let priorPoints   = $derived(priorSeries.length > 0 ? toPoints(priorSeries, range.min, range.max) : '');
+  let autoRangeResult = $derived(autoRange(series, priorSeries, showPrior && priorSeries.length > 0));
+  let currentPoints   = $derived(toPoints(series, autoRangeResult.min, autoRangeResult.max));
+  let priorPoints     = $derived(priorSeries.length > 0 ? toPoints(priorSeries, autoRangeResult.min, autoRangeResult.max) : '');
 
-  // Baseline y position
+  // Baseline y position (bottom of chart area)
   const BASELINE_Y = TOP_PAD + CHART_H;
 
   // Hit-area width per run slot
@@ -78,7 +83,7 @@
 <svg
   class="market-sparkline"
   viewBox="0 0 {W} {H}"
-  width={W}
+  width="100%"
   height={H}
   aria-hidden="true"
 >
@@ -101,14 +106,14 @@
       fill="none"
       stroke={color}
       stroke-width="1.5"
-      stroke-dasharray="3 2"
+      stroke-dasharray="5 4"
     />
     {#each priorSeries as v, i}
       {@const isSelected = selectedRun === i}
       <circle
         class="sparkline-point-prior"
         cx={xAt(i)}
-        cy={yAt(v, range.min, range.max)}
+        cy={yAt(v, autoRangeResult.min, autoRangeResult.max)}
         r={isSelected ? 3.4 : 2.2}
         fill="none"
         stroke={color}
@@ -132,7 +137,7 @@
       class:is-subdued={isSubdued}
       class="sparkline-point-current"
       cx={xAt(i)}
-      cy={yAt(v, range.min, range.max)}
+      cy={yAt(v, autoRangeResult.min, autoRangeResult.max)}
       r={isSelected ? 4.4 : 2.7}
       fill={color}
       stroke="none"
@@ -143,7 +148,7 @@
   {#each series as _v, i}
     <rect
       class="sparkline-hit"
-      x={i === 0 ? 0 : xAt(i) - HIT_W / 2}
+      x={i === 0 ? LEFT_PAD : xAt(i) - HIT_W / 2}
       y={TOP_PAD}
       width={HIT_W}
       height={CHART_H}
@@ -153,17 +158,15 @@
     />
   {/each}
 
-  <!-- Run-axis labels at indices 0, 5, 11 -->
-  <text class="sparkline-run-label" x={xAt(0)}  y={H - 2} text-anchor="start"   font-size="7">{runLabels[0]}</text>
-  <text class="sparkline-run-label" x={xAt(5)}  y={H - 2} text-anchor="middle"  font-size="7">{runLabels[1]}</text>
-  <text class="sparkline-run-label" x={xAt(11)} y={H - 2} text-anchor="end"     font-size="7">{runLabels[2]}</text>
+  <!-- Run-axis labels at indices 0, 5, 11 — font-size 10 matches mock CSS .sparkline-run-labels -->
+  <text class="sparkline-run-label" x={xAt(0)}  y={H - 4} text-anchor="start"   font-size="10">{runLabels[0]}</text>
+  <text class="sparkline-run-label" x={xAt(5)}  y={H - 4} text-anchor="middle"  font-size="10">{runLabels[1]}</text>
+  <text class="sparkline-run-label" x={xAt(11)} y={H - 4} text-anchor="end"     font-size="10">{runLabels[2]}</text>
 </svg>
 
 <style>
   .market-sparkline {
     display: block;
-    width: 100%;   /* fill the .metric-sparkline container (spec §4.6) */
-    height: auto;  /* proportional scaling via viewBox */
     overflow: visible;
   }
 
