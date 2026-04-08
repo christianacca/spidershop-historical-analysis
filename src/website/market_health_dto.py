@@ -95,6 +95,16 @@ _PRIOR_LABELS = {
     "last-year": "the prior full year",
 }
 
+# Short labels used in KPI delta badge text and events values (spec §6).
+_PRIOR_DELTA_LABELS = {
+    "this-month": "prior month MTD",
+    "last-month": "prior full month",
+    "current-quarter": "prior quarter QTD",
+    "last-quarter": "prior full quarter",
+    "this-year": "prior year YTD",
+    "last-year": "prior full year",
+}
+
 # Events title and subtitle per window.
 _EVENTS_TITLES = {
     "this-month": "Run-to-run market events this month",
@@ -478,7 +488,7 @@ def _is_size_transition(
 
 
 def _compute_events(
-    rows: list[dict], window_id: str
+    rows: list[dict], window_id: str, delta_label: str
 ) -> dict:
     """Compute event counts across all run-pairs within the window."""
     runs = _get_sorted_runs(rows)
@@ -528,12 +538,6 @@ def _compute_events(
                     pass  # size transition — not counted as drop
                 else:
                     oos_flip_count += 1
-
-    def _fmt_value(count: int, comparative: bool) -> str:
-        if not comparative or is_all_time:
-            return f"{count} total"
-        sign = "+" if count > 0 else ""
-        return f"{sign}{count} vs prior quarter QTD"
 
     def _events_copy_new_listings(count: int) -> str:
         if is_all_time:
@@ -591,22 +595,22 @@ def _compute_events(
         "subtitle": _EVENTS_SUBTITLES.get(window_id, ""),
         "newListings": {
             "label": "Listings added",
-            "value": f"{new_listings_count} total" if is_all_time else f"+{new_listings_count} vs prior",
+            "value": f"{new_listings_count} total" if is_all_time else f"+{new_listings_count} vs {delta_label}",
             "copy": _events_copy_new_listings(new_listings_count),
         },
         "droppedListings": {
             "label": "Listings removed",
-            "value": f"{dropped_listings_count} total" if is_all_time else f"{dropped_listings_count} vs prior",
+            "value": f"{dropped_listings_count} total" if is_all_time else f"{dropped_listings_count} vs {delta_label}",
             "copy": _events_copy_dropped(dropped_listings_count),
         },
         "restocks": {
             "label": "OUT \u2192 IN restocks",
-            "value": f"{restock_count} total" if is_all_time else f"{restock_count} vs prior",
+            "value": f"{restock_count} total" if is_all_time else f"{restock_count} vs {delta_label}",
             "copy": _events_copy_restocks(restock_count),
         },
         "oosFlips": {
             "label": "IN \u2192 OUT stockouts",
-            "value": f"{oos_flip_count} total" if is_all_time else f"+{oos_flip_count} vs prior",
+            "value": f"{oos_flip_count} total" if is_all_time else f"+{oos_flip_count} vs {delta_label}",
             "copy": _events_copy_oos_flips(oos_flip_count),
         },
     }
@@ -757,7 +761,7 @@ def _price_copy(delta: Optional[int], prior_label: str, is_all_time: bool) -> st
 # Delta formatting helpers
 # ---------------------------------------------------------------------------
 
-def _format_observed_delta(delta: Optional[int], is_all_time: bool) -> tuple[str, str]:
+def _format_observed_delta(delta: Optional[int], is_all_time: bool, delta_label: str) -> tuple[str, str]:
     """Return (delta_text, delta_class)."""
     if is_all_time:
         return "No prior comparison", "flat"
@@ -765,37 +769,37 @@ def _format_observed_delta(delta: Optional[int], is_all_time: bool) -> tuple[str
         return "No prior comparison", "flat"
     sign = "+" if delta >= 0 else ""
     cls = "down" if delta < 0 else ""
-    return f"{sign}{delta} vs prior", cls
+    return f"{sign}{delta} vs {delta_label}", cls
 
 
-def _format_stock_delta(delta: Optional[int], is_all_time: bool) -> tuple[str, str]:
+def _format_stock_delta(delta: Optional[int], is_all_time: bool, delta_label: str) -> tuple[str, str]:
     if is_all_time:
         return "No prior comparison", "flat"
     if delta is None:
         return "No prior comparison", "flat"
     sign = "+" if delta > 0 else ""
     cls = "down" if delta < 0 else ""
-    return f"{sign}{delta} pts vs prior", cls
+    return f"{sign}{delta} pts vs {delta_label}", cls
 
 
-def _format_wishlist_delta(delta: Optional[int], is_all_time: bool) -> tuple[str, str]:
+def _format_wishlist_delta(delta: Optional[int], is_all_time: bool, delta_label: str) -> tuple[str, str]:
     if is_all_time:
         return "No prior comparison", "flat"
     if delta is None:
         return "No prior comparison", "flat"
     sign = "+" if delta >= 0 else ""
     cls = "flat" if delta == 0 else ("down" if delta < 0 else "")
-    return f"{sign}{delta} vs prior", cls
+    return f"{sign}{delta} vs {delta_label}", cls
 
 
-def _format_price_delta(delta: Optional[int], is_all_time: bool) -> tuple[str, str]:
+def _format_price_delta(delta: Optional[int], is_all_time: bool, delta_label: str) -> tuple[str, str]:
     if is_all_time:
         return "No prior comparison", "flat"
     if delta is None:
         return "No prior comparison", "flat"
     sign = "+" if delta > 0 else ""
     cls = "flat" if delta == 0 else ("down" if delta < 0 else "")
-    return f"{sign}GBP {delta} vs prior", cls
+    return f"{sign}GBP {delta} vs {delta_label}", cls
 
 
 # ---------------------------------------------------------------------------
@@ -874,12 +878,13 @@ def build_market_health_payload(
         d_observed = d_stock = d_wishlist = d_price = None
 
     prior_label = _PRIOR_LABELS.get(window_id, "prior period")
+    delta_label = _PRIOR_DELTA_LABELS.get(window_id, "prior period")
 
     # Format deltas
-    obs_delta_text, obs_delta_cls = _format_observed_delta(d_observed, is_all_time)
-    stock_delta_text, stock_delta_cls = _format_stock_delta(d_stock, is_all_time)
-    wl_delta_text, wl_delta_cls = _format_wishlist_delta(d_wishlist, is_all_time)
-    price_delta_text, price_delta_cls = _format_price_delta(d_price, is_all_time)
+    obs_delta_text, obs_delta_cls = _format_observed_delta(d_observed, is_all_time, delta_label)
+    stock_delta_text, stock_delta_cls = _format_stock_delta(d_stock, is_all_time, delta_label)
+    wl_delta_text, wl_delta_cls = _format_wishlist_delta(d_wishlist, is_all_time, delta_label)
+    price_delta_text, price_delta_cls = _format_price_delta(d_price, is_all_time, delta_label)
 
     # Build sparkline series
     observed_series = _build_sparkline_for_metric(win_rows, "observed", win_rows)
@@ -896,7 +901,7 @@ def build_market_health_payload(
         obs_prior = stock_prior = wl_prior = price_prior = []
 
     # Compute events
-    events = _compute_events(win_rows, window_id)
+    events = _compute_events(win_rows, window_id, delta_label)
 
     # Build scope label
     scope_label = _build_scope_label(selected_genera, is_all_selected)
@@ -979,7 +984,7 @@ def _empty_payload(
             key: {"current": empty_series, "prior": []}
             for key in ("observed", "stock", "wishlist", "price")
         },
-        "events": _compute_events([], window_id),
+        "events": _compute_events([], window_id, _PRIOR_DELTA_LABELS.get(window_id, "prior period")),
     }
 
 

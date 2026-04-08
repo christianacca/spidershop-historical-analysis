@@ -237,6 +237,72 @@ class TestPriorPeriodBoundary:
         assert delta.startswith("+1")
 
 
+class TestDeltaLabels:
+    """KPI delta badges and events values must use window-specific prior labels (spec §6)."""
+
+    @pytest.mark.parametrize("window_id,expected_label", [
+        ("current-quarter", "prior quarter QTD"),
+        ("last-quarter", "prior full quarter"),
+        ("this-month", "prior month MTD"),
+        ("last-month", "prior full month"),
+        ("this-year", "prior year YTD"),
+        ("last-year", "prior full year"),
+    ])
+    def test_kpi_delta_contains_window_specific_label(self, window_id, expected_label):
+        """Each window uses its own prior-period label in delta badge text (not generic 'prior')."""
+        # Build rows that span multiple windows; REF_DT anchors the window.
+        # We need rows in BOTH the current window and its prior window to get a non-None delta.
+        # Use REF_DT (Jan 15 2026) as reference — rows below cover Q4 2025 and Q1 2026.
+        rows_current = [
+            _row(RUN1, "A"), _row(RUN2, "A"), _row(RUN3, "A"),
+            _row(RUN1, "B"), _row(RUN2, "B"), _row(RUN3, "B"),
+        ]
+        rows_prior = [
+            _row(PRIOR_RUN1, "A"), _row(PRIOR_RUN2, "A"), _row(PRIOR_RUN3, "A"),
+        ]
+        # For windows other than current-quarter we still pass the same raw rows;
+        # only the window-id changes. The important thing is the delta label suffix.
+        result = build_market_health_payload(
+            rows_current + rows_prior, window_id, [], is_all_selected=True,
+            reference_dt=REF_DT,
+        )
+        for kpi_key in ("observed", "stock", "wishlist", "price"):
+            delta = result["kpis"][kpi_key]["delta"]
+            if delta == "No prior comparison":
+                continue  # window has no matching prior data — label test not applicable
+            assert expected_label in delta, (
+                f"window={window_id!r} kpi={kpi_key!r}: "
+                f"expected {expected_label!r} in delta {delta!r}"
+            )
+
+    def test_events_values_contain_window_specific_label_current_quarter(self):
+        """Events card values must use 'prior quarter QTD' for current-quarter window."""
+        rows = [
+            _row(RUN1, "A"), _row(RUN2, "A"), _row(RUN3, "A"),
+            _row(RUN2, "B"), _row(RUN3, "B"),  # B appears mid-window → new listing
+        ]
+        result = build_market_health_payload(
+            rows, "current-quarter", [], is_all_selected=True, reference_dt=REF_DT
+        )
+        events = result["events"]
+        for event_key in ("newListings", "droppedListings", "restocks", "oosFlips"):
+            value = events[event_key]["value"]
+            if "total" in value:
+                continue  # all-time path — not applicable
+            assert "prior quarter QTD" in value, (
+                f"events[{event_key!r}].value={value!r} missing 'prior quarter QTD'"
+            )
+
+    def test_all_time_delta_text_unchanged(self):
+        """All-time window must still produce 'No prior comparison', not contain a delta label."""
+        rows = [_row(RUN1, "A"), _row(RUN3, "A")]
+        result = build_market_health_payload(
+            rows, "all-time", [], is_all_selected=True, reference_dt=REF_DT
+        )
+        for kpi_key in ("observed", "stock", "wishlist", "price"):
+            assert result["kpis"][kpi_key]["delta"] == "No prior comparison"
+
+
 class TestSparklineSeries:
     def test_sparkline_series_has_12_points(self):
         rows = [_row(RUN1, "A"), _row(RUN2, "A"), _row(RUN3, "A")]
