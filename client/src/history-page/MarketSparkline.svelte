@@ -162,6 +162,8 @@
 <style>
   .market-sparkline {
     display: block;
+    width: 100%;   /* fill the .metric-sparkline container (spec §4.6) */
+    height: auto;  /* proportional scaling via viewBox */
     overflow: visible;
   }
 

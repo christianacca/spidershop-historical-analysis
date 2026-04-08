@@ -36,6 +36,7 @@ function defaultProps(cardOverrides: Partial<KpiCardData> = {}) {
     showPrior: true,
     selectedRun: null as number | null,
     onRunSelect: () => {},
+    windowScopeLabel: 'current quarter',
   };
 }
 
@@ -122,5 +123,30 @@ describe('MarketKpiCard — delta display', () => {
     const cardWidth = parseFloat(window.getComputedStyle(card).width);
     // delta should be noticeably narrower than card (fit-content, not full-width block)
     expect(deltaWidth).toBeLessThan(cardWidth * 0.9);
+  });
+});
+
+describe('MarketKpiCard — sparkline box visual (spec §4.6)', () => {
+  it('.metric-sparkline has border-radius 14px', () => {
+    const { container } = render(MarketKpiCard, defaultProps());
+    const box = container.querySelector('.metric-sparkline') as HTMLElement;
+    const radius = parseFloat(window.getComputedStyle(box).borderRadius);
+    expect(radius).toBe(14);
+  });
+
+  it('.metric-sparkline border-color is warm sand rgba(215, 207, 192, 0.9)', () => {
+    const { container } = render(MarketKpiCard, defaultProps());
+    const box = container.querySelector('.metric-sparkline') as HTMLElement;
+    const borderColor = window.getComputedStyle(box).borderTopColor;
+    // Chromium preserves rgba() with alpha channel rather than normalizing to rgb()
+    expect(borderColor).toMatch(/rgba?\(215,\s*207,\s*192/);
+  });
+
+  it('.metric-sparkline background is a semi-transparent white', () => {
+    const { container } = render(MarketKpiCard, defaultProps());
+    const box = container.querySelector('.metric-sparkline') as HTMLElement;
+    const bg = window.getComputedStyle(box).backgroundColor;
+    // rgba(255, 255, 255, 0.72) — white channels
+    expect(bg).toContain('255, 255, 255');
   });
 });

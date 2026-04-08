@@ -32,9 +32,28 @@
     showPrior: boolean;
     selectedRun: number | null;
     onRunSelect: (run: number | null) => void;
+    windowScopeLabel?: string;
   }
 
-  let { card, series, showPrior, selectedRun, onRunSelect }: Props = $props();
+  let { card, series, showPrior, selectedRun, onRunSelect, windowScopeLabel = 'all time' }: Props = $props();
+
+  // Readout text per spec §4.5.
+  const fmt = makeFormatter(card.id);
+  const readoutText = $derived((): string => {
+    if (selectedRun === null) {
+      if (showPrior) {
+        return `${card.title} shown as active window vs matched prior-period overlay.`;
+      }
+      return `${card.title} shown as ${windowScopeLabel} context with no prior-period overlay.`;
+    }
+    const pointLabel = `Run ${selectedRun + 1}`;
+    const currentValue = fmt(series.current[selectedRun]!);
+    if (showPrior && series.prior.length > 0) {
+      const priorValue = fmt(series.prior[selectedRun]!);
+      return `${pointLabel}: ${currentValue} current vs ${priorValue} matched prior period.`;
+    }
+    return `${pointLabel}: ${currentValue} within ${windowScopeLabel}, with no prior-period overlay.`;
+  });
 </script>
 
 <article class="kpi-card">
@@ -54,15 +73,20 @@
 
   <p class="kpi-copy">{card.copy}</p>
 
-  <MarketSparkline
-    series={series.current}
-    priorSeries={series.prior}
-    {showPrior}
-    color={SPARKLINE_COLOR[card.id]}
-    formatValue={makeFormatter(card.id)}
-    {selectedRun}
-    {onRunSelect}
-  />
+  <div class="metric-sparkline-shell">
+    <div class="metric-sparkline">
+      <MarketSparkline
+        series={series.current}
+        priorSeries={series.prior}
+        {showPrior}
+        color={SPARKLINE_COLOR[card.id]}
+        formatValue={makeFormatter(card.id)}
+        {selectedRun}
+        {onRunSelect}
+      />
+    </div>
+    <p class="sparkline-readout">{readoutText()}</p>
+  </div>
 </article>
 
 <style>
@@ -191,6 +215,30 @@
     font-size: var(--font-sm);
     color: var(--color-text);
     line-height: 1.5;
+    margin: 0;
+  }
+
+  /* Sparkline shell — separates sparkline area from copy above (spec §4.6) */
+  .metric-sparkline-shell {
+    display: grid;
+    gap: 8px;
+    margin-top: 6px;
+    padding-top: 10px;
+    border-top: 1px dashed rgba(31, 42, 44, 0.12);
+  }
+
+  /* Bordered box enclosing the SVG sparkline (spec §4.6) */
+  .metric-sparkline {
+    border: 1px solid rgba(215, 207, 192, 0.9); /* warm sand — same family as card border */
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.72); /* semi-transparent white inset */
+    overflow: hidden;
+  }
+
+  /* Readout text below the sparkline box (spec §4.5) */
+  .sparkline-readout {
+    color: var(--color-text-muted);
+    font-size: 0.79rem;
     margin: 0;
   }
 </style>

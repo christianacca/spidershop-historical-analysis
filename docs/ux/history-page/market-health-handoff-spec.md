@@ -281,6 +281,42 @@ Each KPI card has a `<p class="sparkline-readout">` element below the sparkline 
 
 `pointLabel` is window-specific (e.g. `"Run 4"` for weekly windows, `"Mar"` for year windows). Default: `"Run {n+1}"` (1-indexed). `windowScopeLabel` = human-readable window scope string (e.g. `"current quarter"`, `"all time"`).
 
+### 4.6 Sparkline shell and box structure
+
+Each KPI card wraps its sparkline and readout text in a two-element shell:
+
+```html
+<div class="metric-sparkline-shell">
+  <div class="metric-sparkline">
+    <!-- SVG rendered by MarketSparkline component — scales to 100% width -->
+  </div>
+  <p class="sparkline-readout">…text per §4.5…</p>
+</div>
+```
+
+**`.metric-sparkline-shell`** — outer wrapper:
+- `display: grid; gap: 8px` (stacks the box above the readout text)
+- `margin-top: 6px; padding-top: 10px`
+- `border-top: 1px dashed rgba(31, 42, 44, 0.12)` (dashed separator line between copy and sparkline area)
+
+**`.metric-sparkline`** — bordered box around the SVG:
+- `border: 1px solid rgba(215, 207, 192, 0.9)` (warm sand, same as card border but opaque)
+- `border-radius: 14px`
+- `background: rgba(255, 255, 255, 0.72)` (semi-transparent white inset)
+- `overflow: hidden`
+- The SVG inside must scale to `width: 100%; height: auto;` to fill the box.
+
+**`.sparkline-readout`** — text below the box:
+- `color: var(--color-text-muted)`
+- `font-size: 0.79rem`
+- Text content per §4.5 above.
+
+> **Implementation note:** The `MarketSparkline` SVG component must have CSS
+> `width: 100%; height: auto` applied so it fills the `.metric-sparkline` container.
+> Setting `viewBox` on the SVG element ensures proportional scaling.
+> The `windowScopeLabel` needed for the §4.5 readout text is derived from the payload's
+> `windowId` (`windowId.replaceAll('-', ' ')`) and passed as a prop to `MarketKpiCard`.
+
 ---
 
 ## 5. Events Mini-Grid Contract

@@ -58,6 +58,9 @@
     }
     return 'If your selected genera look flat overall, treat any individual genus comparison cautiously.';
   });
+
+  // Derived from windowId — converts e.g. "current-quarter" → "current quarter" for readout text
+  const windowScopeLabel = $derived(payload.windowId.replaceAll('-', ' '));
 </script>
 
 <section class="market-health-section">
@@ -77,6 +80,7 @@
       showPrior={payload.showPrior}
       {selectedRun}
       onRunSelect={handleRunSelect}
+      {windowScopeLabel}
     />
     <MarketKpiCard
       card={payload.kpis.stock}
@@ -84,6 +88,7 @@
       showPrior={payload.showPrior}
       {selectedRun}
       onRunSelect={handleRunSelect}
+      {windowScopeLabel}
     />
     <MarketKpiCard
       card={payload.kpis.wishlist}
@@ -91,6 +96,7 @@
       showPrior={payload.showPrior}
       {selectedRun}
       onRunSelect={handleRunSelect}
+      {windowScopeLabel}
     />
     <MarketKpiCard
       card={payload.kpis.price}
@@ -98,6 +104,7 @@
       showPrior={payload.showPrior}
       {selectedRun}
       onRunSelect={handleRunSelect}
+      {windowScopeLabel}
     />
   </div>
 

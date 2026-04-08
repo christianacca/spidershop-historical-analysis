@@ -15,6 +15,7 @@ const meta: Meta<typeof MarketKpiCard> = {
     showPrior: true,
     selectedRun: null,
     onRunSelect: (run: number | null) => console.log('onRunSelect', run),
+    windowScopeLabel: 'current quarter',
   },
 };
 
@@ -37,6 +38,7 @@ export const FlatDelta: Story = {
     card: price,
     series: marketHealthAllTime.sparklineSeries.price,
     showPrior: false,
+    windowScopeLabel: 'all time',
   },
 };
 
@@ -45,6 +47,7 @@ export const AllTimeNoPrior: Story = {
     card: marketHealthAllTime.kpis.observed,
     series: marketHealthAllTime.sparklineSeries.observed,
     showPrior: false,
+    windowScopeLabel: 'all time',
   },
 };
 
