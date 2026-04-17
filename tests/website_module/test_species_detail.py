@@ -347,6 +347,29 @@ class TestBuildChartData:
         finally:
             Path(history_csv).unlink()
 
+    def test_handles_empty_size_cm_without_raising(self):
+        """Should not raise ValueError when size_cm is an empty string in history CSV."""
+        from website.species_detail import build_chart_data
+
+        # Reproduces the production failure: size_cm field is blank in the CSV
+        content = (
+            "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+            "2025-01-01 06:00:00,Aphonopelma seemanni,Costa Rican Zebra,,10.00,5,http://example.com\n"
+        )
+        history_csv = create_temp_csv_file(content)
+
+        try:
+            # Must not raise ValueError: could not convert string to float: ''
+            chart_data = build_chart_data("Aphonopelma seemanni", history_csv)
+
+            assert len(chart_data["runs"]) == 1
+            run = chart_data["runs"][0]
+            assert run["observed"] is True
+            # Empty size_cm values should be excluded from the size string
+            assert run["size"] == ""
+        finally:
+            Path(history_csv).unlink()
+
 
 class TestGetDefaultSize:
     """Test default size selection from most recent observation."""

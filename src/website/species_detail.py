@@ -248,7 +248,7 @@ def build_chart_data(
                 "observed": True,
                 "price": observations[run_date]["price"],
                 "wishlist": observations[run_date]["wishlist"],
-                "size": ", ".join(f"{float(s):g}" for s in sizes)
+                "size": ", ".join(f"{float(s):g}" for s in sizes if s.strip())
             })
         else:
             # Gap: species was NOT observed in this run (out of stock)
