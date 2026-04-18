@@ -226,8 +226,9 @@ def build_chart_data(
                     "wishlist": row[wishlist_idx],
                     "sizes": []
                 }
-            if row[size_idx] not in observations[run_date]["sizes"]:
-                observations[run_date]["sizes"].append(row[size_idx])
+            size_value = row[size_idx].strip()
+            if size_value and size_value not in observations[run_date]["sizes"]:
+                observations[run_date]["sizes"].append(size_value)
     
     # If species has NEVER been observed, return empty chart data
     if not observations:
@@ -242,13 +243,13 @@ def build_chart_data(
     for run_date in recent_run_dates:
         if run_date in observations:
             # Species was observed in this run
-            sizes = sorted(observations[run_date]["sizes"], key=lambda s: float(s) if s else 0)
+            sizes = sorted(observations[run_date]["sizes"], key=float)
             chart_data["runs"].append({
                 "date": date_to_formatted[run_date],
                 "observed": True,
                 "price": observations[run_date]["price"],
                 "wishlist": observations[run_date]["wishlist"],
-                "size": ", ".join(f"{float(s):g}" for s in sizes if s.strip())
+                "size": ", ".join(f"{float(s):g}" for s in sizes)
             })
         else:
             # Gap: species was NOT observed in this run (out of stock)
