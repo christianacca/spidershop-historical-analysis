@@ -147,3 +147,50 @@ describe('MarketHealthSection — sparkline legend label typography (mock chart-
     expect(noteSize).toBeLessThanOrEqual(labelSize);
   });
 });
+
+// ── Typography polish (mock alignment) ───────────────────────────────────────
+// These tests codify the differences identified between the mock and actual:
+// - Section container must have a non-transparent background (warm surface)
+// - Section container border must be warm sand, not cold grey
+// - Section note must NOT be italic
+
+describe('MarketHealthSection — section container card style (mock §2 alignment)', () => {
+  it('section container has a non-transparent background (warm surface card)', () => {
+    const { container } = render(MarketHealthSection, defaultProps());
+    const section = container.querySelector('.market-health-section') as HTMLElement;
+    const bg = window.getComputedStyle(section).backgroundColor;
+    // Must not be fully transparent rgba(0,0,0,0)
+    expect(bg).not.toBe('rgba(0, 0, 0, 0)');
+    // Must not be the same as the page background — it is its own card
+    expect(bg).not.toBe('');
+  });
+
+  it('section container border is warm sand (not cold grey #ddd)', () => {
+    const { container } = render(MarketHealthSection, defaultProps());
+    const section = container.querySelector('.market-health-section') as HTMLElement;
+    const borderColor = window.getComputedStyle(section).borderTopColor;
+    // Cold grey #ddd = rgb(221, 221, 221) — must NOT be that
+    expect(borderColor).not.toBe('rgb(221, 221, 221)');
+    // Warm sand --color-border-warm = #d7cfc0 = rgb(215, 207, 192)
+    expect(borderColor).toBe('rgb(215, 207, 192)');
+  });
+
+  it('section container has a visible box-shadow (card elevation)', () => {
+    const { container } = render(MarketHealthSection, defaultProps());
+    const section = container.querySelector('.market-health-section') as HTMLElement;
+    const shadow = window.getComputedStyle(section).boxShadow;
+    // Must not be 'none' — the section card should have elevation
+    expect(shadow).not.toBe('none');
+    expect(shadow).not.toBe('');
+  });
+});
+
+describe('MarketHealthSection — section note typography (mock §2.1)', () => {
+  it('section note is NOT italic (mock uses regular weight)', () => {
+    const { container } = render(MarketHealthSection, defaultProps());
+    const note = container.querySelector('.section-note') as HTMLElement;
+    const fontStyle = window.getComputedStyle(note).fontStyle;
+    expect(fontStyle).not.toBe('italic');
+    expect(fontStyle).toBe('normal');
+  });
+});

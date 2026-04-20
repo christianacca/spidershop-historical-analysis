@@ -31,7 +31,7 @@
   .visual-card {
     background: var(--color-surface);
     border: 1px solid var(--color-border-light);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-card-lg);
     padding: var(--spacing-md);
     box-shadow: var(--shadow-sm);
   }

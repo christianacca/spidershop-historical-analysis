@@ -143,9 +143,11 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
-    border: 1px solid var(--color-border-light);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-warm);
     border-radius: var(--radius-card-lg);
     padding: var(--spacing-xl);
+    box-shadow: var(--shadow-lg);
   }
 
   .section-header {
@@ -193,7 +195,6 @@
     align-self: flex-end;
     margin: 0;
     font-size: var(--font-sm);
-    font-style: italic;
     color: var(--color-text-muted);
   }
 
