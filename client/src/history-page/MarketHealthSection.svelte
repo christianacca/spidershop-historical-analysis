@@ -111,15 +111,11 @@
   <div class="sparkline-support-row">
     <div class="sparkline-legend">
       <span class="legend-current-key">
-        <svg width="16" height="4" aria-hidden="true">
-          <line x1="0" y1="2" x2="16" y2="2" stroke="currentColor" stroke-width="2" />
-        </svg>
+        <span class="line-swatch" aria-hidden="true"></span>
         Active window
       </span>
       <span class="legend-prior-key" hidden={!payload.showPrior}>
-        <svg width="16" height="4" aria-hidden="true">
-          <line x1="0" y1="2" x2="16" y2="2" stroke="currentColor" stroke-width="2" stroke-dasharray="4 2" />
-        </svg>
+        <span class="line-swatch line-swatch--dashed" aria-hidden="true"></span>
         Matched prior-period overlay
       </span>
     </div>
@@ -233,8 +229,20 @@
   .legend-prior-key {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     color: var(--color-text-muted);
+    font-size: var(--font-sm);
+  }
+
+  .line-swatch {
+    display: inline-block;
+    width: 28px;
+    border-top: 3px solid var(--color-text);
+    flex-shrink: 0;
+  }
+
+  .line-swatch--dashed {
+    border-top-style: dashed;
   }
 
   .sparkline-basis-note,
