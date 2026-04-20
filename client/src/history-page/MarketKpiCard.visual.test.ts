@@ -126,6 +126,23 @@ describe('MarketKpiCard — delta display', () => {
   });
 });
 
+// ── Typography polish (mock alignment) ──────────────────────────────────────
+// The mock uses --ink (#1f2a2c) for the big metric number — warm dark,
+// not the navy --color-text-heading (#2c3e50).
+// Since we updated --color-text to #1f2a2c, metric-value should use --color-text.
+
+describe('MarketKpiCard — metric-value colour (warm dark, not navy)', () => {
+  it('metric-value color is warm dark rgb(31, 42, 44), not navy rgb(44, 62, 80)', () => {
+    const { container } = render(MarketKpiCard, defaultProps());
+    const value = container.querySelector('.metric-value') as HTMLElement;
+    const color = window.getComputedStyle(value).color;
+    // Navy (#2c3e50) = rgb(44, 62, 80) — must NOT be that
+    expect(color).not.toBe('rgb(44, 62, 80)');
+    // Warm dark (#1f2a2c) = rgb(31, 42, 44) — must be that
+    expect(color).toBe('rgb(31, 42, 44)');
+  });
+});
+
 describe('MarketKpiCard — sparkline box visual (spec §4.6)', () => {
   it('.metric-sparkline has border-radius 14px', () => {
     const { container } = render(MarketKpiCard, defaultProps());

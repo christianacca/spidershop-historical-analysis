@@ -143,7 +143,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
-    background: var(--color-surface);
+    background: var(--color-bg); /* warm cream — contrasts against the near-white KPI card gradient */
     border: 1px solid var(--color-border-warm);
     border-radius: var(--radius-card-lg);
     padding: var(--spacing-xl);

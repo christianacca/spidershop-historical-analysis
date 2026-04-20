@@ -183,7 +183,7 @@
     font-size: 2rem;
     font-weight: 750;
     letter-spacing: -0.03em;
-    color: var(--color-text-heading);
+    color: var(--color-text);
     line-height: 1;
   }
 
