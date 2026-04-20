@@ -179,6 +179,8 @@
 
   .section-header h2 {
     margin: 0;
+    padding-bottom: 0;
+    border-bottom: none;
     font-size: var(--font-lg);
     color: var(--color-text-primary);
   }
