@@ -58,11 +58,11 @@ describe('MarketHealthSection — Gap 3: clear-run button pill shape', () => {
   });
 });
 
-describe('MarketHealthSection — sparkline support row card shape (mock §4 legend area)', () => {
-  it('support row has a card border (not hairlines)', () => {
+describe('MarketHealthSection — sparkline support card shape (mock §4 legend area)', () => {
+  it('support card has a card border (not hairlines)', () => {
     const { container } = render(MarketHealthSection, defaultProps());
-    const row = container.querySelector('.sparkline-support-row') as HTMLElement;
-    const style = window.getComputedStyle(row);
+    const card = container.querySelector('.sparkline-support-card') as HTMLElement;
+    const style = window.getComputedStyle(card);
     // Full card box — border must not be "none" or "0px"
     expect(style.borderTopWidth).toBe('1px');
     expect(style.borderRightWidth).toBe('1px');
@@ -70,20 +70,28 @@ describe('MarketHealthSection — sparkline support row card shape (mock §4 leg
     expect(style.borderLeftWidth).toBe('1px');
   });
 
-  it('support row has rounded card corners', () => {
+  it('support card has rounded card corners', () => {
     const { container } = render(MarketHealthSection, defaultProps());
-    const row = container.querySelector('.sparkline-support-row') as HTMLElement;
-    const radius = parseFloat(window.getComputedStyle(row).borderRadius);
+    const card = container.querySelector('.sparkline-support-card') as HTMLElement;
+    const radius = parseFloat(window.getComputedStyle(card).borderRadius);
     // Must be a card shape (≥14px), not hairline separator (0px)
     expect(radius).toBeGreaterThanOrEqual(14);
   });
 
-  it('support row has translucent white background', () => {
+  it('support card has translucent white background', () => {
     const { container } = render(MarketHealthSection, defaultProps());
-    const row = container.querySelector('.sparkline-support-row') as HTMLElement;
-    const bg = window.getComputedStyle(row).backgroundColor;
+    const card = container.querySelector('.sparkline-support-card') as HTMLElement;
+    const bg = window.getComputedStyle(card).backgroundColor;
     // rgba(255,255,255,0.54) — must contain white channel, not transparent black
     expect(bg).toContain('255, 255, 255');
+  });
+
+  it('basis note is on a separate line below the legend row (column layout)', () => {
+    const { container } = render(MarketHealthSection, defaultProps());
+    const card = container.querySelector('.sparkline-support-card') as HTMLElement;
+    const flexDir = window.getComputedStyle(card).flexDirection;
+    // column layout ensures legend row and notes stack vertically
+    expect(flexDir).toBe('column');
   });
 });
 

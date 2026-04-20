@@ -108,29 +108,31 @@
     />
   </div>
 
-  <div class="sparkline-support-row">
-    <div class="sparkline-legend">
-      <span class="legend-current-key">
-        <span class="line-swatch" aria-hidden="true"></span>
-        Active window
-      </span>
-      <span class="legend-prior-key" hidden={!payload.showPrior}>
-        <span class="line-swatch line-swatch--dashed" aria-hidden="true"></span>
-        Matched prior-period overlay
-      </span>
+  <div class="sparkline-support-card">
+    <div class="sparkline-support-row">
+      <div class="sparkline-legend">
+        <span class="legend-current-key">
+          <span class="line-swatch" aria-hidden="true"></span>
+          Active window
+        </span>
+        <span class="legend-prior-key" hidden={!payload.showPrior}>
+          <span class="line-swatch line-swatch--dashed" aria-hidden="true"></span>
+          Matched prior-period overlay
+        </span>
+      </div>
+
+      <button
+        class="clear-run-btn"
+        hidden={selectedRun === null}
+        onclick={() => { selectedRun = null; }}
+      >
+        Clear run focus
+      </button>
     </div>
 
     <p class="sparkline-basis-note">{payload.sparklineBasisNote}</p>
 
     <p class="pulse-selection-note">{selectionNote}</p>
-
-    <button
-      class="clear-run-btn"
-      hidden={selectedRun === null}
-      onclick={() => { selectedRun = null; }}
-    >
-      Clear run focus
-    </button>
   </div>
 
   <MarketEventsCard eventsData={payload.events} />
@@ -207,17 +209,23 @@
     }
   }
 
+  .sparkline-support-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 16px;
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-card-lg);
+    background: rgba(255, 255, 255, 0.54);
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+  }
+
   .sparkline-support-row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 10px 14px;
-    font-size: 0.82rem;
-    color: var(--color-text-muted);
-    padding: 14px 16px;
-    border: 1px solid var(--color-border-light);
-    border-radius: var(--radius-card-lg);
-    background: rgba(255, 255, 255, 0.54);
   }
 
   .sparkline-legend {
