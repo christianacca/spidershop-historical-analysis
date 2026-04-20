@@ -211,12 +211,13 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--spacing-sm);
-    font-size: var(--font-sm);
+    gap: 10px 14px;
+    font-size: 0.82rem;
     color: var(--color-text-muted);
-    padding: var(--spacing-xs) 0;
-    border-top: 1px solid var(--color-border-light);
-    border-bottom: 1px solid var(--color-border-light);
+    padding: 14px 16px;
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-card-lg);
+    background: rgba(255, 255, 255, 0.54);
   }
 
   .sparkline-legend {
@@ -231,23 +232,28 @@
     align-items: center;
     gap: 6px;
     color: var(--color-text-muted);
-    font-size: var(--font-sm);
+    font-size: 0.84rem;
+    font-weight: 700;
   }
 
   .line-swatch {
     display: inline-block;
     width: 28px;
     border-top: 3px solid var(--color-text);
+    border-radius: var(--radius-pill);
     flex-shrink: 0;
+    opacity: 0.9;
   }
 
   .line-swatch--dashed {
     border-top-style: dashed;
+    opacity: 0.42;
   }
 
   .sparkline-basis-note,
   .pulse-selection-note {
     margin: 0;
+    font-size: 0.82rem;
   }
 
   .clear-run-btn {

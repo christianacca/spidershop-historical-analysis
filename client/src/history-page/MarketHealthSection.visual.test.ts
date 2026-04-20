@@ -57,3 +57,85 @@ describe('MarketHealthSection — Gap 3: clear-run button pill shape', () => {
     expect(radius).toBeGreaterThanOrEqual(999);
   });
 });
+
+describe('MarketHealthSection — sparkline support row card shape (mock §4 legend area)', () => {
+  it('support row has a card border (not hairlines)', () => {
+    const { container } = render(MarketHealthSection, defaultProps());
+    const row = container.querySelector('.sparkline-support-row') as HTMLElement;
+    const style = window.getComputedStyle(row);
+    // Full card box — border must not be "none" or "0px"
+    expect(style.borderTopWidth).toBe('1px');
+    expect(style.borderRightWidth).toBe('1px');
+    expect(style.borderBottomWidth).toBe('1px');
+    expect(style.borderLeftWidth).toBe('1px');
+  });
+
+  it('support row has rounded card corners', () => {
+    const { container } = render(MarketHealthSection, defaultProps());
+    const row = container.querySelector('.sparkline-support-row') as HTMLElement;
+    const radius = parseFloat(window.getComputedStyle(row).borderRadius);
+    // Must be a card shape (≥14px), not hairline separator (0px)
+    expect(radius).toBeGreaterThanOrEqual(14);
+  });
+
+  it('support row has translucent white background', () => {
+    const { container } = render(MarketHealthSection, defaultProps());
+    const row = container.querySelector('.sparkline-support-row') as HTMLElement;
+    const bg = window.getComputedStyle(row).backgroundColor;
+    // rgba(255,255,255,0.54) — must contain white channel, not transparent black
+    expect(bg).toContain('255, 255, 255');
+  });
+});
+
+describe('MarketHealthSection — sparkline legend swatches (mock line-swatch spec)', () => {
+  it('solid swatch has pill-shaped ends (border-radius ≥ 999px)', () => {
+    const { container } = render(MarketHealthSection, defaultProps());
+    const swatch = container.querySelector('.line-swatch:not(.line-swatch--dashed)') as HTMLElement;
+    const radius = parseFloat(window.getComputedStyle(swatch).borderRadius);
+    expect(radius).toBeGreaterThanOrEqual(999);
+  });
+
+  it('solid swatch opacity is less than 1 (not fully opaque)', () => {
+    const { container } = render(MarketHealthSection, defaultProps());
+    const swatch = container.querySelector('.line-swatch:not(.line-swatch--dashed)') as HTMLElement;
+    const opacity = parseFloat(window.getComputedStyle(swatch).opacity);
+    expect(opacity).toBeLessThan(1);
+    expect(opacity).toBeGreaterThan(0.5); // visually solid, not faded
+  });
+
+  it('dashed swatch is significantly more muted than solid swatch', () => {
+    const { container } = render(MarketHealthSection, defaultProps());
+    const solid = container.querySelector('.line-swatch:not(.line-swatch--dashed)') as HTMLElement;
+    const dashed = container.querySelector('.line-swatch--dashed') as HTMLElement;
+    const solidOpacity = parseFloat(window.getComputedStyle(solid).opacity);
+    const dashedOpacity = parseFloat(window.getComputedStyle(dashed).opacity);
+    // Dashed must be at most half the opacity of solid (mock: 0.42 vs 0.9)
+    expect(dashedOpacity).toBeLessThan(solidOpacity * 0.6);
+  });
+});
+
+describe('MarketHealthSection — sparkline legend label typography (mock chart-compare-item)', () => {
+  it('legend labels are bold (font-weight 700)', () => {
+    const { container } = render(MarketHealthSection, defaultProps());
+    const label = container.querySelector('.legend-current-key') as HTMLElement;
+    const weight = window.getComputedStyle(label).fontWeight;
+    expect(weight).toBe('700');
+  });
+
+  it('legend labels are smaller than the base font size (≤ 0.85rem equivalent)', () => {
+    const { container } = render(MarketHealthSection, defaultProps());
+    const label = container.querySelector('.legend-current-key') as HTMLElement;
+    const size = parseFloat(window.getComputedStyle(label).fontSize);
+    // 0.84rem at 16px base = 13.44px; must be less than 14px
+    expect(size).toBeLessThan(14);
+  });
+
+  it('basis note font size matches label size or smaller', () => {
+    const { container } = render(MarketHealthSection, defaultProps());
+    const label = container.querySelector('.legend-current-key') as HTMLElement;
+    const note = container.querySelector('.sparkline-basis-note') as HTMLElement;
+    const labelSize = parseFloat(window.getComputedStyle(label).fontSize);
+    const noteSize = parseFloat(window.getComputedStyle(note).fontSize);
+    expect(noteSize).toBeLessThanOrEqual(labelSize);
+  });
+});
