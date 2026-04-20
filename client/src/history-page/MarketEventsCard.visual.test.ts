@@ -54,3 +54,22 @@ describe('MarketEventsCard — Gap 3: outer visual-card border-radius', () => {
     expect(radius).toBeGreaterThanOrEqual(14);
   });
 });
+
+// ── Gap 4: event tile background contrast ────────────────────────────────────
+// The outer .visual-card uses --color-surface (#fffaf2 warm white). The mock's
+// mini-card uses rgba(255,255,255,0.76) — near-pure-white — so the tile visually
+// pops against the warm surface. Previously both were the same colour (#fffaf2).
+
+describe('MarketEventsCard — Gap 4: event tile background contrast vs outer card', () => {
+  it('event tile background is distinctly lighter than the outer visual-card', () => {
+    const { container } = render(MarketEventsCard, { eventsData: currentEvents });
+    const card = container.querySelector('.visual-card') as HTMLElement;
+    const tile = container.querySelector('.event-tile') as HTMLElement;
+    const outerBg = window.getComputedStyle(card).backgroundColor;
+    const tileBg = window.getComputedStyle(tile).backgroundColor;
+    // They must NOT be the same colour — tile should be whiter (higher blue+green+red channels)
+    expect(tileBg).not.toBe(outerBg);
+    // Tile must contain white channels (255, 255, 255)
+    expect(tileBg).toContain('255, 255, 255');
+  });
+});

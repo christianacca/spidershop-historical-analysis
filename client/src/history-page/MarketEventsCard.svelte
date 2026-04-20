@@ -60,7 +60,7 @@
     flex-direction: column;
     gap: 2px;
     padding: 14px;
-    background: var(--color-surface);
+    background: rgba(255, 255, 255, 0.76); /* near-white — pops against the warm-white outer card; matches mock .mini-card */
     border: 1px solid var(--color-border-light);
     border-radius: var(--radius-card-lg);
   }
