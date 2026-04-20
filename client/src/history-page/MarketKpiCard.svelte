@@ -99,6 +99,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
+    box-shadow: var(--shadow-sm); /* lifts card off the warm-white section surface */
   }
 
   .kpi-title {

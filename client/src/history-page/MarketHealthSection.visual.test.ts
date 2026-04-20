@@ -155,13 +155,14 @@ describe('MarketHealthSection — sparkline legend label typography (mock chart-
 // - Section note must NOT be italic
 
 describe('MarketHealthSection — section container card style (mock §2 alignment)', () => {
-  it('section container uses --color-bg (warm cream) to contrast against white KPI cards', () => {
+  it('section container has a non-transparent background (elevated warm-white surface card)', () => {
     const { container } = render(MarketHealthSection, defaultProps());
     const section = container.querySelector('.market-health-section') as HTMLElement;
     const bg = window.getComputedStyle(section).backgroundColor;
-    // --color-bg = #f0ece4 = rgb(240, 236, 228) — warm cream
-    // This ensures the KPI card gradient (near-white) visually pops against the section
-    expect(bg).toBe('rgb(240, 236, 228)');
+    // --color-surface = #fffaf2 warm white — section is elevated above the page bg
+    // KPI cards get box-shadow to pop off this surface
+    expect(bg).not.toBe('rgba(0, 0, 0, 0)');
+    expect(bg).toBe('rgb(255, 250, 242)');
   });
 
   it('section container border is warm sand (not cold grey #ddd)', () => {

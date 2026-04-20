@@ -143,6 +143,17 @@ describe('MarketKpiCard — metric-value colour (warm dark, not navy)', () => {
   });
 });
 
+describe('MarketKpiCard — card elevation (box-shadow lifts card off section surface)', () => {
+  it('kpi-card has a visible box-shadow (not \'none\')', () => {
+    const { container } = render(MarketKpiCard, defaultProps());
+    const card = container.querySelector('.kpi-card') as HTMLElement;
+    const shadow = window.getComputedStyle(card).boxShadow;
+    // Card must have elevation so it visually pops off the warm-white section surface
+    expect(shadow).not.toBe('none');
+    expect(shadow).not.toBe('');
+  });
+});
+
 describe('MarketKpiCard — sparkline box visual (spec §4.6)', () => {
   it('.metric-sparkline has border-radius 14px', () => {
     const { container } = render(MarketKpiCard, defaultProps());
