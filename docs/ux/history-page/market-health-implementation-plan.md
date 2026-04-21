@@ -628,6 +628,24 @@ global into the history page.
 - [x] Run `make test` — green; `make test-file FILE=tests/website_module/test_market_health_dto.py`
   — coverage ≥ 80% for `market_health_dto.py`
 
+> **Amendment — dynamic basis notes for in-progress windows (spec §4.4 and §6):**
+> The static `_WINDOW_BASIS_NOTES` and `_SPARKLINE_BASIS_NOTES` dictionaries in
+> `market_health_dto.py` produce generic strings for `this-month`, `current-quarter`,
+> and `this-year` (e.g. `"Comparison basis: quarter to date vs prior quarter QTD."`).
+> These must be replaced with **dynamically computed strings** that embed the actual
+> date spans returned by `_get_window_bounds`. For `current-quarter` on Apr 21, 2026
+> the expected output is:
+> - `windowBasisNote`: `"Quarter in progress (Q2 2026) — comparing Apr 1 – Apr 21 against the same span into Q1 2026 (Jan 1 – Jan 21)."`
+> - `sparklineBasisNote`: `"Compare within a row. Solid shows Q2 2026 to date (Apr 1 – Apr 21); dashed shows the same span into Q1 2026 (Jan 1 – Jan 21)."`
+>
+> The same pattern applies to `this-month` and `this-year`. Completed windows
+> (`last-month`, `last-quarter`, `last-year`, `all-time`) keep their static strings.
+> This is a **code change to `market_health_dto.py`** and requires:
+> 1. A new helper (e.g. `_build_inprogress_basis_notes(window_id, win_start, win_end, prior_start, prior_end, ref)`) that returns `(windowBasisNote, sparklineBasisNote)` for in-progress windows.
+> 2. The call site in `build_market_health_payload` to use this helper instead of the static dicts for the three in-progress window IDs.
+> 3. Updated tests in `test_market_health_dto.py` asserting the date-range format.
+> 4. Updated fixture `client/src/history-page/__fixtures__/marketHealth.currentQuarter.ts` — `windowBasisNote` and `sparklineBasisNote` must be updated to match the new format (example values in spec §8.2).
+
 **Housekeeping:**
 - [x] H1 — Mark all tasks above ✅
 - [x] H2 — Reflection scan

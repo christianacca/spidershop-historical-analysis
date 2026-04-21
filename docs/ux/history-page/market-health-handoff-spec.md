@@ -256,15 +256,17 @@ The "Matched prior-period overlay" key item in the sparkline support row is **hi
 
 ### 4.4 Sparkline basis note (dynamic)
 
-The note below the sparkline legend (rendered in `#market-sparkline-basis-note`, sourced from `sparklineBasisNote` in the payload) changes per window:
+The note below the sparkline legend (rendered in `#market-sparkline-basis-note`, sourced from `sparklineBasisNote` in the payload) changes per window.
+
+> **In-progress windows** (`this-month`, `current-quarter`, `this-year`) use **dynamically computed** strings — Python substitutes the actual date spans from `_get_window_bounds` so the user can see the exact range being compared. Completed windows use static strings. Example dates below are for a reference date of Apr 21, 2026.
 
 | Window | Sparkline basis note |
 |---|---|
-| This month | `"Compare within a row. Solid shows this month; dashed shows the matched point last month."` |
+| This month | Dynamic — `"Compare within a row. Solid shows {month_label} to date ({win_start} – {ref_date}); dashed shows the same span last month ({prior_start} – {prior_end})."` e.g. `"Compare within a row. Solid shows Apr 2026 to date (Apr 1 – Apr 21); dashed shows the same span last month (Mar 1 – Mar 21)."` |
 | Last month | `"Compare within a row. Solid shows last month; dashed shows the prior full month."` |
-| Current quarter | `"Compare within a row. Solid shows the current quarter; dashed shows the matched point last quarter."` |
+| Current quarter | Dynamic — `"Compare within a row. Solid shows {quarter_label} to date ({win_start} – {ref_date}); dashed shows the same span into {prior_quarter_label} ({prior_start} – {prior_end})."` e.g. `"Compare within a row. Solid shows Q2 2026 to date (Apr 1 – Apr 21); dashed shows the same span into Q1 2026 (Jan 1 – Jan 21)."` |
 | Last quarter | `"Compare within a row. Solid shows last quarter; dashed shows the prior full quarter."` |
-| This year | `"Compare within a row. Solid shows this year to date; dashed shows the matched point last year."` |
+| This year | Dynamic — `"Compare within a row. Solid shows {year} to date ({win_start} – {ref_date}); dashed shows the same span in {prior_year}."` e.g. `"Compare within a row. Solid shows 2026 to date (Jan 1 – Apr 21); dashed shows the same span in 2025."` |
 | Last year | `"Compare within a row. Solid shows last year; dashed shows the prior full year."` |
 | All time | `"All-time view has no dashed overlay. Compare within a row; each metric keeps its own vertical scale."` |
 
@@ -408,6 +410,13 @@ The `{prior_label}` token in §3/§5 copy sentences resolves to the **copy sente
 | Last year | `true` | vs prior full year | `"2024"` (named year) | `"2024"` (named year already natural) |
 | All time | `false` | `"No prior comparison"` + `flat` class | n/a | n/a |
 
+> **Dynamic `windowBasisNote` for in-progress windows:** For `this-month`, `current-quarter`, and `this-year`, Python must generate a dynamic string that names the period and spells out both date spans explicitly — not the static text from `_WINDOW_BASIS_NOTES`. Format examples for Apr 21, 2026:
+> - `current-quarter`: `"Quarter in progress (Q2 2026) — comparing Apr 1 – Apr 21 against the same span into Q1 2026 (Jan 1 – Jan 21)."`
+> - `this-month`: `"Month in progress (Apr 2026) — comparing Apr 1 – Apr 21 against the same span last month (Mar 1 – Mar 21)."`
+> - `this-year`: `"Year in progress (2026) — comparing Jan 1 – Apr 21 against the same span in 2025."`
+>
+> The same principle applies to `sparklineBasisNote` (see §4.4). Completed windows (`last-month`, `last-quarter`, `last-year`, `all-time`) continue to use static strings from the lookup dictionaries.
+
 ---
 
 ## 7. Component Boundaries
@@ -532,9 +541,10 @@ import type { MarketHealthPayload } from '../types';
 export const marketHealthCurrentQuarter: MarketHealthPayload = {
   windowId: 'current-quarter',
   windowLabel: 'Current quarter',
-  windowBasisNote: 'Comparison basis: quarter to date vs prior quarter QTD.',
+  windowBasisNote: "Quarter in progress (Q2 '26) — comparing Apr 1 – Apr 21 against the same span into Q1 '26 (Jan 1 – Jan 21).",
   showPrior: true,
-  sparklineBasisNote: 'Compare within a row. Solid shows the current quarter; dashed shows the matched point last quarter.',
+  sparklineBasisNote:
+    "Compare within a row. Solid shows Q2 '26 to date (Apr 1 – Apr 21); dashed shows the same span into Q1 '26 (Jan 1 – Jan 21).",
   isAllSelected: true,
   generaCount: 0,
   scopeLabel: '',
