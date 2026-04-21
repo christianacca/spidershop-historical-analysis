@@ -31,6 +31,7 @@ exports[`design tokens — templates/common.css > token map matches snapshot 1`]
   "--color-surface": "#fffaf2",
   "--color-surface-alt": "#ecf0f1",
   "--color-surface-light": "#f8f9fa",
+  "--color-surface-popover": "rgba(255, 253, 248, 0.98)",
   "--color-text": "#1f2a2c",
   "--color-text-dim": "#607080",
   "--color-text-heading": "#2c3e50",

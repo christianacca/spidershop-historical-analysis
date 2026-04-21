@@ -44,6 +44,7 @@
     /* === Surfaces === */
     --color-bg:                 #f0ece4; /* warm cream page background */
     --color-surface:            #fffaf2; /* warm white — cards and surfaces */
+    --color-surface-popover:    rgba(255, 253, 248, 0.98); /* near-pure white with slight transparency — floating popovers/tooltips */
     --color-surface-light:      #f8f9fa; /* cards, filter panels */
     --color-surface-alt:        #ecf0f1; /* nav hover, secondary button bg */
     --color-info-bg:            #e8f4f8; /* info/callout blocks */
