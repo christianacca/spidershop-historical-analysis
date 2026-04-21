@@ -114,6 +114,48 @@ describe('MarketKpiCard — info button closed-state appearance', () => {
   });
 });
 
+// ── Popover tooltip styling (mock alignment) ──────────────────────────────────
+// Mock uses: near-pure-white bg, warm-sand border, 14px radius, large warm shadow.
+// Actual was: --color-surface (#fffaf2 yellowish), cold-grey border, 8px radius, small shadow.
+
+describe('MarketKpiCard — metric-popover styling (mock alignment)', () => {
+  function openPopover(container: HTMLElement) {
+    const details = container.querySelector('details.metric-info') as HTMLDetailsElement;
+    details.open = true;
+    return container.querySelector('.metric-popover') as HTMLElement;
+  }
+
+  it('metric-popover background is near-pure white (not the yellowish --color-surface)', () => {
+    const { container } = render(MarketKpiCard, defaultProps());
+    const popover = openPopover(container);
+    const bg = window.getComputedStyle(popover).backgroundColor;
+    // --color-surface = rgb(255, 250, 242) — yellowish warm white. Must NOT be that.
+    expect(bg).not.toBe('rgb(255, 250, 242)');
+    // Must be very close to pure white (all channels ≥ 253)
+    const [r, g, b] = bg.match(/\d+/g)!.map(Number);
+    expect(r).toBeGreaterThanOrEqual(253);
+    expect(g).toBeGreaterThanOrEqual(253);
+    expect(b).toBeGreaterThanOrEqual(248);
+  });
+
+  it('metric-popover border is warm sand (--color-border-warm), not cold grey', () => {
+    const { container } = render(MarketKpiCard, defaultProps());
+    const popover = openPopover(container);
+    const borderColor = window.getComputedStyle(popover).borderTopColor;
+    // Cold grey (#ddd) = rgb(221, 221, 221) — must NOT be that
+    expect(borderColor).not.toBe('rgb(221, 221, 221)');
+    // Warm sand (#d7cfc0) = rgb(215, 207, 192)
+    expect(borderColor).toBe('rgb(215, 207, 192)');
+  });
+
+  it('metric-popover border-radius is ≥14px (mock uses 14px)', () => {
+    const { container } = render(MarketKpiCard, defaultProps());
+    const popover = openPopover(container);
+    const radius = parseFloat(window.getComputedStyle(popover).borderRadius);
+    expect(radius).toBeGreaterThanOrEqual(14);
+  });
+});
+
 describe('MarketKpiCard — delta display', () => {
   it('metric-delta is NOT a full-width block (width is fit-content)', () => {
     const { container } = render(MarketKpiCard, defaultProps());
