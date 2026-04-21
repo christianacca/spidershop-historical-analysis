@@ -3,10 +3,10 @@ import type { MarketHealthPayload } from '../types.js';
 export const marketHealthCurrentQuarter: MarketHealthPayload = {
   windowId: 'current-quarter',
   windowLabel: 'Current quarter',
-  windowBasisNote: 'Comparison basis: quarter to date vs prior quarter QTD.',
+  windowBasisNote: "Quarter in progress (Q2 '26) — comparing Apr 1 – Apr 21 against the same span into Q1 '26 (Jan 1 – Jan 21).",
   showPrior: true,
   sparklineBasisNote:
-    'Compare within a row. Solid shows the current quarter; dashed shows the matched point last quarter.',
+    "Compare within a row. Solid shows Q2 '26 to date (Apr 1 – Apr 21); dashed shows the same span into Q1 '26 (Jan 1 – Jan 21).",
   isAllSelected: true,
   generaCount: 0,
   scopeLabel: '',

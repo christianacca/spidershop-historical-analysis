@@ -583,3 +583,104 @@ class TestNoPriorDataCopy:
         assert result["showPrior"] is False, (
             "showPrior should be False when there are no prior-period rows"
         )
+
+
+class TestInProgressBasisNotes:
+    """Dynamic basis notes for in-progress windows (spec §4.4 and §6 amendment).
+
+    REF_DT = 2026-01-15 (Q1 2026, mid-January).
+    - current-quarter: Q1 2026 (Jan 1 – Jan 15) vs Q4 2025 (Oct 1 – Oct 15)
+    - this-month:      Jan 2026 (Jan 1 – Jan 15) vs Dec 2025 (Dec 1 – Dec 15)
+    - this-year:       2026 (Jan 1 – Jan 15) vs 2025
+
+    Completed windows must keep their static strings unchanged.
+    """
+
+    _ROWS = [_row(RUN1, "A"), _row(RUN2, "A"), _row(RUN3, "A")]
+
+    def test_current_quarter_window_basis_note_is_dynamic(self):
+        result = build_market_health_payload(
+            self._ROWS, "current-quarter", [], is_all_selected=True, reference_dt=REF_DT
+        )
+        note = result["windowBasisNote"]
+        assert "Quarter in progress" in note, f"Expected 'Quarter in progress' in: {note!r}"
+        assert "Q1 2026" in note, f"Expected 'Q1 2026' in: {note!r}"
+        assert "Jan 1" in note, f"Expected 'Jan 1' in: {note!r}"
+        assert "Jan 15" in note, f"Expected 'Jan 15' in: {note!r}"
+        assert "Q4 2025" in note, f"Expected 'Q4 2025' in: {note!r}"
+        assert "Oct 1" in note, f"Expected 'Oct 1' in: {note!r}"
+        assert "Oct 15" in note, f"Expected 'Oct 15' in: {note!r}"
+
+    def test_current_quarter_sparkline_basis_note_is_dynamic(self):
+        result = build_market_health_payload(
+            self._ROWS, "current-quarter", [], is_all_selected=True, reference_dt=REF_DT
+        )
+        note = result["sparklineBasisNote"]
+        assert "Q1 2026" in note, f"Expected 'Q1 2026' in: {note!r}"
+        assert "Jan 1" in note, f"Expected 'Jan 1' in: {note!r}"
+        assert "Jan 15" in note, f"Expected 'Jan 15' in: {note!r}"
+        assert "Q4 2025" in note, f"Expected 'Q4 2025' in: {note!r}"
+        assert "Oct 1" in note, f"Expected 'Oct 1' in: {note!r}"
+        assert "Oct 15" in note, f"Expected 'Oct 15' in: {note!r}"
+
+    def test_this_month_window_basis_note_is_dynamic(self):
+        # REF_DT = Jan 15, 2026 → same-span last month = Dec 1 – Dec 15, 2025
+        result = build_market_health_payload(
+            self._ROWS, "this-month", [], is_all_selected=True, reference_dt=REF_DT
+        )
+        note = result["windowBasisNote"]
+        assert "Month in progress" in note, f"Expected 'Month in progress' in: {note!r}"
+        assert "Jan 2026" in note, f"Expected 'Jan 2026' in: {note!r}"
+        assert "Jan 1" in note, f"Expected 'Jan 1' in: {note!r}"
+        assert "Jan 15" in note, f"Expected 'Jan 15' in: {note!r}"
+        assert "Dec 1" in note, f"Expected 'Dec 1' in: {note!r}"
+        assert "Dec 15" in note, f"Expected 'Dec 15' in: {note!r}"
+
+    def test_this_month_sparkline_basis_note_is_dynamic(self):
+        result = build_market_health_payload(
+            self._ROWS, "this-month", [], is_all_selected=True, reference_dt=REF_DT
+        )
+        note = result["sparklineBasisNote"]
+        assert "Jan 2026" in note, f"Expected 'Jan 2026' in: {note!r}"
+        assert "Jan 1" in note, f"Expected 'Jan 1' in: {note!r}"
+        assert "Jan 15" in note, f"Expected 'Jan 15' in: {note!r}"
+        assert "Dec 1" in note, f"Expected 'Dec 1' in: {note!r}"
+        assert "Dec 15" in note, f"Expected 'Dec 15' in: {note!r}"
+
+    def test_this_year_window_basis_note_is_dynamic(self):
+        result = build_market_health_payload(
+            self._ROWS, "this-year", [], is_all_selected=True, reference_dt=REF_DT
+        )
+        note = result["windowBasisNote"]
+        assert "Year in progress" in note, f"Expected 'Year in progress' in: {note!r}"
+        assert "2026" in note, f"Expected '2026' in: {note!r}"
+        assert "Jan 1" in note, f"Expected 'Jan 1' in: {note!r}"
+        assert "Jan 15" in note, f"Expected 'Jan 15' in: {note!r}"
+        assert "2025" in note, f"Expected '2025' in: {note!r}"
+
+    def test_this_year_sparkline_basis_note_is_dynamic(self):
+        result = build_market_health_payload(
+            self._ROWS, "this-year", [], is_all_selected=True, reference_dt=REF_DT
+        )
+        note = result["sparklineBasisNote"]
+        assert "2026" in note, f"Expected '2026' in: {note!r}"
+        assert "Jan 1" in note, f"Expected 'Jan 1' in: {note!r}"
+        assert "Jan 15" in note, f"Expected 'Jan 15' in: {note!r}"
+        assert "2025" in note, f"Expected '2025' in: {note!r}"
+
+    def test_last_quarter_keeps_static_basis_note(self):
+        """Completed windows must not be touched — static string unchanged."""
+        result = build_market_health_payload(
+            self._ROWS, "last-quarter", [], is_all_selected=True, reference_dt=REF_DT
+        )
+        assert result["windowBasisNote"] == (
+            "Comparison basis: last full quarter vs prior full quarter."
+        )
+
+    def test_all_time_keeps_static_basis_note(self):
+        result = build_market_health_payload(
+            self._ROWS, "all-time", [], is_all_selected=True, reference_dt=REF_DT
+        )
+        assert result["windowBasisNote"] == (
+            "Comparison basis: structural context only, with no prior-period delta."
+        )

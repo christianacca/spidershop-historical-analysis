@@ -33,25 +33,13 @@ _ALL_WINDOW_IDS = [
 ]
 
 _SPARKLINE_BASIS_NOTES = {
-    "this-month": (
-        "Compare within a row. Solid shows this month; dashed shows the matched"
-        " point last month."
-    ),
     "last-month": (
         "Compare within a row. Solid shows last month; dashed shows the prior full"
         " month."
     ),
-    "current-quarter": (
-        "Compare within a row. Solid shows the current quarter; dashed shows the"
-        " matched point last quarter."
-    ),
     "last-quarter": (
         "Compare within a row. Solid shows last quarter; dashed shows the prior"
         " full quarter."
-    ),
-    "this-year": (
-        "Compare within a row. Solid shows this year to date; dashed shows the"
-        " matched point last year."
     ),
     "last-year": (
         "Compare within a row. Solid shows last year; dashed shows the prior full"
@@ -74,16 +62,16 @@ _WINDOW_LABELS = {
 }
 
 _WINDOW_BASIS_NOTES = {
-    "this-month": "Comparison basis: month to date vs same point last month.",
     "last-month": "Comparison basis: last full month vs prior full month.",
-    "current-quarter": "Comparison basis: quarter to date vs prior quarter QTD.",
     "last-quarter": "Comparison basis: last full quarter vs prior full quarter.",
-    "this-year": "Comparison basis: year to date vs same point last year.",
     "last-year": "Comparison basis: last full year vs year before.",
     "all-time": (
         "Comparison basis: structural context only, with no prior-period delta."
     ),
 }
+
+# Windows whose basis notes are generated dynamically from actual date ranges.
+_INPROGRESS_WINDOW_IDS = frozenset({"this-month", "current-quarter", "this-year"})
 
 # Human-readable prior period labels used in copy sentences.
 _PRIOR_LABELS = {
@@ -130,6 +118,66 @@ _EVENTS_SUBTITLES = {
 # ---------------------------------------------------------------------------
 # Window date boundaries
 # ---------------------------------------------------------------------------
+
+
+def _fmt_date(dt: datetime) -> str:
+    """Format a datetime as 'Jan 1' (abbreviated month, no zero-padded day)."""
+    return dt.strftime("%b") + " " + str(dt.day)
+
+
+def _build_inprogress_basis_notes(
+    window_id: str,
+    win_start: datetime,
+    win_end: datetime,
+    prior_start: datetime,
+    prior_end: datetime,
+) -> tuple[str, str]:
+    """Return (windowBasisNote, sparklineBasisNote) for in-progress windows.
+
+    Embeds the actual date spans so users see the exact comparison range rather
+    than a generic description (spec §4.4 and §6 amendment).
+    Only called for 'this-month', 'current-quarter', and 'this-year'.
+    """
+    ws = _fmt_date(win_start)
+    we = _fmt_date(win_end)
+    ps = _fmt_date(prior_start)
+    pe = _fmt_date(prior_end)
+
+    if window_id == "this-month":
+        period_label = win_start.strftime("%b %Y")
+        window_note = (
+            f"Month in progress ({period_label}) — comparing {ws} – {we}"
+            f" against the same span last month ({ps} – {pe})."
+        )
+        sparkline_note = (
+            f"Compare within a row. Solid shows {period_label} to date ({ws} – {we});"
+            f" dashed shows the same span last month ({ps} – {pe})."
+        )
+    elif window_id == "current-quarter":
+        q_num = (win_start.month - 1) // 3 + 1
+        q_label = f"Q{q_num} {win_start.year}"
+        pq_num = (prior_start.month - 1) // 3 + 1
+        pq_label = f"Q{pq_num} {prior_start.year}"
+        window_note = (
+            f"Quarter in progress ({q_label}) — comparing {ws} – {we}"
+            f" against the same span into {pq_label} ({ps} – {pe})."
+        )
+        sparkline_note = (
+            f"Compare within a row. Solid shows {q_label} to date ({ws} – {we});"
+            f" dashed shows the same span into {pq_label} ({ps} – {pe})."
+        )
+    else:  # this-year
+        year_label = str(win_start.year)
+        prior_year_label = str(prior_start.year)
+        window_note = (
+            f"Year in progress ({year_label}) — comparing {ws} – {we}"
+            f" against the same span in {prior_year_label}."
+        )
+        sparkline_note = (
+            f"Compare within a row. Solid shows {year_label} to date ({ws} – {we});"
+            f" dashed shows the same span in {prior_year_label}."
+        )
+    return window_note, sparkline_note
 
 def _quarter_start(dt: datetime) -> datetime:
     month = ((dt.month - 1) // 3) * 3 + 1
@@ -855,7 +903,10 @@ def build_market_health_payload(
 
     # Edge case: no data at all — return safe empty payload
     if not has_current_data:
-        return _empty_payload(window_id, is_all_time, is_all_selected, selected_genera)
+        return _empty_payload(
+            window_id, is_all_time, is_all_selected, selected_genera,
+            win_start, win_end, prior_start, prior_end,
+        )
 
     # Compute current-period metrics
     curr_observed = _compute_observed(win_rows)
@@ -906,13 +957,22 @@ def build_market_health_payload(
     # Build scope label
     scope_label = _build_scope_label(selected_genera, is_all_selected)
 
+    # Resolve basis notes: dynamic for in-progress windows, static for completed ones.
+    if window_id in _INPROGRESS_WINDOW_IDS and prior_start is not None and prior_end is not None:
+        window_basis_note, sparkline_basis_note = _build_inprogress_basis_notes(
+            window_id, win_start, win_end, prior_start, prior_end
+        )
+    else:
+        window_basis_note = _WINDOW_BASIS_NOTES.get(window_id, "")
+        sparkline_basis_note = _SPARKLINE_BASIS_NOTES.get(window_id, "")
+
     return {
         "windowId": window_id,
         "windowLabel": _WINDOW_LABELS.get(window_id, window_id),
-        "windowBasisNote": _WINDOW_BASIS_NOTES.get(window_id, ""),
+        "windowBasisNote": window_basis_note,
         # showPrior: True for non-all-time windows with prior data and ≥2 current scrapes.
         "showPrior": effective_show_prior and len(win_runs) >= 2,
-        "sparklineBasisNote": _SPARKLINE_BASIS_NOTES.get(window_id, ""),
+        "sparklineBasisNote": sparkline_basis_note,
         "isAllSelected": is_all_selected,
         "generaCount": 0 if is_all_selected else len(selected_genera),
         "scopeLabel": scope_label,
@@ -961,16 +1021,38 @@ def build_market_health_payload(
 
 
 def _empty_payload(
-    window_id: str, is_all_time: bool, is_all_selected: bool, selected_genera: list[str]
+    window_id: str,
+    is_all_time: bool,
+    is_all_selected: bool,
+    selected_genera: list[str],
+    win_start: Optional[datetime] = None,
+    win_end: Optional[datetime] = None,
+    prior_start: Optional[datetime] = None,
+    prior_end: Optional[datetime] = None,
 ) -> dict:
     """Return a safe empty payload when no data is available for the window."""
     empty_series: list[float] = [0.0] * 12
+
+    if (
+        window_id in _INPROGRESS_WINDOW_IDS
+        and win_start is not None
+        and win_end is not None
+        and prior_start is not None
+        and prior_end is not None
+    ):
+        window_basis_note, sparkline_basis_note = _build_inprogress_basis_notes(
+            window_id, win_start, win_end, prior_start, prior_end
+        )
+    else:
+        window_basis_note = _WINDOW_BASIS_NOTES.get(window_id, "")
+        sparkline_basis_note = _SPARKLINE_BASIS_NOTES.get(window_id, "")
+
     return {
         "windowId": window_id,
         "windowLabel": _WINDOW_LABELS.get(window_id, window_id),
-        "windowBasisNote": _WINDOW_BASIS_NOTES.get(window_id, ""),
+        "windowBasisNote": window_basis_note,
         "showPrior": False,
-        "sparklineBasisNote": _SPARKLINE_BASIS_NOTES.get(window_id, ""),
+        "sparklineBasisNote": sparkline_basis_note,
         "isAllSelected": is_all_selected,
         "generaCount": 0 if is_all_selected else len(selected_genera),
         "scopeLabel": _build_scope_label(selected_genera, is_all_selected),
