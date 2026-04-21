@@ -63,6 +63,7 @@
     --shadow-md:                0 2px 5px rgba(0, 0, 0, 0.1);
     --shadow-lg:                0 4px 12px rgba(0, 0, 0, 0.1);
     --shadow-card-hover:        0 4px 8px rgba(0, 0, 0, 0.1);
+    --shadow-popover:           0 20px 40px rgba(65, 54, 33, 0.08); /* large warm shadow for floating panels/tooltips */
 
     /* === Spacing === */
     --spacing-xs:   5px;
@@ -75,6 +76,7 @@
     --radius-sm:        4px;
     --radius-md:        6px;
     --radius-lg:        8px;
+    --radius-popover:   14px;  /* popovers / tooltips */
     --radius-pill:      999px; /* pill / chip shape elements */
     --radius-card-lg:   16px;  /* large card / section card rounding */
 

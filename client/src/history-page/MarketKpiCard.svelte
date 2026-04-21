@@ -159,10 +159,10 @@
     right: 0;
     width: min(280px, 70vw);
     padding: 12px;
-    border-radius: 14px; /* mock uses 14px; --radius-lg is 8px, overriding */
-    border: 1px solid var(--color-border-warm); /* warm sand — matches mock */
+    border-radius: var(--radius-popover);
+    border: 1px solid var(--color-border-warm);
     background: var(--color-surface-popover);
-    box-shadow: 0 20px 40px rgba(65, 54, 33, 0.08); /* large, warm shadow — matches mock */
+    box-shadow: var(--shadow-popover);
     z-index: 10;
     font-size: var(--font-sm);
     line-height: 1.5;
