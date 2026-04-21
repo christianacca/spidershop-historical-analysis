@@ -34,9 +34,27 @@ The existing page pattern is:
    directly into the page HTML (see `templates/table.html`).
 2. `client/src/history-page/index.ts` reads `window['history-tableData']`, validates it
    with `assertPayload()`, then mounts a Svelte component.
-3. A **second** independent island for Market Health will follow the same pattern:
-   - Python injects `window.marketHealthPayloads = { … };` (a dict of all 7 window payloads)
+3. A **second** independent island for Market Health was implemented in WP1 (Phases 6–7)
+   following the same pattern:
+   - Python injects `window.marketHealthPayloads = { … };` (a dict of all 7 pre-computed
+     window payloads)
    - `history-page/index.ts` reads it and mounts `MarketHealthSection` with the default window.
+
+> **⚠️ Architectural pivot (decided post-Phase 10):** The pre-computed payload strategy is a
+> dead end. Two confirmed future directions make it unviable:
+>
+> 1. **Individual species selection** — genus × species × 7 windows × comparison permutations
+>    produces hundreds of static JSON files, not a manageable set.
+> 2. **PWA / offline-first with a service worker** — a single raw dataset file is trivial to
+>    cache and sync; hundreds of pre-computed files are not.
+>
+> **The new target architecture (delivered in Phases 11–12):**
+> - Python produces `window.marketHealthRawData` — variant-level run records only (~60 lines).
+> - All KPI computation, copy selection, sparkline resampling, and events logic moves from
+>   `market_health_dto.py` into `client/src/history-page/market-health-engine.ts`.
+> - Svelte components (`MarketHealthSection`, `MarketKpiCard`, etc.) are **unchanged** — they
+>   still receive a `MarketHealthPayload` object, now built client-side by the engine.
+> - `market_health_dto.py` and its Python tests are deleted after Phase 12.
 
 ### G2 — CSS design tokens
 
@@ -1071,12 +1089,594 @@ Fix G10.6, G10.7.
 
 ---
 
-## What Is Not In Scope for This Work Package
+## Phase 11 — Client-Side Market Health Computation Engine
+
+**Goal:** Port all KPI computation from `market_health_dto.py` to TypeScript. Purely
+additive — zero existing code is modified. All existing tests remain green throughout.
+The Svelte components are not touched; they still receive a `MarketHealthPayload` object.
+
+> **Reading required before writing any code:**
+> - `src/website/market_health_dto.py` — exact Python logic to port (window bounds,
+>   filtering, metrics, sparkline resampling, events, copy selectors, delta formatters,
+>   basis notes). This is the ground truth — match it exactly.
+> - `client/src/history-page/types.ts` — existing types; you will add two new ones.
+> - `client/src/history-page/__fixtures__/marketHealth.currentQuarter.ts` — understand the
+>   expected output shape for the fixture-driven tests in Phase 12.
+
+**Pre-flight:**
+- [ ] Run `make test-client-fast` — confirm baseline is green before touching anything.
+- [ ] Run `make test` — confirm Python tests are green.
+
+---
+
+### 11.1 — Extend types
+
+Add to `client/src/history-page/types.ts` (after the existing exports, no changes to
+existing interfaces):
+
+```typescript
+/** One variant-level row from the history CSV, normalised for the engine. */
+export interface RawRunRecord {
+  scrapeDatetime: string;   // ISO 8601 string — e.g. "2026-04-14T06:10:00"
+  scientificName: string;   // full binomial — e.g. "Avicularia avicularia"
+  sizeVariant: string;      // size_cm field from CSV — e.g. "2.0"
+  pageUrl: string;          // page_url field — used for size-transition detection
+  wishlistCount: number;    // numeric (0 if missing/invalid in source)
+  priceGbp: number;         // numeric (0.0 if missing/invalid in source)
+}
+
+/**
+ * Raw market data injected by Python as window.marketHealthRawData.
+ *
+ * referenceDate is the ISO string of the most recent scrape_datetime in the
+ * dataset. The engine uses it to compute window boundaries relative to the data
+ * rather than new Date(), keeping the static page meaningful however old it is.
+ */
+export interface MarketHealthRawData {
+  records: RawRunRecord[];
+  referenceDate: string;
+}
+```
+
+- [ ] Run `npx tsc --noEmit` from `client/` — zero errors.
+
+---
+
+### 11.2 — Create raw fixture
+
+Create `client/src/history-page/__fixtures__/marketHealthRaw.ts`.
+
+The fixture must exercise **every code path** in the engine. It must include:
+- At least **3 distinct run datetimes** spanning a calendar quarter (so window-bound tests
+  are meaningful)
+- At least **4 distinct species**
+- At least **one multi-variant species** (same `scientificName`, different `sizeVariant`
+  and same `pageUrl`) — exercises max-variant dedup in wishlist and price metrics
+- At least **one size transition** — same `scientificName` and `pageUrl`, different
+  `sizeVariant`, appearance gap ≤ 3 runs — must NOT be counted as a new listing or restock
+- At least **one species that drops out** between two consecutive runs (stock-out / OOS flip)
+- At least **one species that restocks** (absent one run, reappears the next)
+- At least **one species present in every run** (provides a stable denominator for events)
+- A `referenceDate` equal to the most recent `scrapeDatetime` in the records
+
+Use realistic ISO datetime strings with weekly spacing. Keep the fixture small enough to
+hand-calculate expected values — these hand-calculated values drive the test assertions.
+
+---
+
+### 11.3 — Create the engine module
+
+Create `client/src/history-page/market-health-engine.ts`.
+
+**Public API (two exports only):**
+
+```typescript
+export function buildMarketHealthPayload(
+  rawData: MarketHealthRawData,
+  windowId: WindowId,
+  options?: { selectedGenera?: string[]; isAllSelected?: boolean },
+): MarketHealthPayload
+
+export function buildMarketHealthPayloadAllWindows(
+  rawData: MarketHealthRawData,
+  options?: { selectedGenera?: string[]; isAllSelected?: boolean },
+): Record<WindowId, MarketHealthPayload>
+```
+
+All internal functions are **not exported** — they are tested indirectly through the public
+API. Exporting implementation details makes the public contract fragile.
+
+**Internal functions to implement (port directly from `market_health_dto.py`):**
+
+| TS function | Python equivalent | Notes |
+|---|---|---|
+| `getWindowBounds(windowId, refDate)` | `_get_window_bounds` | Returns `{ winStart, winEnd, priorStart, priorEnd, showPrior }` as `Date` objects |
+| `filterToWindow(records, winStart, winEnd)` | `_filter_rows_to_window` | Boundary-inclusive |
+| `applyGenusFilter(records, selectedGenera, isAllSelected)` | `_apply_genus_filter` | Splits `scientificName` on first space for genus |
+| `getSortedRuns(records)` | `_get_sorted_runs` | Returns sorted distinct `scrapeDatetime` strings |
+| `speciesInRun(records, runDt)` | `_species_in_run` | Returns `Set<string>` |
+| `computeObserved(records)` | `_compute_observed` | Distinct `scientificName` count |
+| `computeStockRate(records)` | `_compute_stock_rate` | Numerator: species at latest run; denominator: species seen at any point |
+| `computeMedianWishlist(records)` | `_compute_median_wishlist` | Latest run; max per species across variants |
+| `computeMedianPrice(records)` | `_compute_median_price` | Latest run; max per species across variants |
+| `buildSparklineForMetric(records, metric)` | `_build_sparkline_for_metric` | Returns 12-point `number[]` |
+| `resampleTo12(values)` | `_resample_to_12` | n≥12: even-index sample; n<12: pad with last value |
+| `isSizeTransition(species, runs, prevIdx, currIdx, records, maxGap?)` | `_is_size_transition` | Same `pageUrl`, different `sizeVariant`, gap ≤ `maxGap` (default 3) |
+| `findLastSeenIdx(species, runs, beforeIdx, records)` | `_find_last_seen_idx` | Backwards search |
+| `findNextSeenIdx(species, runs, afterIdx, records)` | `_find_next_seen_idx` | Forwards search |
+| `computeEvents(records, windowId, deltaLabel)` | `_compute_events` | Returns `MarketEventsData` |
+| `observedCopy(delta, priorLabel, isAllTime)` | `_observed_copy` | 4-branch copy selector |
+| `stockCopy(delta, valuePct, priorLabel, isAllTime)` | `_stock_copy` | 5-branch copy selector |
+| `wishlistCopy(delta, priorLabel, isAllTime)` | `_wishlist_copy` | 5-branch copy selector |
+| `priceCopy(delta, priorLabel, isAllTime)` | `_price_copy` | 5-branch copy selector |
+| `formatObservedDelta(delta, isAllTime, deltaLabel)` | `_format_observed_delta` | Returns `[text, deltaClass]` |
+| `formatStockDelta(delta, isAllTime, deltaLabel)` | `_format_stock_delta` | Returns `[text, deltaClass]` |
+| `formatWishlistDelta(delta, isAllTime, deltaLabel)` | `_format_wishlist_delta` | Returns `[text, deltaClass]` |
+| `formatPriceDelta(delta, isAllTime, deltaLabel)` | `_format_price_delta` | Returns `[text, deltaClass]` |
+| `buildInprogressBasisNotes(windowId, winStart, winEnd, priorStart, priorEnd)` | `_build_inprogress_basis_notes` | Dynamic date-range strings; only called for `this-month`, `current-quarter`, `this-year` |
+| `buildScopeLabel(selectedGenera, isAllSelected)` | `_build_scope_label` | ≤3 genera: joined list; 4+: "your N selected genera"; all-mode: `""` |
+
+**Date formatting:** `_fmt_date` in Python produces `"Apr 1"` (abbreviated month, no zero-pad).
+Implement in TypeScript using `Date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })`.
+
+**Median:** JavaScript has no built-in `median`. Implement: sort ascending, return middle value
+for odd N, average of two middle values for even N (round to nearest integer for wishlist and
+price as Python does).
+
+**Window boundary constants** (copy verbatim from Python — string keys must match exactly):
+
+```typescript
+const ALL_WINDOW_IDS: WindowId[] = [
+  'this-month', 'last-month', 'current-quarter', 'last-quarter',
+  'this-year', 'last-year', 'all-time',
+];
+
+const PRIOR_LABELS: Record<WindowId, string> = {
+  'this-month':       'the same point last month',
+  'last-month':       'the prior full month',
+  'current-quarter':  'the same point last quarter',
+  'last-quarter':     'the prior full quarter',
+  'this-year':        'the same point last year',
+  'last-year':        'the prior full year',
+  'all-time':         '',   // unused
+};
+
+const PRIOR_DELTA_LABELS: Record<WindowId, string> = {
+  'this-month':       'prior month MTD',
+  'last-month':       'prior full month',
+  'current-quarter':  'prior quarter QTD',
+  'last-quarter':     'prior full quarter',
+  'this-year':        'prior year YTD',
+  'last-year':        'prior full year',
+  'all-time':         '',   // unused
+};
+```
+
+Static sparkline basis notes (for completed windows — in-progress windows use
+`buildInprogressBasisNotes`):
+
+```typescript
+const SPARKLINE_BASIS_NOTES: Partial<Record<WindowId, string>> = {
+  'last-month':    'Compare within a row. Solid shows last month; dashed shows the prior full month.',
+  'last-quarter':  'Compare within a row. Solid shows last quarter; dashed shows the prior full quarter.',
+  'last-year':     'Compare within a row. Solid shows last year; dashed shows the prior full year.',
+  'all-time':      'All-time view has no dashed overlay. Compare within a row; each metric keeps its own vertical scale.',
+};
+
+const WINDOW_BASIS_NOTES: Partial<Record<WindowId, string>> = {
+  'last-month':    'Comparison basis: last full month vs prior full month.',
+  'last-quarter':  'Comparison basis: last full quarter vs prior full quarter.',
+  'last-year':     'Comparison basis: last full year vs year before.',
+  'all-time':      'Comparison basis: structural context only, with no prior-period delta.',
+};
+```
+
+**`showPrior` rule:** `true` only when (a) `windowId !== 'all-time'` AND (b) prior data exists
+AND (c) the current window has ≥ 2 distinct run datetimes. This mirrors the Python implementation.
+
+**Empty-data guard:** if the current window has 0 runs, return a safe payload with all numeric
+values `0`, all strings `""` or `"No data"`, and empty sparkline series.
+
+- [ ] Run `npx tsc --noEmit` from `client/` — zero errors.
+
+---
+
+### 11.4 — Write tests
+
+Create `client/src/history-page/market-health-engine.test.ts`.
+
+Use the `rawMarketHealthData` fixture from `marketHealthRaw.ts` as the primary input.
+Hand-calculate expected values from the fixture before writing assertions.
+
+**Required test cases (every branch must be covered):**
+
+**Window bounds (call `buildMarketHealthPayload` with each `windowId`):**
+- [ ] All 7 `windowId` values return a payload without throwing
+- [ ] `windowId: 'all-time'` → `showPrior: false`
+- [ ] All non-all-time windows → `showPrior: true` when prior data exists
+- [ ] In-progress windows (`this-month`, `current-quarter`, `this-year`) use dynamic basis
+  notes (contain actual date ranges, not generic strings like "quarter to date")
+- [ ] Completed windows (`last-month`, `last-quarter`, `last-year`) use static basis notes
+
+**Window filtering:**
+- [ ] Records exactly on `winStart` boundary are included
+- [ ] Records exactly on `winEnd` boundary are included
+- [ ] Records 1 ms before `winStart` are excluded
+- [ ] Records 1 ms after `winEnd` are excluded
+
+**Genus filter:**
+- [ ] `isAllSelected: true` — all records returned regardless of genus
+- [ ] `isAllSelected: false`, matching genera — only matching species returned
+- [ ] `isAllSelected: false`, non-matching genus — empty result
+
+**Observed species (`computeObserved`):**
+- [ ] Returns count of distinct `scientificName` values
+- [ ] Multi-variant species (same name, two size rows) counted as 1
+
+**In-stock rate (`computeStockRate`):**
+- [ ] 100% when all species present in latest run
+- [ ] Correct percentage when one species drops out before latest run
+- [ ] Returns 0 when records array is empty
+
+**Median wishlist (`computeMedianWishlist`):**
+- [ ] Multi-variant species: max `wishlistCount` across variants used (not sum, not first)
+- [ ] Odd number of species — median is the middle value
+- [ ] Even number of species — median is average of two middle values, rounded
+- [ ] Returns 0 when records array is empty
+
+**Median price (`computeMedianPrice`):**
+- [ ] Multi-variant species: max `priceGbp` across variants used
+- [ ] Median value is correct for the fixture dataset
+
+**Sparkline resampling (`resampleTo12` via `buildSparklineForMetric`):**
+- [ ] Exactly 12 input values → output unchanged
+- [ ] Fewer than 12 → last value is used to pad to 12
+- [ ] More than 12 → 12 evenly-spaced values are sampled
+
+**Events — new listings:**
+- [ ] First appearance of a species within the window is counted as a new listing
+- [ ] A size transition (same `pageUrl`, different `sizeVariant`, gap ≤ 3 runs) is **not**
+  counted as a new listing
+
+**Events — dropped listings:**
+- [ ] A species absent from the final run of the window is counted as a dropped listing
+- [ ] A size transition is **not** counted as a dropped listing
+
+**Events — restocks (OUT → IN):**
+- [ ] A species absent from one run and present in the next is counted as a restock
+
+**Events — OOS flips (IN → OUT):**
+- [ ] A species present in one run and absent in the next is counted as an OOS flip
+
+**Size transition detection:**
+- [ ] Same `pageUrl`, same `scientificName`, different `sizeVariant`, gap ≤ 3 runs → `true`
+- [ ] Same `pageUrl`, same `scientificName`, same `sizeVariant` → `false` (not a size change)
+- [ ] Different `pageUrl`, same species → `false` (not the same listing)
+- [ ] Same `pageUrl`, same species, gap > 3 runs → `false` (outside max-gap window)
+
+**Copy strings — observed (`observedCopy`):**
+- [ ] `isAllTime: true` → all-time sentence
+- [ ] `delta >= 3` → "Breadth is ahead of…" sentence
+- [ ] `0 <= delta <= 2` → "Breadth is only slightly ahead…" sentence
+- [ ] `delta < 0` → "Fewer species are being seen…" sentence
+
+**Copy strings — stock (`stockCopy`):**
+- [ ] `isAllTime: true` → all-time sentence
+- [ ] `delta <= -7` → availability slipping sentence (includes `abs(delta)` and value%)
+- [ ] `-6 <= delta <= -1` → near-term tightening sentence
+- [ ] `delta === 0` → steady sentence
+- [ ] `delta >= 1` → firmer sentence
+
+**Copy strings — wishlist (`wishlistCopy`):**
+- [ ] `isAllTime: true` → all-time sentence
+- [ ] `delta >= 4` → ahead sentence
+- [ ] `1 <= delta <= 3` → modestly above sentence
+- [ ] `delta === 0` → stable sentence
+- [ ] `delta <= -1` → softer sentence
+
+**Copy strings — price (`priceCopy`):**
+- [ ] `isAllTime: true` → all-time sentence
+- [ ] `delta >= 2` → firmer sentence
+- [ ] `delta === 1` → edged up sentence
+- [ ] `delta === 0` → steady sentence
+- [ ] `delta <= -1` → softened sentence
+
+**Delta formatting:**
+- [ ] `formatObservedDelta`: positive delta → `"+N vs …"`, class `""`
+- [ ] `formatObservedDelta`: negative delta → `"-N vs …"`, class `"down"`
+- [ ] `formatObservedDelta`: all-time → `"No prior comparison"`, class `"flat"`
+- [ ] `formatStockDelta`: positive → `"+N pts vs …"`, class `""`
+- [ ] `formatStockDelta`: negative → `"-N pts vs …"`, class `"down"`
+- [ ] `formatWishlistDelta`: zero → `"+0 vs …"`, class `"flat"`
+- [ ] `formatPriceDelta`: positive → `"+GBP N vs …"`, class `""`
+- [ ] `formatPriceDelta`: zero → `"+GBP 0 vs …"`, class `"flat"`
+
+**Dynamic basis notes (`buildInprogressBasisNotes`):**
+- [ ] `this-month` → result contains the actual month label and date span (e.g. `"Apr 2026"`,
+  `"Apr 1"`, `"Apr 21"`)
+- [ ] `current-quarter` → result contains the quarter label and matched prior-quarter span
+  (e.g. `"Q2 2026"`, `"Q1 2026"`, `"Jan 1"`, `"Jan 21"`)
+- [ ] `this-year` → result contains the year and the matched prior-year span
+
+**Full payload shape:**
+- [ ] `buildMarketHealthPayload` with `currentQuarter` returns a payload where
+  `kpis.observed`, `kpis.stock`, `kpis.wishlist`, `kpis.price` all have `id`, `title`,
+  `value`, `delta`, `deltaClass`, `copy` fields populated (no empty strings except where
+  intentional)
+- [ ] `buildMarketHealthPayload` with `all-time` returns a payload where all four
+  `deltaClass` values are `"flat"` and all four `delta` texts are `"No prior comparison"`
+
+**All-windows builder:**
+- [ ] `buildMarketHealthPayloadAllWindows` returns an object with exactly 7 keys matching
+  `ALL_WINDOW_IDS`
+- [ ] Each value is a valid `MarketHealthPayload` with the correct `windowId` field
+
+**Tasks:**
+- [ ] Run `make test-client-fast` — all tests green (existing + new)
+- [ ] Run `make test-client` — confirm statement coverage ≥ 95% and branch coverage ≥ 85%
+  for `market-health-engine.ts`
+
+**Housekeeping:**
+- [ ] H1 — Mark all tasks in Phase 11 ✅
+- [ ] H2 — Reflection: scan `market-health-engine.ts` against the code smell checklist;
+  in particular: no `any` types, no hardcoded strings that diverge from the Python
+  constants, no exported implementation details
+- [ ] H3 — Feed-forward log entry
+- [ ] H4 — Commit: `git add -A && git commit -m "Phase 11: client-side market health engine"`
+- [ ] GATE — Output phase completion block
+
+---
+
+## Phase 12 — Cut Over Data Contract (Python → Raw DTO, TS Engine Live)
+
+**Goal:** Wire the engine into the page. Replace `window.marketHealthPayloads` (7 pre-computed
+KPI dicts) with `window.marketHealthRawData` (variant-level records). Simplify Python to a
+raw-data serialiser only. Delete `market_health_dto.py`. All tests (Python, client, E2E)
+remain green at the end of this phase.
+
+> **Sequence requirement:** Phase 11 must be complete (GATE output confirmed) before
+> starting Phase 12. Do not merge these phases.
+
+**Pre-flight:**
+- [ ] Run `make test-client-fast` — green (Phase 11 engine tests green).
+- [ ] Run `make test` — green (Python tests unchanged).
+
+---
+
+### 12.1 — New Python module: `market_health_raw_dto.py`
+
+Create `src/website/market_health_raw_dto.py`.
+
+```python
+"""Raw Market Health DTO — serialises history CSV rows into the minimal payload
+consumed by the client-side market-health-engine.ts.
+
+No KPI computation, no window logic, no copy strings. Data in, records out.
+
+Public API:
+    build_raw_market_health_data(history_rows: list[dict]) -> dict
+"""
+```
+
+**Function signature:**
+```python
+def build_raw_market_health_data(history_rows: list[dict]) -> dict:
+    ...
+```
+
+**Output shape (must match `MarketHealthRawData` TypeScript interface exactly):**
+```json
+{
+  "records": [
+    {
+      "scrapeDatetime": "2026-04-14T06:10:00",
+      "scientificName": "Avicularia avicularia",
+      "sizeVariant": "2.0",
+      "pageUrl": "https://…",
+      "wishlistCount": 12,
+      "priceGbp": 24.99
+    }
+  ],
+  "referenceDate": "2026-04-14T06:10:00"
+}
+```
+
+**Rules:**
+- One record per source row (variant-level rows preserved — the engine deduplicates to
+  species-level internally, and variant rows are required for size-transition detection)
+- `referenceDate` = `max(row["scrape_datetime"] for row in history_rows)` — empty string
+  if `history_rows` is empty
+- `wishlistCount`: `int(row["wishlist_count"])` — default `0` on missing or invalid
+- `priceGbp`: `float(row["price_gbp"])` — default `0.0` on missing or invalid
+- `sizeVariant`: `row.get("size_cm", "")` — empty string if absent
+- `pageUrl`: `row.get("page_url", "")` — empty string if absent
+- `scientificName`: `row.get("scientific_name", "")` — empty string if absent
+- `scrapeDatetime`: `row.get("scrape_datetime", "")` — empty string if absent
+- Skip rows where both `scientificName` and `scrapeDatetime` are empty
+
+**Implementation note:** this should be ~40–60 lines. No imports beyond the standard
+library. Do not copy any logic from `market_health_dto.py`.
+
+- [ ] Task complete.
+
+---
+
+### 12.2 — Python tests: `test_market_health_raw_dto.py`
+
+Create `tests/website_module/test_market_health_raw_dto.py`.
+
+**Required test cases:**
+- [ ] Output dict has a `records` key (list) and a `referenceDate` key (string)
+- [ ] `referenceDate` equals the maximum `scrape_datetime` string across all rows
+- [ ] `wishlistCount` is an `int`, not a string
+- [ ] `priceGbp` is a `float`, not a string
+- [ ] Multi-variant species (same `scientific_name`, different `size_cm`) produce
+  one record per variant — both records are present
+- [ ] Missing `wishlist_count` field defaults to `0`
+- [ ] Invalid (non-numeric) `wishlist_count` defaults to `0`
+- [ ] Missing `price_gbp` field defaults to `0.0`
+- [ ] Empty `history_rows` → `records: []` and `referenceDate: ""`
+- [ ] `sizeVariant` in output matches `size_cm` from input
+- [ ] `pageUrl` in output matches `page_url` from input
+
+- [ ] Run `make test-file FILE=tests/website_module/test_market_health_raw_dto.py` — green
+- [ ] Run `make test` — all Python tests green
+
+---
+
+### 12.3 — Update `generate_website.py`
+
+In `src/website/generate_website.py`:
+
+- [ ] Remove the import of `build_market_health_payload_all_windows` (both the `try` and
+  `except` branches)
+- [ ] Add import of `build_raw_market_health_data` from `market_health_raw_dto` in both
+  branches
+- [ ] In `generate_history_insights_page`: replace the block that computes
+  `market_health_payloads` (CSV parse → reference_dt extraction →
+  `build_market_health_payload_all_windows` call) with a single call to
+  `build_raw_market_health_data(history_rows)`, assigned to `market_health_raw_data`
+- [ ] Pass `market_health_raw_data=market_health_raw_data` to `template.render(...)`,
+  removing `market_health_payloads=market_health_payloads`
+
+---
+
+### 12.4 — Update template
+
+In `templates/history_insights_page.html`:
+
+- [ ] Replace:
+  ```html
+  window.marketHealthPayloads = {{ market_health_payloads | tojson | safe }};
+  ```
+  with:
+  ```html
+  window.marketHealthRawData = {{ market_health_raw_data | tojson | safe }};
+  ```
+
+---
+
+### 12.5 — Update `client/src/history-page/index.ts`
+
+- [ ] Remove the import of `MarketHealthPayload` and `WindowId` types (or keep `WindowId`
+  if used elsewhere)
+- [ ] Add import of `MarketHealthRawData` from `./types.js`
+- [ ] Add import of `buildMarketHealthPayloadAllWindows` from `./market-health-engine.js`
+- [ ] Replace the block that reads `window.marketHealthPayloads` and extracts
+  `initialPayload` with:
+  ```typescript
+  const rawData = (window as unknown as Record<string, unknown>)
+    .marketHealthRawData as MarketHealthRawData | undefined;
+
+  if (marketHealthRoot && rawData && rawData.records.length > 0) {
+    const allPayloads = buildMarketHealthPayloadAllWindows(rawData);
+    const initialPayload = allPayloads['current-quarter'];
+    mount(MarketHealthSection, {
+      target: marketHealthRoot,
+      props: { payload: initialPayload },
+    });
+  }
+  ```
+- [ ] Run `npx tsc --noEmit` from `client/` — zero errors
+
+---
+
+### 12.6 — Delete dead code and update stale server-side tests
+
+**Delete modules:**
+- [ ] Delete `src/website/market_health_dto.py`
+- [ ] Delete `tests/website_module/test_market_health_dto.py`
+
+**Update `tests/website_module/test_pages.py`:**
+
+`TestGenerateHistoryInsightsPage` currently has two tests that assert
+`window.marketHealthPayloads` in the generated HTML and inspect the KPI payload shape
+(`.kpis.observed.value`). After Phase 12 the template injects `window.marketHealthRawData`
+instead; those assertions will fail and the KPI shape no longer exists server-side.
+
+- [ ] Rewrite both tests in `TestGenerateHistoryInsightsPage` to assert:
+  - `window.marketHealthRawData` is present in the generated HTML
+  - The parsed JSON has a `records` key (a list) and a `referenceDate` key (a non-empty
+    string matching the most recent run date)
+  - The `records` list length equals the number of source rows (all rows serialised)
+  - Drop all assertions about `kpis`, `sparklineSeries`, and `events` — those are
+    computed client-side and do not exist in the server output
+- [ ] Run `make test-file FILE=tests/website_module/test_pages.py` — green
+- [ ] Run `make test` — all Python tests green
+
+**Confirm no remaining stale references:**
+- [ ] Confirm no remaining Python file imports from `market_health_dto`:
+  ```bash
+  grep -r "market_health_dto" src/ tests/
+  ```
+  Expected: zero matches.
+- [ ] Confirm `marketHealthPayloads` no longer appears in any template, Python, or
+  TypeScript source file (docs are exempt):
+  ```bash
+  grep -r "marketHealthPayloads" src/ tests/ templates/ client/src/
+  ```
+  Expected: zero matches.
+
+---
+
+### 12.7 — Write History Insights E2E test
+
+> **Why this is required:** Phase 12 replaces Python-pre-computed KPI values with
+> client-side JS computation from `window.marketHealthRawData`. Client-side JavaScript
+> behaviour can only be validated by E2E (Playwright) tests. No unit test can confirm
+> the engine result is correctly mounted into the DOM.
+
+Create `tests/e2e/test_history_insights.py`.
+
+**Required test cases:**
+- [ ] `test_page_loads` — navigate to `history-insights.html`; assert HTTP 200 and
+  page title contains "History Insights" (or the nav label from the template)
+- [ ] `test_market_health_section_renders` — section container (`.market-health-section`)
+  exists in DOM; all 4 `.kpi-card` elements are present; no JavaScript console errors
+- [ ] `test_kpi_values_are_non_empty` — each `.kpi-card` has a `.metric-value` child
+  whose `textContent` is a non-empty string (confirms engine computed something, not blank)
+- [ ] `test_events_grid_renders` — the events mini-grid is present (4 event tiles visible)
+- [ ] `test_no_window_marketHealthPayloads` — assert
+  `page.evaluate("typeof window.marketHealthPayloads")` returns `"undefined"` (confirms old
+  global is gone); assert `page.evaluate("typeof window.marketHealthRawData")` returns
+  `"object"` (confirms new global is present)
+- [ ] `test_sparklines_rendered` — assert at least 4 `<svg>` elements are present inside
+  `.market-health-section` (one per KPI card)
+
+**Do NOT test:**
+- Exact KPI values (they depend on the fixture CSV data and would be brittle)
+- Time window switching UI (no switcher UI in WP1; that is WP-Arch scope)
+- Run-selection interaction (already covered by Vitest component tests)
+
+- [ ] Run `make test-file FILE=tests/e2e/test_history_insights.py` — all cases pass
+- [ ] Run `make test-e2e` — full suite green (no regressions on existing pages)
+
+---
+
+### 12.8 — Verify
+
+- [ ] `make test` — green (all Python tests; no broken imports from deleted module)
+- [ ] `make test-client-fast` — green (client tests, including engine tests)
+- [ ] `make test-client` — green (coverage thresholds met)
+- [ ] `make test-e2e` — green (including new `test_history_insights.py`)
+
+**Housekeeping:**
+- [ ] H1 — Mark all tasks in Phase 12 ✅
+- [ ] H2 — Reflection: confirm no references to `marketHealthPayloads` remain in any
+  template, TypeScript, or Python file; confirm no `any` casts added to `index.ts`;
+  confirm `test_history_insights.py` exists and all cases are green
+- [ ] H3 — Feed-forward log entry
+- [ ] H4 — Commit: `git add -A && git commit -m "Phase 12: cut over to client-side market health engine + E2E coverage"`
+- [ ] GATE — Output phase completion block
+
+---
+
+
 
 | Item | Status |
 |---|---|
 | Time window switcher UI | Separate component; exists in the mock filter panel. Out of scope. |
-| Genus selector UI and per-genus/species KPI data | WP-Arch — delivers genus selector panel, lazy-load JSON generator, and Svelte fetch hook. WP1 must not build any of this. |
+| Genus selector UI and per-genus/species KPI data | WP-Arch — delivers genus selector panel and Svelte fetch hook. **Note:** the lazy-load static JSON generator originally planned for WP-Arch is superseded by the client-side engine in Phase 11; WP-Arch only needs the UI and a hook to call `buildMarketHealthPayload` with filtered records. |
 | Breeder Opportunity section (Section 2) | WP2 — separate spec and plan; depends on WP-Arch. |
 | Bias Control section (Section 3) | WP3 — after WP2. |
 | Filtered Data Preview (Section 4) | WP4 — after WP3. |

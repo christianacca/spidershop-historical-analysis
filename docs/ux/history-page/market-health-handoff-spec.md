@@ -146,7 +146,7 @@ the genus selection changes. The section note is static.
 
 **Copy states** (select from this set; do not generate free-form prose):
 
-> **Mode note:** The table shows All-mode canonical copy (used when `isAllSelected: true`). For genus-scoped mode Python substitutes: "Breadth is ahead of" → "Species breadth across your selected genera is ahead of"; "the catalog" → "your selection"; "across tracked species" → "across your selected genera". Python performs this substitution at render time — the Svelte component always receives a fully-resolved string.
+> **Mode note:** The table shows All-mode canonical copy (used when `isAllSelected: true`). For genus-scoped mode the client-side engine (`market-health-engine.ts`) substitutes: "Breadth is ahead of" → "Species breadth across your selected genera is ahead of"; "the catalog" → "your selection"; "across tracked species" → "across your selected genera". The engine performs this substitution when computing the `KpiCardData.copy` field — the Svelte component always receives a fully-resolved string and does no substitution itself.
 
 | When | Copy sentence (All-mode; see mode note for genus-scoped) |
 |---|---|
@@ -258,7 +258,7 @@ The "Matched prior-period overlay" key item in the sparkline support row is **hi
 
 The note below the sparkline legend (rendered in `#market-sparkline-basis-note`, sourced from `sparklineBasisNote` in the payload) changes per window.
 
-> **In-progress windows** (`this-month`, `current-quarter`, `this-year`) use **dynamically computed** strings — Python substitutes the actual date spans from `_get_window_bounds` so the user can see the exact range being compared. Completed windows use static strings. Example dates below are for a reference date of Apr 21, 2026.
+> **In-progress windows** (`this-month`, `current-quarter`, `this-year`) use **dynamically computed** strings — the client-side engine (`buildInprogressBasisNotes` in `market-health-engine.ts`) computes these from the actual window boundary dates so the user can see the exact range being compared. Completed windows use static strings. Example dates below are for a reference date of Apr 21, 2026.
 
 | Window | Sparkline basis note |
 |---|---|
@@ -398,7 +398,7 @@ Copy is selected from a small fixed set per event type; do not generate prose dy
 
 ## 6. Time Window Behaviour Summary
 
-The `{prior_label}` token in §3/§5 copy sentences resolves to the **copy sentence label** (natural-language form). The delta badge text uses the **prior label token** (technical form). Python computes both and provides fully-resolved strings; the Svelte component does no token substitution.
+The `{prior_label}` token in §3/§5 copy sentences resolves to the **copy sentence label** (natural-language form). The delta badge text uses the **prior label token** (technical form). The client-side engine (`market-health-engine.ts`) computes both and provides fully-resolved strings to the component; the Svelte component does no token substitution.
 
 | Window | `showPrior` | Delta basis | Prior label token (delta badge) | Copy sentence label (`{prior_label}`) |
 |---|---|---|---|---|
@@ -410,7 +410,7 @@ The `{prior_label}` token in §3/§5 copy sentences resolves to the **copy sente
 | Last year | `true` | vs prior full year | `"2024"` (named year) | `"2024"` (named year already natural) |
 | All time | `false` | `"No prior comparison"` + `flat` class | n/a | n/a |
 
-> **Dynamic `windowBasisNote` for in-progress windows:** For `this-month`, `current-quarter`, and `this-year`, Python must generate a dynamic string that names the period and spells out both date spans explicitly — not the static text from `_WINDOW_BASIS_NOTES`. Format examples for Apr 21, 2026:
+> **Dynamic `windowBasisNote` for in-progress windows:** For `this-month`, `current-quarter`, and `this-year`, the client-side engine must generate a dynamic string that names the period and spells out both date spans explicitly — not the static string from the completed-window lookup table. Format examples for Apr 21, 2026:
 > - `current-quarter`: `"Quarter in progress (Q2 2026) — comparing Apr 1 – Apr 21 against the same span into Q1 2026 (Jan 1 – Jan 21)."`
 > - `this-month`: `"Month in progress (Apr 2026) — comparing Apr 1 – Apr 21 against the same span last month (Mar 1 – Mar 21)."`
 > - `this-year`: `"Year in progress (2026) — comparing Jan 1 – Apr 21 against the same span in 2025."`
@@ -438,7 +438,9 @@ The `{prior_label}` token in §3/§5 copy sentences resolves to the **copy sente
 ### 7.2 Payload type contract
 
 ```typescript
-// Canonical shape — use for Storybook fixtures, unit tests, and window global payload
+// Canonical shape — use for Storybook fixtures, unit tests, and as the output of the
+// client-side engine. Python no longer produces this shape directly; it produces
+// MarketHealthRawData (see below) which the engine converts to MarketHealthPayload.
 
 export interface MarketHealthPayload {
   windowId: WindowId;
@@ -513,6 +515,33 @@ export type WindowId =
   | 'this-year'
   | 'last-year'
   | 'all-time';
+
+// ---------------------------------------------------------------------------
+// Raw data contract — what Python actually injects as window.marketHealthRawData
+// (supersedes window.marketHealthPayloads from the WP1 initial implementation)
+// ---------------------------------------------------------------------------
+
+/** One variant-level row from the history CSV, normalised for the engine.
+ *  Variant rows are preserved (not deduplicated) because the engine needs them
+ *  for size-transition detection and for max-variant wishlist/price dedup. */
+export interface RawRunRecord {
+  scrapeDatetime: string;  // ISO 8601 — e.g. "2026-04-14T06:10:00"
+  scientificName: string;  // full binomial — e.g. "Avicularia avicularia"
+  sizeVariant: string;     // size_cm field from CSV — e.g. "2.0"
+  pageUrl: string;         // page_url field — used for size-transition detection
+  wishlistCount: number;   // numeric; 0 if missing or invalid in source
+  priceGbp: number;        // numeric; 0.0 if missing or invalid in source
+}
+
+/** Injected by Python as window.marketHealthRawData.
+ *
+ *  referenceDate is the ISO string of the most recent scrape_datetime in the
+ *  dataset. The engine uses it to compute window boundaries relative to the data
+ *  rather than new Date(), keeping the static page meaningful however old it is. */
+export interface MarketHealthRawData {
+  records: RawRunRecord[];
+  referenceDate: string;  // ISO 8601 string; empty string if dataset is empty
+}
 ```
 
 ---
@@ -529,6 +558,7 @@ Proposed location: `client/src/history-page/__fixtures__/`
 | `marketHealth.lastQuarter.ts` | Completed period — named quarter label, completed data |
 | `marketHealth.allTime.ts` | All-time window — `showPrior: false`, flat deltas, `"No prior comparison"` values |
 | `marketHealth.stockUnderPressure.ts` | Stock delta ≤ −7, wishlist rising — highest-stakes KPI read |
+| `marketHealthRaw.ts` | `MarketHealthRawData` fixture for engine unit tests (Phase 11). Contains ≥3 run dates, ≥4 species, multi-variant species, a size transition, a restock, and a stock-out — must exercise every code path in `market-health-engine.ts`. Not used by Storybook or component tests. |
 
 > `selectedRun` is seeded via `initialSelectedRun` prop in Storybook story args. No separate fixture file is needed.
 
@@ -731,10 +761,10 @@ template string.
 | 5 | **Responsive grid** | KPI grid: 4-column → 2-column at < 760px (matches existing CSS breakpoint). Events grid: 2-column at all widths. |
 | 6 | **Residual CSS** | `.pulse-series`, `.pulse-end-label`, `.pulse-end-label[hidden]`, `.pulse-end-label.prior`, `.pulse-selection-note`, `.pulse-scale-note` are present in the mock CSS but unused. Remove before implementation. |
 | 7 | **Empty genus state** | When `generaCount === 0` AND `isAllSelected === false`, show the empty-state heading and hide all KPI cards and event tiles. The section remains visible as a structural placeholder. |
-| 8 | **`scopeLabel` format** | For ≤ 3 genera: natural list `"Avicularia, Caribena and Psalmopoeus"`. For 4+: `"your {N} selected genera"`. All-mode: `""` (empty string — heading templates for All-mode do not reference the scope label). Computed server-side. |
-| 9 | **`isAllSelected` default** | `true` — the page generates with All-mode as the default. The Python generator passes the active genus selection and whether it is "All". Selecting a specific genus requires a new page render (static site). |
-| 10 | **Multi-window payload injection** | **Resolved → Option A.** All 7 window payloads are pre-embedded in the page as `window.marketHealthPayloads` (a `Record<WindowId, MarketHealthPayload>` dict). The Svelte island reads the active window's payload when the user clicks a time-window button. This matches the mock architecture and the existing `window.*` pattern used throughout the site. |
-| 11 | **Genus-scoped and species-level KPI scope** | **Resolved → All-mode only for WP1; lazy-load JSON for WP-Arch.** WP1 produces only market-wide KPI data (`isAllSelected: true`). The type contract already carries `isAllSelected`, `generaCount`, and `scopeLabel` so genus-scoped heading/copy adaptation is ready, but KPI *values* are all-mode only in this work package. Pre-embedding all genus × window combinations inline is ruled out: ~68 genera × 7 windows = 476 payloads, and the same problem recurs at species level (~180 species × 7 windows = 1,260 payloads). Instead, **WP-Arch** will deliver a lazy-load static JSON pattern — Python pre-generates `market-health/genus/{slug}.json` and `market-health/species/{slug}.json` files (one per scope × window set); the Svelte island fetches the relevant file on first selection. This scales to any granularity, requires no server, and adds one shared loading-state pattern reused by all WPs. |
+| 8 | **`scopeLabel` format** | For ≤ 3 genera: natural list `"Avicularia, Caribena and Psalmopoeus"`. For 4+: `"your {N} selected genera"`. All-mode: `""` (empty string — heading templates for All-mode do not reference the scope label). Computed by the client-side engine (`buildScopeLabel` in `market-health-engine.ts`). |
+| 9 | **`isAllSelected` default** | `true` — the page loads with All-mode as the default. `isAllSelected` and `selectedGenera` are parameters passed to `buildMarketHealthPayload` in the engine; on initial page load they default to `isAllSelected: true, selectedGenera: []`. Genus selection (WP-Arch) calls the engine with updated parameters without a page reload. |
+| 10 | **Multi-window payload injection** | **Superseded by Phase 12 architectural pivot.** The original WP1 implementation used `window.marketHealthPayloads` (7 pre-computed `MarketHealthPayload` dicts from Python). This is replaced in Phase 12 by `window.marketHealthRawData` (`MarketHealthRawData` — variant-level records only). The client-side engine (`buildMarketHealthPayloadAllWindows`) computes all 7 payloads synchronously on mount from the raw data. The Svelte component interface (`MarketHealthPayload` prop) is unchanged. |
+| 11 | **Genus-scoped and species-level KPI scope** | **Superseded by Phase 11–12 architectural pivot.** The original plan (lazy-load static JSON files per genus/species from Python) is replaced by the client-side engine: `buildMarketHealthPayload(rawData, windowId, { selectedGenera, isAllSelected })` can compute any selection from the single `MarketHealthRawData` payload already in the page — no additional network requests needed for genus or species selection. WP-Arch therefore only needs the genus selector UI and a call to `buildMarketHealthPayload` with the updated genus list; it does not need a lazy-load JSON generator or fetch hook. The engine's approach scales to any selection granularity (all genera, individual genus, individual species) from a single ~1 MB raw dataset. |
 | 12 | **Run display is 1-indexed** | **Resolved.** Internal run index is 0-based. All user-facing labels are 1-based: index n is displayed as "Run n+1". Selection note format: `"Run {n+1} selected. The same moment is now highlighted across all four KPI cards."` |
 
 ---
@@ -749,8 +779,8 @@ plan:
 
 | WP | Scope | Dependency |
 |---|---|---|
-| **WP1 (this spec)** | Section 1 — Market Health KPIs (all-mode only) | None |
-| **WP-Arch** | Filter architecture — genus selector UI, lazy-load JSON generator (`market-health/genus/{slug}.json`, `market-health/species/{slug}.json`), Svelte fetch hook + loading state | WP1 merged |
+| **WP1 (this spec)** | Section 1 — Market Health KPIs (all-mode only). Phase 12 pivots to client-side engine and raw-data delivery. | None |
+| **WP-Arch** | Filter architecture — genus selector UI + wiring to call `buildMarketHealthPayload(rawData, windowId, { selectedGenera })` with the updated selection. **No lazy-load JSON generator or fetch hook required** — the engine computes any selection from `window.marketHealthRawData` already in the page. | WP1 (Phase 12) merged |
 | WP2 | Section 2 — Breeder Opportunity KPIs (consumes WP-Arch fetch hook; genus-scoped from day one) | WP-Arch merged |
 | WP3 | Section 3 — Bias Control KPIs | WP2 merged |
 | WP4 | Section 4 — Filtered Data Preview | WP3 merged |
@@ -768,7 +798,10 @@ History page.
 - **Filtered Data Preview (Section 4)** — WP4.
 - **Replacing `history.html`** — deferred until all work packages are merged.
 - **Time window filter UI** — separate panel component; out of scope for this spec.
-- **Genus selector UI and per-genus/species KPI data** — delivered by WP-Arch. WP-Arch
-  adds the genus selector panel, the lazy-load static JSON generator, and the Svelte fetch
-  hook. WP1 must not build any of this — WP-Arch's spec does not exist yet.
+- **Genus selector UI** — delivered by WP-Arch. WP-Arch adds the genus selector panel and
+  wires it to call `buildMarketHealthPayload` (from `market-health-engine.ts`, delivered in
+  Phase 11) with the updated genus list. No lazy-load JSON generator or fetch hook is needed
+  — the engine computes any genus/species selection from the single `window.marketHealthRawData`
+  payload already in the page. WP1 must not build the selector UI — WP-Arch's spec does not
+  exist yet.
 - **CSV export** — not relevant to this section.
