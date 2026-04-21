@@ -1887,4 +1887,68 @@ Branch pushed and PR #158 opened:
 All pre-PR test suites green: 862 Python / 303 Vitest / 157 E2E.
 Cleanup: client/nohup.out was a tracked log file (Storybook output); removed from
   git tracking via `git rm --cached`; covered by root .gitignore `nohup.out` rule.
+
+[Phase 11 — 2026-04-21]
+Client-side market health engine (`market-health-engine.ts`) — key findings for Phase 12:
+
+Architecture decisions confirmed during implementation:
+- `referenceDate` from `MarketHealthRawData` is used as the clock for all window bounds
+  (not `new Date()`). This is critical: the static page remains meaningful however old it
+  is. Phase 12 Python must populate `referenceDate` as `max(row["scrape_datetime"])`.
+- `showPrior` rule: mirrors Python exactly — `true` only when (a) not all-time, (b) prior
+  data exists, AND (c) current window has ≥ 2 distinct run datetimes. Phase 12 Svelte
+  wiring must pass the engine's output directly to `MarketHealthSection`; no manual
+  `showPrior` override.
+
+Date formatting divergence (resolved):
+- Python `_fmt_date` uses `strftime("%b") + " " + str(dt.day)` → "Apr 1" (no zero-pad).
+- JavaScript `Date.toLocaleDateString` was NOT used (locale-sensitive, unsafe). Instead,
+  `MONTH_ABBREVS[dt.getMonth()]` + ` ` + `dt.getDate()` — matches Python output exactly.
+  Phase 12 basis-note assertions in E2E should test for "Apr 1" format, not "Apr 01".
+
+`last-quarter` window end boundary:
+- Python: `qs - timedelta(seconds=1)` with `.replace(microsecond=999999)`
+  → last millisisecond of the day before the current quarter.
+- TypeScript: `new Date(qs.getTime() - 1)` → 1ms before quarter start.
+  These are semantically equivalent for ISO string comparisons but differ in precision.
+  Since fixture records use whole-second datetimes, this has no practical effect.
+
+Events computation:
+- The `findLastSeenIdx` / `findNextSeenIdx` search across ALL records in the window
+  (not just the current species' rows). The run list (`getSortedRuns`) only contains
+  datetimes present in the filtered window — so if a species is absent from all runs,
+  its "gap" is invisible to the event scanner. This is correct behaviour, but means
+  a "base species" present in every run is required in test fixtures to establish the
+  full run timeline. The `marketHealthRaw.ts` fixture includes Avicularia avicularia
+  for exactly this purpose.
+- Size transition detection uses `pageUrl` intersection + `sizeVariant` diff. Two
+  species at different URLs can never produce a size transition even if they share a
+  scientific name. Phase 12 E2E does not need to test size transitions — Vitest engine
+  tests cover all branches.
+
+OOS flip value format:
+- In all-time mode: `"2 total"` (no `+` prefix) — matches Python. Distinct from the
+  non-all-time format `"+N vs {deltaLabel}"`. Test assertions must branch on `isAllTime`.
+
+Coverage achieved (above thresholds):
+  Statements 99.37%, Branches 91.18%, Functions 100%, Lines 99.37%.
+  Remaining uncovered branches (lines 378-379, 639-643) are the `allUpTo.size === 0`
+  guard inside `valueAtRun` and the `wishlistCopy`/`priceCopy` `delta === null` branches.
+  These require records that exist in the window but have no prior period data AND no
+  prior-data fallback — practically unreachable with realistic data. Not worth adding
+  a fixture edge case to chase the last 1-2% branch coverage.
+
+Phase 12 wiring notes:
+- `index.ts` currently reads `window.marketHealthPayloads` (a pre-computed dict). Phase 12
+  must switch to `window.marketHealthRawData` and call `buildMarketHealthPayloadAllWindows`
+  on mount. The `MarketHealthSection` Svelte component interface (`payload` prop) is
+  unchanged — no component edits needed.
+- `market_health_dto.py` can be deleted after Phase 12 Python tests are removed. Confirm
+  with `grep -r "market_health_dto" src/ tests/` before deletion.
+- `window.marketHealthPayloads` must be removed from the Jinja template and from the
+  `assertPayload()` call in `index.ts`. The new global is `window.marketHealthRawData`.
+- After cutover, the Phase 7 deferred item (assertPayload for payload shape validation)
+  is superseded — the engine validates shape implicitly through TypeScript types.
+
+All 432 Vitest tests pass. Commit: 0672cf4.
 ```
