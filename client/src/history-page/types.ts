@@ -72,3 +72,25 @@ export interface EventTile {
   value: string;
   copy: string;
 }
+
+/** One variant-level row from the history CSV, normalised for the engine. */
+export interface RawRunRecord {
+  scrapeDatetime: string;   // ISO 8601 string — e.g. "2026-04-14T06:10:00"
+  scientificName: string;   // full binomial — e.g. "Avicularia avicularia"
+  sizeVariant: string;      // size_cm field from CSV — e.g. "2.0"
+  pageUrl: string;          // page_url field — used for size-transition detection
+  wishlistCount: number;    // numeric (0 if missing/invalid in source)
+  priceGbp: number;         // numeric (0.0 if missing/invalid in source)
+}
+
+/**
+ * Raw market data injected by Python as window.marketHealthRawData.
+ *
+ * referenceDate is the ISO string of the most recent scrape_datetime in the
+ * dataset. The engine uses it to compute window boundaries relative to the data
+ * rather than new Date(), keeping the static page meaningful however old it is.
+ */
+export interface MarketHealthRawData {
+  records: RawRunRecord[];
+  referenceDate: string;
+}
