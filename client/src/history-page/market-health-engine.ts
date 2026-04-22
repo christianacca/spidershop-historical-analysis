@@ -63,20 +63,27 @@ const PRIOR_DELTA_LABELS: Record<WindowId, string> = {
   'all-time': '',
 };
 
-const SPARKLINE_BASIS_NOTES: Partial<Record<WindowId, string>> = {
+// In-progress windows use dynamic notes from buildInprogressBasisNotes; static entries are unused.
+const SPARKLINE_BASIS_NOTES: Record<WindowId, string> = {
+  'this-month': '',
   'last-month':
     'Compare within a row. Solid shows last month; dashed shows the prior full month.',
+  'current-quarter': '',
   'last-quarter':
     'Compare within a row. Solid shows last quarter; dashed shows the prior full quarter.',
+  'this-year': '',
   'last-year':
     'Compare within a row. Solid shows last year; dashed shows the prior full year.',
   'all-time':
     'All-time view has no dashed overlay. Compare within a row; each metric keeps its own vertical scale.',
 };
 
-const WINDOW_BASIS_NOTES: Partial<Record<WindowId, string>> = {
+const WINDOW_BASIS_NOTES: Record<WindowId, string> = {
+  'this-month': '',
   'last-month': 'Comparison basis: last full month vs prior full month.',
+  'current-quarter': '',
   'last-quarter': 'Comparison basis: last full quarter vs prior full quarter.',
+  'this-year': '',
   'last-year': 'Comparison basis: last full year vs year before.',
   'all-time': 'Comparison basis: structural context only, with no prior-period delta.',
 };
@@ -304,7 +311,6 @@ function computeStockRate(records: RawRunRecord[]): number {
   const allSpecies = new Set(records.map(r => r.scientificName));
   const latestRun = records.reduce((max, r) => (r.scrapeDatetime > max ? r.scrapeDatetime : max), '');
   const speciesAtLatest = speciesInRun(records, latestRun);
-  if (allSpecies.size === 0) return 0;
   return Math.round((speciesAtLatest.size / allSpecies.size) * 100);
 }
 
@@ -358,7 +364,6 @@ function valueAtRun(records: RawRunRecord[], runDt: string, metric: string): num
       records.filter(r => r.scrapeDatetime <= runDt).map(r => r.scientificName),
     );
     const inRun = new Set(runRecords.map(r => r.scientificName));
-    if (allUpTo.size === 0) return 0;
     return Math.round((inRun.size / allUpTo.size) * 100);
   }
   if (metric === 'wishlist') {
@@ -896,7 +901,7 @@ export function buildMarketHealthPayload(
         windowId, winStart, winEnd, priorStart, priorEnd,
       );
     }
-    const deltaLabel = PRIOR_DELTA_LABELS[windowId] ?? 'prior period';
+    const deltaLabel = PRIOR_DELTA_LABELS[windowId];
     return {
       windowId,
       windowLabel: WINDOW_LABELS[windowId],
@@ -946,8 +951,8 @@ export function buildMarketHealthPayload(
     dPrice = Math.round(currPrice - priorPrice);
   }
 
-  const priorLabel = PRIOR_LABELS[windowId] ?? 'prior period';
-  const deltaLabel = PRIOR_DELTA_LABELS[windowId] ?? 'prior period';
+  const priorLabel = PRIOR_LABELS[windowId];
+  const deltaLabel = PRIOR_DELTA_LABELS[windowId];
 
   const [obsDeltaText, obsDeltaCls] = formatObservedDelta(dObserved, isAllTime, deltaLabel);
   const [stockDeltaText, stockDeltaCls] = formatStockDelta(dStock, isAllTime, deltaLabel);
@@ -979,8 +984,8 @@ export function buildMarketHealthPayload(
       windowId, winStart, winEnd, priorStart, priorEnd,
     );
   } else {
-    windowBasisNote = WINDOW_BASIS_NOTES[windowId] ?? '';
-    sparklineBasisNote = SPARKLINE_BASIS_NOTES[windowId] ?? '';
+    windowBasisNote = WINDOW_BASIS_NOTES[windowId];
+    sparklineBasisNote = SPARKLINE_BASIS_NOTES[windowId];
   }
 
   // showPrior: true only when effective prior exists AND current window has ≥ 2 runs
