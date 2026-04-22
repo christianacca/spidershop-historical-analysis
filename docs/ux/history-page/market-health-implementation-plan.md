@@ -1104,8 +1104,8 @@ The Svelte components are not touched; they still receive a `MarketHealthPayload
 >   expected output shape for the fixture-driven tests in Phase 12.
 
 **Pre-flight:**
-- [ ] Run `make test-client-fast` — confirm baseline is green before touching anything.
-- [ ] Run `make test` — confirm Python tests are green.
+- [x] Run `make test-client-fast` — confirm baseline is green before touching anything.
+- [x] Run `make test` — confirm Python tests are green.
 
 ---
 
@@ -1138,7 +1138,7 @@ export interface MarketHealthRawData {
 }
 ```
 
-- [ ] Run `npx tsc --noEmit` from `client/` — zero errors.
+- [x] Run `npx tsc --noEmit` from `client/` — zero errors.
 
 ---
 
@@ -1277,7 +1277,7 @@ AND (c) the current window has ≥ 2 distinct run datetimes. This mirrors the Py
 **Empty-data guard:** if the current window has 0 runs, return a safe payload with all numeric
 values `0`, all strings `""` or `"No data"`, and empty sparkline series.
 
-- [ ] Run `npx tsc --noEmit` from `client/` — zero errors.
+- [x] Run `npx tsc --noEmit` from `client/` — zero errors.
 
 ---
 
@@ -1291,12 +1291,12 @@ Hand-calculate expected values from the fixture before writing assertions.
 **Required test cases (every branch must be covered):**
 
 **Window bounds (call `buildMarketHealthPayload` with each `windowId`):**
-- [ ] All 7 `windowId` values return a payload without throwing
-- [ ] `windowId: 'all-time'` → `showPrior: false`
-- [ ] All non-all-time windows → `showPrior: true` when prior data exists
-- [ ] In-progress windows (`this-month`, `current-quarter`, `this-year`) use dynamic basis
+- [x] All 7 `windowId` values return a payload without throwing
+- [x] `windowId: 'all-time'` → `showPrior: false`
+- [x] All non-all-time windows → `showPrior: true` when prior data exists
+- [x] In-progress windows (`this-month`, `current-quarter`, `this-year`) use dynamic basis
   notes (contain actual date ranges, not generic strings like "quarter to date")
-- [ ] Completed windows (`last-month`, `last-quarter`, `last-year`) use static basis notes
+- [x] Completed windows (`last-month`, `last-quarter`, `last-year`) use static basis notes
 
 **Window filtering:**
 - [ ] Records exactly on `winStart` boundary are included
@@ -1305,125 +1305,125 @@ Hand-calculate expected values from the fixture before writing assertions.
 - [ ] Records 1 ms after `winEnd` are excluded
 
 **Genus filter:**
-- [ ] `isAllSelected: true` — all records returned regardless of genus
-- [ ] `isAllSelected: false`, matching genera — only matching species returned
-- [ ] `isAllSelected: false`, non-matching genus — empty result
+- [x] `isAllSelected: true` — all records returned regardless of genus
+- [x] `isAllSelected: false`, matching genera — only matching species returned
+- [x] `isAllSelected: false`, non-matching genus — empty result
 
 **Observed species (`computeObserved`):**
-- [ ] Returns count of distinct `scientificName` values
-- [ ] Multi-variant species (same name, two size rows) counted as 1
+- [x] Returns count of distinct `scientificName` values
+- [x] Multi-variant species (same name, two size rows) counted as 1
 
 **In-stock rate (`computeStockRate`):**
-- [ ] 100% when all species present in latest run
-- [ ] Correct percentage when one species drops out before latest run
-- [ ] Returns 0 when records array is empty
+- [x] 100% when all species present in latest run
+- [x] Correct percentage when one species drops out before latest run
+- [x] Returns 0 when records array is empty
 
 **Median wishlist (`computeMedianWishlist`):**
-- [ ] Multi-variant species: max `wishlistCount` across variants used (not sum, not first)
-- [ ] Odd number of species — median is the middle value
-- [ ] Even number of species — median is average of two middle values, rounded
-- [ ] Returns 0 when records array is empty
+- [x] Multi-variant species: max `wishlistCount` across variants used (not sum, not first)
+- [x] Odd number of species — median is the middle value
+- [x] Even number of species — median is average of two middle values, rounded
+- [x] Returns 0 when records array is empty
 
 **Median price (`computeMedianPrice`):**
-- [ ] Multi-variant species: max `priceGbp` across variants used
-- [ ] Median value is correct for the fixture dataset
+- [x] Multi-variant species: max `priceGbp` across variants used
+- [x] Median value is correct for the fixture dataset
 
 **Sparkline resampling (`resampleTo12` via `buildSparklineForMetric`):**
 - [ ] Exactly 12 input values → output unchanged
-- [ ] Fewer than 12 → last value is used to pad to 12
-- [ ] More than 12 → 12 evenly-spaced values are sampled
+- [x] Fewer than 12 → last value is used to pad to 12
+- [x] More than 12 → 12 evenly-spaced values are sampled
 
 **Events — new listings:**
-- [ ] First appearance of a species within the window is counted as a new listing
-- [ ] A size transition (same `pageUrl`, different `sizeVariant`, gap ≤ 3 runs) is **not**
+- [x] First appearance of a species within the window is counted as a new listing
+- [x] A size transition (same `pageUrl`, different `sizeVariant`, gap ≤ 3 runs) is **not**
   counted as a new listing
 
 **Events — dropped listings:**
-- [ ] A species absent from the final run of the window is counted as a dropped listing
-- [ ] A size transition is **not** counted as a dropped listing
+- [x] A species absent from the final run of the window is counted as a dropped listing
+- [x] A size transition is **not** counted as a dropped listing
 
 **Events — restocks (OUT → IN):**
-- [ ] A species absent from one run and present in the next is counted as a restock
+- [x] A species absent from one run and present in the next is counted as a restock
 
 **Events — OOS flips (IN → OUT):**
-- [ ] A species present in one run and absent in the next is counted as an OOS flip
+- [x] A species present in one run and absent in the next is counted as an OOS flip
 
 **Size transition detection:**
-- [ ] Same `pageUrl`, same `scientificName`, different `sizeVariant`, gap ≤ 3 runs → `true`
+- [x] Same `pageUrl`, same `scientificName`, different `sizeVariant`, gap ≤ 3 runs → `true`
 - [ ] Same `pageUrl`, same `scientificName`, same `sizeVariant` → `false` (not a size change)
 - [ ] Different `pageUrl`, same species → `false` (not the same listing)
 - [ ] Same `pageUrl`, same species, gap > 3 runs → `false` (outside max-gap window)
 
 **Copy strings — observed (`observedCopy`):**
-- [ ] `isAllTime: true` → all-time sentence
-- [ ] `delta >= 3` → "Breadth is ahead of…" sentence
-- [ ] `0 <= delta <= 2` → "Breadth is only slightly ahead…" sentence
-- [ ] `delta < 0` → "Fewer species are being seen…" sentence
+- [x] `isAllTime: true` → all-time sentence
+- [x] `delta >= 3` → "Breadth is ahead of…" sentence
+- [x] `0 <= delta <= 2` → "Breadth is only slightly ahead…" sentence
+- [x] `delta < 0` → "Fewer species are being seen…" sentence
 
 **Copy strings — stock (`stockCopy`):**
-- [ ] `isAllTime: true` → all-time sentence
-- [ ] `delta <= -7` → availability slipping sentence (includes `abs(delta)` and value%)
+- [x] `isAllTime: true` → all-time sentence
+- [x] `delta <= -7` → availability slipping sentence (includes `abs(delta)` and value%)
 - [ ] `-6 <= delta <= -1` → near-term tightening sentence
-- [ ] `delta === 0` → steady sentence
-- [ ] `delta >= 1` → firmer sentence
+- [x] `delta === 0` → steady sentence
+- [x] `delta >= 1` → firmer sentence
 
 **Copy strings — wishlist (`wishlistCopy`):**
-- [ ] `isAllTime: true` → all-time sentence
-- [ ] `delta >= 4` → ahead sentence
-- [ ] `1 <= delta <= 3` → modestly above sentence
-- [ ] `delta === 0` → stable sentence
-- [ ] `delta <= -1` → softer sentence
+- [x] `isAllTime: true` → all-time sentence
+- [x] `delta >= 4` → ahead sentence
+- [x] `1 <= delta <= 3` → modestly above sentence
+- [x] `delta === 0` → stable sentence
+- [x] `delta <= -1` → softer sentence
 
 **Copy strings — price (`priceCopy`):**
-- [ ] `isAllTime: true` → all-time sentence
-- [ ] `delta >= 2` → firmer sentence
-- [ ] `delta === 1` → edged up sentence
-- [ ] `delta === 0` → steady sentence
-- [ ] `delta <= -1` → softened sentence
+- [x] `isAllTime: true` → all-time sentence
+- [x] `delta >= 2` → firmer sentence
+- [x] `delta === 1` → edged up sentence
+- [x] `delta === 0` → steady sentence
+- [x] `delta <= -1` → softened sentence
 
 **Delta formatting:**
-- [ ] `formatObservedDelta`: positive delta → `"+N vs …"`, class `""`
-- [ ] `formatObservedDelta`: negative delta → `"-N vs …"`, class `"down"`
-- [ ] `formatObservedDelta`: all-time → `"No prior comparison"`, class `"flat"`
-- [ ] `formatStockDelta`: positive → `"+N pts vs …"`, class `""`
-- [ ] `formatStockDelta`: negative → `"-N pts vs …"`, class `"down"`
-- [ ] `formatWishlistDelta`: zero → `"+0 vs …"`, class `"flat"`
-- [ ] `formatPriceDelta`: positive → `"+GBP N vs …"`, class `""`
-- [ ] `formatPriceDelta`: zero → `"+GBP 0 vs …"`, class `"flat"`
+- [x] `formatObservedDelta`: positive delta → `"+N vs …"`, class `""`
+- [x] `formatObservedDelta`: negative delta → `"-N vs …"`, class `"down"`
+- [x] `formatObservedDelta`: all-time → `"No prior comparison"`, class `"flat"`
+- [x] `formatStockDelta`: positive → `"+N pts vs …"`, class `""`
+- [x] `formatStockDelta`: negative → `"-N pts vs …"`, class `"down"`
+- [x] `formatWishlistDelta`: zero → `"+0 vs …"`, class `"flat"`
+- [x] `formatPriceDelta`: positive → `"+GBP N vs …"`, class `""`
+- [x] `formatPriceDelta`: zero → `"+GBP 0 vs …"`, class `"flat"`
 
 **Dynamic basis notes (`buildInprogressBasisNotes`):**
-- [ ] `this-month` → result contains the actual month label and date span (e.g. `"Apr 2026"`,
+- [x] `this-month` → result contains the actual month label and date span (e.g. `"Apr 2026"`,
   `"Apr 1"`, `"Apr 21"`)
-- [ ] `current-quarter` → result contains the quarter label and matched prior-quarter span
+- [x] `current-quarter` → result contains the quarter label and matched prior-quarter span
   (e.g. `"Q2 2026"`, `"Q1 2026"`, `"Jan 1"`, `"Jan 21"`)
-- [ ] `this-year` → result contains the year and the matched prior-year span
+- [x] `this-year` → result contains the year and the matched prior-year span
 
 **Full payload shape:**
-- [ ] `buildMarketHealthPayload` with `currentQuarter` returns a payload where
+- [x] `buildMarketHealthPayload` with `currentQuarter` returns a payload where
   `kpis.observed`, `kpis.stock`, `kpis.wishlist`, `kpis.price` all have `id`, `title`,
   `value`, `delta`, `deltaClass`, `copy` fields populated (no empty strings except where
   intentional)
-- [ ] `buildMarketHealthPayload` with `all-time` returns a payload where all four
+- [x] `buildMarketHealthPayload` with `all-time` returns a payload where all four
   `deltaClass` values are `"flat"` and all four `delta` texts are `"No prior comparison"`
 
 **All-windows builder:**
-- [ ] `buildMarketHealthPayloadAllWindows` returns an object with exactly 7 keys matching
+- [x] `buildMarketHealthPayloadAllWindows` returns an object with exactly 7 keys matching
   `ALL_WINDOW_IDS`
-- [ ] Each value is a valid `MarketHealthPayload` with the correct `windowId` field
+- [x] Each value is a valid `MarketHealthPayload` with the correct `windowId` field
 
 **Tasks:**
-- [ ] Run `make test-client-fast` — all tests green (existing + new)
-- [ ] Run `make test-client` — confirm statement coverage ≥ 95% and branch coverage ≥ 85%
+- [x] Run `make test-client-fast` — all tests green (existing + new)
+- [x] Run `make test-client` — confirm statement coverage ≥ 95% and branch coverage ≥ 85%
   for `market-health-engine.ts`
 
 **Housekeeping:**
-- [ ] H1 — Mark all tasks in Phase 11 ✅
-- [ ] H2 — Reflection: scan `market-health-engine.ts` against the code smell checklist;
+- [x] H1 — Mark all tasks in Phase 11 ✅
+- [x] H2 — Reflection: scan `market-health-engine.ts` against the code smell checklist;
   in particular: no `any` types, no hardcoded strings that diverge from the Python
   constants, no exported implementation details
-- [ ] H3 — Feed-forward log entry
-- [ ] H4 — Commit: `git add -A && git commit -m "Phase 11: client-side market health engine"`
-- [ ] GATE — Output phase completion block
+- [x] H3 — Feed-forward log entry
+- [x] H4 — Commit: `git add -A && git commit -m "Phase 11: client-side market health engine"`
+- [x] GATE — Output phase completion block
 
 ---
 
