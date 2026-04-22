@@ -1109,6 +1109,151 @@ describe('size transition — false cases', () => {
 });
 
 // ===========================================================================
+// Window bounds — m===0 and lm===0 ternary branches (January/February ref)
+// ===========================================================================
+
+describe('getWindowBounds — m===0 / lm===0 ternary branches', () => {
+  // Helper record factory
+  const rec = (dt: string, name = 'Test sp') => ({
+    scrapeDatetime: dt, scientificName: name, sizeVariant: '2.0',
+    pageUrl: `url-${name.split(' ')[0].toLowerCase()}`, wishlistCount: 5, priceGbp: 10,
+  });
+
+  it('this-month with January reference: priorMonth wraps to Dec, priorYear decrements (lines 161–162)', () => {
+    // ref = Jan 13 2026 → m=0 → priorMonth = 0===0 ? 11 : m-1 = 11 (Dec), priorYear = 2025
+    // Dynamic basis note must mention Jan 2026 (current) and Dec (prior)
+    const raw = {
+      referenceDate: '2026-01-13T06:10:00',
+      records: [rec('2026-01-06T06:10:00'), rec('2026-01-13T06:10:00')],
+    };
+    const note = buildMarketHealthPayload(raw, 'this-month').windowBasisNote;
+    expect(note).toContain('Jan 2026');
+    expect(note).toContain('Jan 1');
+    expect(note).toContain('Jan 13');
+    expect(note).toMatch(/Dec/);
+  });
+
+  it('last-month with January reference: window is December (m===0 branch, lines 170–171)', () => {
+    // ref = Jan 13 2026 → m=0 → lm = 11 (Dec), ly = 2025 → window = Dec 2025
+    // Include a Dec record so the observed count confirms correct window selection
+    const raw = {
+      referenceDate: '2026-01-13T06:10:00',
+      records: [rec('2025-12-08T06:10:00', 'Dec sp'), rec('2025-12-15T06:10:00', 'Dec sp'), rec('2026-01-06T06:10:00', 'Jan sp')],
+    };
+    const p = buildMarketHealthPayload(raw, 'last-month');
+    // Dec 2025 has 'Dec sp' → 1 observed; Jan record excluded from Dec window
+    expect(p.kpis.observed.value).toBe('1');
+    expect(p.windowBasisNote).toBe('Comparison basis: last full month vs prior full month.');
+  });
+
+  it('last-month with February reference: prior-of-prior wraps to December (lm===0 branch, lines 174–175)', () => {
+    // ref = Feb 13 2026 → m=1 → lm = 0 (Jan), ly = 2026
+    // pm = lm===0 ? 11 : lm-1 = 11 (Dec), py = 2025 → prior window = Dec 2025
+    const raw = {
+      referenceDate: '2026-02-13T06:10:00',
+      records: [rec('2026-01-06T06:10:00', 'Jan sp'), rec('2026-01-13T06:10:00', 'Jan sp'), rec('2026-02-13T06:10:00', 'Feb sp')],
+    };
+    const p = buildMarketHealthPayload(raw, 'last-month');
+    // last-month = Jan 2026 → 'Jan sp' observed; Feb record excluded
+    expect(p.kpis.observed.value).toBe('1');
+    expect(p.windowBasisNote).toBe('Comparison basis: last full month vs prior full month.');
+  });
+});
+
+// ===========================================================================
+// parseIso — isNaN(ms) branch (line 138)
+// ===========================================================================
+
+describe('parseIso — isNaN branch (line 138)', () => {
+  it('non-empty unparseable referenceDate: handled gracefully without throwing', () => {
+    // parseIso('bad-date'): !s=false → Date.parse('bad-date')=NaN → isNaN(ms) true → null
+    // ref = null ?? new Date(0) = Unix epoch; engine still produces a valid payload
+    const raw = {
+      referenceDate: 'bad-date',
+      records: [{ scrapeDatetime: '2026-04-13T06:10:00', scientificName: 'Test sp', sizeVariant: '2.0', pageUrl: 'url-t', wishlistCount: 5, priceGbp: 10 }],
+    };
+    expect(() => buildMarketHealthPayload(raw, 'all-time')).not.toThrow();
+    const p = buildMarketHealthPayload(raw, 'all-time');
+    expect(p.windowId).toBe('all-time');
+  });
+});
+
+// ===========================================================================
+// buildScopeLabel — selectedGenera.length===0 with isAllSelected:false (line 826)
+// ===========================================================================
+
+describe('buildScopeLabel — empty selectedGenera + isAllSelected:false (line 826)', () => {
+  it('empty selectedGenera with isAllSelected:false: scopeLabel is empty, all records returned', () => {
+    // buildScopeLabel([], false): isAllSelected=false → selectedGenera.length===0 → return ''
+    // applyGenusFilter(records, [], false): same condition → returns all records unchanged
+    const p = buildMarketHealthPayload(rawMarketHealthData, 'all-time', {
+      isAllSelected: false,
+      selectedGenera: [],
+    });
+    expect(p.scopeLabel).toBe('');
+    expect(p.kpis.observed.value).toBe('5');
+  });
+});
+
+// ===========================================================================
+// TestNoPriorDataCopy equivalents — delta=null non-all-time: neutral content
+// ===========================================================================
+
+describe('copy — delta=null non-all-time: neutral content (TestNoPriorDataCopy)', () => {
+  // last-quarter: Q1 2026 has data (runs 0+1) but Q4 2025 is absent → delta=null for all KPIs
+
+  it('wishlistCopy delta=null (non-all-time): neutral sentence, no comparison language', () => {
+    const copy = payload('last-quarter').kpis.wishlist.copy;
+    expect(copy).toContain('no prior period is available for comparison');
+    expect(copy).not.toContain('ahead of');
+    expect(copy).not.toContain('above');
+    expect(copy).not.toContain('softer');
+  });
+
+  it('priceCopy delta=null (non-all-time): neutral sentence, no comparison language', () => {
+    const copy = payload('last-quarter').kpis.price.copy;
+    expect(copy).toContain('no prior period is available for comparison');
+    expect(copy).not.toContain('firmer');
+    expect(copy).not.toContain('edged up');
+    expect(copy).not.toContain('softened');
+  });
+
+  it('showPrior is false when in-progress window has current data but no prior rows', () => {
+    // Only Q2 records → current-quarter has data but no Q1 prior → effectiveShowPrior=false
+    const noPriorRaw = {
+      referenceDate: '2026-04-13T06:10:00',
+      records: [
+        { scrapeDatetime: '2026-04-06T06:10:00', scientificName: 'Alpha alpha', sizeVariant: '2.0', pageUrl: 'url-a', wishlistCount: 10, priceGbp: 20 },
+        { scrapeDatetime: '2026-04-13T06:10:00', scientificName: 'Alpha alpha', sizeVariant: '2.0', pageUrl: 'url-a', wishlistCount: 10, priceGbp: 20 },
+      ],
+    };
+    expect(buildMarketHealthPayload(noPriorRaw, 'current-quarter').showPrior).toBe(false);
+  });
+});
+
+// ===========================================================================
+// priceCopy delta=0 — content keywords (TestPriceCopyDeltaZero equivalent)
+// ===========================================================================
+
+describe('priceCopy delta=0 — content keywords: availability, inflation, no prior-period ref', () => {
+  // Reuse the same dataset as 'copy branches — delta=0' (Gamma gamma, same price)
+  const raw = makeMinimalRaw(
+    [{ name: 'Gamma gamma', wl: 10, price: 25 }],
+    [
+      { dt: '2026-04-05T06:10:00', name: 'Gamma gamma', wl: 10, price: 25 },
+      { dt: '2026-04-13T06:10:00', name: 'Gamma gamma', wl: 10, price: 25 },
+    ],
+  );
+
+  it('priceCopy delta=0: contains "availability" AND "inflation", does not mention prior quarter', () => {
+    const copy = buildMarketHealthPayload(raw, 'current-quarter').kpis.price.copy;
+    expect(copy.toLowerCase()).toContain('availability');
+    expect(copy.toLowerCase()).toContain('inflation');
+    expect(copy).not.toContain('prior quarter');
+  });
+});
+
+// ===========================================================================
 // Empty data guard
 // ===========================================================================
 
