@@ -901,6 +901,214 @@ describe('resampleTo12 — n ≥ 12 (evenly-sampled)', () => {
 });
 
 // ===========================================================================
+// Window filtering — ms-precision boundaries
+// ===========================================================================
+
+describe('window filtering — ms-precision boundaries', () => {
+  // current-quarter with referenceDate='2026-04-13T06:10:00':
+  //   winStart = new Date(2026, 3, 1, 0, 0, 0, 0) = Apr 1 00:00:00.000 local
+  //   winEnd   = parseIso('2026-04-13T06:10:00')  = Apr 13 06:10:00.000 local
+  const REF = '2026-04-13T06:10:00';
+
+  function singleRunRaw(dt: string): import('./types.js').MarketHealthRawData {
+    return {
+      referenceDate: REF,
+      records: [{
+        scrapeDatetime: dt,
+        scientificName: 'Boundary sp',
+        sizeVariant: '2.0',
+        pageUrl: 'url-b',
+        wishlistCount: 10,
+        priceGbp: 20,
+      }],
+    };
+  }
+
+  it('record exactly on winStart boundary is included', () => {
+    // Apr 1 00:00:00 is the exact winStart for current-quarter
+    const p = buildMarketHealthPayload(singleRunRaw('2026-04-01T00:00:00'), 'current-quarter');
+    expect(p.kpis.observed.value).toBe('1');
+  });
+
+  it('record exactly on winEnd boundary is included', () => {
+    // referenceDate itself = exact winEnd
+    const p = buildMarketHealthPayload(singleRunRaw('2026-04-13T06:10:00'), 'current-quarter');
+    expect(p.kpis.observed.value).toBe('1');
+  });
+
+  it('record 1 ms before winStart is excluded', () => {
+    // Mar 31 23:59:59.999 = 1ms before Apr 1 00:00:00
+    const p = buildMarketHealthPayload(singleRunRaw('2026-03-31T23:59:59.999'), 'current-quarter');
+    expect(p.kpis.observed.value).toBe('0');
+  });
+
+  it('record 1 ms after winEnd is excluded', () => {
+    // Apr 13 06:10:00.001 = 1ms after referenceDate
+    const p = buildMarketHealthPayload(singleRunRaw('2026-04-13T06:10:00.001'), 'current-quarter');
+    expect(p.kpis.observed.value).toBe('0');
+  });
+});
+
+// ===========================================================================
+// resampleTo12 — exactly n=12 (unchanged path)
+// ===========================================================================
+
+describe('resampleTo12 — n = 12 (unchanged)', () => {
+  // 12 weekly runs: first 6 have 1 species, last 6 have 2 species.
+  // With n=12, resampleTo12 uses indices [0..11] → values returned as-is.
+  const weeklyDts = [
+    '2026-01-05', '2026-01-12', '2026-01-19', '2026-01-26',
+    '2026-02-02', '2026-02-09', '2026-02-16', '2026-02-23',
+    '2026-03-02', '2026-03-09', '2026-03-16', '2026-03-23',
+  ].map(d => `${d}T06:10:00`);
+
+  const rawExact12: import('./types.js').MarketHealthRawData = {
+    referenceDate: weeklyDts[11],
+    records: [
+      // Alpha appears in all 12 runs
+      ...weeklyDts.map(dt => ({
+        scrapeDatetime: dt,
+        scientificName: 'Alpha alpha',
+        sizeVariant: '2.0',
+        pageUrl: 'url-a',
+        wishlistCount: 10,
+        priceGbp: 20,
+      })),
+      // Beta appears only in the last 6 runs (indices 6–11)
+      ...weeklyDts.slice(6).map(dt => ({
+        scrapeDatetime: dt,
+        scientificName: 'Beta beta',
+        sizeVariant: '2.0',
+        pageUrl: 'url-b',
+        wishlistCount: 10,
+        priceGbp: 20,
+      })),
+    ],
+  };
+
+  it('exactly 12 runs → observed sparkline is original values unchanged (n=12 path)', () => {
+    const p = buildMarketHealthPayload(rawExact12, 'all-time');
+    const series = p.sparklineSeries.observed.current;
+    expect(series).toHaveLength(12);
+    // Runs 0–5: only Alpha → 1 species; runs 6–11: Alpha + Beta → 2 species
+    expect(series.slice(0, 6)).toEqual([1, 1, 1, 1, 1, 1]);
+    expect(series.slice(6)).toEqual([2, 2, 2, 2, 2, 2]);
+  });
+});
+
+// ===========================================================================
+// stockCopy — near-term tightening branch (-6 ≤ delta ≤ -1)
+// ===========================================================================
+
+describe('copy branches — stockCopy near-term tightening (-6 ≤ delta ≤ -1)', () => {
+  // prior: 1 species → 100% in-stock
+  // current run1 (Apr 5): 20 species; current run2 (Apr 13): 19 species (1 dropped)
+  // stock_current = round(19/20 * 100) = 95%; delta = 95 - 100 = -5 → "near-term tightening"
+  const currentRun1 = Array.from({ length: 20 }, (_, i) => ({
+    dt: '2026-04-05T06:10:00',
+    name: `Sp${String(i + 1).padStart(2, '0')} x`,
+    wl: 10,
+    price: 20,
+  }));
+  const currentRun2 = currentRun1.slice(0, 19).map(s => ({ ...s, dt: '2026-04-13T06:10:00' }));
+
+  const raw = makeMinimalRaw(
+    [{ name: 'Sp01 x', wl: 10, price: 20 }],
+    [...currentRun1, ...currentRun2],
+  );
+
+  it('stockCopy: -6 ≤ delta ≤ -1 → "near-term tightening" sentence', () => {
+    const p = buildMarketHealthPayload(raw, 'current-quarter');
+    // d_stock = 95 - 100 = -5
+    expect(p.kpis.stock.copy).toContain('near-term tightening');
+  });
+
+  it('formatStockDelta: negative non-large delta → "-N pts vs …" with class "down"', () => {
+    const p = buildMarketHealthPayload(raw, 'current-quarter');
+    expect(p.kpis.stock.delta).toMatch(/-\d+ pts vs/);
+    expect(p.kpis.stock.deltaClass).toBe('down');
+  });
+});
+
+// ===========================================================================
+// Size transition — false cases
+// ===========================================================================
+
+describe('size transition — false cases', () => {
+  // Helper: 4-run dataset (2 prior + 2 current) where Drifter disappears between runs
+  // and reappears with specified pageUrl/sizeVariant combination.
+  function makeDrifterRaw(
+    prevUrl: string,
+    prevSize: string,
+    nextUrl: string,
+    nextSize: string,
+  ): import('./types.js').MarketHealthRawData {
+    return {
+      referenceDate: '2026-04-13T06:10:00',
+      records: [
+        // run0 (Jan5): Anchor y + Drifter x (prevUrl, prevSize)
+        { scrapeDatetime: '2026-01-05T06:10:00', scientificName: 'Anchor y', sizeVariant: '2.0', pageUrl: 'url-a', wishlistCount: 10, priceGbp: 20 },
+        { scrapeDatetime: '2026-01-05T06:10:00', scientificName: 'Drifter x', sizeVariant: prevSize, pageUrl: prevUrl, wishlistCount: 10, priceGbp: 20 },
+        // run1 (Jan12): Anchor y only (Drifter absent = OOS flip)
+        { scrapeDatetime: '2026-01-12T06:10:00', scientificName: 'Anchor y', sizeVariant: '2.0', pageUrl: 'url-a', wishlistCount: 10, priceGbp: 20 },
+        // run2 (Apr6): Anchor y + Drifter x (nextUrl, nextSize)
+        { scrapeDatetime: '2026-04-06T06:10:00', scientificName: 'Anchor y', sizeVariant: '2.0', pageUrl: 'url-a', wishlistCount: 10, priceGbp: 20 },
+        { scrapeDatetime: '2026-04-06T06:10:00', scientificName: 'Drifter x', sizeVariant: nextSize, pageUrl: nextUrl, wishlistCount: 10, priceGbp: 20 },
+        // run3 (Apr13): Anchor y + Drifter x (nextUrl, nextSize)
+        { scrapeDatetime: '2026-04-13T06:10:00', scientificName: 'Anchor y', sizeVariant: '2.0', pageUrl: 'url-a', wishlistCount: 10, priceGbp: 20 },
+        { scrapeDatetime: '2026-04-13T06:10:00', scientificName: 'Drifter x', sizeVariant: nextSize, pageUrl: nextUrl, wishlistCount: 10, priceGbp: 20 },
+      ],
+    };
+  }
+
+  it('same pageUrl, same sizeVariant → NOT a size transition (restock is counted)', () => {
+    // Drifter disappears at run1 and reappears at run2 with the SAME url and size.
+    // isSizeTransition: same URL, same size set → prevSizes === currSizes → returns false.
+    // Result: Drifter is classified as a normal restock, not a size transition.
+    const events = buildMarketHealthPayload(
+      makeDrifterRaw('url-d', '2.0', 'url-d', '2.0'),
+      'all-time',
+    ).events;
+    expect(events.restocks.value).toBe('1 total');
+  });
+
+  it('different pageUrl, same species → NOT a size transition (restock is counted)', () => {
+    // Drifter disappears at run1 and reappears at run2 with a DIFFERENT pageUrl.
+    // isSizeTransition: prevUrls and currUrls have no URL in common → loop skips → returns false.
+    // Result: Drifter is classified as a normal restock, not a size transition.
+    const events = buildMarketHealthPayload(
+      makeDrifterRaw('url-d1', '2.0', 'url-d2', '3.0'),
+      'all-time',
+    ).events;
+    expect(events.restocks.value).toBe('1 total');
+  });
+
+  it('same pageUrl, same species, gap > 3 runs → NOT a size transition (restock is counted)', () => {
+    // Drifter disappears at run1 (idx=1) and reappears at run5 (idx=5): gap=4 > maxGap=3.
+    // isSizeTransition checks gap first: 4 > 3 → returns false immediately.
+    // Result: Drifter is classified as a normal restock, not a size transition.
+    const raw: import('./types.js').MarketHealthRawData = {
+      referenceDate: '2026-02-09T06:10:00',
+      records: [
+        // run0 (Jan5): Anchor y + Drifter x
+        { scrapeDatetime: '2026-01-05T06:10:00', scientificName: 'Anchor y', sizeVariant: '2.0', pageUrl: 'url-a', wishlistCount: 10, priceGbp: 20 },
+        { scrapeDatetime: '2026-01-05T06:10:00', scientificName: 'Drifter x', sizeVariant: '2.0', pageUrl: 'url-d', wishlistCount: 10, priceGbp: 20 },
+        // runs 1–4 (Jan12–Feb2): Anchor only (Drifter absent)
+        { scrapeDatetime: '2026-01-12T06:10:00', scientificName: 'Anchor y', sizeVariant: '2.0', pageUrl: 'url-a', wishlistCount: 10, priceGbp: 20 },
+        { scrapeDatetime: '2026-01-19T06:10:00', scientificName: 'Anchor y', sizeVariant: '2.0', pageUrl: 'url-a', wishlistCount: 10, priceGbp: 20 },
+        { scrapeDatetime: '2026-01-26T06:10:00', scientificName: 'Anchor y', sizeVariant: '2.0', pageUrl: 'url-a', wishlistCount: 10, priceGbp: 20 },
+        { scrapeDatetime: '2026-02-02T06:10:00', scientificName: 'Anchor y', sizeVariant: '2.0', pageUrl: 'url-a', wishlistCount: 10, priceGbp: 20 },
+        // run5 (Feb9): Anchor + Drifter at same url, different size — gap=5 > maxGap=3
+        { scrapeDatetime: '2026-02-09T06:10:00', scientificName: 'Anchor y', sizeVariant: '2.0', pageUrl: 'url-a', wishlistCount: 10, priceGbp: 20 },
+        { scrapeDatetime: '2026-02-09T06:10:00', scientificName: 'Drifter x', sizeVariant: '3.0', pageUrl: 'url-d', wishlistCount: 10, priceGbp: 20 },
+      ],
+    };
+    const events = buildMarketHealthPayload(raw, 'all-time').events;
+    expect(events.restocks.value).toBe('1 total');
+  });
+});
+
+// ===========================================================================
 // Empty data guard
 // ===========================================================================
 

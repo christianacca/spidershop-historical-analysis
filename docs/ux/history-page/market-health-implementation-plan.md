@@ -1299,10 +1299,10 @@ Hand-calculate expected values from the fixture before writing assertions.
 - [x] Completed windows (`last-month`, `last-quarter`, `last-year`) use static basis notes
 
 **Window filtering:**
-- [ ] Records exactly on `winStart` boundary are included
-- [ ] Records exactly on `winEnd` boundary are included
-- [ ] Records 1 ms before `winStart` are excluded
-- [ ] Records 1 ms after `winEnd` are excluded
+- [x] Records exactly on `winStart` boundary are included
+- [x] Records exactly on `winEnd` boundary are included
+- [x] Records 1 ms before `winStart` are excluded
+- [x] Records 1 ms after `winEnd` are excluded
 
 **Genus filter:**
 - [x] `isAllSelected: true` — all records returned regardless of genus
@@ -1329,7 +1329,7 @@ Hand-calculate expected values from the fixture before writing assertions.
 - [x] Median value is correct for the fixture dataset
 
 **Sparkline resampling (`resampleTo12` via `buildSparklineForMetric`):**
-- [ ] Exactly 12 input values → output unchanged
+- [x] Exactly 12 input values → output unchanged
 - [x] Fewer than 12 → last value is used to pad to 12
 - [x] More than 12 → 12 evenly-spaced values are sampled
 
@@ -1350,9 +1350,9 @@ Hand-calculate expected values from the fixture before writing assertions.
 
 **Size transition detection:**
 - [x] Same `pageUrl`, same `scientificName`, different `sizeVariant`, gap ≤ 3 runs → `true`
-- [ ] Same `pageUrl`, same `scientificName`, same `sizeVariant` → `false` (not a size change)
-- [ ] Different `pageUrl`, same species → `false` (not the same listing)
-- [ ] Same `pageUrl`, same species, gap > 3 runs → `false` (outside max-gap window)
+- [x] Same `pageUrl`, same `scientificName`, same `sizeVariant` → `false` (not a size change)
+- [x] Different `pageUrl`, same species → `false` (not the same listing)
+- [x] Same `pageUrl`, same species, gap > 3 runs → `false` (outside max-gap window)
 
 **Copy strings — observed (`observedCopy`):**
 - [x] `isAllTime: true` → all-time sentence
@@ -1363,7 +1363,7 @@ Hand-calculate expected values from the fixture before writing assertions.
 **Copy strings — stock (`stockCopy`):**
 - [x] `isAllTime: true` → all-time sentence
 - [x] `delta <= -7` → availability slipping sentence (includes `abs(delta)` and value%)
-- [ ] `-6 <= delta <= -1` → near-term tightening sentence
+- [x] `-6 <= delta <= -1` → near-term tightening sentence
 - [x] `delta === 0` → steady sentence
 - [x] `delta >= 1` → firmer sentence
 
