@@ -1950,5 +1950,44 @@ Phase 12 wiring notes:
 - After cutover, the Phase 7 deferred item (assertPayload for payload shape validation)
   is superseded — the engine validates shape implicitly through TypeScript types.
 
-All 432 Vitest tests pass. Commit: 0672cf4.
+All 163 E2E tests pass. Commit: b21cc8f.
+
+[Phase 12 — 2026-04-22]
+Client-side architecture cutover — key findings:
+
+market_health_raw_dto.py is ~60 lines as intended. No logic, no window computation —
+pure field mapping from CSV dicts to camelCase JSON. The "skip rows" guard (`not
+scientific_name and not scrape_datetime`) intentionally retains rows with only one
+of the two fields absent — these are edge cases that the engine handles gracefully
+rather than silently dropping valid data.
+
+test_pages.py rewrite: the two old tests (KPI value assertions, reference-date regression)
+are now superseded by four new tests that check the raw data contract: global name, records
+list, records count equals source rows, and referenceDate equals latest run. These tests
+are structurally lighter and cannot drift as the engine evolves.
+
+stale .pyc caches: after deleting market_health_dto.py, Python's __pycache__ still holds
+binary .pyc files for the deleted module. These are benign — pytest ignores orphaned .pyc
+files. They will be purged by `make clean-cache` or when the bytecode version changes.
+No action required.
+
+index.ts cutover: the `MarketHealthPayload` and `WindowId` type imports were cleanly
+removed. The new guard (`rawData && rawData.records.length > 0`) is strictly tighter than
+the old guard (`initialPayload` truthiness) — it prevents mounting with an empty dataset
+rather than showing a vacuous zero-valued section.
+
+E2E test design rationale: test_kpi_values_are_non_empty uses `wait_until="networkidle"`
+(not "domcontentloaded") because the Svelte island mounts on DOMContentLoaded and populates
+asynchronously via rune reactivity. networkidle gives the island time to complete its
+initial render before assertions run.
+
+Templates dist artifact: templates/scripts/dist/history-page.js is a stale build
+artifact that still references marketHealthPayloads. This is expected — it is regenerated
+by `make build-client` or `make generate-website`. The E2E fixture infrastructure
+rebuilds the client bundle before each test run, so E2E tests always use the current
+client/src/ code. The dist file is not committed (it lives in templates/scripts/dist/
+which is .gitignored for generated output).
+
+All test suites green: 857 Python / 451 Vitest / 163 E2E.
+Coverage: Python 95.69%, market-health-engine.ts statements 99.74% branches 96.62%.
 ```

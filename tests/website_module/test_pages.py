@@ -19,7 +19,7 @@ def _table_json(html: str) -> list:
 
 
 class TestGenerateHistoryInsightsPage:
-    """Tests for history-insights page generation — KPI window reference date."""
+    """Tests for history-insights page generation — raw data serialisation."""
 
     def _make_history_csv(self, tmp_path, run_dates: list) -> str:
         """Write a minimal history CSV with one species across given run dates."""
@@ -41,58 +41,71 @@ class TestGenerateHistoryInsightsPage:
             active_page="history-insights",
         )
 
-    def test_kpi_values_are_non_zero_when_history_has_data(self, tmp_path):
-        """KPI observed value must be > 0 when history rows exist.
-
-        Regression test: previously all KPIs showed 0 because the window
-        reference was datetime.now() instead of the last scrape datetime.
-        """
+    def test_injects_market_health_raw_data_global(self, tmp_path):
+        """Generated HTML must contain window.marketHealthRawData (not marketHealthPayloads)."""
         runs = [
-            "2020-01-01T06:10:00",  # old run — far in the past
-            "2020-01-08T06:10:00",
-            "2020-01-15T06:10:00",
+            "2026-01-01T06:10:00",
+            "2026-01-08T06:10:00",
+            "2026-01-15T06:10:00",
         ]
         csv_path = self._make_history_csv(tmp_path, runs)
         html = generate_history_insights_page(self._config(csv_path))
-        # The injected payload must contain non-zero observed species
-        # (not the empty-payload '0' placeholder).
-        # We check the raw JSON blob injected into the page.
-        import json
-        m = re.search(r'window\.marketHealthPayloads\s*=\s*(\{.*?\});', html, re.DOTALL)
-        assert m, "marketHealthPayloads JSON not found in generated HTML"
-        payloads = json.loads(m.group(1))
-        # 'all-time' window always covers all rows regardless of reference date
-        all_time = payloads["all-time"]
-        assert all_time["kpis"]["observed"]["value"] != "0", (
-            "'all-time' KPI should show non-zero observed species when history has data"
+        assert "window.marketHealthRawData" in html, (
+            "Generated HTML must contain window.marketHealthRawData"
+        )
+        assert "window.marketHealthPayloads" not in html, (
+            "Old window.marketHealthPayloads global must not appear in generated HTML"
         )
 
-    def test_kpi_window_relative_to_last_scrape_not_wall_clock(self, tmp_path):
-        """current-quarter window must contain runs relative to the last scrape date,
-        not datetime.now().
-
-        Regression test: when site is generated after a quarter boundary but the
-        most recent scrape is from just before, the current-quarter window is empty
-        under the old wall-clock reference — fixed by passing reference_dt.
-        """
-        # Place all runs in Q1 2020 (well before today)
+    def test_raw_data_has_records_and_reference_date(self, tmp_path):
+        """The injected JSON must have a 'records' list and a 'referenceDate' string."""
         runs = [
-            "2020-01-01T06:10:00",
-            "2020-01-08T06:10:00",
-            "2020-01-15T06:10:00",
+            "2026-01-01T06:10:00",
+            "2026-01-08T06:10:00",
+            "2026-01-15T06:10:00",
         ]
         csv_path = self._make_history_csv(tmp_path, runs)
         html = generate_history_insights_page(self._config(csv_path))
         import json
-        m = re.search(r'window\.marketHealthPayloads\s*=\s*(\{.*?\});', html, re.DOTALL)
-        assert m, "marketHealthPayloads JSON not found"
-        payloads = json.loads(m.group(1))
-        # With reference_dt = Jan 15 2020, current-quarter = Q1 2020.
-        # That window contains all 3 runs, so observed must be 1 (not 0).
-        current_q = payloads["current-quarter"]
-        assert current_q["kpis"]["observed"]["value"] != "0", (
-            "current-quarter KPI must use last-scrape reference_dt, not datetime.now(). "
-            "Got 0 — window fell outside data range."
+        m = re.search(r'window\.marketHealthRawData\s*=\s*(\{.*?\});', html, re.DOTALL)
+        assert m, "window.marketHealthRawData JSON not found in generated HTML"
+        raw = json.loads(m.group(1))
+        assert "records" in raw, "Raw data must have a 'records' key"
+        assert "referenceDate" in raw, "Raw data must have a 'referenceDate' key"
+        assert isinstance(raw["records"], list), "'records' must be a list"
+        assert raw["referenceDate"] != "", "'referenceDate' must be non-empty when rows exist"
+
+    def test_records_count_equals_source_rows(self, tmp_path):
+        """Every source row must appear as a record (no server-side deduplication)."""
+        runs = [
+            "2026-01-01T06:10:00",
+            "2026-01-08T06:10:00",
+            "2026-01-15T06:10:00",
+        ]
+        csv_path = self._make_history_csv(tmp_path, runs)
+        html = generate_history_insights_page(self._config(csv_path))
+        import json
+        m = re.search(r'window\.marketHealthRawData\s*=\s*(\{.*?\});', html, re.DOTALL)
+        raw = json.loads(m.group(1))
+        # One species × 3 runs = 3 rows → 3 records
+        assert len(raw["records"]) == 3, (
+            f"Expected 3 records (1 species × 3 runs), got {len(raw['records'])}"
+        )
+
+    def test_reference_date_matches_latest_run(self, tmp_path):
+        """referenceDate must equal the most recent scrape_datetime in the source data."""
+        runs = [
+            "2026-01-01T06:10:00",
+            "2026-01-08T06:10:00",
+            "2026-01-15T06:10:00",
+        ]
+        csv_path = self._make_history_csv(tmp_path, runs)
+        html = generate_history_insights_page(self._config(csv_path))
+        import json
+        m = re.search(r'window\.marketHealthRawData\s*=\s*(\{.*?\});', html, re.DOTALL)
+        raw = json.loads(m.group(1))
+        assert raw["referenceDate"] == "2026-01-15T06:10:00", (
+            f"referenceDate must be the latest run date; got {raw['referenceDate']!r}"
         )
 
 

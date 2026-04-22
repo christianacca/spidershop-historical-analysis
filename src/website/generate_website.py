@@ -48,7 +48,7 @@ try:
         load_historical_sparkline_data,
         build_sparkline_dto_rows,
     )
-    from website.market_health_dto import build_market_health_payload_all_windows
+    from website.market_health_raw_dto import build_raw_market_health_data
     from website.markdown_utils import (
         parse_markdown_to_html,
         extract_summary_stats,
@@ -77,7 +77,7 @@ except ModuleNotFoundError:
         load_historical_sparkline_data,
         build_sparkline_dto_rows,
     )
-    from market_health_dto import build_market_health_payload_all_windows  # type: ignore[import]
+    from market_health_raw_dto import build_raw_market_health_data  # type: ignore[import]
     from markdown_utils import (
         parse_markdown_to_html,
         extract_summary_stats,
@@ -243,12 +243,10 @@ def generate_history_page(config: BasePageConfig) -> str:
 def generate_history_insights_page(config: BasePageConfig) -> str:
     """Generate the History Insights page with the Market Health KPI island.
 
-    Reads the history CSV, builds MarketHealthPayload dicts for all 7 windows,
-    and injects them as ``window.marketHealthPayloads`` into the Jinja template.
-
-    The reference date for all KPI windows is the most recent scrape_datetime in
-    the history CSV (not the wall clock).  This makes the static page meaningful
-    regardless of when it was generated — the windows are relative to the data.
+    Reads the history CSV and serialises all variant-level rows into the
+    ``window.marketHealthRawData`` global consumed by the client-side
+    market-health-engine.ts.  All KPI computation, window logic, and copy
+    selection happen in the browser — Python is a pure data serialiser here.
     """
     headers, rows = read_csv_file(config.csv_filename)
     col_names = headers if headers else [
@@ -257,26 +255,7 @@ def generate_history_insights_page(config: BasePageConfig) -> str:
     ]
     history_rows = [dict(zip(col_names, row)) for row in (rows or [])]
 
-    # Use the most recent scrape run as the reference date so that KPI windows
-    # are relative to the data, not the wall clock.
-    reference_dt: Optional[datetime] = None
-    if history_rows:
-        latest_str = max(
-            (r.get("scrape_datetime", "") for r in history_rows),
-            default="",
-        )
-        if latest_str:
-            try:
-                reference_dt = datetime.fromisoformat(latest_str)
-            except (ValueError, TypeError):
-                pass
-
-    market_health_payloads = build_market_health_payload_all_windows(
-        history_rows,
-        selected_genera=[],
-        is_all_selected=True,
-        reference_dt=reference_dt,
-    )
+    market_health_raw_data = build_raw_market_health_data(history_rows)
 
     template = jinja_env.get_template("history_insights_page.html")
     return template.render(
@@ -285,7 +264,7 @@ def generate_history_insights_page(config: BasePageConfig) -> str:
         table_id=config.table_id,
         active_page=config.active_page,
         path_prefix="",
-        market_health_payloads=market_health_payloads,
+        market_health_raw_data=market_health_raw_data,
         timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
     )
 

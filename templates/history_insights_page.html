@@ -5,7 +5,7 @@
 {% block extra_css %}{% endblock %}
 {% block extra_js %}
 <script>
-window.marketHealthPayloads = {{ market_health_payloads | tojson | safe }};
+window.marketHealthRawData = {{ market_health_raw_data | tojson | safe }};
 </script>
 <script type="module" src="{{ path_prefix }}history-page.js"></script>
 {% endblock %}
