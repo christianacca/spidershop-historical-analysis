@@ -340,6 +340,35 @@ function computeMedianPrice(records: RawRunRecord[]): number {
 // Sparkline series computation
 // ---------------------------------------------------------------------------
 
+/**
+ * For in-progress windows, return the end of the *full* prior period rather than
+ * the matched-span end.  This lets the dashed prior line span the entire prior
+ * period for context while click-comparison dates still come from the matched span.
+ *
+ * Examples (ref = 22 Apr 2026):
+ *   current-quarter → full Q1 end = 31 Mar 2026 23:59:59 (= qs - 1 ms)
+ *   this-month      → full March end = 31 Mar 2026 23:59:59
+ *   this-year       → full 2025 end  = 31 Dec 2025 23:59:59
+ */
+function computePriorFullEnd(windowId: WindowId, winStart: Date): Date {
+  if (windowId === 'current-quarter') {
+    // winStart = start of current quarter → 1 ms before it = end of last quarter
+    return new Date(winStart.getTime() - 1);
+  }
+  if (windowId === 'this-month') {
+    // winStart = 1st of current month → prior month = month before
+    const priorMonth = winStart.getMonth() === 0 ? 11 : winStart.getMonth() - 1;
+    const priorYear  = winStart.getMonth() === 0 ? winStart.getFullYear() - 1 : winStart.getFullYear();
+    return new Date(priorYear, priorMonth, daysInMonth(priorMonth, priorYear), 23, 59, 59, 999);
+  }
+  if (windowId === 'this-year') {
+    // winStart = 1 Jan of current year → full prior year = Dec 31 last year
+    return new Date(winStart.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
+  }
+  // Fallback (should not be reached for in-progress windows)
+  return winStart;
+}
+
 function resampleTo12(values: number[]): number[] {
   const n = values.length;
   if (n === 0) return [];
@@ -860,7 +889,7 @@ function emptyKpi(id: KpiCardData['id'], title: string, value = '0'): KpiCardDat
 }
 
 function emptySparklineSeries(): SparklineSeries {
-  return { current: Array(12).fill(0), prior: [], currentRunDates: [], priorRunDates: [] };
+  return { current: [], prior: [], currentRunDates: [], priorRunDates: [] };
 }
 
 // ---------------------------------------------------------------------------
@@ -897,6 +926,19 @@ export function buildMarketHealthPayload(
   if (showPrior && priorStart !== null && priorEnd !== null) {
     priorRecords = filterToWindow(rawData.records, priorStart, priorEnd);
     priorRecords = applyGenusFilter(priorRecords, selectedGenera, isAllSelected);
+  }
+
+  // For in-progress windows, compute a second prior record set that spans the
+  // *full* prior period (e.g. all of Q1, not just the matched span Jan 1–Jan 22).
+  // This is used for the sparkline visual so the dashed line shows the full prior
+  // period as context.  priorRecords (matched span) is still used for KPI deltas
+  // and priorRunDates (click-comparison dates).
+  let priorFullRecords: RawRunRecord[] = priorRecords;
+  if (INPROGRESS_WINDOW_IDS.has(windowId) && priorStart !== null && showPrior) {
+    const priorFullEnd = computePriorFullEnd(windowId, winStart);
+    let fullPrior = filterToWindow(rawData.records, priorStart, priorFullEnd);
+    fullPrior = applyGenusFilter(fullPrior, selectedGenera, isAllSelected);
+    priorFullRecords = fullPrior;
   }
 
   const winRuns = getSortedRuns(winRecords);
@@ -974,20 +1016,22 @@ export function buildMarketHealthPayload(
   const [wlDeltaText, wlDeltaCls] = formatWishlistDelta(dWishlist, isAllTime, deltaLabel);
   const [priceDeltaText, priceDeltaCls] = formatPriceDelta(dPrice, isAllTime, deltaLabel);
 
-  // Sparklines
+  // Sparklines — use priorFullRecords for the visual line (full prior period for
+  // in-progress windows); use priorRunDates from priorRecords (matched span) so
+  // clicking run N shows the correctly matched comparison date.
   const observedCurrent = buildSparklineForMetric(winRecords, 'observed');
   const stockCurrent = buildSparklineForMetric(winRecords, 'stock');
   const wishlistCurrent = buildSparklineForMetric(winRecords, 'wishlist');
   const priceCurrent = buildSparklineForMetric(winRecords, 'price');
 
-  const observedPrior = effectiveShowPrior ? buildSparklineForMetric(priorRecords, 'observed') : [];
-  const stockPrior = effectiveShowPrior ? buildSparklineForMetric(priorRecords, 'stock') : [];
-  const wishlistPrior = effectiveShowPrior ? buildSparklineForMetric(priorRecords, 'wishlist') : [];
-  const pricePrior = effectiveShowPrior ? buildSparklineForMetric(priorRecords, 'price') : [];
+  const observedPrior  = effectiveShowPrior ? buildSparklineForMetric(priorFullRecords, 'observed') : [];
+  const stockPrior     = effectiveShowPrior ? buildSparklineForMetric(priorFullRecords, 'stock')    : [];
+  const wishlistPrior  = effectiveShowPrior ? buildSparklineForMetric(priorFullRecords, 'wishlist') : [];
+  const pricePrior     = effectiveShowPrior ? buildSparklineForMetric(priorFullRecords, 'price')    : [];
 
   // Sparkline run dates — all four series share the same window runs, so compute once
   const currentRunDates = buildSparklineDatesForWindow(winRecords);
-  const priorRunDates = effectiveShowPrior ? buildSparklineDatesForWindow(priorRecords) : [];
+  const priorRunDates   = effectiveShowPrior ? buildSparklineDatesForWindow(priorRecords) : [];
 
   // Events
   const events = computeEvents(winRecords, windowId, deltaLabel);

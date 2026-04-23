@@ -4,7 +4,7 @@ import {
   buildMarketHealthPayloadAllWindows,
 } from './market-health-engine.js';
 import { rawMarketHealthData } from './__fixtures__/marketHealthRaw.js';
-import type { WindowId } from './types.js';
+import type { MarketHealthRawData, WindowId } from './types.js';
 
 // ---------------------------------------------------------------------------
 // Fixture-level constants (hand-calculated from marketHealthRaw.ts)
@@ -390,6 +390,51 @@ describe('sparkline run dates', () => {
     expect(p.sparklineSeries.observed.currentRunDates).toHaveLength(4);
     expect(p.sparklineSeries.observed.currentRunDates[0]).toBe(RUN0);
     expect(p.sparklineSeries.observed.currentRunDates[3]).toBe(RUN3);
+  });
+});
+
+// ===========================================================================
+// Prior sparkline uses full prior period for in-progress windows
+// ===========================================================================
+
+describe('prior sparkline — full prior period for in-progress windows', () => {
+  it('current-quarter: prior sparkline uses full Q1 (not just matched span)', () => {
+    // ref = Apr 13 2026  → current Q2 = Apr 6 + Apr 13 (2 runs)
+    // matched prior (Jan 1 – Jan 13): Jan 5, Jan 12 (2 runs)
+    // full prior Q1 (Jan 1 – Mar 31): also includes a Mar 15 run → 3 runs total
+    const rawData: MarketHealthRawData = {
+      referenceDate: '2026-04-13T06:10:00',
+      records: [
+        { scrapeDatetime: '2026-01-05T06:10:00', scientificName: 'Sp A', sizeVariant: '2.0', pageUrl: 'url-a', wishlistCount: 5, priceGbp: 10 },
+        { scrapeDatetime: '2026-01-12T06:10:00', scientificName: 'Sp A', sizeVariant: '2.0', pageUrl: 'url-a', wishlistCount: 5, priceGbp: 10 },
+        { scrapeDatetime: '2026-03-15T06:10:00', scientificName: 'Sp A', sizeVariant: '2.0', pageUrl: 'url-a', wishlistCount: 5, priceGbp: 10 },
+        { scrapeDatetime: '2026-04-06T06:10:00', scientificName: 'Sp A', sizeVariant: '2.0', pageUrl: 'url-a', wishlistCount: 5, priceGbp: 10 },
+        { scrapeDatetime: '2026-04-13T06:10:00', scientificName: 'Sp A', sizeVariant: '2.0', pageUrl: 'url-a', wishlistCount: 5, priceGbp: 10 },
+      ],
+    };
+    const p = buildMarketHealthPayload(rawData, 'current-quarter');
+    // current: 2 runs (Apr 6, Apr 13)
+    expect(p.sparklineSeries.observed.current).toHaveLength(2);
+    // prior sparkline: full Q1 = 3 runs [Jan 5, Jan 12, Mar 15]
+    expect(p.sparklineSeries.observed.prior).toHaveLength(3);
+    // priorRunDates: matched span only (Jan 5, Jan 12) — used for click-comparison
+    expect(p.sparklineSeries.observed.priorRunDates).toHaveLength(2);
+    expect(p.sparklineSeries.observed.priorRunDates[0]).toBe('2026-01-05T06:10:00');
+    expect(p.sparklineSeries.observed.priorRunDates[1]).toBe('2026-01-12T06:10:00');
+  });
+
+  it('current-quarter: prior sparkline with fixture data still has correct length (full Q1 = matched span when no late-Q1 runs)', () => {
+    // In the standard fixture, Q1 only has RUN0 (Jan 5) and RUN1 (Jan 12),
+    // both within the matched span (Jan 1–Jan 13). Full Q1 = matched span → length 2.
+    const p = payload('current-quarter');
+    expect(p.sparklineSeries.observed.prior).toHaveLength(2);
+    expect(p.sparklineSeries.observed.priorRunDates).toHaveLength(2);
+  });
+
+  it('completed windows (last-quarter): prior sparkline length unchanged', () => {
+    // last-quarter uses full Q1 for both visual and comparison — no change in behaviour
+    const p = payload('last-quarter');
+    expect(p.showPrior).toBe(false); // no Q4 2025 data in fixture
   });
 });
 
@@ -1337,9 +1382,9 @@ describe('empty data guard', () => {
     expect(p.showPrior).toBe(false);
   });
 
-  it('empty records: sparkline series are all zeros', () => {
+  it('empty records: sparkline series are empty arrays', () => {
     const p = buildMarketHealthPayload(emptyRaw, 'all-time');
-    expect(p.sparklineSeries.observed.current).toEqual(Array(12).fill(0));
+    expect(p.sparklineSeries.observed.current).toEqual([]);
     expect(p.sparklineSeries.observed.prior).toEqual([]);
   });
 
