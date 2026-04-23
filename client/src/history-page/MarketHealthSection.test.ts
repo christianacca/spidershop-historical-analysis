@@ -88,8 +88,48 @@ describe('MarketHealthSection', () => {
     await fireEvent.click(hitAreas[5]);
 
     const note = container.querySelector('.pulse-selection-note');
-    expect(note?.textContent).toContain('Run 6 selected.');
+    expect(note?.textContent).toContain('Run 6 selected');
     expect(note?.textContent).toContain('The same moment is now highlighted across all four KPI cards.');
+  });
+
+  it('selection note includes the current run date when a run is clicked', async () => {
+    const { container } = render(MarketHealthSection, {
+      payload: marketHealthCurrentQuarter,
+    });
+
+    const hitAreas = container.querySelectorAll('.sparkline-hit');
+    await fireEvent.click(hitAreas[5]);
+
+    // currentRunDates[5] from fixture = '2026-05-11T06:10:00' → formatted '11 May 2026'
+    const note = container.querySelector('.pulse-selection-note');
+    expect(note?.textContent).toContain('11 May 2026');
+  });
+
+  it('selection note includes the prior run date when showPrior is true', async () => {
+    const { container } = render(MarketHealthSection, {
+      payload: marketHealthCurrentQuarter,
+    });
+
+    const hitAreas = container.querySelectorAll('.sparkline-hit');
+    await fireEvent.click(hitAreas[5]);
+
+    // priorRunDates[5] from fixture = '2026-02-09T06:10:00' → formatted '9 Feb 2026'
+    const note = container.querySelector('.pulse-selection-note');
+    expect(note?.textContent).toContain('9 Feb 2026');
+  });
+
+  it('selection note includes only current date (no prior date) when showPrior is false', async () => {
+    const { container } = render(MarketHealthSection, {
+      payload: marketHealthAllTime,
+    });
+
+    const hitAreas = container.querySelectorAll('.sparkline-hit');
+    await fireEvent.click(hitAreas[5]);
+
+    // allTime fixture: showPrior=false, priorRunDates=[], currentRunDates[5]='2025-11-17T06:10:00' → '17 Nov 2025'
+    const note = container.querySelector('.pulse-selection-note');
+    expect(note?.textContent).toContain('17 Nov 2025');
+    expect(note?.textContent).not.toContain(' vs ');
   });
 
   it('clicking the same run again resets selection', async () => {
@@ -132,7 +172,9 @@ describe('MarketHealthSection', () => {
     });
 
     const note = container.querySelector('.pulse-selection-note');
-    expect(note?.textContent).toContain('Run 9 selected.');
+    expect(note?.textContent).toContain('Run 9 selected');
+    // currentRunDates[8] from fixture = '2026-06-01T06:10:00' → '1 Jun 2026'
+    expect(note?.textContent).toContain('1 Jun 2026');
 
     const clearBtn = container.querySelector<HTMLElement>('.clear-run-btn');
     expect(clearBtn?.hidden).toBe(false);

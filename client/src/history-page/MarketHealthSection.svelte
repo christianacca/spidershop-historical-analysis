@@ -16,11 +16,25 @@
     selectedRun = run === selectedRun ? null : run;
   }
 
-  const selectionNote = $derived(
-    selectedRun === null
-      ? 'Optional: click a run to highlight that moment across all sparklines.'
-      : `Run ${selectedRun + 1} selected. The same moment is now highlighted across all four KPI cards.`,
-  );
+  function formatRunDate(iso: string): string {
+    return new Date(iso).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  }
+
+  const selectionNote = $derived((): string => {
+    if (selectedRun === null) {
+      return 'Optional: click a run to highlight that moment across all sparklines.';
+    }
+    const currentDate = formatRunDate(payload.sparklineSeries.observed.currentRunDates[selectedRun]);
+    const priorDate =
+      payload.showPrior && payload.sparklineSeries.observed.priorRunDates.length > 0
+        ? ` vs ${formatRunDate(payload.sparklineSeries.observed.priorRunDates[selectedRun])}`
+        : '';
+    return `Run ${selectedRun + 1} selected \u2014 ${currentDate}${priorDate}. The same moment is now highlighted across all four KPI cards.`;
+  });
 
   // Heading/copy logic per spec §2.1
   const heading = $derived((): string => {
@@ -132,7 +146,7 @@
 
     <p class="sparkline-basis-note">{payload.sparklineBasisNote}</p>
 
-    <p class="pulse-selection-note">{selectionNote}</p>
+    <p class="pulse-selection-note">{selectionNote()}</p>
   </div>
 
   <MarketEventsCard eventsData={payload.events} />

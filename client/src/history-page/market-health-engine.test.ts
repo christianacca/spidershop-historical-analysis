@@ -330,6 +330,67 @@ describe('resampleTo12 (via sparkline series)', () => {
 });
 
 // ===========================================================================
+// Sparkline run dates
+// ===========================================================================
+
+describe('sparkline run dates', () => {
+  it('currentRunDates has length 12 for current-quarter window', () => {
+    const p = payload('current-quarter');
+    expect(p.sparklineSeries.observed.currentRunDates).toHaveLength(12);
+  });
+
+  it('currentRunDates first entry is the earliest run in the window', () => {
+    // current-quarter win runs: [RUN2, RUN3] → padded to 12 → first = RUN2
+    const p = payload('current-quarter');
+    expect(p.sparklineSeries.observed.currentRunDates[0]).toBe(RUN2);
+  });
+
+  it('currentRunDates last entry is the most recent run in the window', () => {
+    // padding fills with last value = RUN3
+    const p = payload('current-quarter');
+    expect(p.sparklineSeries.observed.currentRunDates[11]).toBe(RUN3);
+  });
+
+  it('all four series share identical currentRunDates within a window', () => {
+    const p = payload('current-quarter');
+    const ref = p.sparklineSeries.observed.currentRunDates;
+    expect(p.sparklineSeries.stock.currentRunDates).toEqual(ref);
+    expect(p.sparklineSeries.wishlist.currentRunDates).toEqual(ref);
+    expect(p.sparklineSeries.price.currentRunDates).toEqual(ref);
+  });
+
+  it('priorRunDates has length 12 when showPrior is true', () => {
+    const p = payload('current-quarter');
+    expect(p.showPrior).toBe(true);
+    expect(p.sparklineSeries.observed.priorRunDates).toHaveLength(12);
+  });
+
+  it('priorRunDates first entry is the earliest prior-period run', () => {
+    // current-quarter prior runs: [RUN0, RUN1] → padded → first = RUN0
+    const p = payload('current-quarter');
+    expect(p.sparklineSeries.observed.priorRunDates[0]).toBe(RUN0);
+  });
+
+  it('priorRunDates last entry is the most recent prior-period run', () => {
+    const p = payload('current-quarter');
+    expect(p.sparklineSeries.observed.priorRunDates[11]).toBe(RUN1);
+  });
+
+  it('priorRunDates is empty array when showPrior is false (all-time)', () => {
+    const p = payload('all-time');
+    expect(p.showPrior).toBe(false);
+    expect(p.sparklineSeries.observed.priorRunDates).toEqual([]);
+  });
+
+  it('all-time currentRunDates: first entry is RUN0, last is RUN3 (n>=12 path: 4 runs padded)', () => {
+    // all-time has 4 runs → n=4 < 12 → pads with last → first=RUN0, last=RUN3
+    const p = payload('all-time');
+    expect(p.sparklineSeries.observed.currentRunDates[0]).toBe(RUN0);
+    expect(p.sparklineSeries.observed.currentRunDates[11]).toBe(RUN3);
+  });
+});
+
+// ===========================================================================
 // Events — new listings
 // ===========================================================================
 
@@ -1277,5 +1338,11 @@ describe('empty data guard', () => {
     const p = buildMarketHealthPayload(emptyRaw, 'all-time');
     expect(p.sparklineSeries.observed.current).toEqual(Array(12).fill(0));
     expect(p.sparklineSeries.observed.prior).toEqual([]);
+  });
+
+  it('empty records: currentRunDates and priorRunDates are empty arrays', () => {
+    const p = buildMarketHealthPayload(emptyRaw, 'all-time');
+    expect(p.sparklineSeries.observed.currentRunDates).toEqual([]);
+    expect(p.sparklineSeries.observed.priorRunDates).toEqual([]);
   });
 });

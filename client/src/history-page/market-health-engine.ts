@@ -352,6 +352,23 @@ function resampleTo12(values: number[]): number[] {
   return padded;
 }
 
+function resampleDatesTo12(dates: string[]): string[] {
+  const n = dates.length;
+  if (n === 0) return [];
+  if (n >= 12) {
+    const indices = Array.from({ length: 12 }, (_, i) => Math.round((i * (n - 1)) / 11));
+    return indices.map(idx => dates[idx]);
+  }
+  // n < 12: pad with last date
+  const padded = [...dates, ...Array(12 - n).fill(dates[n - 1])];
+  return padded;
+}
+
+function buildSparklineDatesForWindow(records: RawRunRecord[]): string[] {
+  const runs = getSortedRuns(records);
+  return resampleDatesTo12(runs);
+}
+
 function valueAtRun(records: RawRunRecord[], runDt: string, metric: string): number {
   const runRecords = records.filter(r => r.scrapeDatetime === runDt);
   if (runRecords.length === 0) return 0;
@@ -845,7 +862,7 @@ function emptyKpi(id: KpiCardData['id'], title: string, value = '0'): KpiCardDat
 }
 
 function emptySparklineSeries(): SparklineSeries {
-  return { current: Array(12).fill(0), prior: [] };
+  return { current: Array(12).fill(0), prior: [], currentRunDates: [], priorRunDates: [] };
 }
 
 // ---------------------------------------------------------------------------
@@ -970,6 +987,10 @@ export function buildMarketHealthPayload(
   const wishlistPrior = effectiveShowPrior ? buildSparklineForMetric(priorRecords, 'wishlist') : [];
   const pricePrior = effectiveShowPrior ? buildSparklineForMetric(priorRecords, 'price') : [];
 
+  // Sparkline run dates — all four series share the same window runs, so compute once
+  const currentRunDates = buildSparklineDatesForWindow(winRecords);
+  const priorRunDates = effectiveShowPrior ? buildSparklineDatesForWindow(priorRecords) : [];
+
   // Events
   const events = computeEvents(winRecords, windowId, deltaLabel);
 
@@ -1035,10 +1056,10 @@ export function buildMarketHealthPayload(
       },
     },
     sparklineSeries: {
-      observed: { current: observedCurrent, prior: observedPrior },
-      stock: { current: stockCurrent, prior: stockPrior },
-      wishlist: { current: wishlistCurrent, prior: wishlistPrior },
-      price: { current: priceCurrent, prior: pricePrior },
+      observed: { current: observedCurrent, prior: observedPrior, currentRunDates, priorRunDates },
+      stock: { current: stockCurrent, prior: stockPrior, currentRunDates, priorRunDates },
+      wishlist: { current: wishlistCurrent, prior: wishlistPrior, currentRunDates, priorRunDates },
+      price: { current: priceCurrent, prior: pricePrior, currentRunDates, priorRunDates },
     },
     events,
   };
