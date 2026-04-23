@@ -6,14 +6,13 @@
   // that do not exist as global CSS custom properties.
 
   interface Props {
-    series: number[];         // 12 current-period values
-    priorSeries: number[];    // 12 prior-period values; [] when showPrior = false
+    series: number[];         // up to 12 current-period values (fewer for in-progress windows)
+    priorSeries: number[];    // up to 12 prior-period values; [] when showPrior = false
     showPrior: boolean;
     color: string;            // CSS colour string — passed from KpiCard / story args
     formatValue: (v: number) => string;
     selectedRun: number | null;
     onRunSelect: (run: number | null) => void;
-    runLabels?: [string, string, string]; // default: ["Run 1", "Run 6", "Run 12"]
   }
 
   let {
@@ -24,7 +23,6 @@
     formatValue,
     selectedRun,
     onRunSelect,
-    runLabels = ['Run 1', 'Run 6', 'Run 12'],
   }: Props = $props();
 
   // --- Layout constants (match mock: viewBox 268×82, padding left/right 14, top 10, bottom 18) ---
@@ -36,6 +34,8 @@
   const RIGHT_PAD  = 14;
   const CHART_H = H - TOP_PAD - BOTTOM_PAD;
   const CHART_W = W - LEFT_PAD - RIGHT_PAD;
+  // N is the x-scale grid size — xAt() always uses this denominator so a truncated
+  // series (fewer than 12 runs) appears left-aligned within the full chart width.
   const N = 12;
 
   // --- Coordinate helpers ---
@@ -78,6 +78,25 @@
   function handleHitClick(index: number) {
     onRunSelect(selectedRun === index ? null : index);
   }
+
+  // Axis labels — computed from actual series length so truncated series shows
+  // correct run numbers rather than hardcoded "Run 1 / Run 6 / Run 12".
+  interface AxisLabel { index: number; text: string; anchor: string; }
+  let axisLabels = $derived((): AxisLabel[] => {
+    const n = series.length;
+    if (n === 0) return [];
+    if (n === 1) return [{ index: 0, text: 'Run 1', anchor: 'start' }];
+    if (n === 2) return [
+      { index: 0,   text: 'Run 1', anchor: 'start' },
+      { index: 1,   text: 'Run 2', anchor: 'end'   },
+    ];
+    const mid = Math.floor((n - 1) / 2);
+    return [
+      { index: 0,   text: 'Run 1',        anchor: 'start'  },
+      { index: mid, text: `Run ${mid + 1}`, anchor: 'middle' },
+      { index: n-1, text: `Run ${n}`,      anchor: 'end'    },
+    ];
+  });
 </script>
 
 <svg
@@ -158,10 +177,10 @@
     />
   {/each}
 
-  <!-- Run-axis labels at indices 0, 5, 11 — font-size 10 matches mock CSS .sparkline-run-labels -->
-  <text class="sparkline-run-label" x={xAt(0)}  y={H - 4} text-anchor="start"   font-size="10">{runLabels[0]}</text>
-  <text class="sparkline-run-label" x={xAt(5)}  y={H - 4} text-anchor="middle"  font-size="10">{runLabels[1]}</text>
-  <text class="sparkline-run-label" x={xAt(11)} y={H - 4} text-anchor="end"     font-size="10">{runLabels[2]}</text>
+  <!-- Run-axis labels — derived from series length; font-size 10 matches mock CSS .sparkline-run-labels -->
+  {#each axisLabels() as lbl}
+    <text class="sparkline-run-label" x={xAt(lbl.index)} y={H - 4} text-anchor={lbl.anchor} font-size="10">{lbl.text}</text>
+  {/each}
 </svg>
 
 <style>

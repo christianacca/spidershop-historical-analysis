@@ -164,3 +164,88 @@ describe('MarketSparkline — y-coordinate placement', () => {
     expect(currCy).toBe(10);
   });
 });
+
+// ===========================================================================
+// Truncated series (in-progress windows with fewer than 12 runs)
+// ===========================================================================
+
+describe('MarketSparkline — truncated series (fewer than 12 runs)', () => {
+  // 4-element series simulates a window with only 4 scrape runs
+  const SHORT = [10, 20, 15, 25];
+
+  function shortProps(overrides: Record<string, unknown> = {}) {
+    return defaultProps({ series: SHORT, priorSeries: [], showPrior: false, ...overrides });
+  }
+
+  it('renders exactly n hit areas for a short series', () => {
+    const { container } = render(MarketSparkline, shortProps());
+    const hitAreas = container.querySelectorAll('.sparkline-hit');
+    expect(hitAreas.length).toBe(4);
+  });
+
+  it('renders exactly n current-series points for a short series', () => {
+    const { container } = render(MarketSparkline, shortProps());
+    const points = container.querySelectorAll('circle.sparkline-point-current');
+    expect(points.length).toBe(4);
+  });
+
+  it('last point x for n=4 is at xAt(3), not xAt(11)', () => {
+    // xAt(3) = LEFT_PAD + (3/11) * CHART_W = 14 + (3/11)*240 ≈ 79.45
+    // xAt(11) = 14 + 240 = 254
+    const { container } = render(MarketSparkline, shortProps());
+    const points = container.querySelectorAll('circle.sparkline-point-current');
+    const cx = parseFloat((points[3] as SVGCircleElement).getAttribute('cx')!);
+    // Should be well left of 254 (the full-width right edge)
+    expect(cx).toBeLessThan(254);
+    // Should be at xAt(3) = 14 + (3/11)*240
+    expect(cx).toBeCloseTo(14 + (3 / 11) * 240, 1);
+  });
+
+  it('renders 3 axis labels for n=4 with correct text', () => {
+    const { container } = render(MarketSparkline, shortProps());
+    const labels = container.querySelectorAll('.sparkline-run-label');
+    expect(labels.length).toBe(3);
+    // n=4: mid = floor(3/2) = 1 → "Run 1", "Run 2", "Run 4"
+    expect(labels[0].textContent).toBe('Run 1');
+    expect(labels[1].textContent).toBe('Run 2');
+    expect(labels[2].textContent).toBe('Run 4');
+  });
+
+  it('axis label x positions for n=4 match xAt(0), xAt(1), xAt(3)', () => {
+    const { container } = render(MarketSparkline, shortProps());
+    const labels = container.querySelectorAll('.sparkline-run-label');
+    const x0 = parseFloat((labels[0] as SVGTextElement).getAttribute('x')!);
+    const x1 = parseFloat((labels[1] as SVGTextElement).getAttribute('x')!);
+    const x3 = parseFloat((labels[2] as SVGTextElement).getAttribute('x')!);
+    expect(x0).toBeCloseTo(14, 1);
+    expect(x1).toBeCloseTo(14 + (1 / 11) * 240, 1);
+    expect(x3).toBeCloseTo(14 + (3 / 11) * 240, 1);
+  });
+
+  it('n=1 renders a single point and a single label "Run 1"', () => {
+    const { container } = render(MarketSparkline, shortProps({ series: [42] }));
+    const points = container.querySelectorAll('circle.sparkline-point-current');
+    const labels = container.querySelectorAll('.sparkline-run-label');
+    expect(points.length).toBe(1);
+    expect(labels.length).toBe(1);
+    expect(labels[0].textContent).toBe('Run 1');
+  });
+
+  it('n=2 renders 2 labels "Run 1" and "Run 2"', () => {
+    const { container } = render(MarketSparkline, shortProps({ series: [10, 20] }));
+    const labels = container.querySelectorAll('.sparkline-run-label');
+    expect(labels.length).toBe(2);
+    expect(labels[0].textContent).toBe('Run 1');
+    expect(labels[1].textContent).toBe('Run 2');
+  });
+
+  it('full 12-run series still shows "Run 1", "Run 6", "Run 12" at positions 0, 5, 11', () => {
+    // Regression guard: the dynamic label logic must reproduce the original hardcoded output for n=12
+    const { container } = render(MarketSparkline, defaultProps());
+    const labels = container.querySelectorAll('.sparkline-run-label');
+    expect(labels.length).toBe(3);
+    expect(labels[0].textContent).toBe('Run 1');
+    expect(labels[1].textContent).toBe('Run 6');
+    expect(labels[2].textContent).toBe('Run 12');
+  });
+});

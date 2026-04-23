@@ -54,10 +54,10 @@ export interface KpiCardData {
 }
 
 export interface SparklineSeries {
-  current: number[];            // 12 values
-  prior: number[];              // 12 values; empty array [] when showPrior = false
-  currentRunDates: string[];    // 12 ISO date strings, resampled at same indices as current[]
-  priorRunDates: string[];      // 12 ISO date strings; empty array [] when showPrior = false
+  current: number[];            // up to 12 values (fewer when the window has fewer than 12 runs)
+  prior: number[];              // up to 12 values; empty array [] when showPrior = false
+  currentRunDates: string[];    // up to 12 ISO date strings, one per actual run (same indices as current[])
+  priorRunDates: string[];      // up to 12 ISO date strings; empty array [] when showPrior = false
 }
 
 export interface MarketEventsData {

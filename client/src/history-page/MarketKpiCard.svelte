@@ -48,8 +48,9 @@
     }
     const pointLabel = `Run ${selectedRun + 1}`;
     const currentValue = fmt(series.current[selectedRun]!);
-    if (showPrior && series.prior.length > 0) {
-      const priorValue = fmt(series.prior[selectedRun]!);
+    const priorPoint = series.prior[selectedRun];
+    if (showPrior && priorPoint !== undefined) {
+      const priorValue = fmt(priorPoint);
       return `${pointLabel}: ${currentValue} current vs ${priorValue} matched prior period.`;
     }
     return `${pointLabel}: ${currentValue} within ${windowScopeLabel}, with no prior-period overlay.`;

@@ -342,14 +342,13 @@ function computeMedianPrice(records: RawRunRecord[]): number {
 
 function resampleTo12(values: number[]): number[] {
   const n = values.length;
-  if (n === 0) return Array(12).fill(0);
+  if (n === 0) return [];
   if (n >= 12) {
     const indices = Array.from({ length: 12 }, (_, i) => Math.round((i * (n - 1)) / 11));
     return indices.map(idx => values[idx]);
   }
-  // n < 12: pad with last value
-  const padded = [...values, ...Array(12 - n).fill(values[n - 1])];
-  return padded;
+  // n < 12: return as-is — the sparkline renders a truncated line for in-progress windows
+  return values;
 }
 
 function resampleDatesTo12(dates: string[]): string[] {
@@ -359,9 +358,8 @@ function resampleDatesTo12(dates: string[]): string[] {
     const indices = Array.from({ length: 12 }, (_, i) => Math.round((i * (n - 1)) / 11));
     return indices.map(idx => dates[idx]);
   }
-  // n < 12: pad with last date
-  const padded = [...dates, ...Array(12 - n).fill(dates[n - 1])];
-  return padded;
+  // n < 12: return as-is — truncated to match actual run count
+  return dates;
 }
 
 function buildSparklineDatesForWindow(records: RawRunRecord[]): string[] {
@@ -402,7 +400,7 @@ function valueAtRun(records: RawRunRecord[], runDt: string, metric: string): num
 
 function buildSparklineForMetric(records: RawRunRecord[], metric: string): number[] {
   const runs = getSortedRuns(records);
-  if (runs.length === 0) return Array(12).fill(0);
+  if (runs.length === 0) return [];
   const rawValues = runs.map(runDt => valueAtRun(records, runDt, metric));
   return resampleTo12(rawValues);
 }

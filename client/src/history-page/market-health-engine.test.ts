@@ -293,33 +293,34 @@ describe('computeMedianPrice', () => {
 // ===========================================================================
 
 describe('resampleTo12 (via sparkline series)', () => {
-  it('fewer than 12 runs → last value pads to 12', () => {
-    // current-quarter has 2 runs → observed series: [4, 4] → padded to 12 with 4
+  it('fewer than 12 runs → series length equals actual run count', () => {
+    // current-quarter has 2 runs → observed series: [4, 4] → returned as-is (no padding)
     const series = payload('current-quarter').sparklineSeries.observed.current;
-    expect(series).toHaveLength(12);
+    expect(series).toHaveLength(2);
     expect(series[0]).toBe(4);
-    expect(series[11]).toBe(4);
+    expect(series[1]).toBe(4);
   });
 
   it('all values in series are numbers', () => {
     const series = payload('all-time').sparklineSeries.stock.current;
-    expect(series).toHaveLength(12);
+    expect(series).toHaveLength(4);
     for (const v of series) expect(typeof v).toBe('number');
   });
 
-  it('all-time observed series: [5,3,4,4] padded to 12', () => {
-    // n=4 < 12: padded = [5,3,4,4,...4]
+  it('all-time observed series: [5,3,4,4] returned as-is', () => {
+    // n=4 < 12: returned without padding
     const series = payload('all-time').sparklineSeries.observed.current;
+    expect(series).toHaveLength(4);
     expect(series[0]).toBe(5);
     expect(series[1]).toBe(3);
     expect(series[2]).toBe(4);
-    expect(series[11]).toBe(4);
+    expect(series[3]).toBe(4);
   });
 
-  it('prior sparkline has length 12 when showPrior is true', () => {
+  it('prior sparkline length equals actual prior run count when showPrior is true', () => {
     const p = payload('current-quarter');
     expect(p.showPrior).toBe(true);
-    expect(p.sparklineSeries.observed.prior).toHaveLength(12);
+    expect(p.sparklineSeries.observed.prior).toHaveLength(2);
   });
 
   it('prior sparkline is empty array when showPrior is false', () => {
@@ -334,21 +335,21 @@ describe('resampleTo12 (via sparkline series)', () => {
 // ===========================================================================
 
 describe('sparkline run dates', () => {
-  it('currentRunDates has length 12 for current-quarter window', () => {
+  it('currentRunDates length equals actual run count for current-quarter window', () => {
     const p = payload('current-quarter');
-    expect(p.sparklineSeries.observed.currentRunDates).toHaveLength(12);
+    expect(p.sparklineSeries.observed.currentRunDates).toHaveLength(2);
   });
 
   it('currentRunDates first entry is the earliest run in the window', () => {
-    // current-quarter win runs: [RUN2, RUN3] → padded to 12 → first = RUN2
+    // current-quarter win runs: [RUN2, RUN3] → returned as-is → first = RUN2
     const p = payload('current-quarter');
     expect(p.sparklineSeries.observed.currentRunDates[0]).toBe(RUN2);
   });
 
   it('currentRunDates last entry is the most recent run in the window', () => {
-    // padding fills with last value = RUN3
+    // current-quarter has 2 runs → last index is 1
     const p = payload('current-quarter');
-    expect(p.sparklineSeries.observed.currentRunDates[11]).toBe(RUN3);
+    expect(p.sparklineSeries.observed.currentRunDates[1]).toBe(RUN3);
   });
 
   it('all four series share identical currentRunDates within a window', () => {
@@ -359,21 +360,22 @@ describe('sparkline run dates', () => {
     expect(p.sparklineSeries.price.currentRunDates).toEqual(ref);
   });
 
-  it('priorRunDates has length 12 when showPrior is true', () => {
+  it('priorRunDates length equals actual prior run count when showPrior is true', () => {
     const p = payload('current-quarter');
     expect(p.showPrior).toBe(true);
-    expect(p.sparklineSeries.observed.priorRunDates).toHaveLength(12);
+    expect(p.sparklineSeries.observed.priorRunDates).toHaveLength(2);
   });
 
   it('priorRunDates first entry is the earliest prior-period run', () => {
-    // current-quarter prior runs: [RUN0, RUN1] → padded → first = RUN0
+    // current-quarter prior runs: [RUN0, RUN1] → returned as-is → first = RUN0
     const p = payload('current-quarter');
     expect(p.sparklineSeries.observed.priorRunDates[0]).toBe(RUN0);
   });
 
   it('priorRunDates last entry is the most recent prior-period run', () => {
+    // current-quarter prior has 2 runs → last index is 1
     const p = payload('current-quarter');
-    expect(p.sparklineSeries.observed.priorRunDates[11]).toBe(RUN1);
+    expect(p.sparklineSeries.observed.priorRunDates[1]).toBe(RUN1);
   });
 
   it('priorRunDates is empty array when showPrior is false (all-time)', () => {
@@ -382,11 +384,12 @@ describe('sparkline run dates', () => {
     expect(p.sparklineSeries.observed.priorRunDates).toEqual([]);
   });
 
-  it('all-time currentRunDates: first entry is RUN0, last is RUN3 (n>=12 path: 4 runs padded)', () => {
-    // all-time has 4 runs → n=4 < 12 → pads with last → first=RUN0, last=RUN3
+  it('all-time currentRunDates: first entry is RUN0, last is RUN3 (4 runs returned as-is)', () => {
+    // all-time has 4 runs → n=4 < 12 → returned without padding
     const p = payload('all-time');
+    expect(p.sparklineSeries.observed.currentRunDates).toHaveLength(4);
     expect(p.sparklineSeries.observed.currentRunDates[0]).toBe(RUN0);
-    expect(p.sparklineSeries.observed.currentRunDates[11]).toBe(RUN3);
+    expect(p.sparklineSeries.observed.currentRunDates[3]).toBe(RUN3);
   });
 });
 

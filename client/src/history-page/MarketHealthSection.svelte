@@ -29,9 +29,10 @@
       return 'Optional: click a run to highlight that moment across all sparklines.';
     }
     const currentDate = formatRunDate(payload.sparklineSeries.observed.currentRunDates[selectedRun]);
+    const priorRunDate = payload.sparklineSeries.observed.priorRunDates[selectedRun];
     const priorDate =
-      payload.showPrior && payload.sparklineSeries.observed.priorRunDates.length > 0
-        ? ` vs ${formatRunDate(payload.sparklineSeries.observed.priorRunDates[selectedRun])}`
+      payload.showPrior && priorRunDate !== undefined
+        ? ` vs ${formatRunDate(priorRunDate)}`
         : '';
     return `Run ${selectedRun + 1} selected \u2014 ${currentDate}${priorDate}. The same moment is now highlighted across all four KPI cards.`;
   });
