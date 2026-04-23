@@ -188,8 +188,8 @@ describe('MarketHealthSection', () => {
     const hitAreas = container.querySelectorAll('.sparkline-hit');
     await fireEvent.click(hitAreas[5]);
 
-    // 11 subdued circles per card × 4 cards = 44
+    // 11 subdued circles per card (current + prior) × 4 cards = 88
     const subdued = container.querySelectorAll('.is-subdued');
-    expect(subdued).toHaveLength(44);
+    expect(subdued).toHaveLength(88);
   });
 });

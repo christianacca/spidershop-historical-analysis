@@ -52,9 +52,9 @@ describe('MarketSparkline', () => {
     // Circles with large radius on current series
     const largeCurrent = container.querySelectorAll('[r="4.4"]');
     expect(largeCurrent.length).toBeGreaterThanOrEqual(1);
-    // Subdued class applied to non-selected current series points
+    // Subdued class applied to non-selected points (current + prior)
     const subdued = container.querySelectorAll('.is-subdued');
-    expect(subdued.length).toBe(11); // 11 of 12 current points subdued
+    expect(subdued.length).toBe(22); // 11 current + 11 prior
   });
 
   it('renders baseline axis line', () => {
@@ -247,5 +247,58 @@ describe('MarketSparkline — truncated series (fewer than 12 runs)', () => {
     expect(labels[0].textContent).toBe('Run 1');
     expect(labels[1].textContent).toBe('Run 6');
     expect(labels[2].textContent).toBe('Run 12');
+  });
+});
+
+// ===========================================================================
+// Hover / selected column highlight (mock: .sparkline-band + .is-subdued on prior)
+// ===========================================================================
+
+describe('MarketSparkline — selected-run highlight (band + subdued effects)', () => {
+  it('renders a .sparkline-band rect when a run is selected', () => {
+    const { container } = render(MarketSparkline, defaultProps({ selectedRun: 5 }));
+    const band = container.querySelector('.sparkline-band');
+    expect(band).toBeTruthy();
+  });
+
+  it('does NOT render a .sparkline-band rect when no run is selected', () => {
+    const { container } = render(MarketSparkline, defaultProps({ selectedRun: null }));
+    const band = container.querySelector('.sparkline-band');
+    expect(band).toBeNull();
+  });
+
+  it('band x is at xAt(selectedRun) - HIT_W/2 for mid-series run', () => {
+    // selectedRun=5: xAt(5) = 14 + (5/11)*240 ≈ 123.09, HIT_W = 240/11 ≈ 21.82
+    const { container } = render(MarketSparkline, defaultProps({ selectedRun: 5 }));
+    const band = container.querySelector('.sparkline-band') as SVGRectElement;
+    const x = parseFloat(band.getAttribute('x')!);
+    const expected = 14 + (5 / 11) * 240 - (240 / 11) / 2;
+    expect(x).toBeCloseTo(expected, 1);
+  });
+
+  it('band spans from y=0 to height − bottom padding (height=64)', () => {
+    const { container } = render(MarketSparkline, defaultProps({ selectedRun: 3 }));
+    const band = container.querySelector('.sparkline-band') as SVGRectElement;
+    expect(parseFloat(band.getAttribute('y')!)).toBe(0);
+    expect(parseFloat(band.getAttribute('height')!)).toBe(64); // H(82) - BOTTOM_PAD(18)
+  });
+
+  it('prior circles get .is-subdued when a different run is selected', () => {
+    const { container } = render(MarketSparkline, defaultProps({ selectedRun: 5 }));
+    const subduedPrior = container.querySelectorAll('circle.sparkline-point-prior.is-subdued');
+    expect(subduedPrior.length).toBe(11); // 11 of 12 prior points
+  });
+
+  it('prior circle at selectedRun does NOT get .is-subdued', () => {
+    const { container } = render(MarketSparkline, defaultProps({ selectedRun: 5 }));
+    const priorPoints = container.querySelectorAll('circle.sparkline-point-prior');
+    const selectedPrior = priorPoints[5] as SVGCircleElement;
+    expect(selectedPrior.classList.contains('is-subdued')).toBe(false);
+  });
+
+  it('total .is-subdued elements is 22 when run selected (11 current + 11 prior)', () => {
+    const { container } = render(MarketSparkline, defaultProps({ selectedRun: 5 }));
+    const all = container.querySelectorAll('.is-subdued');
+    expect(all.length).toBe(22);
   });
 });

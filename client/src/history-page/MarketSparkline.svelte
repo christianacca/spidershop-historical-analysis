@@ -117,6 +117,18 @@
     stroke-width="1"
   />
 
+  <!-- Selected-run column highlight (behind everything) -->
+  {#if selectedRun !== null}
+    <rect
+      class="sparkline-band"
+      x={selectedRun === 0 ? LEFT_PAD : xAt(selectedRun) - HIT_W / 2}
+      y={0}
+      width={HIT_W}
+      height={H - BOTTOM_PAD}
+      pointer-events="none"
+    />
+  {/if}
+
   <!-- Prior series (dashed, behind current) -->
   {#if showPrior && priorSeries.length > 0}
     <polyline
@@ -129,7 +141,9 @@
     />
     {#each priorSeries as v, i}
       {@const isSelected = selectedRun === i}
+      {@const isSubdued  = selectedRun !== null && !isSelected}
       <circle
+        class:is-subdued={isSubdued}
         class="sparkline-point-prior"
         cx={xAt(i)}
         cy={yAt(v, autoRangeResult.min, autoRangeResult.max)}
@@ -204,6 +218,15 @@
   .sparkline-run-label {
     fill: var(--color-text-muted);
     font-family: inherit;
+  }
+
+  .sparkline-band {
+    fill: rgba(31, 42, 44, 0.08);
+    pointer-events: none;
+  }
+
+  .sparkline-hit:hover {
+    fill: rgba(31, 42, 44, 0.04);
   }
 
   .sparkline-hit:hover ~ .sparkline-point-current {
