@@ -938,28 +938,28 @@ prompt. This is a thin addition on top of the SW foundation — no caching logic
 **Goal:** Publish the branch and open a pull request for human review.
 
 **Pre-flight:**
-- [ ] All phases 1–5 complete — all H1–H4 steps checked off.
-- [ ] `make test-client` green.
-- [ ] `make test` green.
-- [ ] `make test-e2e` green.
+- [x] All phases 1–5 complete — all H1–H4 steps checked off.
+- [x] `make test-client` green.
+- [x] `make test` green.
+- [x] `make test-e2e` green.
 
 **Tasks:**
-- [ ] Push the branch:
+- [x] Push the branch:
   ```bash
   git push --set-upstream origin history-insights-pwa-sw
   ```
-- [ ] Open a pull request:
+- [x] Open a pull request:
   ```bash
   gh pr create \
     --title "PWA service worker foundation" \
     --body "Adds vite-plugin-pwa (injectManifest) with SWR caching for HTML navigation routes and unhashed CSS, cache-first for hashed JS/CSS bundles via precache manifest, SwUpdateToast.svelte update notification, and a minimal PWA manifest.\n\n## What this PR delivers\n- Phase 1: vite-plugin-pwa scaffold — sw.ts emits to dist\n- Phase 2: sw.ts caching rules — SWR nav + CSS, precache for hashed bundles\n- Phase 3: SW registration in base.html and SwUpdateToast component\n- Phase 4: E2E SW validation\n- Phase 5: PWA manifest and icons\n\n## Testing\n- Vitest unit tests for SwUpdateToast (needRefresh store, Refresh/Dismiss buttons)\n- Playwright E2E tests for SW registration, precache verification, and cache-name checks\n- No Python changes — purely additive\n\n## Deferred\n- Update toast live two-version manual verification (see Phase 4 feed-forward log)" \
     --base master
   ```
-- [ ] Confirm the PR was created and output the PR URL.
+- [x] Confirm the PR was created and output the PR URL.
 
 **Housekeeping:**
-- [ ] H1 — Confirm PR URL is accessible and the branch is visible on GitHub.
-- [ ] H3 — Feed-forward: write your final entry. No downstream phases to update —
+- [x] H1 — Confirm PR URL is accessible and the branch is visible on GitHub.
+- [x] H3 — Feed-forward: write your final entry. No downstream phases to update —
   document anything a future agent maintaining the SW should know.
 
 ---
