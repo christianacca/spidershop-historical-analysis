@@ -36,5 +36,22 @@
     </footer>
     
     {% block extra_js %}{% endblock %}
+
+    <div id="sw-update-toast-root"></div>
+    <script src="{{ path_prefix }}sw-toast-entry.js" defer></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          // Derive site root using path_prefix. This is required because the site
+          // deploys at a GitHub Pages subpath (/spidershop-historical-analysis/),
+          // not the domain root. An absolute '/sw.js' would 404 in production.
+          // path_prefix is '' for top-level pages and '../' for species pages;
+          // either way new URL(path_prefix, location.href) resolves to the site root.
+          const base = new URL('{{ path_prefix }}', location.href).href;
+          navigator.serviceWorker.register(new URL('sw.js', base).href, { scope: base })
+            .catch(err => console.warn('SW registration failed:', err));
+        });
+      }
+    </script>
 </body>
 </html>

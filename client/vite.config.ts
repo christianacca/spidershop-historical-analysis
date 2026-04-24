@@ -117,6 +117,7 @@ export function createViteConfig(isCiBuild = !!process.env.CI): UserConfig {
         'snapshot-page': resolve(__dirname, 'src/snapshot-page/index.ts'),
         'history-page': resolve(__dirname, 'src/history-page/index.ts'),
         'species-page': resolve(__dirname, 'src/species-page/index.ts'),
+        'sw-toast-entry': resolve(__dirname, 'src/sw-toast-entry.ts'),
       },
       output: createRollupOutput(isCiBuild),
     },
