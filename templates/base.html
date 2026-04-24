@@ -38,7 +38,7 @@
     {% block extra_js %}{% endblock %}
 
     <div id="sw-update-toast-root"></div>
-    <script src="{{ path_prefix }}sw-toast-entry.js" defer></script>
+    <script type="module" src="{{ path_prefix }}sw-toast-entry.js"></script>
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
