@@ -971,6 +971,30 @@ prompt. This is a thin addition on top of the SW foundation — no caching logic
 Each entry should cover: (1) insights and surprises from the phase, and (2) any edits
 made to future phase steps as a result.*
 
+### 2025-04-24 — Phase 2
+
+**Insights and surprises:**
+
+1. **Phase 2 DevTools MCP verification is blocked until Phase 3.** The SW registration
+   script lives in `base.html` (Phase 3). Without it, navigating to any page never
+   registers the SW — `navigator.serviceWorker.getRegistration()` returns `undefined`
+   and `caches.keys()` is empty. The Phase 2 DevTools MCP tasks (verify SW state and
+   cache names) can only be executed after Phase 3 is complete.
+   **Resolution:** verification of SW activation and cache names deferred to Phase 3.
+   Build artifact verification (`grep html-pages` / `grep css-runtime` in `sw.js`)
+   was used as a proxy: all three cache names are present in the compiled output.
+
+2. **Unhashed CSS files identified:** `common.css` (base.html), `analysis.css`
+   (analysis_page.html + species_detail.html), `homepage.css` (homepage.html),
+   `species-detail.css` (species_detail.html). All four are covered by the
+   `request.destination === 'style'` runtime SWR rule.
+
+**Downstream phase edits made:**
+- Phase 3: no changes needed — the DevTools verification for Phase 2 is already noted
+  as part of Phase 3 post-registration validation below.
+
+---
+
 ### 2025-04-24 — Phase 1
 
 **Insights and surprises:**
