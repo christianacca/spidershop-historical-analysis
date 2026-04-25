@@ -8,23 +8,21 @@ Scope:
 - HTML navigation routes land in the `html-pages` SWR cache
 - `#sw-update-toast-root` mount point present on every page
 - Update toast is hidden on fresh load (no waiting SW)
+- Update toast appears when a new SW version is installed and waiting
 - Pages load and function correctly when SW is blocked (progressive enhancement)
 
 Test isolation:
 - SW tests live in their own module so they never contaminate other modules.
-- All tests (except the SW-blocked test) share one browser context (module-scoped
-  fixture). SW state accumulates across tests within this module; this is intentional
-  — each test builds on the SW state established by the previous ones.
-- The SW-blocked test creates its own browser context to isolate the `service_workers='block'`
-  configuration.
-
-What's NOT tested here:
-- Update toast live two-version flow (requires serving two sequential builds; deferred
-  to manual QA — see Phase 4 feed-forward log).
-- Offline behaviour (requires Network panel manipulation; covered in manual QA).
+- Most tests share one browser context (module-scoped fixture). SW state accumulates
+  across tests within this module; this is intentional — each test builds on the SW
+  state established by the previous ones.
+- The update-toast test and SW-blocked test each create their own browser context to
+  isolate their specific SW lifecycle scenarios.
 """
 
 from __future__ import annotations
+
+from pathlib import Path
 
 import pytest
 
@@ -175,3 +173,167 @@ def test_page_loads_with_sw_blocked(e2e_site_minimal) -> None:
         assert controller is None, "Expected no SW controller when service workers are blocked"
     finally:
         ctx.close()
+
+
+@pytest.fixture()
+def _e2e_sw_update_context(e2e_site_minimal):
+    """Fresh browser context + isolated server for the SW update-toast test.
+
+    Reuses the module-scoped browser (no new sync_playwright session needed) but
+    creates an isolated browser context (clean SW state) and a private copy of the
+    output directory so patching sw.js mid-test does not affect the module fixture's
+    server or other tests in this module.
+
+    Yields:
+        tuple: (page, base_url, output_dir)
+    """
+    import shutil
+
+    page_module, _, _ = e2e_site_minimal
+    browser = page_module.context.browser
+
+    from website.generate_website import OUTPUT_DIR
+    from e2e.helpers import test_server
+
+    cwd = Path.cwd()
+    src_dir = (cwd / OUTPUT_DIR).resolve(strict=False)
+    private_dir = cwd / "tmp_sw_update_test"
+
+    if private_dir.exists():
+        shutil.rmtree(str(private_dir))
+    shutil.copytree(str(src_dir), str(private_dir))
+
+    with test_server(private_dir) as base_url:
+        context = browser.new_context()
+        page = context.new_page()
+        try:
+            yield page, base_url, private_dir
+        finally:
+            context.close()
+            if private_dir.exists():
+                shutil.rmtree(str(private_dir))
+
+
+@pytest.mark.e2e
+def test_update_toast_appears_when_new_sw_waiting(_e2e_sw_update_context) -> None:
+    """Update toast appears when a new SW version is installed and waiting to activate.
+
+    Simulates a deployment by patching sw.js on disk after SW V1 is active.
+    Workbox's byte-change detection treats any modification as a new version and
+    installs the changed SW into the 'waiting' state, which flips needRefresh=true
+    inside useRegisterSW() and renders the toast.
+    """
+    page, base_url, output_dir = _e2e_sw_update_context
+
+    # Step 1: Two navigations to install and activate SW V1.
+    # Navigate to the root URL (trailing slash) so that location.href ends in '/',
+    # which makes new URL('', location.href) resolve to the site root.  This is
+    # critical: the manual SW registration in base.html uses
+    #   scope = new URL(path_prefix, location.href).href
+    # For path_prefix='' that evaluates to location.href itself.  When location.href
+    # ends in '/' both the manual registration and the Workbox registration
+    # (new Workbox('/sw.js', { scope: '/' })) share the same scope and therefore
+    # share the SAME ServiceWorkerRegistration object.  If we navigate to
+    # /index.html instead, location.href is '.../index.html', the manual registration
+    # gets scope '.../index.html', the Workbox registration gets scope '/', and
+    # getRegistration() below returns the more-specific manual one — meaning
+    # reg.update() fires updatefound on a registration Workbox isn't watching.
+    #
+    # First visit: SW installs and activates (state: installing → activated).
+    # We must wait for navigator.serviceWorker.ready before the second navigation so
+    # the SW is fully active and can control the next page load.
+    page.goto(f"{base_url}/", wait_until="load")
+    page.evaluate("navigator.serviceWorker.ready")
+    # Second visit: SW is now active and claims control of this navigation.
+    page.goto(f"{base_url}/", wait_until="load")
+    page.evaluate("navigator.serviceWorker.ready")
+
+    assert page.evaluate("navigator.serviceWorker.controller !== null"), (
+        "Expected SW to be controlling the page after two navigations"
+    )
+    assert page.query_selector(".sw-update-toast") is None, (
+        "Expected no toast before any update is pending"
+    )
+
+    # Step 2: Simulate a new deployment by appending a comment to sw.js.
+    # Any byte change to sw.js triggers Workbox's update detection; a trailing
+    # comment is the least invasive modification.
+    sw_path = output_dir / "sw.js"
+    sw_path.write_text(
+        sw_path.read_text(encoding="utf-8") + "\n// update-test-marker",
+        encoding="utf-8",
+    )
+
+    # Step 3: Give Workbox's async init time to complete, then trigger the update.
+    #
+    # Workbox adds its 'updatefound' listener inside wb.register(), which requires
+    # a dynamic import of workbox-window to complete first (~5-50 ms on a local
+    # server).  A 500 ms pause is conservative but reliable, ensuring the listener
+    # is in place before reg.update() fires 'updatefound' — otherwise Workbox
+    # misses the event and the 'waiting' event is never dispatched.
+    #
+    # No page reload is needed: while this tab is open, V2 stays in 'waiting'
+    # state and Workbox fires its 'waiting' event on the current page.
+
+    # Capture console messages for debugging.
+    console_msgs: list[str] = []
+    page.on("console", lambda msg: console_msgs.append(f"{msg.type}: {msg.text}"))
+
+    update_state = page.evaluate("""
+        async () => {
+            const reg = await navigator.serviceWorker.getRegistration();
+            if (!reg) throw new Error('No SW registration found');
+            // Allow Workbox's dynamic import + wb.register() to complete before
+            // calling update().
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Listen for updatefound before calling update() to verify it fires.
+            let updateFoundFired = false;
+            reg.addEventListener('updatefound', () => { updateFoundFired = true; });
+
+            await reg.update();
+            // Wait for the new SW to finish installing (state → 'installed').
+            await new Promise((resolve, reject) => {
+                const deadline = setTimeout(
+                    () => reject(new Error('Timed out waiting for SW waiting state')),
+                    8_000
+                );
+                const poll = () => {
+                    if (reg.waiting) { clearTimeout(deadline); resolve(); return; }
+                    if (reg.installing) {
+                        reg.installing.addEventListener('statechange', poll, { once: true });
+                    } else {
+                        setTimeout(poll, 50);
+                    }
+                };
+                poll();
+            });
+            return {
+                updateFoundFired,
+                waiting: reg.waiting?.scriptURL || null,
+                controller: navigator.serviceWorker.controller?.scriptURL || null,
+            };
+        }
+    """)
+
+    assert update_state.get("updateFoundFired"), (
+        f"Expected updatefound event to have fired. State: {update_state}"
+    )
+    assert update_state.get("waiting") is not None, (
+        f"Expected registration.waiting to be set. State: {update_state}"
+    )
+
+    # Step 4: Wait for the toast.  Workbox fires its 'waiting' event once the new
+    # SW is in the 'installed' (waiting) state, which calls onNeedRefresh() →
+    # needRefresh.set(true) → Svelte re-renders the {#if $needRefresh} block.
+    try:
+        toast = page.wait_for_selector(".sw-update-toast", timeout=30_000)
+    except Exception as exc:
+        # Include recent console output to aid diagnosis.
+        recent_console = "\n".join(console_msgs[-30:]) if console_msgs else "(none)"
+        raise AssertionError(
+            f"Toast did not appear within 30s.\nConsole output:\n{recent_console}"
+        ) from exc
+    assert toast.is_visible(), (
+        "Expected .sw-update-toast to be visible when a new SW is waiting to activate"
+    )
