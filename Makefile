@@ -85,7 +85,7 @@ help:
 	@echo "  make clean-cache            Clear Python bytecode cache (.pyc, __pycache__)"
 	@echo "  make clean-artifacts        Remove downloaded artifacts and generated website"
 	@echo "  make clean-all              Clean everything including test cache and coverage"
-	@echo "  make sw-clean-local         Unregister SW + clear caches on the local dev server (must be running)"
+	@echo "  make sw-clean-local         Unregister SW + clear caches on local dev server (requires: make serve-only running)"
 	@echo "  make sw-clean-deployed      Unregister SW + clear caches on the deployed GitHub Pages site"
 	@echo ""
 	@echo "⚠️  Note: These commands automatically use the virtual environment (.venv)"
