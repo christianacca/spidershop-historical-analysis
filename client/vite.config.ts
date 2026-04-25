@@ -39,7 +39,7 @@ export function createViteConfig(isCiBuild = !!process.env.CI): UserConfig {
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.ts',
-      injectRegister: null,        // We register manually in base.html (Phase 3)
+      injectRegister: null,        // Registration is handled by register-sw.ts (called from sw-toast-entry.ts)
       manifest: false,             // Web manifest added in Phase 5
       devOptions: {
         enabled: false,            // SW irrelevant in Vite dev server for this project
@@ -90,6 +90,9 @@ export function createViteConfig(isCiBuild = !!process.env.CI): UserConfig {
         'src/**/__fixtures__/*.ts',
         // SW source: runs in ServiceWorkerGlobalScope — happy-dom has no runtime for it.
         'src/sw.ts',
+        // SW registration: wraps Workbox browser APIs (navigator.serviceWorker,
+        // ServiceWorkerRegistration events). Exercisable only via E2E tests.
+        'src/shared/register-sw.ts',
         // Toast entry: page-level entry that only runs in a real browser.
         'src/sw-toast-entry.ts',
       ],

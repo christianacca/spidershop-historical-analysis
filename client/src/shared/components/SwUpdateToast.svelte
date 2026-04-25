@@ -1,7 +1,10 @@
 <script lang="ts">
-  import { useRegisterSW } from 'virtual:pwa-register/svelte';
+  import type { Writable } from 'svelte/store';
 
-  const { needRefresh, updateServiceWorker } = useRegisterSW();
+  let { needRefresh, updateServiceWorker }: {
+    needRefresh: Writable<boolean>;
+    updateServiceWorker: (reloadPage?: boolean) => Promise<void>;
+  } = $props();
 </script>
 
 {#if $needRefresh}

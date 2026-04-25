@@ -22,12 +22,6 @@ export default defineConfig({
   resolve: {
     // Ensure Svelte resolves its browser (DOM) entry conditions.
     conditions: ['browser'],
-    alias: {
-      // vite-plugin-pwa is not loaded in this config, so Vite cannot resolve
-      // the real virtual module. Alias it to a local stub so that components
-      // importing it are resolvable; vi.mock() in test files overrides the stub.
-      'virtual:pwa-register/svelte': resolve(__dirname, 'src/test-utils/pwa-register-stub.ts'),
-    },
   },
   // Allow Vite to serve files from the project root so that
   // templates/common.css can be imported by browser-setup.ts.

@@ -5,12 +5,12 @@ import SwUpdateToast from './SwUpdateToast.svelte';
 const mockUpdateServiceWorker = vi.fn();
 const mockNeedRefresh = writable(false);
 
-vi.mock('virtual:pwa-register/svelte', () => ({
-  useRegisterSW: vi.fn(() => ({
+function renderToast() {
+  return render(SwUpdateToast, {
     needRefresh: mockNeedRefresh,
     updateServiceWorker: mockUpdateServiceWorker,
-  })),
-}));
+  });
+}
 
 beforeEach(() => {
   mockNeedRefresh.set(false);
@@ -19,12 +19,12 @@ beforeEach(() => {
 
 describe('SwUpdateToast', () => {
   it('is not rendered when needRefresh is false', () => {
-    const { queryByRole } = render(SwUpdateToast);
+    const { queryByRole } = renderToast();
     expect(queryByRole('status')).toBeNull();
   });
 
   it('renders the update message when needRefresh is true', async () => {
-    const { getByRole } = render(SwUpdateToast);
+    const { getByRole } = renderToast();
     mockNeedRefresh.set(true);
     // Allow Svelte to flush the reactive update
     await Promise.resolve();
@@ -32,7 +32,7 @@ describe('SwUpdateToast', () => {
   });
 
   it('calls updateServiceWorker(true) when Refresh is clicked', async () => {
-    const { getByText } = render(SwUpdateToast);
+    const { getByText } = renderToast();
     mockNeedRefresh.set(true);
     await Promise.resolve();
     await fireEvent.click(getByText('Refresh'));
@@ -40,7 +40,7 @@ describe('SwUpdateToast', () => {
   });
 
   it('dismisses the toast when Dismiss (✕) is clicked', async () => {
-    const { getByLabelText, queryByRole } = render(SwUpdateToast);
+    const { getByLabelText, queryByRole } = renderToast();
     mockNeedRefresh.set(true);
     await Promise.resolve();
     await fireEvent.click(getByLabelText('Dismiss'));
