@@ -7,6 +7,7 @@ This guide walks you through setting up a local development environment from scr
 - [Setup by Operating System](#setup-by-operating-system)
 - [Running Tests](#running-tests)
 - [Local Development Workflows](#local-development-workflows)
+- [Service Worker and local development](#service-worker-and-local-development)
 - [Deactivating the Virtual Environment](#deactivating-the-virtual-environment)
 - [Troubleshooting](#troubleshooting)
 - [Project Structure](#project-structure)
@@ -616,6 +617,12 @@ make generate-website
 > `templates/scripts/*.js` are stale originals no longer used by the build — do not edit them.
 > `templates/scripts/dist/` is Vite build output (git-ignored) — never edit directly.
 
+> ⚠️ **Service Worker note:** the site registers a SW that caches JS bundles and HTML
+> pages. After `make generate-website` rebuilds the assets, the SW may continue to serve
+> the old versions from cache until a clean-slate reload is done. See
+> [Service Worker and local development](#service-worker-and-local-development) for the
+> full story and the `make sw-clean-local` command.
+
 ```bash
 # 1. Get data (only needed once)
 make download-artifacts  # OR: make scrape-only
@@ -687,7 +694,48 @@ All local development files are stored in `tmp/local-testing/` (gitignored):
 **Scripts:**
 - `scripts/test_website_locally.py` - Website generation script
 - `scripts/download_artifact.sh` - GitHub artifact downloader (called by Makefile)
+- `scripts/sw_clean.py` - SW unregister + cache clear (called by `make sw-clean-local/deployed`)
 - `Makefile` - Orchestrates all workflows
+
+---
+
+## Service Worker and local development
+
+The site registers a [Service Worker](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API) (SW) that caches HTML pages and hashed JS/CSS bundles. This makes the deployed site fast and resilient to brief network outages, but it has a side-effect during local development: **once a SW is installed in your browser for `http://127.0.0.1:8000`, it will continue serving cached assets even after you regenerate the site with `make generate-website`.**
+
+### What this means in practice
+
+| Scenario | Symptom | Cause |
+|---|---|---|  
+| You edit `client/src/` and run `make generate-website` | Browser still shows old behaviour | SW serves cached JS bundle |
+| You add a new HTML element in a template | New element not visible | SW serves cached HTML page |
+| You hard-refresh (`Cmd+Shift+R`) | Changes appear | Hard-refresh bypasses SW cache |
+| You open a new tab to the same URL | Still old version | SW intercepts all requests |
+
+A hard-refresh (`Cmd+Shift+R` / `Ctrl+Shift+R`) is enough for a quick check. But for a **clean-slate** — where the SW itself is unregistered and all its caches are wiped — use the make target:
+
+```bash
+# Server must already be running (make serve-only or make preview in another terminal)
+make sw-clean-local
+```
+
+This opens a headless Chromium, navigates to `http://127.0.0.1:8000`, unregisters every SW registration on that origin, and deletes every cache entry. After it completes, reload the page in your regular browser — the next visit installs the SW fresh from the newly generated files.
+
+### Why not just use an incognito window?
+
+You don't need to. SW registrations are **origin-scoped** (`scheme + host + port`), not profile-scoped. The locally-served site (`http://127.0.0.1:8000`) and the GitHub Pages site (`https://christianacca.github.io/spidershop-historical-analysis/`) are completely separate origins — visiting one cannot affect the other's SW.
+
+Incognito is useful when you want a guaranteed first-install experience (no previously cached anything), but it is not required to keep your local and deployed sessions isolated from each other.
+
+### Clean-slate for the deployed site
+
+If you need to reset the SW on the live GitHub Pages site — for example after a deployment that changes caching rules — run:
+
+```bash
+make sw-clean-deployed
+```
+
+This navigates headlessly to `https://christianacca.github.io/spidershop-historical-analysis/`, unregisters its SW, and clears its caches. Your regular browser session on that site will pick up the new SW on the next page load.
 
 ---
 

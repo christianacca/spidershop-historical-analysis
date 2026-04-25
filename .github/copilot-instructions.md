@@ -482,11 +482,18 @@ evaluate_script(`
 1. `make test-client-fast` — confirm logic layer is clean first
 2. `make test-visual` — run browser-backed visual contracts; many style questions are already answered here
 3. `make preview` — regenerate and serve the site at `http://localhost:8000`
-4. Navigate to the affected page via Chrome DevTools MCP
-5. Use `evaluate_script` to read `getComputedStyle` on the target element
-6. Compare against the token value (read `templates/common.css` or call `parseTokens()`)
-7. If the value is wrong: fix the CSS and re-inspect
-8. If the value is correct: promote the finding into an automated assertion at the
+4. **Clean-slate the local SW (mandatory before inspecting).** The site registers a SW that
+   caches JS bundles and HTML pages. If a stale SW is active, `getComputedStyle` and DOM
+   assertions reflect old cached assets, not the newly generated ones. Run:
+   ```bash
+   make sw-clean-local
+   ```
+   Then navigate to the page once in DevTools MCP to install the new SW from the fresh files.
+5. Navigate to the affected page via Chrome DevTools MCP
+6. Use `evaluate_script` to read `getComputedStyle` on the target element
+7. Compare against the token value (read `templates/common.css` or call `parseTokens()`)
+8. If the value is wrong: fix the CSS and re-inspect
+9. If the value is correct: promote the finding into an automated assertion at the
    lowest valid layer (Vitest browser-backed visual contract, or E2E token helper)
 
 **Safe browser profile guidance:**
