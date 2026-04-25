@@ -302,6 +302,24 @@ function median(values: number[]): number {
 // KPI metric computation
 // ---------------------------------------------------------------------------
 
+function getLatestRun(records: RawRunRecord[]): string {
+  return records.reduce((max, r) => (r.scrapeDatetime > max ? r.scrapeDatetime : max), '');
+}
+
+function computeMedianBySpecies(
+  records: RawRunRecord[],
+  getValue: (r: RawRunRecord) => number,
+): number {
+  if (records.length === 0) return 0;
+  const latestRun = getLatestRun(records);
+  const latestRecords = records.filter(r => r.scrapeDatetime === latestRun);
+  const bySpecies = new Map<string, number>();
+  for (const r of latestRecords) {
+    bySpecies.set(r.scientificName, Math.max(bySpecies.get(r.scientificName) ?? 0, getValue(r)));
+  }
+  return median([...bySpecies.values()]);
+}
+
 function computeObserved(records: RawRunRecord[]): number {
   return new Set(records.map(r => r.scientificName)).size;
 }
@@ -309,31 +327,17 @@ function computeObserved(records: RawRunRecord[]): number {
 function computeStockRate(records: RawRunRecord[]): number {
   if (records.length === 0) return 0;
   const allSpecies = new Set(records.map(r => r.scientificName));
-  const latestRun = records.reduce((max, r) => (r.scrapeDatetime > max ? r.scrapeDatetime : max), '');
+  const latestRun = getLatestRun(records);
   const speciesAtLatest = speciesInRun(records, latestRun);
   return Math.round((speciesAtLatest.size / allSpecies.size) * 100);
 }
 
 function computeMedianWishlist(records: RawRunRecord[]): number {
-  if (records.length === 0) return 0;
-  const latestRun = records.reduce((max, r) => (r.scrapeDatetime > max ? r.scrapeDatetime : max), '');
-  const latestRecords = records.filter(r => r.scrapeDatetime === latestRun);
-  const bySpecies = new Map<string, number>();
-  for (const r of latestRecords) {
-    bySpecies.set(r.scientificName, Math.max(bySpecies.get(r.scientificName) ?? 0, r.wishlistCount));
-  }
-  return Math.round(median([...bySpecies.values()]));
+  return Math.round(computeMedianBySpecies(records, r => r.wishlistCount));
 }
 
 function computeMedianPrice(records: RawRunRecord[]): number {
-  if (records.length === 0) return 0;
-  const latestRun = records.reduce((max, r) => (r.scrapeDatetime > max ? r.scrapeDatetime : max), '');
-  const latestRecords = records.filter(r => r.scrapeDatetime === latestRun);
-  const bySpecies = new Map<string, number>();
-  for (const r of latestRecords) {
-    bySpecies.set(r.scientificName, Math.max(bySpecies.get(r.scientificName) ?? 0, r.priceGbp));
-  }
-  return median([...bySpecies.values()]);
+  return computeMedianBySpecies(records, r => r.priceGbp);
 }
 
 // ---------------------------------------------------------------------------
@@ -769,15 +773,25 @@ function priceCopy(delta: number | null, priorLabel: string, isAllTime: boolean)
 // Delta formatting helpers
 // ---------------------------------------------------------------------------
 
+function formatDelta(
+  delta: number | null,
+  isAllTime: boolean,
+  deltaLabel: string,
+  formatValue: (delta: number) => string,
+  showPlusForZero: boolean = false,
+): [string, KpiCardData['deltaClass']] {
+  if (isAllTime || delta === null) return ['No prior comparison', 'flat'];
+  const sign = (delta > 0 || (delta === 0 && showPlusForZero)) ? '+' : '';
+  const cls: KpiCardData['deltaClass'] = delta === 0 ? 'flat' : delta < 0 ? 'down' : '';
+  return [`${sign}${formatValue(delta)} vs ${deltaLabel}`, cls];
+}
+
 function formatObservedDelta(
   delta: number | null,
   isAllTime: boolean,
   deltaLabel: string,
 ): [string, KpiCardData['deltaClass']] {
-  if (isAllTime || delta === null) return ['No prior comparison', 'flat'];
-  const sign = delta >= 0 ? '+' : '';
-  const cls: KpiCardData['deltaClass'] = delta < 0 ? 'down' : '';
-  return [`${sign}${delta} vs ${deltaLabel}`, cls];
+  return formatDelta(delta, isAllTime, deltaLabel, d => String(d), true);
 }
 
 function formatStockDelta(
@@ -785,10 +799,7 @@ function formatStockDelta(
   isAllTime: boolean,
   deltaLabel: string,
 ): [string, KpiCardData['deltaClass']] {
-  if (isAllTime || delta === null) return ['No prior comparison', 'flat'];
-  const sign = delta > 0 ? '+' : '';
-  const cls: KpiCardData['deltaClass'] = delta < 0 ? 'down' : '';
-  return [`${sign}${delta} pts vs ${deltaLabel}`, cls];
+  return formatDelta(delta, isAllTime, deltaLabel, d => `${d} pts`, false);
 }
 
 function formatWishlistDelta(
@@ -796,10 +807,7 @@ function formatWishlistDelta(
   isAllTime: boolean,
   deltaLabel: string,
 ): [string, KpiCardData['deltaClass']] {
-  if (isAllTime || delta === null) return ['No prior comparison', 'flat'];
-  const sign = delta >= 0 ? '+' : '';
-  const cls: KpiCardData['deltaClass'] = delta === 0 ? 'flat' : delta < 0 ? 'down' : '';
-  return [`${sign}${delta} vs ${deltaLabel}`, cls];
+  return formatDelta(delta, isAllTime, deltaLabel, d => String(d), true);
 }
 
 function formatPriceDelta(
@@ -807,10 +815,7 @@ function formatPriceDelta(
   isAllTime: boolean,
   deltaLabel: string,
 ): [string, KpiCardData['deltaClass']] {
-  if (isAllTime || delta === null) return ['No prior comparison', 'flat'];
-  const sign = delta > 0 ? '+' : '';
-  const cls: KpiCardData['deltaClass'] = delta === 0 ? 'flat' : delta < 0 ? 'down' : '';
-  return [`${sign}GBP ${delta} vs ${deltaLabel}`, cls];
+  return formatDelta(delta, isAllTime, deltaLabel, d => `GBP ${d}`, false);
 }
 
 // ---------------------------------------------------------------------------
