@@ -600,6 +600,16 @@ def test_analysis_pages_have_analysis_ui(e2e_site_multi_species) -> None:
         assert instruction_box.locator('summary').count() == 1, \
             f"{page_name} instruction box should have <summary>"
 
+        # Styling regression guard: instruction-box must have the blue gradient background
+        # and blue border from analysis.css — NOT the plain white from common.css.
+        bg_image = instruction_box.evaluate("el => window.getComputedStyle(el).backgroundImage")
+        assert 'gradient' in bg_image, \
+            f"{page_name} instruction-box should have gradient background, got: {bg_image}"
+        border_color = instruction_box.evaluate("el => window.getComputedStyle(el).borderTopColor")
+        # --color-info-accent is #2196F3 = rgb(33, 150, 243)
+        assert border_color == 'rgb(33, 150, 243)', \
+            f"{page_name} instruction-box border should be blue rgb(33,150,243), got: {border_color}"
+
 
 @pytest.mark.e2e
 def test_non_analysis_pages_lack_analysis_ui(e2e_site_multi_species) -> None:

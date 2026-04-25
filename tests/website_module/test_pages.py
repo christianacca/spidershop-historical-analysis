@@ -8,13 +8,105 @@ import os
 from pathlib import Path
 from bs4 import BeautifulSoup
 from conftest import page_config, temp_csv_file
-from website.generate_website import generate_homepage, generate_analysis_page, generate_snapshot_page, generate_history_page, main, OUTPUT_DIR
+from website.generate_website import generate_homepage, generate_analysis_page, generate_snapshot_page, generate_history_page, generate_history_insights_page, main, OUTPUT_DIR
+from website.page_config import BasePageConfig
 
 
 def _table_json(html: str) -> list:
     """Extract and parse the window['...Data'] JSON from a rendered page."""
     m = re.search(r"window\['[^']+Data'\]\s*=\s*(\[.*?\])\s*;", html, re.DOTALL)
     return json.loads(m.group(1)) if m else []
+
+
+class TestGenerateHistoryInsightsPage:
+    """Tests for history-insights page generation — raw data serialisation."""
+
+    def _make_history_csv(self, tmp_path, run_dates: list) -> str:
+        """Write a minimal history CSV with one species across given run dates."""
+        csv_path = tmp_path / "spidershop_spiderlings_history.csv"
+        header = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url"
+        rows = [
+            f"{dt},Aphonopelma seemanni,Costa Rican Zebra,1.5,25.00,10,https://example.com/1"
+            for dt in run_dates
+        ]
+        csv_path.write_text("\n".join([header] + rows) + "\n", encoding="utf-8")
+        return str(csv_path)
+
+    def _config(self, csv_filename: str) -> BasePageConfig:
+        return BasePageConfig(
+            title="Market Health",
+            description="Test",
+            csv_filename=csv_filename,
+            table_id="history-table",
+            active_page="history-insights",
+        )
+
+    def test_injects_market_health_raw_data_global(self, tmp_path):
+        """Generated HTML must contain window.marketHealthRawData (not marketHealthPayloads)."""
+        runs = [
+            "2026-01-01T06:10:00",
+            "2026-01-08T06:10:00",
+            "2026-01-15T06:10:00",
+        ]
+        csv_path = self._make_history_csv(tmp_path, runs)
+        html = generate_history_insights_page(self._config(csv_path))
+        assert "window.marketHealthRawData" in html, (
+            "Generated HTML must contain window.marketHealthRawData"
+        )
+        assert "window.marketHealthPayloads" not in html, (
+            "Old window.marketHealthPayloads global must not appear in generated HTML"
+        )
+
+    def test_raw_data_has_records_and_reference_date(self, tmp_path):
+        """The injected JSON must have a 'records' list and a 'referenceDate' string."""
+        runs = [
+            "2026-01-01T06:10:00",
+            "2026-01-08T06:10:00",
+            "2026-01-15T06:10:00",
+        ]
+        csv_path = self._make_history_csv(tmp_path, runs)
+        html = generate_history_insights_page(self._config(csv_path))
+        import json
+        m = re.search(r'window\.marketHealthRawData\s*=\s*(\{.*?\});', html, re.DOTALL)
+        assert m, "window.marketHealthRawData JSON not found in generated HTML"
+        raw = json.loads(m.group(1))
+        assert "records" in raw, "Raw data must have a 'records' key"
+        assert "referenceDate" in raw, "Raw data must have a 'referenceDate' key"
+        assert isinstance(raw["records"], list), "'records' must be a list"
+        assert raw["referenceDate"] != "", "'referenceDate' must be non-empty when rows exist"
+
+    def test_records_count_equals_source_rows(self, tmp_path):
+        """Every source row must appear as a record (no server-side deduplication)."""
+        runs = [
+            "2026-01-01T06:10:00",
+            "2026-01-08T06:10:00",
+            "2026-01-15T06:10:00",
+        ]
+        csv_path = self._make_history_csv(tmp_path, runs)
+        html = generate_history_insights_page(self._config(csv_path))
+        import json
+        m = re.search(r'window\.marketHealthRawData\s*=\s*(\{.*?\});', html, re.DOTALL)
+        raw = json.loads(m.group(1))
+        # One species × 3 runs = 3 rows → 3 records
+        assert len(raw["records"]) == 3, (
+            f"Expected 3 records (1 species × 3 runs), got {len(raw['records'])}"
+        )
+
+    def test_reference_date_matches_latest_run(self, tmp_path):
+        """referenceDate must equal the most recent scrape_datetime in the source data."""
+        runs = [
+            "2026-01-01T06:10:00",
+            "2026-01-08T06:10:00",
+            "2026-01-15T06:10:00",
+        ]
+        csv_path = self._make_history_csv(tmp_path, runs)
+        html = generate_history_insights_page(self._config(csv_path))
+        import json
+        m = re.search(r'window\.marketHealthRawData\s*=\s*(\{.*?\});', html, re.DOTALL)
+        raw = json.loads(m.group(1))
+        assert raw["referenceDate"] == "2026-01-15T06:10:00", (
+            f"referenceDate must be the latest run date; got {raw['referenceDate']!r}"
+        )
 
 
 class TestGenerateHomepage:
@@ -71,14 +163,15 @@ class TestGenerateHomepage:
         card_grid = soup.find('div', class_='card-grid')
         assert card_grid is not None
         
-        # Should have 4 cards
+        # Should have 5 cards (snapshot, history, history-insights, breeder, dealer)
         cards = card_grid.find_all('div', class_='card')
-        assert len(cards) == 4
+        assert len(cards) == 5
         
         # Check card content
         card_texts = [card.text for card in cards]
         assert any('Latest Snapshot' in text for text in card_texts)
         assert any('Historical Data' in text for text in card_texts)
+        assert any('History Insights' in text for text in card_texts)
         assert any('Breeder Opportunities' in text for text in card_texts)
         assert any('Dealer Supply Risk' in text for text in card_texts)
 
@@ -413,6 +506,9 @@ class TestGenerateSnapshotPage:
             # Legend details must have id="legend-section" so the anchor link can target it
             assert legend_details[0].get('id') == 'legend-section', \
                 "Legend <details> must have id='legend-section' for the anchor link to work"
+            # Legend details must have class="legend-box" so CSS box styles apply
+            assert 'legend-box' in (legend_details[0].get('class') or []), \
+                "Legend <details> must have class='legend-box' for CSS styling"
 
     def test_omits_legend_when_none(self):
         """Should omit legend when not provided."""
@@ -447,6 +543,8 @@ class TestGenerateSnapshotPage:
             example_details = [d for d in details_elements if 'Practical Examples' in d.text]
             assert len(example_details) == 1, "Should have a Practical Examples details element"
             assert example_details[0].get('open') is None, "Practical Examples should start collapsed"
+            assert 'examples-box' in (example_details[0].get('class') or []), \
+                "Examples <details> must have class='examples-box' for CSS styling"
 
     def test_includes_instruction_box_for_breeder_page(self):
         """Should include 'How to use this page' instruction box for breeder pages."""

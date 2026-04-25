@@ -416,5 +416,6 @@ def test_history_date_grid_styling(e2e_site_history_multi_date) -> None:
     date_rows = page.locator('.date-row')
     assert date_rows.count() >= 1, "History page should have .date-row items"
     row_bg = date_rows.first.evaluate('el => window.getComputedStyle(el).backgroundColor')
-    assert hex_to_rgb('#ffffff') in row_bg, \
-        f"Date rows should have white background, got {row_bg}"
+    # Date rows use --color-surface (#fffaf2 warm white) — not a dark or transparent colour
+    assert hex_to_rgb('#fffaf2') in row_bg, \
+        f"Date rows should have surface-colour background (--color-surface), got {row_bg}"

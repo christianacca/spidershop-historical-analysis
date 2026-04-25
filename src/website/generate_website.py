@@ -48,6 +48,7 @@ try:
         load_historical_sparkline_data,
         build_sparkline_dto_rows,
     )
+    from website.market_health_raw_dto import build_raw_market_health_data
     from website.markdown_utils import (
         parse_markdown_to_html,
         extract_summary_stats,
@@ -76,6 +77,7 @@ except ModuleNotFoundError:
         load_historical_sparkline_data,
         build_sparkline_dto_rows,
     )
+    from market_health_raw_dto import build_raw_market_health_data  # type: ignore[import]
     from markdown_utils import (
         parse_markdown_to_html,
         extract_summary_stats,
@@ -238,12 +240,38 @@ def generate_history_page(config: BasePageConfig) -> str:
     )
 
 
+def generate_history_insights_page(config: BasePageConfig) -> str:
+    """Generate the History Insights page with the Market Health KPI island.
+
+    Reads the history CSV and serialises all variant-level rows into the
+    ``window.marketHealthRawData`` global consumed by the client-side
+    market-health-engine.ts.  All KPI computation, window logic, and copy
+    selection happen in the browser — Python is a pure data serialiser here.
+    """
+    headers, rows = read_csv_file(config.csv_filename)
+    col_names = headers if headers else [
+        "scrape_datetime", "scientific_name", "common_name",
+        "size_cm", "price_gbp", "wishlist_count", "page_url",
+    ]
+    history_rows = [dict(zip(col_names, row)) for row in (rows or [])]
+
+    market_health_raw_data = build_raw_market_health_data(history_rows)
+
+    template = jinja_env.get_template("history_insights_page.html")
+    return template.render(
+        page_title=config.title,
+        description=config.description,
+        table_id=config.table_id,
+        active_page=config.active_page,
+        path_prefix="",
+        market_health_raw_data=market_health_raw_data,
+        timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
+    )
+
+
 def generate_analysis_page(config: BasePageConfig) -> str:
-    """Generate an analysis page (breeder/dealer) with table from CSV and analysis using Jinja2 template.
-    
-    Args:
-        config: PageConfig object containing all page generation parameters
-    
+    """Generate an analysis page (breeder or dealer).
+
     Returns:
         str: Complete HTML page content
         
@@ -313,7 +341,7 @@ def generate_analysis_page(config: BasePageConfig) -> str:
     legend_html = None
     legend_markdown = getattr(config, 'legend_markdown', None)
     if legend_markdown:
-        legend_with_wrapper = f'<details id="legend-section" markdown="1">\n<summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>\n\n{legend_markdown}\n\n</details>'
+        legend_with_wrapper = f'<details id="legend-section" class="legend-box" markdown="1">\n<summary><strong>ℹ️ How to read these tables (Legend)</strong></summary>\n\n{legend_markdown}\n\n</details>'
         legend_html = parse_markdown_to_html(legend_with_wrapper)
     
     # Enumerate headers and rows for template
@@ -525,6 +553,17 @@ def main() -> None:
             csv_filename="spidershop_spiderlings_history.csv",
             table_id="history-table",
             active_page="history"
+        )))
+
+    # Generate history insights page (Market Health KPI section)
+    print("  Generating history-insights.html...")
+    with open(OUTPUT_DIR / "history-insights.html", "w", encoding="utf-8") as f:
+        f.write(generate_history_insights_page(config=BasePageConfig(
+            title=_page_nav_item("history-insights").title,
+            description="Market Health KPIs, supply trends, and pricing signals derived from historical scrape data.",
+            csv_filename="spidershop_spiderlings_history.csv",
+            table_id="history-insights-table",
+            active_page="history-insights",
         )))
     
     # Generate breeder opportunity page

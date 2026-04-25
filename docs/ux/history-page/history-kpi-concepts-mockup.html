@@ -1,0 +1,4026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>History Page KPI Concepts Mockup</title>
+  <style>
+    :root {
+      --bg: #f3efe7;
+      --surface: #fffaf2;
+      --panel: #fffdf8;
+      --ink: #1f2a2c;
+      --muted: #5d6a6d;
+      --line: #d7cfc0;
+      --accent: #1f7a6b;
+      --accent-2: #cc6b49;
+      --accent-3: #a18b35;
+      --good: #1f7a6b;
+      --warn: #c9861a;
+      --risk: #b24c3d;
+      --shadow: 0 20px 40px rgba(65, 54, 33, 0.08);
+      --radius: 20px;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --sans: "Avenir Next", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(204, 107, 73, 0.15), transparent 28%),
+        radial-gradient(circle at right 20%, rgba(31, 122, 107, 0.16), transparent 24%),
+        linear-gradient(180deg, #f7f2e8 0%, var(--bg) 100%);
+      color: var(--ink);
+      font-family: var(--sans);
+      line-height: 1.45;
+    }
+
+    .shell {
+      max-width: 1380px;
+      margin: 0 auto;
+      padding: 32px 24px 56px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.35fr 0.9fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .hero-panel,
+    .filters-panel,
+    .section,
+    .legend,
+    .table-panel {
+      background: rgba(255, 253, 248, 0.92);
+      border: 1px solid rgba(215, 207, 192, 0.95);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .hero-panel {
+      padding: 28px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-panel::after {
+      content: "";
+      position: absolute;
+      inset: auto -80px -80px auto;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(31, 122, 107, 0.18), transparent 68%);
+    }
+
+    .eyebrow {
+      display: inline-block;
+      margin-bottom: 14px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(31, 122, 107, 0.1);
+      color: var(--accent);
+      font-size: 0.82rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 4vw, 3.6rem);
+      line-height: 0.98;
+      max-width: 12ch;
+      margin-bottom: 14px;
+    }
+
+    .hero-copy {
+      max-width: 66ch;
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+
+    .hero-bullets {
+      display: grid;
+      gap: 8px;
+      color: var(--ink);
+      font-size: 0.98rem;
+    }
+
+    .hero-bullets span {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hero-bullets strong {
+      min-width: 140px;
+    }
+
+    .filters-panel {
+      padding: 24px;
+      display: grid;
+      gap: 18px;
+      align-content: start;
+    }
+
+    .filters-panel h2 {
+      font-size: 1.2rem;
+      margin-bottom: 4px;
+    }
+
+    .filter-group {
+      display: grid;
+      gap: 10px;
+    }
+
+    .filter-group label {
+      color: var(--muted);
+      font-size: 0.86rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+    }
+
+    .search-shell {
+      display: grid;
+      gap: 10px;
+    }
+
+    .selector-shell {
+      display: grid;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .selector-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .selector-title {
+      display: grid;
+      gap: 6px;
+    }
+
+    .selector-meta {
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .selector-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font-size: 0.86rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .selector-details {
+      display: grid;
+      gap: 12px;
+    }
+
+    .selector-details summary {
+      list-style: none;
+    }
+
+    .selector-details summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .selector-details[open] .selector-toggle::after {
+      content: "Hide genus selector";
+    }
+
+    .selector-details:not([open]) .selector-toggle::after {
+      content: "Show genus selector";
+    }
+
+    .selector-details[open] .selector-toggle .toggle-icon {
+      transform: rotate(90deg);
+    }
+
+    .toggle-icon {
+      display: inline-block;
+      transition: transform 0.2s ease;
+    }
+
+    .collapsed-shell {
+      display: grid;
+      gap: 10px;
+    }
+
+    .collapsed-note {
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+    }
+
+    .search-icon {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .search-input {
+      flex: 1;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--ink);
+      font: inherit;
+    }
+
+    .suggestion-list,
+    .expanded-preview {
+      display: grid;
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.84);
+    }
+
+    .expanded-preview {
+      background: rgba(247, 242, 232, 0.72);
+    }
+
+    .expanded-preview strong {
+      font-size: 0.9rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .suggestion-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(247, 242, 232, 0.7);
+      font-size: 0.92rem;
+    }
+
+    button.suggestion-row {
+      width: 100%;
+      border: 1px solid transparent;
+      color: inherit;
+      font-family: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    button.suggestion-row:hover {
+      border-color: rgba(31, 122, 107, 0.22);
+      background: rgba(31, 122, 107, 0.08);
+    }
+
+    .suggestion-row strong {
+      font-size: 0.94rem;
+      font-weight: 700;
+    }
+
+    .suggestion-meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .suggestion-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(31, 122, 107, 0.12);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 0.76rem;
+    }
+
+    .suggestion-status.selected {
+      background: rgba(204, 107, 73, 0.14);
+      color: var(--accent-2);
+    }
+
+    .chips,
+    .window-row,
+    .compare-row,
+    .quick-pick-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip,
+    .window,
+    .compare-pill {
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font-size: 0.92rem;
+      font-family: inherit;
+    }
+
+    button.chip,
+    button.quick-pick {
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    button.compare-pill {
+      cursor: pointer;
+    }
+
+    button.compare-pill:disabled {
+      cursor: not-allowed;
+    }
+
+    .chip.active,
+    .window.active,
+    .compare-pill.active {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: #fff;
+    }
+
+    .chip.selected {
+      background: rgba(204, 107, 73, 0.14);
+      border-color: rgba(204, 107, 73, 0.28);
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .chip .dismiss {
+      margin-left: 6px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .quick-pick {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px dashed rgba(31, 42, 44, 0.18);
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--ink);
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+
+    .quick-pick.active {
+      border-style: solid;
+      border-color: var(--ink);
+      background: var(--ink);
+      color: #fff;
+    }
+
+    .quick-pick-action {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(31, 42, 44, 0.22);
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-weight: 400;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .quick-pick-action:hover {
+      border-color: rgba(31, 42, 44, 0.4);
+      color: var(--ink);
+    }
+
+    .selector-empty {
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px dashed rgba(31, 42, 44, 0.16);
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.72);
+      font-size: 0.9rem;
+    }
+
+    .compare-pill.focus {
+      background: rgba(204, 107, 73, 0.14);
+      border-color: rgba(204, 107, 73, 0.35);
+    }
+
+    .compare-pill.active.focus {
+      background: var(--accent-2);
+      border-color: var(--accent-2);
+      color: #fff;
+    }
+
+    .compare-pill.empty {
+      border-style: dashed;
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--muted);
+    }
+
+    .compare-pill.context-muted {
+      background: rgba(255, 255, 255, 0.62);
+      border-color: rgba(31, 42, 44, 0.12);
+      color: var(--muted);
+      opacity: 0.72;
+    }
+
+    .compare-pill.disabled-control {
+      background: rgba(255, 255, 255, 0.62);
+      border-color: rgba(31, 42, 44, 0.12);
+      color: var(--muted);
+      opacity: 0.62;
+    }
+
+    .compare-pill.inactive-context {
+      background: rgba(247, 242, 232, 0.5);
+      border-color: rgba(31, 42, 44, 0.14);
+      border-style: dashed;
+      color: var(--muted);
+      opacity: 0.52;
+    }
+
+    .filter-note {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .micro-note {
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .comparison-panel {
+      background: rgba(255, 248, 236, 0.94);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px 16px;
+      margin-bottom: 18px;
+    }
+
+    .transition-panel {
+      margin: 0 0 18px;
+      padding: 18px 20px;
+      border-radius: 18px;
+      border: 1px solid rgba(31, 122, 107, 0.16);
+      background: linear-gradient(180deg, rgba(31, 122, 107, 0.08), rgba(255, 253, 248, 0.92));
+      display: grid;
+      gap: 10px;
+    }
+
+    .transition-panel strong {
+      font-size: 1rem;
+    }
+
+    .transition-panel p {
+      color: var(--muted);
+    }
+
+    .prototype-panel {
+      background: linear-gradient(180deg, rgba(31, 42, 44, 0.04), rgba(31, 42, 44, 0.02));
+      border-style: dashed;
+      box-shadow: none;
+    }
+
+    .prototype-kicker {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(31, 42, 44, 0.08);
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .transition-cue {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(31, 122, 107, 0.12);
+      color: var(--accent);
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+
+    .scope-summary,
+    .scope-inline {
+      display: grid;
+      gap: 8px;
+    }
+
+    .scope-inline {
+      margin-top: 2px;
+    }
+
+    .scope-label {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(31, 122, 107, 0.12);
+      color: var(--accent);
+      font-size: 0.86rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .scope-summary strong,
+    .comparison-panel strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 0.95rem;
+    }
+
+    .scope-summary p,
+    .comparison-panel p {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .comparison-panel {
+      display: grid;
+      gap: 12px;
+    }
+
+    .compare-role-block {
+      display: grid;
+      gap: 8px;
+    }
+
+    .compare-focus-picker {
+      display: grid;
+      gap: 10px;
+      padding: 10px;
+      border: 1px solid rgba(31, 42, 44, 0.12);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .compare-state-card {
+      display: grid;
+      gap: 8px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(31, 42, 44, 0.12);
+      background: rgba(255, 255, 255, 0.78);
+    }
+
+    .compare-state-badge {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: rgba(31, 122, 107, 0.12);
+      color: var(--accent);
+    }
+
+    .compare-state-badge.broad {
+      background: rgba(204, 107, 73, 0.14);
+      color: var(--accent-2);
+    }
+
+    .compare-state-copy {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .compare-subhead {
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .compare-help {
+      min-height: 1.45em;
+      transition: opacity 0.22s ease;
+    }
+
+    .section-stage {
+      display: grid;
+      gap: 18px;
+    }
+
+    .section-placeholder,
+    .section-live {
+      overflow: hidden;
+      transform-origin: top;
+      transition: max-height 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.28s ease, transform 0.45s ease;
+    }
+
+    .section-placeholder {
+      max-height: 260px;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .section-live {
+      max-height: 0;
+      opacity: 0;
+      transform: translateY(18px);
+      pointer-events: none;
+    }
+
+    .section.is-ready .section-placeholder {
+      max-height: 0;
+      opacity: 0;
+      transform: translateY(-10px);
+      pointer-events: none;
+    }
+
+    .section.is-ready .section-live {
+      max-height: 2200px;
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .empty-state {
+      padding: 22px;
+      border-radius: 18px;
+      border: 1px dashed rgba(31, 42, 44, 0.18);
+      background: rgba(255, 255, 255, 0.72);
+      display: grid;
+      gap: 10px;
+    }
+
+    .empty-state strong {
+      font-size: 1rem;
+    }
+
+    .empty-state p {
+      color: var(--muted);
+      max-width: 64ch;
+    }
+
+    .empty-state-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    .empty-chip {
+      padding: 8px 11px;
+      border-radius: 999px;
+      background: rgba(31, 122, 107, 0.08);
+      border: 1px solid rgba(31, 122, 107, 0.15);
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    .comparison-panel-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .compare-help {
+      color: var(--muted);
+      font-size: 0.84rem;
+      margin-top: 8px;
+    }
+
+    .compare-view[hidden] {
+      display: none !important;
+    }
+
+    .section {
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .section-title {
+      display: grid;
+      gap: 6px;
+    }
+
+    .section-title h2 {
+      font-size: 1.45rem;
+    }
+
+    .section-title p,
+    .section-note,
+    .metric-text,
+    .visual-note,
+    .table-copy {
+      color: var(--muted);
+    }
+
+    .section-note {
+      max-width: 42ch;
+      font-size: 0.95rem;
+    }
+
+    .section-note-shell {
+      display: grid;
+      gap: 8px;
+      max-width: 42ch;
+      justify-items: start;
+    }
+
+    .section-note-shell .section-note {
+      max-width: none;
+      margin: 0;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .kpi-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(247,242,232,0.92));
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      min-height: 140px;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .kpi-card h3 {
+      font-size: 0.92rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+
+    .metric-title-row {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .metric-info {
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .metric-info summary,
+    .metric-method summary {
+      list-style: none;
+    }
+
+    .metric-info summary::-webkit-details-marker,
+    .metric-method summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .metric-info-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      border: 1px solid rgba(31, 42, 44, 0.16);
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 800;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .metric-info[open] .metric-info-button {
+      border-color: rgba(31, 122, 107, 0.24);
+      color: var(--accent);
+      background: rgba(31, 122, 107, 0.08);
+    }
+
+    .metric-popover {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: min(280px, 70vw);
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255, 253, 248, 0.98);
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 6px;
+      z-index: 10;
+    }
+
+    .metric-popover strong {
+      font-size: 0.88rem;
+    }
+
+    .metric-popover p,
+    .metric-method-body p,
+    .metric-method-body li {
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.45;
+    }
+
+    .metric-method {
+      border-top: 1px dashed rgba(31, 42, 44, 0.12);
+      padding-top: 8px;
+    }
+
+    .metric-method summary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--accent);
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .metric-method summary::before {
+      content: '+';
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    .metric-method[open] summary::before {
+      content: '-';
+    }
+
+    .metric-method-body {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .metric-method-body ol {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .metric-value {
+      font-size: 2rem;
+      font-weight: 750;
+      letter-spacing: -0.03em;
+    }
+
+    .metric-delta {
+      display: inline-flex;
+      width: fit-content;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      background: rgba(31, 122, 107, 0.12);
+      color: var(--good);
+    }
+
+    .metric-delta-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .metric-delta.down {
+      background: rgba(178, 76, 61, 0.12);
+      color: var(--risk);
+    }
+
+    .metric-delta.flat {
+      background: rgba(161, 139, 53, 0.14);
+      color: #7b6821;
+    }
+
+    .metric-sparkline-shell {
+      display: grid;
+      gap: 8px;
+      margin-top: 6px;
+      padding-top: 10px;
+      border-top: 1px dashed rgba(31, 42, 44, 0.12);
+    }
+
+    .metric-sparkline {
+      border: 1px solid rgba(215, 207, 192, 0.9);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.72);
+      overflow: hidden;
+    }
+
+    .metric-sparkline svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .sparkline-readout {
+      color: var(--muted);
+      font-size: 0.79rem;
+    }
+
+    .sparkline-line-current {
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .sparkline-line-prior {
+      fill: none;
+      stroke-width: 2;
+      stroke-dasharray: 5 4;
+      opacity: 0.38;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .sparkline-point-current,
+    .sparkline-point-prior {
+      transition: r 140ms ease, opacity 140ms ease;
+      pointer-events: none;
+    }
+
+    .sparkline-point-prior {
+      opacity: 0.45;
+    }
+
+    .sparkline-point-current.is-subdued,
+    .sparkline-point-prior.is-subdued {
+      opacity: 0.16;
+    }
+
+    .sparkline-band {
+      fill: rgba(31, 42, 44, 0.08);
+      pointer-events: none;
+    }
+
+    .sparkline-hit {
+      fill: transparent;
+      cursor: pointer;
+    }
+
+    .sparkline-hit:hover {
+      fill: rgba(31, 42, 44, 0.04);
+    }
+
+    .sparkline-run-labels {
+      fill: var(--muted);
+      font-size: 10px;
+      font-family: var(--sans);
+    }
+
+    .sparkline-support {
+      display: grid;
+      gap: 8px;
+      margin: 12px 0 18px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.54);
+    }
+
+    .sparkline-support-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      align-items: center;
+    }
+
+    .sparkline-note {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .sparkline-clear-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: auto;
+      min-width: 126px;
+      border: 1px solid rgba(31, 42, 44, 0.12);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.85);
+      color: var(--ink);
+      padding: 6px 10px;
+      font: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .sparkline-clear-btn[hidden] {
+      display: inline-flex !important;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .visual-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .visual-grid.market-health-support-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .visual-card {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 16px;
+      background: var(--panel);
+      display: grid;
+      gap: 10px;
+    }
+
+    .visual-card h3 {
+      font-size: 1rem;
+    }
+
+    .chart-compare-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      align-items: center;
+    }
+
+    .chart-compare-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    button.chart-compare-item {
+      border: 1px solid transparent;
+      border-radius: 999px;
+      background: transparent;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    button.chart-compare-item:hover {
+      border-color: rgba(31, 42, 44, 0.12);
+      background: rgba(255, 255, 255, 0.6);
+    }
+
+    button.chart-compare-item:hover:not(.active) {
+      color: var(--ink);
+    }
+
+    button.chart-compare-item.active {
+      border-color: rgba(31, 42, 44, 0.16);
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--ink);
+    }
+
+    .line-swatch {
+      width: 28px;
+      height: 0;
+      border-top: 3px solid var(--ink);
+      border-radius: 999px;
+      opacity: 0.9;
+    }
+
+    .line-swatch.muted {
+      border-top-style: dashed;
+      opacity: 0.42;
+    }
+
+    .pulse-series {
+      cursor: pointer;
+      transition: opacity 140ms ease;
+    }
+
+    .pulse-series:hover {
+      opacity: 0.92;
+      stroke-width: 5;
+    }
+
+    .pulse-series-prior:hover {
+      stroke-width: 4;
+      stroke-opacity: 0.5;
+    }
+
+    .pulse-series.is-muted {
+      opacity: 0.16;
+    }
+
+    .pulse-series.is-active {
+      opacity: 1;
+      stroke-width: 5;
+    }
+
+    .pulse-series-prior.is-active {
+      stroke-width: 4;
+      stroke-opacity: 0.5;
+    }
+
+    .pulse-end-label {
+      font-size: 11px;
+      font-weight: 700;
+      pointer-events: none;
+    }
+
+    .pulse-end-label[hidden] {
+      display: none;
+    }
+
+    .pulse-end-label.prior {
+      opacity: 0.55;
+      font-weight: 600;
+    }
+
+    .pulse-selection-note {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .pulse-scale-note {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .visual-card svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .mini-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      background: rgba(255,255,255,0.76);
+      display: grid;
+      gap: 6px;
+    }
+
+    .decision-note {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed rgba(31, 42, 44, 0.12);
+    }
+
+    .decision-note summary {
+      list-style: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+      opacity: 0.8;
+    }
+
+    .decision-note summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .decision-note summary::before {
+      content: '+';
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    .decision-note[open] summary::before {
+      content: '-';
+    }
+
+    .decision-note-body {
+      margin-top: 10px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px dashed rgba(31, 42, 44, 0.12);
+      background: rgba(255, 255, 255, 0.34);
+      display: grid;
+      gap: 6px;
+    }
+
+    .decision-note-body strong,
+    .decision-note-body p {
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .decision-note-body strong {
+      font-size: 0.92rem;
+    }
+
+    .mini-card strong {
+      font-size: 1.35rem;
+    }
+
+    .bar-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 170px 1fr 56px;
+      gap: 12px;
+      align-items: center;
+      font-size: 0.94rem;
+    }
+
+    .bar-track {
+      height: 14px;
+      border-radius: 999px;
+      background: #efe7d9;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), #5aa898);
+    }
+
+    .bar-fill.alt {
+      background: linear-gradient(90deg, var(--accent-2), #df8e72);
+    }
+
+    .bar-fill.warn {
+      background: linear-gradient(90deg, var(--accent-3), #d2bd59);
+    }
+
+    .rank-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.94rem;
+    }
+
+    .rank-table th,
+    .rank-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+    }
+
+    .rank-table th {
+      color: var(--muted);
+      font-size: 0.82rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .rank-table tr.highlight {
+      background: rgba(204, 107, 73, 0.08);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      background: rgba(31, 122, 107, 0.1);
+      color: var(--good);
+    }
+
+    .badge.warn {
+      background: rgba(201, 134, 26, 0.12);
+      color: var(--warn);
+    }
+
+    .badge.risk {
+      background: rgba(178, 76, 61, 0.12);
+      color: var(--risk);
+    }
+
+    .legend {
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .legend h2 {
+      font-size: 1.1rem;
+    }
+
+    .legend-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .legend-item {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      flex: none;
+    }
+
+    .table-panel {
+      padding: 22px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .table-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .download {
+      display: inline-flex;
+      align-items: center;
+      flex: 0 0 auto;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: var(--ink);
+      color: #fff;
+      font-size: 0.92rem;
+      line-height: 1;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .sample-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.93rem;
+    }
+
+    .sample-table th,
+    .sample-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+    }
+
+    .sample-table th {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.8rem;
+    }
+
+    .footnote {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .footnote.prototype-footnote {
+      padding: 12px 14px;
+      border: 1px dashed rgba(31, 42, 44, 0.16);
+      border-radius: 14px;
+      background: rgba(31, 42, 44, 0.04);
+    }
+
+    .mono {
+      font-family: var(--mono);
+    }
+
+    @media (max-width: 1100px) {
+      .hero,
+      .visual-grid,
+      .legend-grid,
+      .kpi-grid,
+      .mini-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .shell {
+        padding: 18px 14px 40px;
+      }
+
+      .hero-panel,
+      .filters-panel,
+      .section,
+      .legend,
+      .table-panel {
+        padding: 18px;
+      }
+
+      .bar-row {
+        grid-template-columns: 1fr;
+      }
+
+      .table-top,
+      .section-header,
+      .comparison-panel-header {
+        align-items: start;
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div class="hero-panel">
+        <h1>Three ways to assess the market before backing a genus.</h1>
+        <p class="hero-copy">
+          Start with the wider market, then compare a genus against peers or the market, and finally test whether your preference still holds up against the evidence.
+        </p>
+        <div class="hero-bullets">
+          <span><strong>Step 1</strong> Read the broader market first.</span>
+          <span><strong>Step 2</strong> Then compare a focus genus against peers or the market.</span>
+          <span><strong>Step 3</strong> Finally check whether preference is still defensible.</span>
+        </div>
+      </div>
+
+      <aside class="filters-panel">
+        <div>
+          <h2>Global filters</h2>
+          <p class="filter-note">Both the time window and genus selection apply to every section on this page, including Market Health KPIs. Comparison controls in sections 2 and 3 assign additional roles (focus genus, peer set) within the genera already in scope here.</p>
+        </div>
+
+        <div class="scope-inline">
+          <span class="scope-label" id="global-scope-label">Current market scope: all genera • Q2 2026 to date</span>
+          <p class="filter-note">All KPIs, charts, preview rows, and CSV export reflect this scope.</p>
+        </div>
+
+        <div class="filter-group">
+          <label>Genus multi-select</label>
+          <div class="selector-shell">
+            <details class="selector-details">
+              <summary class="selector-header">
+                <div class="selector-title">
+                  <span class="scope-label" id="selector-count-label">All genera • 68 available</span>
+                  <span class="selector-meta">Selected genera stay visible here so you can see the current market slice at a glance.</span>
+                </div>
+                <span class="selector-toggle"><span class="toggle-icon">▶</span></span>
+              </summary>
+
+              <div class="collapsed-shell">
+                <div class="chips" id="selected-genera-chips"></div>
+                <p class="collapsed-note" id="collapsed-selector-note">All genera are in scope for Market Health KPIs. Select specific genera to narrow the focus and unlock comparison controls.</p>
+              </div>
+
+              <div class="expanded-preview">
+                <strong>Selector contents</strong>
+                <div class="search-shell">
+                  <div class="search-box">
+                    <span class="search-icon">Search</span>
+                    <input class="search-input" id="genus-search-input" type="text" value="" aria-label="Search genus" />
+                  </div>
+                  <div class="suggestion-list" id="genus-suggestion-list"></div>
+                </div>
+                <div class="quick-pick-row">
+                  <button type="button" id="genus-all-btn" class="quick-pick active" data-selection-action="all">All</button>
+                  <button type="button" class="quick-pick" data-selection-action="most-observed">Most observed</button>
+                  <button type="button" class="quick-pick" data-selection-action="arboreal">Arboreal</button>
+                  <button type="button" class="quick-pick" data-selection-action="terrestrial">Terrestrial</button>
+                  <button type="button" class="quick-pick" data-selection-action="fossorial">Fossorial</button>
+                  <button type="button" class="quick-pick-action" data-selection-action="clear-all">Clear all</button>
+                </div>
+              </div>
+            </details>
+          </div>
+          <p class="micro-note">Search or use shortcut groups such as lifestyle to narrow the genus list quickly.</p>
+        </div>
+
+        <div class="filter-group">
+          <label>Time window</label>
+          <div class="window-row">
+            <button type="button" class="window" data-window="this-month">This month</button>
+            <button type="button" class="window" data-window="last-month">Last month</button>
+            <button type="button" class="window active" data-window="current-quarter">Current quarter</button>
+            <button type="button" class="window" data-window="last-quarter">Last quarter</button>
+            <button type="button" class="window" data-window="this-year">This year</button>
+            <button type="button" class="window" data-window="last-year">Last year</button>
+            <button type="button" class="window" data-window="all-time">All time</button>
+          </div>
+          <p class="micro-note" id="time-window-basis-note">Quarter in progress (Q2 2026) — comparing Apr 1 – Apr 21 against the same span into Q1 (Jan 1 – Jan 21).</p>
+        </div>
+      </aside>
+    </section>
+
+    <section class="legend prototype-panel">
+      <div class="prototype-kicker">Prototype scaffolding</div>
+      <h2>Reading guide for this mock</h2>
+      <p class="visual-note">Keep this panel in the prototype and handoff materials, but treat it as explanatory chrome rather than a production UI component.</p>
+      <div class="legend-grid">
+        <div class="legend-item"><span class="swatch" style="background:#1f7a6b"></span> Healthy / favourable commercial signal</div>
+        <div class="legend-item"><span class="swatch" style="background:#cc6b49"></span> Focus-genus emphasis or comparison benchmark</div>
+        <div class="legend-item"><span class="swatch" style="background:#a18b35"></span> Caution or mixed interpretation</div>
+        <div class="legend-item"><span class="swatch" style="background:#b24c3d"></span> Potential risk or weak breeder case</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <div class="section-title">
+          <div class="eyebrow">1. Market Health KPIs</div>
+          <h2 id="market-health-heading">Is the wider tarantula market growing, becoming harder to source, or levelling off?</h2>
+          <p id="market-health-scope-copy">These metrics cover all tracked species — the widest possible lens before you narrow to a genus.</p>
+        </div>
+        <p class="section-note" id="market-health-section-note">If the overall market looks flat, treat individual genus comparisons cautiously.</p>
+      </div>
+
+      <div class="kpi-grid">
+        <article class="kpi-card">
+          <div class="metric-title-row">
+            <h3>Observed species</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is Observed species?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>How many distinct species appeared in-stock at least once during this period.</p>
+              </div>
+            </details>
+          </div>
+          <div class="metric-value">184</div>
+          <span class="metric-delta" id="market-observed-delta">+7 vs prior quarter QTD</span>
+          <p class="metric-text" id="market-observed-copy">Breadth is ahead of the same point last quarter, so the market still looks alive on assortment even while actual stock is getting tighter.</p>
+          <div class="metric-sparkline-shell">
+            <div class="metric-sparkline" id="market-observed-sparkline"></div>
+            <p class="sparkline-readout" id="market-observed-sparkline-readout">Current vs matched prior-period shape.</p>
+          </div>
+        </article>
+        <article class="kpi-card">
+          <div class="metric-title-row">
+            <h3>In-stock rate</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is In-stock rate?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>Of species seen in-stock this period, how many are still available right now?</p>
+              </div>
+            </details>
+          </div>
+          <div class="metric-value">61%</div>
+          <span class="metric-delta down" id="market-stock-delta">-7 pts vs prior quarter QTD</span>
+          <p class="metric-text" id="market-stock-copy">Availability is a touch weaker than the same point last quarter. That reads more like near-term tightening than a structural collapse.</p>
+          <div class="metric-sparkline-shell">
+            <div class="metric-sparkline" id="market-stock-sparkline"></div>
+            <p class="sparkline-readout" id="market-stock-sparkline-readout">Current vs matched prior-period shape.</p>
+          </div>
+        </article>
+        <article class="kpi-card">
+          <div class="metric-title-row">
+            <h3>Median wishlist</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is Median wishlist?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>The middle wishlist count across in-stock listings at the latest run — a rough proxy for demand interest.</p>
+              </div>
+            </details>
+          </div>
+          <div class="metric-value">18</div>
+          <span class="metric-delta" id="market-wishlist-delta">+3 vs prior quarter QTD</span>
+          <p class="metric-text" id="market-wishlist-copy">Median wishlist counts are modestly above the same point last quarter, which suggests demand is holding without obviously overheating.</p>
+          <div class="metric-sparkline-shell">
+            <div class="metric-sparkline" id="market-wishlist-sparkline"></div>
+            <p class="sparkline-readout" id="market-wishlist-sparkline-readout">Current vs matched prior-period shape.</p>
+          </div>
+        </article>
+        <article class="kpi-card">
+          <div class="metric-title-row">
+            <h3>Median price</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is Median price?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>The middle listing price across in-stock listings at the latest run.</p>
+              </div>
+            </details>
+          </div>
+          <div class="metric-value">GBP 24</div>
+          <span class="metric-delta" id="market-price-delta">+GBP 1 vs prior quarter QTD</span>
+          <p class="metric-text" id="market-price-copy">Prices edged up a little relative to the same point last quarter, which fits a market tightening gradually rather than repricing sharply.</p>
+          <div class="metric-sparkline-shell">
+            <div class="metric-sparkline" id="market-price-sparkline"></div>
+            <p class="sparkline-readout" id="market-price-sparkline-readout">Current vs matched prior-period shape.</p>
+          </div>
+        </article>
+      </div>
+
+      <div class="sparkline-support">
+        <div class="sparkline-support-row">
+          <span class="chart-compare-item"><span class="line-swatch" style="border-top-color:#1f2a2c"></span><span>Active window</span></span>
+          <span class="chart-compare-item" id="market-sparkline-prior-key"><span class="line-swatch muted"></span><span>Matched prior-period overlay</span></span>
+          <button type="button" class="sparkline-clear-btn" id="market-sparkline-clear" hidden>Clear run focus</button>
+        </div>
+        <p class="sparkline-note" id="market-sparkline-basis-note">Compare within a row. Solid shows the active window; dashed shows the matched prior period.</p>
+        <p class="sparkline-note" id="market-sparkline-selection-note">Optional: click a run to align that moment across all four cards.</p>
+      </div>
+
+      <div class="visual-grid market-health-support-grid">
+        <article class="visual-card">
+          <h3 id="market-events-title">Run-to-run market events</h3>
+          <p class="visual-note" id="market-events-subtitle">Active-window event counts vs the matched prior comparison period.</p>
+          <div class="mini-grid">
+            <div class="mini-card">
+              <span id="market-events-new-label">Listings added</span>
+              <strong id="market-events-new-value">+29</strong>
+              <p class="visual-note" id="market-events-new-copy">Fresh introductions across the window.</p>
+            </div>
+            <div class="mini-card">
+              <span id="market-events-dropped-label">Listings removed</span>
+              <strong id="market-events-dropped-value">17</strong>
+              <p class="visual-note" id="market-events-dropped-copy">Some churn, but not enough to imply market retreat.</p>
+            </div>
+            <div class="mini-card">
+              <span id="market-events-restocks-label">OUT -> IN restocks</span>
+              <strong id="market-events-restocks-value">43</strong>
+              <p class="visual-note" id="market-events-restocks-copy">Movement is active; stock is not simply frozen.</p>
+            </div>
+            <div class="mini-card">
+              <span id="market-events-oos-label">IN -> OUT stockouts</span>
+              <strong id="market-events-oos-value">21</strong>
+                <p class="visual-note" id="market-events-oos-copy">More listings are moving from IN to OUT, reinforcing the weaker in-stock rate.</p>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="transition-panel prototype-panel">
+      <div class="prototype-kicker">Prototype scaffolding</div>
+      <span class="transition-cue">Ready to test a genus?</span>
+      <strong>Use the comparison controls below to move from market context into genus-specific analysis.</strong>
+      <p>Keep this bridge copy in the mock and handoff materials for now. In the real product it would likely collapse into lighter section intro text once the flow is already learned.</p>
+    </section>
+
+    <section class="comparison-panel">
+      <div class="comparison-panel">
+        <div class="comparison-panel-header">
+          <div>
+            <strong>Comparison controls for the sections below</strong>
+            <p id="comparison-panel-copy">These controls assign roles within the globally selected genera. Choose one selected genus as the focus, then decide which of the other selected genera belong in the peer set.</p>
+          </div>
+          <span class="scope-label">For Breeder Opportunity and Bias-Control only</span>
+        </div>
+        <div class="compare-state-card">
+          <span class="compare-state-badge" id="compare-state-badge">Narrow scope</span>
+          <strong id="compare-state-title">Peer-editing comparison</strong>
+          <p class="compare-state-copy" id="compare-state-copy">With a tighter global genus scope, you can assign a focus genus and edit the peer set directly.</p>
+        </div>
+        <div class="compare-role-block">
+          <span class="compare-subhead">Focus genus</span>
+          <div class="compare-row" id="focus-genus-options"></div>
+          <div id="compare-focus-picker"></div>
+        </div>
+        <div class="compare-role-block">
+          <span class="compare-subhead" id="peer-set-subhead">Peer set</span>
+          <div class="compare-row" id="peer-set-options"></div>
+        </div>
+        <div class="compare-row" id="compare-mode-row">
+          <button type="button" class="compare-pill compare-mode-btn disabled-control" data-mode="peer-average" aria-pressed="false" disabled>Compare against: Peer average</button>
+          <button type="button" class="compare-pill compare-mode-btn disabled-control" data-mode="market-baseline" aria-pressed="false" disabled>Or: Market baseline</button>
+        </div>
+        <p class="compare-help" id="compare-help">Choose one of the globally selected genera as the focus. The peer set defaults to the remaining selected genera.</p>
+      </div>
+
+    </section>
+
+    <section class="section conditional-section" id="breeder-section">
+      <div class="section-header">
+        <div class="section-title">
+          <div class="eyebrow">2. Breeder Opportunity KPIs</div>
+          <h2>Which genera look attractive if you care about selling through faster?</h2>
+          <p id="breeder-section-copy">These metrics focus on the commercial signals that matter most for sell-through: demand and recurring supply constraints.</p>
+        </div>
+        <div class="section-note-shell">
+          <div class="prototype-kicker">Prototype scaffolding</div>
+          <p class="section-note footnote prototype-footnote" id="breeder-section-note">Use the score as a summary, but keep the ingredient metrics visible so the commercial case stays explainable.</p>
+        </div>
+      </div>
+
+      <div class="section-stage">
+      <div class="section-placeholder">
+        <div class="empty-state">
+          <strong>Choose a focus genus to unlock breeder-opportunity KPIs.</strong>
+          <p>This section stays visible so you can see what becomes available, but it only fills with scorecards and comparison charts after you pick a genus to test.</p>
+          <div class="empty-state-row">
+            <span class="empty-chip">Commercial opportunity score</span>
+            <span class="empty-chip">Peer vs market comparison</span>
+            <span class="empty-chip">Scarcity, demand, restock ingredients</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-live">
+      <div class="kpi-grid">
+        <article class="kpi-card">
+          <div class="metric-title-row">
+            <h3><span id="breeder-focus-name">Focus genus</span> scarcity rate</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is Scarcity rate?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>The percentage of this genus's listings that are currently out of stock. Higher means harder to find.</p>
+              </div>
+            </details>
+          </div>
+          <div class="metric-value" id="breeder-scarcity-value">38%</div>
+          <span class="metric-delta flat" id="breeder-scarcity-label">Middle of pack</span>
+          <p class="metric-text" id="breeder-scarcity-copy">Promising, but not dominant if scarcity is your main breeder signal.</p>
+        </article>
+        <article class="kpi-card">
+          <div class="metric-title-row">
+            <h3>Median wishlist in stock</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is Median wishlist in stock?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>The middle wishlist count across this genus's in-stock listings at the latest run — demand interest when supply is actually available.</p>
+              </div>
+            </details>
+          </div>
+          <div class="metric-value" id="breeder-wishlist-value">26</div>
+          <span class="metric-delta" id="breeder-wishlist-label">High</span>
+          <p class="metric-text" id="breeder-wishlist-copy">Interest remains healthy even when listings are actually available.</p>
+        </article>
+        <article class="kpi-card">
+          <div class="metric-title-row">
+            <h3>Restock cadence</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is Restock cadence?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>Average days for an out-of-stock listing of this genus to come back in stock. Shorter is better for supply reliability.</p>
+              </div>
+            </details>
+          </div>
+          <div class="metric-value" id="breeder-restock-value">11d</div>
+          <span class="metric-delta down" id="breeder-restock-label">Slow</span>
+          <p class="metric-text" id="breeder-restock-copy">Once missing, these listings do not snap back immediately.</p>
+        </article>
+        <article class="kpi-card">
+          <div class="metric-title-row">
+            <h3>Opportunity score</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is Opportunity score?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>This is the main commercial comparison score in this section. Higher means the genus looks more attractive to breed because demand is stronger relative to supply.</p>
+              </div>
+            </details>
+          </div>
+          <div class="metric-value" id="breeder-score-value">7.4</div>
+          <span class="metric-delta" id="breeder-turnover-delta">Best peer is higher</span>
+          <p class="metric-text" id="breeder-turnover-copy">Shows how commercially attractive the focus genus looks once demand and constrained supply are read together.</p>
+          <details class="metric-method">
+            <summary>How this works</summary>
+            <div class="metric-method-body">
+              <p>Opportunity score is a composite signal. It is there to help compare genera on one commercial scale, not to replace the ingredient metrics.</p>
+              <ol>
+                <li>We combine the main commercial ingredients, including scarcity, demand, and how quickly stock tends to return.</li>
+                <li>We calculate the result for the focus genus and the active benchmark, whether that is each peer, a peer average, or the market baseline.</li>
+                <li>We use the score as a comparison aid, then keep the ingredient table below visible so you can still see why one genus is ahead.</li>
+              </ol>
+              <p>A higher score means demand looks stronger relative to supply. A small gap means the comparison is competitive rather than decisive.</p>
+            </div>
+          </details>
+        </article>
+      </div>
+
+      <div class="visual-grid">
+        <article class="visual-card">
+          <h3 id="breeder-chart-title">Opportunity score by genus</h3>
+          <div class="bar-list compare-view" data-compare-view="none">
+            <div class="bar-row" id="none-row-0">
+              <span id="none-name-0">Psalmopoeus</span>
+              <div class="bar-track"><div class="bar-fill" id="none-fill-0" style="width:88%"></div></div>
+              <span class="mono" id="none-score-0">8.8</span>
+            </div>
+            <div class="bar-row" id="none-row-1">
+              <span id="none-name-1">Avicularia</span>
+              <div class="bar-track"><div class="bar-fill alt" id="none-fill-1" style="width:74%"></div></div>
+              <span class="mono" id="none-score-1">7.4</span>
+            </div>
+            <div class="bar-row" id="none-row-2">
+              <span id="none-name-2">Caribena</span>
+              <div class="bar-track"><div class="bar-fill" id="none-fill-2" style="width:69%"></div></div>
+              <span class="mono" id="none-score-2">6.9</span>
+            </div>
+            <div class="bar-row" id="none-row-3">
+              <span id="none-name-3">Chromatopelma</span>
+              <div class="bar-track"><div class="bar-fill warn" id="none-fill-3" style="width:57%"></div></div>
+              <span class="mono" id="none-score-3">5.7</span>
+            </div>
+          </div>
+          <div class="bar-list compare-view" data-compare-view="peer-average" hidden>
+            <div class="bar-row">
+              <span>Peer average</span>
+              <div class="bar-track"><div class="bar-fill" id="peer-average-fill" style="width:71%"></div></div>
+              <span class="mono" id="peer-average-score">7.1</span>
+            </div>
+            <div class="bar-row">
+              <span id="peer-average-focus-name">Focus genus</span>
+              <div class="bar-track"><div class="bar-fill alt" id="peer-average-focus-fill" style="width:74%"></div></div>
+              <span class="mono" id="peer-average-focus-score">7.4</span>
+            </div>
+          </div>
+          <div class="bar-list compare-view" data-compare-view="market-baseline" hidden>
+            <div class="bar-row">
+              <span>Market average</span>
+              <div class="bar-track"><div class="bar-fill" style="width:62%"></div></div>
+              <span class="mono">6.2</span>
+            </div>
+            <div class="bar-row">
+              <span id="market-baseline-focus-name">Focus genus</span>
+              <div class="bar-track"><div class="bar-fill alt" id="market-baseline-focus-fill" style="width:74%"></div></div>
+              <span class="mono" id="market-baseline-focus-score">7.4</span>
+            </div>
+            <div class="bar-row">
+              <span id="market-baseline-peer-label">Saved peer set</span>
+              <div class="bar-track"><div class="bar-fill" id="market-baseline-peer-fill" style="width:71%; opacity:0.35"></div></div>
+              <span class="mono" id="market-baseline-peer-score">4 peers saved</span>
+            </div>
+          </div>
+          <p class="visual-note" id="breeder-chart-note">The focus genus can have a credible breeder case without being the strongest purely commercial candidate in the comparison set.</p>
+        </article>
+
+        <article class="visual-card">
+          <h3>Opportunity ingredients by genus</h3>
+          <table class="rank-table">
+            <thead>
+              <tr>
+                <th>Genus</th>
+                <th>Scarcity</th>
+                <th>Demand</th>
+                <th>Restock</th>
+                <th>Read</th>
+              </tr>
+            </thead>
+            <tbody id="ingredients-body">
+              <tr id="ingredients-row-0">
+                <td id="ingredients-genus-0">Psalmopoeus</td>
+                <td><span class="badge" id="ingredients-scarcity-0">High</span></td>
+                <td><span class="badge" id="ingredients-demand-0">High</span></td>
+                <td><span class="badge warn" id="ingredients-restock-0">Slow</span></td>
+                <td id="ingredients-read-0">Commercially strongest</td>
+              </tr>
+              <tr class="highlight" id="ingredients-row-1">
+                <td id="ingredients-genus-1">Avicularia</td>
+                <td><span class="badge warn" id="ingredients-scarcity-1">Medium</span></td>
+                <td><span class="badge" id="ingredients-demand-1">High</span></td>
+                <td><span class="badge warn" id="ingredients-restock-1">Slow</span></td>
+                <td id="ingredients-read-1">Good, not clear winner</td>
+              </tr>
+              <tr id="ingredients-row-2">
+                <td id="ingredients-genus-2">Caribena</td>
+                <td><span class="badge warn" id="ingredients-scarcity-2">Medium</span></td>
+                <td><span class="badge" id="ingredients-demand-2">Good</span></td>
+                <td><span class="badge" id="ingredients-restock-2">Healthy</span></td>
+                <td id="ingredients-read-2">More balanced</td>
+              </tr>
+              <tr id="ingredients-row-3">
+                <td id="ingredients-genus-3">Chromatopelma</td>
+                <td><span class="badge risk" id="ingredients-scarcity-3">Low</span></td>
+                <td><span class="badge" id="ingredients-demand-3">Good</span></td>
+                <td><span class="badge" id="ingredients-restock-3">Fast</span></td>
+                <td id="ingredients-read-3">Demand, but less scarcity</td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+      </div>
+      </div>
+      </div>
+    </section>
+
+    <section class="section conditional-section" id="bias-section">
+      <div class="section-header">
+        <div class="section-title">
+          <div class="eyebrow">3. Bias-Control KPIs</div>
+          <h2>Are you choosing <span id="bias-question-focus" hidden></span><span id="bias-question-fallback">the focus genus</span> because it is good, or because you want it to be good?</h2>
+          <p id="bias-section-copy">This section shows whether your preferred genus still holds up once it is compared against the evidence.</p>
+        </div>
+        <p class="section-note" id="bias-section-note">This section makes the trade-off explicit when personal preference and commercial evidence diverge.</p>
+      </div>
+
+      <div class="section-stage">
+      <div class="section-placeholder">
+        <div class="empty-state">
+          <strong>Choose a focus genus to unlock bias-control checks.</strong>
+          <p>Once a genus is selected, this section shows whether your preference is still commercially defendable or whether the comparison is flattering it too much.</p>
+          <div class="empty-state-row">
+            <span class="empty-chip">Commercial rank</span>
+            <span class="empty-chip">Gap to leader</span>
+            <span class="empty-chip">Defensible preference</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-live">
+      <div class="kpi-grid">
+        <article class="kpi-card">
+          <div class="metric-title-row">
+            <h3><span id="bias-rank-focus-name">Focus genus</span> commercial rank</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is commercial rank?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>This shows where the focus genus sits within the active comparison frame. The frame changes depending on whether you are comparing against selected peers, peer average, or the broader market.</p>
+              </div>
+            </details>
+          </div>
+          <div class="metric-value" id="bias-rank-value">#2</div>
+          <span class="metric-delta flat" id="bias-rank-label">of 4 selected genera</span>
+          <p class="metric-text" id="bias-rank-copy">Your focus genus performs well, but the data does not put it at the top.</p>
+        </article>
+        <article class="kpi-card">
+          <div class="metric-title-row">
+            <h3>Gap to leader</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is Gap to leader?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>This is the distance between the focus genus and the current strongest benchmark on the same opportunity scale. Smaller gaps mean your preferred genus is closer to the commercial front-runner.</p>
+              </div>
+            </details>
+          </div>
+          <div class="metric-value" id="bias-gap-value">-1.4</div>
+          <span class="metric-delta down" id="bias-gap-label">vs benchmark</span>
+          <p class="metric-text" id="bias-gap-copy">The gap is meaningful, but not overwhelming.</p>
+        </article>
+        <article class="kpi-card">
+          <div class="metric-title-row">
+            <h3>Stability score</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is Stability score?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>We look across several recent time windows and check whether this genus stays commercially strong or jumps around. Higher stability means the signal looks repeatable, not just driven by one unusually strong period.</p>
+              </div>
+            </details>
+          </div>
+          <div class="metric-value" id="bias-stability-value">82%</div>
+          <span class="metric-delta" id="bias-stability-label">Consistent</span>
+          <p class="metric-text" id="bias-stability-copy">Shows whether this genus stays commercially strong across multiple recent windows, not just one recent spike.</p>
+          <details class="metric-method">
+            <summary>How this works</summary>
+            <div class="metric-method-body">
+              <p>Stability score is not a demand or stock metric on its own. It is a confidence-style signal about whether the genus keeps looking commercially strong over time.</p>
+              <ol>
+                <li>We calculate the genus's commercial result over several recent windows.</li>
+                <li>We check whether its rank and score stay fairly consistent from one window to the next.</li>
+                <li>We reduce the score when the result swings around a lot or when there is not enough history.</li>
+              </ol>
+              <p>High stability means the result looks repeatable. Lower stability means the commercial case may depend too much on one recent period or limited history.</p>
+            </div>
+          </details>
+        </article>
+        <article class="kpi-card">
+          <div class="metric-title-row">
+            <h3>Defensible preference</h3>
+            <details class="metric-info">
+              <summary class="metric-info-button" aria-label="What is Defensible preference?">?</summary>
+              <div class="metric-popover">
+                <strong>What this means</strong>
+                <p>This tells you whether your preferred genus still looks commercially reasonable once the comparison is applied. It is the plain-English judgment layer on top of the raw gap to the benchmark.</p>
+              </div>
+            </details>
+          </div>
+          <div class="metric-value" id="bias-premium-value">Yes</div>
+          <span class="metric-delta flat" id="bias-premium-label">Still commercially reasonable</span>
+          <p class="metric-text" id="bias-premium-copy">The focus genus may still look close enough to the top to remain a commercially defensible choice.</p>
+          <details class="metric-method">
+            <summary>How this works</summary>
+            <div class="metric-method-body">
+              <p>Defensible preference is a judgment layer. It turns the raw comparison into a plain-English answer to a practical question: does your preferred genus still hold up commercially, or are you forcing the data to flatter it?</p>
+              <ol>
+                <li>We compare the focus genus with the current benchmark on the same opportunity scale.</li>
+                <li>We look at how far behind it is, or whether it stays close enough to remain commercially credible.</li>
+                <li>We translate that gap into a judgment such as yes, borderline, or no.</li>
+              </ol>
+              <p>A positive read means preference and market logic are still fairly aligned. A negative read means the commercial case is now meaningfully weaker than the leading alternative.</p>
+            </div>
+          </details>
+        </article>
+      </div>
+
+      <div class="visual-grid">
+        <article class="visual-card">
+          <h3 id="bias-chart-title">Focus genus vs benchmark</h3>
+          <svg class="compare-view" data-compare-view="none" viewBox="0 0 700 250" role="img" aria-label="Bias control comparison chart">
+            <rect x="0" y="0" width="700" height="250" fill="#fffaf2" />
+            <g stroke="#d7cfc0" stroke-width="1">
+              <line x1="70" y1="200" x2="660" y2="200" />
+              <line x1="70" y1="55" x2="70" y2="200" />
+            </g>
+            <g fill="#5d6a6d" font-size="12" font-family="Avenir Next, Segoe UI, sans-serif">
+              <text x="118" y="220">Demand</text>
+              <text x="238" y="220">Scarcity</text>
+              <text x="362" y="220">Restock drag</text>
+              <text x="486" y="220">Stability</text>
+              <text x="604" y="220">Overall</text>
+            </g>
+            <polyline fill="none" stroke="#cc6b49" stroke-width="5" points="130,104 250,128 374,116 498,88 620,114" />
+            <polyline fill="none" stroke="#1f7a6b" stroke-width="5" points="130,92 250,86 374,98 498,82 620,92" />
+            <g fill="#cc6b49">
+              <circle cx="130" cy="104" r="6"></circle>
+              <circle cx="250" cy="128" r="6"></circle>
+              <circle cx="374" cy="116" r="6"></circle>
+              <circle cx="498" cy="88" r="6"></circle>
+              <circle cx="620" cy="114" r="6"></circle>
+            </g>
+            <g fill="#1f7a6b">
+              <circle cx="130" cy="92" r="6"></circle>
+              <circle cx="250" cy="86" r="6"></circle>
+              <circle cx="374" cy="98" r="6"></circle>
+              <circle cx="498" cy="82" r="6"></circle>
+              <circle cx="620" cy="92" r="6"></circle>
+            </g>
+            <g font-size="12" font-family="Avenir Next, Segoe UI, sans-serif">
+              <text x="512" y="76" fill="#1f7a6b">peer line</text>
+              <text x="540" y="124" fill="#cc6b49" id="bias-svg-focus-none">Focus genus</text>
+            </g>
+          </svg>
+          <svg class="compare-view" data-compare-view="peer-average" hidden viewBox="0 0 700 250" role="img" aria-label="Bias control peer average chart">
+            <rect x="0" y="0" width="700" height="250" fill="#fffaf2" />
+            <g stroke="#d7cfc0" stroke-width="1">
+              <line x1="70" y1="200" x2="660" y2="200" />
+              <line x1="70" y1="55" x2="70" y2="200" />
+            </g>
+            <g fill="#5d6a6d" font-size="12" font-family="Avenir Next, Segoe UI, sans-serif">
+              <text x="118" y="220">Demand</text>
+              <text x="238" y="220">Scarcity</text>
+              <text x="362" y="220">Restock drag</text>
+              <text x="486" y="220">Stability</text>
+              <text x="604" y="220">Overall</text>
+            </g>
+            <polyline fill="none" stroke="#cc6b49" stroke-width="5" points="130,104 250,128 374,116 498,88 620,114" />
+            <polyline fill="none" stroke="#1f7a6b" stroke-width="5" points="130,112 250,122 374,120 498,96 620,118" />
+            <g fill="#cc6b49">
+              <circle cx="130" cy="104" r="6"></circle><circle cx="250" cy="128" r="6"></circle><circle cx="374" cy="116" r="6"></circle><circle cx="498" cy="88" r="6"></circle><circle cx="620" cy="114" r="6"></circle>
+            </g>
+            <g fill="#1f7a6b">
+              <circle cx="130" cy="112" r="6"></circle><circle cx="250" cy="122" r="6"></circle><circle cx="374" cy="120" r="6"></circle><circle cx="498" cy="96" r="6"></circle><circle cx="620" cy="118" r="6"></circle>
+            </g>
+            <g font-size="12" font-family="Avenir Next, Segoe UI, sans-serif">
+              <text x="500" y="92" fill="#1f7a6b">peer average</text>
+              <text x="540" y="124" fill="#cc6b49" id="bias-svg-focus-peer">Focus genus</text>
+            </g>
+          </svg>
+          <svg class="compare-view" data-compare-view="market-baseline" hidden viewBox="0 0 700 250" role="img" aria-label="Bias control market baseline chart">
+            <rect x="0" y="0" width="700" height="250" fill="#fffaf2" />
+            <g stroke="#d7cfc0" stroke-width="1">
+              <line x1="70" y1="200" x2="660" y2="200" />
+              <line x1="70" y1="55" x2="70" y2="200" />
+            </g>
+            <g fill="#5d6a6d" font-size="12" font-family="Avenir Next, Segoe UI, sans-serif">
+              <text x="118" y="220">Demand</text>
+              <text x="238" y="220">Scarcity</text>
+              <text x="362" y="220">Restock drag</text>
+              <text x="486" y="220">Stability</text>
+              <text x="604" y="220">Overall</text>
+            </g>
+            <polyline fill="none" stroke="#cc6b49" stroke-width="5" points="130,104 250,128 374,116 498,88 620,114" />
+            <polyline fill="none" stroke="#1f7a6b" stroke-width="5" points="130,150 250,152 374,146 498,138 620,142" />
+            <g fill="#cc6b49">
+              <circle cx="130" cy="104" r="6"></circle><circle cx="250" cy="128" r="6"></circle><circle cx="374" cy="116" r="6"></circle><circle cx="498" cy="88" r="6"></circle><circle cx="620" cy="114" r="6"></circle>
+            </g>
+            <g fill="#1f7a6b">
+              <circle cx="130" cy="150" r="6"></circle><circle cx="250" cy="152" r="6"></circle><circle cx="374" cy="146" r="6"></circle><circle cx="498" cy="138" r="6"></circle><circle cx="620" cy="142" r="6"></circle>
+            </g>
+            <g font-size="12" font-family="Avenir Next, Segoe UI, sans-serif">
+              <text x="474" y="134" fill="#1f7a6b">market baseline</text>
+              <text x="540" y="124" fill="#cc6b49" id="bias-svg-focus-market">Focus genus</text>
+            </g>
+          </svg>
+          <p class="visual-note" id="bias-chart-note">The focus genus can win on some ingredients and still trail the strongest benchmark overall. That is a trade-off, not a contradiction.</p>
+        </article>
+
+        <article class="visual-card">
+          <h3>Decision readout</h3>
+          <div class="mini-grid">
+            <div class="mini-card">
+              <span>If you optimise for</span>
+              <strong>Profit first</strong>
+              <p class="visual-note" id="decision-profit-copy">The active benchmark currently looks stronger.</p>
+            </div>
+            <div class="mini-card">
+              <span>If you optimise for</span>
+              <strong>Defensible preference</strong>
+              <p class="visual-note" id="decision-defensible-copy">The focus genus may still remain defendable if it stays near the top, not near the bottom.</p>
+            </div>
+          </div>
+          <details class="decision-note">
+            <summary>What this page does not answer</summary>
+            <div class="decision-note-body">
+              <strong>Operational practicality</strong>
+              <p>This comparison may show commercial attractiveness, but it does not tell you whether the genus is practical to breed, rear, and sell reliably.</p>
+            </div>
+          </details>
+        </article>
+      </div>
+      </div>
+      </div>
+    </section>
+
+    <section class="table-panel">
+      <div class="table-top">
+        <div>
+          <div class="eyebrow">Filtered Data Preview</div>
+          <h2>Inspect the filtered records behind the current view</h2>
+          <p class="table-copy">Use this table to spot-check the rows behind the current KPIs and charts. The preview mirrors the exported CSV columns so the on-page table and download stay aligned.</p>
+        </div>
+        <a class="download" href="#">Download filtered CSV</a>
+      </div>
+
+      <table class="sample-table">
+        <thead>
+          <tr>
+            <th>Scrape time</th>
+            <th>Scientific name</th>
+            <th>Common name</th>
+            <th>Size (cm)</th>
+            <th>Price (GBP)</th>
+            <th>Wishlist</th>
+            <th>Page URL</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>2026-03-12 06:10</td>
+            <td>Avicularia avicularia</td>
+            <td>Pinktoe Tarantula</td>
+            <td>3.0</td>
+            <td>27.00</td>
+            <td>31</td>
+            <td><span class="mono">/product/avicularia-avicularia</span></td>
+          </tr>
+          <tr>
+            <td>2026-03-12 06:10</td>
+            <td>Caribena versicolor</td>
+            <td>Antilles Pinktoe</td>
+            <td>2.5</td>
+            <td>34.00</td>
+            <td>28</td>
+            <td><span class="mono">/product/caribena-versicolor</span></td>
+          </tr>
+          <tr>
+            <td>2026-03-05 06:10</td>
+            <td>Psalmopoeus irminia</td>
+            <td>Venezuelan Suntiger</td>
+            <td>2.0</td>
+            <td>22.00</td>
+            <td>30</td>
+            <td><span class="mono">/product/psalmopoeus-irminia</span></td>
+          </tr>
+          <tr>
+            <td>2026-02-26 06:10</td>
+            <td>Avicularia purpurea</td>
+            <td>Purple Pinktoe</td>
+            <td>2.5</td>
+            <td>39.00</td>
+            <td>19</td>
+            <td><span class="mono">/product/avicularia-purpurea</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="footnote prototype-footnote">Prototype only. Numbers are illustrative and meant to make the visual language, state changes, and decision framing concrete. They should not be read as live data or frozen product copy.</p>
+    </section>
+  </div>
+</body>
+<script>
+  (() => {
+    const allGenera = [
+      'Acanthoscurria', 'Aphonopelma', 'Avicularia', 'Brachypelma', 'Bumba', 'Caribena',
+      'Ceratogyrus', 'Chaetopelma', 'Chilobrachys', 'Chromatopelma', 'Coremiocnemis',
+      'Crassicrus', 'Cyclosternum', 'Cyriocosmus', 'Cyriopagopus', 'Davus', 'Dolichothele',
+      'Encyocratella', 'Euathlus', 'Eupalaestrus', 'Grammostola', 'Hapalopus', 'Haploclastus',
+      'Haplocosmia', 'Harpactira', 'Heteroscodra', 'Heterothele', 'Holothele', 'Homoeomma',
+      'Idiothele', 'Iridopelma', 'Kochiana', 'Lasiodora', 'Megaphobema', 'Monocentropus',
+      'Neoholothele', 'Nhandu', 'Omothymus', 'Orphnaecus', 'Pamphobeteus', 'Pelinobius',
+      'Phlogiellus', 'Phormictopus', 'Phrixotrichus', 'Poecilotheria', 'Psalmopoeus',
+      'Pterinochilus', 'Pterinopelma', 'Sahydroaraneus', 'Selenobrachys', 'Sericopelma',
+      'Stromatopelma', 'Tapinauchenius', 'Theraphosa', 'Thrixopelma', 'Tliltocatl',
+      'Typhochlaena', 'Vitalius', 'Xenesthis', 'Ybyrapora', 'Ami', 'Birupes', 'Bonnetina',
+      'Bumbaia', 'Catumiri', 'Citharacanthus', 'Hapalotremus', 'Kankuamo'
+    ];
+    const editableComparisonLimit = 8;
+    const initialSelection = ['Avicularia', 'Caribena', 'Psalmopoeus', 'Chromatopelma'];
+    const selectionPresets = {
+      all: null,  // sentinel: isAllSelected mode
+      'most-observed': ['Grammostola', 'Aphonopelma', 'Tliltocatl', 'Brachypelma', 'Nhandu', 'Avicularia', 'Psalmopoeus', 'Chromatopelma', 'Caribena', 'Poecilotheria', 'Lasiodora', 'Pamphobeteus'],
+      arboreal: ['Avicularia', 'Caribena', 'Psalmopoeus', 'Poecilotheria', 'Tapinauchenius', 'Ybyrapora', 'Iridopelma'],
+      terrestrial: ['Grammostola', 'Aphonopelma', 'Brachypelma', 'Tliltocatl', 'Nhandu', 'Chromatopelma', 'Euathlus'],
+      fossorial: ['Chilobrachys', 'Cyriopagopus', 'Haplocosmia', 'Pelinobius', 'Ceratogyrus', 'Idiothele'],
+      'clear-all': [],
+    };
+    const genusSearchInput = document.getElementById('genus-search-input');
+    const globalScopeLabel = document.getElementById('global-scope-label');
+    const selectorCountLabel = document.getElementById('selector-count-label');
+    const windowButtons = Array.from(document.querySelectorAll('[data-window]'));
+    const timeWindowBasisNote = document.getElementById('time-window-basis-note');
+    const selectedGeneraChips = document.getElementById('selected-genera-chips');
+    const collapsedSelectorNote = document.getElementById('collapsed-selector-note');
+    const genusSuggestionList = document.getElementById('genus-suggestion-list');
+    const quickPickButtons = Array.from(document.querySelectorAll('[data-selection-action]'));
+    const marketObservedDelta = document.getElementById('market-observed-delta');
+    const marketStockDelta = document.getElementById('market-stock-delta');
+    const marketWishlistDelta = document.getElementById('market-wishlist-delta');
+    const marketPriceDelta = document.getElementById('market-price-delta');
+    const marketObservedCopy = document.getElementById('market-observed-copy');
+    const marketStockCopy = document.getElementById('market-stock-copy');
+    const marketWishlistCopy = document.getElementById('market-wishlist-copy');
+    const marketPriceCopy = document.getElementById('market-price-copy');
+    const marketObservedSparkline = document.getElementById('market-observed-sparkline');
+    const marketObservedSparklineReadout = document.getElementById('market-observed-sparkline-readout');
+    const marketStockSparkline = document.getElementById('market-stock-sparkline');
+    const marketStockSparklineReadout = document.getElementById('market-stock-sparkline-readout');
+    const marketWishlistSparkline = document.getElementById('market-wishlist-sparkline');
+    const marketWishlistSparklineReadout = document.getElementById('market-wishlist-sparkline-readout');
+    const marketPriceSparkline = document.getElementById('market-price-sparkline');
+    const marketPriceSparklineReadout = document.getElementById('market-price-sparkline-readout');
+    const marketSparklineBasisNote = document.getElementById('market-sparkline-basis-note');
+    const marketSparklineSelectionNote = document.getElementById('market-sparkline-selection-note');
+    const marketSparklineClear = document.getElementById('market-sparkline-clear');
+    const marketSparklinePriorKey = document.getElementById('market-sparkline-prior-key');
+    const marketEventsTitle = document.getElementById('market-events-title');
+    const marketEventsSubtitle = document.getElementById('market-events-subtitle');
+    const marketEventsNewLabel = document.getElementById('market-events-new-label');
+    const marketEventsNewValue = document.getElementById('market-events-new-value');
+    const marketEventsNewCopy = document.getElementById('market-events-new-copy');
+    const marketEventsDroppedLabel = document.getElementById('market-events-dropped-label');
+    const marketEventsDroppedValue = document.getElementById('market-events-dropped-value');
+    const marketEventsDroppedCopy = document.getElementById('market-events-dropped-copy');
+    const marketEventsRestocksLabel = document.getElementById('market-events-restocks-label');
+    const marketEventsRestocksValue = document.getElementById('market-events-restocks-value');
+    const marketEventsRestocksCopy = document.getElementById('market-events-restocks-copy');
+    const marketEventsOosLabel = document.getElementById('market-events-oos-label');
+    const marketEventsOosValue = document.getElementById('market-events-oos-value');
+    const marketEventsOosCopy = document.getElementById('market-events-oos-copy');
+    const marketHealthHeading = document.getElementById('market-health-heading');
+    const marketHealthScopeCopy = document.getElementById('market-health-scope-copy');
+    const marketHealthSectionNote = document.getElementById('market-health-section-note');
+    const genusAllBtn = document.getElementById('genus-all-btn');
+    const focusGenusOptions = document.getElementById('focus-genus-options');
+    const compareFocusPicker = document.getElementById('compare-focus-picker');
+    const peerSetSubhead = document.getElementById('peer-set-subhead');
+    const peerSetOptions = document.getElementById('peer-set-options');
+    const compareStateBadge = document.getElementById('compare-state-badge');
+    const compareStateTitle = document.getElementById('compare-state-title');
+    const compareStateCopy = document.getElementById('compare-state-copy');
+    const comparisonPanelCopy = document.getElementById('comparison-panel-copy');
+    const compareModeRow = document.getElementById('compare-mode-row');
+    const modeButtons = Array.from(document.querySelectorAll('.compare-mode-btn'));
+    const compareHelp = document.getElementById('compare-help');
+    const conditionalSections = Array.from(document.querySelectorAll('.conditional-section'));
+    const breederFocusName = document.getElementById('breeder-focus-name');
+    const breederScarcityValue = document.getElementById('breeder-scarcity-value');
+    const breederScarcityLabel = document.getElementById('breeder-scarcity-label');
+    const breederScarcityCopy = document.getElementById('breeder-scarcity-copy');
+    const breederWishlistValue = document.getElementById('breeder-wishlist-value');
+    const breederWishlistLabel = document.getElementById('breeder-wishlist-label');
+    const breederWishlistCopy = document.getElementById('breeder-wishlist-copy');
+    const breederRestockValue = document.getElementById('breeder-restock-value');
+    const breederRestockLabel = document.getElementById('breeder-restock-label');
+    const breederRestockCopy = document.getElementById('breeder-restock-copy');
+    const breederScoreValue = document.getElementById('breeder-score-value');
+    const breederTurnoverDelta = document.getElementById('breeder-turnover-delta');
+    const breederTurnoverCopy = document.getElementById('breeder-turnover-copy');
+    const breederChartTitle = document.getElementById('breeder-chart-title');
+    const breederChartNote = document.getElementById('breeder-chart-note');
+    const breederSectionCopy = document.getElementById('breeder-section-copy');
+    const breederSectionNote = document.getElementById('breeder-section-note');
+    const noneRowEls = Array.from({ length: 4 }, (_, index) => ({
+      row: document.getElementById(`none-row-${index}`),
+      name: document.getElementById(`none-name-${index}`),
+      fill: document.getElementById(`none-fill-${index}`),
+      score: document.getElementById(`none-score-${index}`),
+    }));
+    const peerAverageFill = document.getElementById('peer-average-fill');
+    const peerAverageScore = document.getElementById('peer-average-score');
+    const peerAverageFocusName = document.getElementById('peer-average-focus-name');
+    const peerAverageFocusFill = document.getElementById('peer-average-focus-fill');
+    const peerAverageFocusScore = document.getElementById('peer-average-focus-score');
+    const marketBaselineFocusName = document.getElementById('market-baseline-focus-name');
+    const marketBaselineFocusFill = document.getElementById('market-baseline-focus-fill');
+    const marketBaselineFocusScore = document.getElementById('market-baseline-focus-score');
+    const marketBaselinePeerLabel = document.getElementById('market-baseline-peer-label');
+    const marketBaselinePeerFill = document.getElementById('market-baseline-peer-fill');
+    const marketBaselinePeerScore = document.getElementById('market-baseline-peer-score');
+    const ingredientsRows = Array.from({ length: 4 }, (_, index) => ({
+      row: document.getElementById(`ingredients-row-${index}`),
+      genus: document.getElementById(`ingredients-genus-${index}`),
+      scarcity: document.getElementById(`ingredients-scarcity-${index}`),
+      demand: document.getElementById(`ingredients-demand-${index}`),
+      restock: document.getElementById(`ingredients-restock-${index}`),
+      read: document.getElementById(`ingredients-read-${index}`),
+    }));
+    const biasQuestionFocus = document.getElementById('bias-question-focus');
+    const biasQuestionFallback = document.getElementById('bias-question-fallback');
+    const biasRankFocusName = document.getElementById('bias-rank-focus-name');
+    const biasGapValue = document.getElementById('bias-gap-value');
+    const biasGapLabel = document.getElementById('bias-gap-label');
+    const biasGapCopy = document.getElementById('bias-gap-copy');
+    const biasRankValue = document.getElementById('bias-rank-value');
+    const biasRankLabel = document.getElementById('bias-rank-label');
+    const biasRankCopy = document.getElementById('bias-rank-copy');
+    const biasStabilityValue = document.getElementById('bias-stability-value');
+    const biasStabilityLabel = document.getElementById('bias-stability-label');
+    const biasStabilityCopy = document.getElementById('bias-stability-copy');
+    const biasPremiumValue = document.getElementById('bias-premium-value');
+    const biasPremiumLabel = document.getElementById('bias-premium-label');
+    const biasPremiumCopy = document.getElementById('bias-premium-copy');
+    const biasChartTitle = document.getElementById('bias-chart-title');
+    const biasChartNote = document.getElementById('bias-chart-note');
+    const biasSectionCopy = document.getElementById('bias-section-copy');
+    const biasSectionNote = document.getElementById('bias-section-note');
+    const biasSvgFocusNone = document.getElementById('bias-svg-focus-none');
+    const biasSvgFocusPeer = document.getElementById('bias-svg-focus-peer');
+    const biasSvgFocusMarket = document.getElementById('bias-svg-focus-market');
+    const decisionProfitCopy = document.getElementById('decision-profit-copy');
+    const decisionDefensibleCopy = document.getElementById('decision-defensible-copy');
+
+    const marketAverageScore = 6.2;
+    const sparklineShapes = {
+      steadyRise: [0, 0.4, 0.6, 0.4, 0.5, 0.8, 1, 1.2, 1, 1.1, 0.8, 0],
+      gentleRise: [0, 0.2, 0.4, 0.3, 0.5, 0.6, 0.8, 0.9, 0.8, 0.9, 0.6, 0],
+      gentleFall: [0, -0.2, -0.4, -0.3, -0.5, -0.6, -0.8, -0.9, -0.8, -0.9, -0.6, 0],
+      lateLift: [0, -0.2, -0.4, -0.5, -0.4, -0.1, 0.2, 0.5, 0.8, 1, 1.2, 0],
+      lateDrop: [0, 0.2, 0.4, 0.5, 0.4, 0.1, -0.2, -0.5, -0.8, -1, -1.2, 0],
+      flatDrift: [0, 0.05, 0.1, 0.05, 0.08, 0.02, 0.06, 0.1, 0.05, 0.08, 0.03, 0],
+    };
+
+    function buildSeries(start, end, shapeName, amplitude) {
+      const shape = sparklineShapes[shapeName];
+      return shape.map((offset, index) => {
+        const progress = index / (shape.length - 1);
+        const linear = start + ((end - start) * progress);
+        return Number((linear + (offset * amplitude)).toFixed(1));
+      });
+    }
+
+    const marketSparklineCards = {
+      observed: {
+        container: marketObservedSparkline,
+        readout: marketObservedSparklineReadout,
+        label: 'Observed species',
+        color: '#1f7a6b',
+        format: (value) => `${Math.round(value)}`,
+      },
+      stock: {
+        container: marketStockSparkline,
+        readout: marketStockSparklineReadout,
+        label: 'In-stock rate',
+        color: '#cc6b49',
+        format: (value) => `${Math.round(value)}%`,
+      },
+      wishlist: {
+        container: marketWishlistSparkline,
+        readout: marketWishlistSparklineReadout,
+        label: 'Median wishlist',
+        color: '#a18b35',
+        format: (value) => `${Math.round(value)}`,
+      },
+      price: {
+        container: marketPriceSparkline,
+        readout: marketPriceSparklineReadout,
+        label: 'Median price',
+        color: '#5d6a6d',
+        format: (value) => `GBP ${Math.round(value)}`,
+      },
+    };
+
+    const marketSparklineSeries = {
+      'this-month': {
+        observed: { current: buildSeries(180, 184, 'steadyRise', 0.6), prior: buildSeries(179, 183, 'gentleRise', 0.45) },
+        stock: { current: buildSeries(63, 61, 'lateDrop', 0.35), prior: buildSeries(64, 62, 'gentleFall', 0.25) },
+        wishlist: { current: buildSeries(16, 18, 'lateLift', 0.35), prior: buildSeries(15, 17, 'gentleRise', 0.25) },
+        price: { current: buildSeries(24, 24, 'flatDrift', 0.08), prior: buildSeries(24, 24, 'flatDrift', 0.05) },
+      },
+      'last-month': {
+        observed: { current: buildSeries(176, 182, 'gentleRise', 0.9), prior: buildSeries(173, 179, 'steadyRise', 0.7) },
+        stock: { current: buildSeries(65, 62, 'lateDrop', 0.55), prior: buildSeries(66, 64, 'gentleFall', 0.4) },
+        wishlist: { current: buildSeries(15, 17, 'steadyRise', 0.35), prior: buildSeries(14, 16, 'gentleRise', 0.3) },
+        price: { current: buildSeries(23, 23, 'flatDrift', 0.1), prior: buildSeries(23, 23, 'flatDrift', 0.08) },
+      },
+      'current-quarter': {
+        observed: { current: buildSeries(170, 184, 'steadyRise', 1.4), prior: buildSeries(165, 177, 'gentleRise', 1.1) },
+        stock: { current: buildSeries(67, 61, 'lateDrop', 0.9), prior: buildSeries(69, 65, 'gentleFall', 0.7) },
+        wishlist: { current: buildSeries(14, 18, 'lateLift', 0.55), prior: buildSeries(12, 15, 'gentleRise', 0.45) },
+        price: { current: buildSeries(23, 24, 'flatDrift', 0.18), prior: buildSeries(22, 23, 'flatDrift', 0.12) },
+      },
+      'last-quarter': {
+        observed: { current: buildSeries(168, 181, 'gentleRise', 1.2), prior: buildSeries(163, 175, 'steadyRise', 1) },
+        stock: { current: buildSeries(68, 63, 'gentleFall', 0.75), prior: buildSeries(70, 66, 'gentleFall', 0.55) },
+        wishlist: { current: buildSeries(13, 17, 'steadyRise', 0.5), prior: buildSeries(12, 15, 'gentleRise', 0.4) },
+        price: { current: buildSeries(22.5, 24, 'gentleRise', 0.14), prior: buildSeries(22, 23, 'flatDrift', 0.1) },
+      },
+      'this-year': {
+        observed: { current: buildSeries(158, 184, 'steadyRise', 1.6), prior: buildSeries(148, 169, 'gentleRise', 1.3) },
+        stock: { current: buildSeries(69, 61, 'lateDrop', 1), prior: buildSeries(71, 66, 'gentleFall', 0.7) },
+        wishlist: { current: buildSeries(12, 18, 'steadyRise', 0.6), prior: buildSeries(10, 14, 'gentleRise', 0.5) },
+        price: { current: buildSeries(22, 24, 'gentleRise', 0.18), prior: buildSeries(21, 22, 'flatDrift', 0.12) },
+      },
+      'last-year': {
+        observed: { current: buildSeries(154, 180, 'gentleRise', 1.4), prior: buildSeries(145, 169, 'steadyRise', 1.2) },
+        stock: { current: buildSeries(69, 63, 'gentleFall', 0.85), prior: buildSeries(71, 66, 'gentleFall', 0.6) },
+        wishlist: { current: buildSeries(11, 17, 'steadyRise', 0.6), prior: buildSeries(10, 14, 'gentleRise', 0.45) },
+        price: { current: buildSeries(22, 24, 'flatDrift', 0.14), prior: buildSeries(21.5, 23, 'flatDrift', 0.12) },
+      },
+      'all-time': {
+        observed: { current: buildSeries(130, 184, 'steadyRise', 2), prior: [] },
+        stock: { current: buildSeries(72, 61, 'gentleFall', 1.2), prior: [] },
+        wishlist: { current: buildSeries(8, 18, 'steadyRise', 0.75), prior: [] },
+        price: { current: buildSeries(19, 24, 'gentleRise', 0.18), prior: [] },
+      },
+    };
+    const timeWindowOptions = {
+      'this-month': {
+        label: 'This month',
+        scopeLabel: 'this month',
+        basisNote: 'Comparison basis: month to date vs prior month MTD.',
+        deltas: {
+          observed: { text: '+1 vs prior month MTD', kind: '' },
+          stock: { text: '-1 pt vs prior month MTD', kind: 'down' },
+          wishlist: { text: '+1 vs prior month MTD', kind: '' },
+          price: { text: '+GBP 0 vs prior month MTD', kind: 'flat' },
+        },
+        copy: {
+          observed: 'Breadth is only slightly ahead of the same point last month, so the catalog still looks broad without signaling a step-change in assortment.',
+          stock: 'Availability is a touch weaker than the same point last month. That reads more like a near-term tightening than a structural collapse.',
+          wishlist: 'Median wishlist demand is a little firmer than the same point last month, which suggests interest is holding while stock softens.',
+          price: 'Pricing is effectively unchanged month to date, so the immediate pressure still looks operational rather than inflation-led.',
+        },
+        pulse: {
+          title: 'Market pulse this month',
+          subtitle: 'This month view: a short-horizon read on whether the market is tightening faster than demand is moving.',
+          currentLabel: 'This month absolute level',
+          priorLabel: 'Prior month MTD absolute level',
+          compareNote: 'Compare within a row. Solid shows this month; dashed shows the matched point last month.',
+          showPrior: true,
+          endValues: {
+            breadthCurrent: '184',
+            breadthPrior: '183',
+            stockCurrent: '61%',
+            stockPrior: '62%',
+            wishlistCurrent: '18',
+            wishlistPrior: '17',
+          },
+        },
+        events: {
+          title: 'Run-to-run market events this month',
+          subtitle: 'This month event totals against the same point last month.',
+          newListings: { label: 'Listings added', value: '+6 vs prior month MTD', copy: 'Fresh introductions are only slightly ahead of the same point last month, so the catalog is still expanding but not surging.' },
+          droppedListings: { label: 'Listings removed', value: '4 vs prior month MTD', copy: 'Some churn is present, but the removal count is still too small to imply retreat.' },
+          restocks: { label: 'OUT -> IN restocks', value: '9 vs prior month MTD', copy: 'Restocks are still happening, which argues against a frozen market even while availability is a touch softer.' },
+          oosFlips: { label: 'IN -> OUT stockouts', value: '+5 vs prior month MTD', copy: 'A few more listings have moved from IN to OUT than at the same point last month, which fits the softer availability read without implying a severe shock.' },
+          basis: { label: 'Comparison basis', value: 'vs prior month MTD', copy: 'Read these event totals the same way as the pulse chart: active month-to-date totals versus the matched point last month.' },
+        },
+      },
+      'last-month': {
+        label: 'Last month',
+        scopeLabel: 'last month',
+        basisNote: 'Comparison basis: full last month vs the prior full month.',
+        deltas: {
+          observed: { text: '+3 vs Jan', kind: '' },
+          stock: { text: '-2 pts vs Jan', kind: 'down' },
+          wishlist: { text: '+1 vs Jan', kind: '' },
+          price: { text: '+GBP 0 vs Jan', kind: 'flat' },
+        },
+        copy: {
+          observed: 'Last month carried a few more species than Jan, which points to modest breadth expansion rather than a one-off catalog reset.',
+          stock: 'Even with a broader catalog, the share actually available was a little lower than Jan, so supply stayed somewhat constrained.',
+          wishlist: 'Median wishlist counts were only slightly above Jan, which suggests demand stayed healthy without obviously overheating.',
+          price: 'Prices were flat versus Jan. The story is still breadth up, stock down, and only mild demand pressure.',
+        },
+        pulse: {
+          title: 'Market pulse last month',
+          subtitle: 'Last month view: a completed-month read against the prior full month.',
+          currentLabel: 'Last month absolute level',
+          priorLabel: 'Prior full month absolute level',
+          compareNote: 'Compare within a row. Solid shows last month; dashed shows the prior full month.',
+          showPrior: true,
+          endValues: {
+            breadthCurrent: '182',
+            breadthPrior: '179',
+            stockCurrent: '62%',
+            stockPrior: '64%',
+            wishlistCurrent: '17',
+            wishlistPrior: '16',
+          },
+        },
+        events: {
+          title: 'Run-to-run market events last month',
+          subtitle: 'Last month event totals against the prior full month.',
+          newListings: { label: 'Listings added', value: '+11 vs prior month', copy: 'Fresh introductions outpaced the prior full month, which supports the broader-breadth reading.' },
+          droppedListings: { label: 'Listings removed', value: '7 vs prior month', copy: 'Listings did drop out, but not at a rate that cancels the higher inflow.' },
+          restocks: { label: 'OUT -> IN restocks', value: '15 vs prior month', copy: 'Restocks remained active, so weaker availability still looks like friction rather than paralysis.' },
+          oosFlips: { label: 'IN -> OUT stockouts', value: '+8 vs prior month', copy: 'More listings turned OUT than in the prior full month, which helps explain why stock coverage softened even as breadth improved.' },
+          basis: { label: 'Comparison basis', value: 'vs prior full month', copy: 'These are completed-month totals compared with the immediately preceding month.' },
+        },
+      },
+      'current-quarter': {
+        label: 'Current quarter',
+        scopeLabel: 'Q2 2026 to date',
+        basisNote: 'Quarter in progress (Q2 2026) — comparing Apr 1 – Apr 21 against the same span into Q1 (Jan 1 – Jan 21).',
+        deltas: {
+          observed: { text: '+7 vs prior quarter QTD', kind: '' },
+          stock: { text: '-4 pts vs prior quarter QTD', kind: 'down' },
+          wishlist: { text: '+3 vs prior quarter QTD', kind: '' },
+          price: { text: '+GBP 1 vs prior quarter QTD', kind: '' },
+        },
+        copy: {
+          observed: 'Breadth is ahead of the same point last quarter, so the market still looks alive on assortment even while actual stock is getting tighter.',
+          stock: 'Availability is a touch weaker than the same point last quarter. That reads more like near-term tightening than a structural collapse.',
+          wishlist: 'Median wishlist counts are modestly above the same point last quarter, which suggests demand is holding without obviously overheating.',
+          price: 'Prices edged up a little relative to the same point last quarter, which fits a market tightening gradually rather than repricing sharply.',
+        },
+        pulse: {
+          title: 'Market pulse this quarter',
+          subtitle: 'Current quarter view: a live read on breadth, availability, and demand relative to the same point last quarter.',
+          currentLabel: 'Q2 2026 to date (Apr 1 – Apr 21)',
+          priorLabel: 'Q1 2026 matched span (Jan 1 – Jan 21)',
+          compareNote: 'Compare within a row. Solid shows Q2 2026 to date (Apr 1 – Apr 21); dashed shows the same span into Q1 2026 (Jan 1 – Jan 21).',
+          showPrior: true,
+          endValues: {
+            breadthCurrent: '184',
+            breadthPrior: '177',
+            stockCurrent: '61%',
+            stockPrior: '65%',
+            wishlistCurrent: '18',
+            wishlistPrior: '15',
+          },
+        },
+        events: {
+          title: 'Run-to-run market events this quarter',
+          subtitle: 'Current-quarter event totals against the same point last quarter.',
+          newListings: { label: 'Listings added', value: '+16 vs prior quarter QTD', copy: 'Fresh introductions outpaced the matched point last quarter, which supports the breadth expansion visible in the chart.' },
+          droppedListings: { label: 'Listings removed', value: '9 vs prior quarter QTD', copy: 'Churn also rose, but the balance still favours broader assortment rather than retreat.' },
+          restocks: { label: 'OUT -> IN restocks', value: '24 vs prior quarter QTD', copy: 'Movement is active; stock is not simply frozen, even though the in-stock rate is weaker than last quarter.' },
+          oosFlips: { label: 'IN -> OUT stockouts', value: '+12 vs prior quarter QTD', copy: 'More listings are moving from IN to OUT than at the same point last quarter, which helps explain why availability is softer even while breadth is still expanding.' },
+          basis: { label: 'Comparison basis', value: 'vs prior quarter QTD', copy: 'These are quarter-to-date totals compared with the matched point last quarter.' },
+        },
+      },
+      'last-quarter': {
+        label: 'Last quarter',
+        scopeLabel: 'last quarter',
+        basisNote: 'Comparison basis: full last quarter vs the prior full quarter.',
+        deltas: {
+          observed: { text: '+6 vs Q3 \'25', kind: '' },
+          stock: { text: '-3 pts vs Q3 \'25', kind: 'down' },
+          wishlist: { text: '+2 vs Q3 \'25', kind: '' },
+          price: { text: '+GBP 1 vs Q3 \'25', kind: 'flat' },
+        },
+        copy: {
+          observed: 'Last quarter covered more species than Q3 \'25, which suggests breadth improved on a full-period basis as well as quarter to date.',
+          stock: 'That broader reach still came with slightly weaker in-stock rates than Q3 \'25, so supply lagged behind catalog breadth.',
+          wishlist: 'Median wishlist counts were up versus Q3 \'25, but not dramatically. The market looks firmer rather than euphoric.',
+          price: 'Prices edged up a little relative to Q3 \'25, which fits a market that is tightening gradually rather than repricing sharply.',
+        },
+        pulse: {
+          title: 'Market pulse last quarter',
+          subtitle: 'Last quarter view: a completed-quarter read against the previous full quarter.',
+          currentLabel: 'Last quarter absolute level',
+          priorLabel: 'Prior full quarter absolute level',
+          compareNote: 'Compare within a row. Solid shows last quarter; dashed shows the prior full quarter.',
+          showPrior: true,
+          endValues: {
+            breadthCurrent: '181',
+            breadthPrior: '175',
+            stockCurrent: '63%',
+            stockPrior: '66%',
+            wishlistCurrent: '17',
+            wishlistPrior: '15',
+          },
+        },
+        events: {
+          title: 'Run-to-run market events last quarter',
+          subtitle: 'Last-quarter event totals against the prior full quarter.',
+          newListings: { label: 'Listings added', value: '+34 vs prior quarter', copy: 'The quarter delivered a visibly stronger inflow of new listings than the prior quarter.' },
+          droppedListings: { label: 'Listings removed', value: '19 vs prior quarter', copy: 'Churn also rose, but the balance still favors broader assortment rather than retreat.' },
+          restocks: { label: 'OUT -> IN restocks', value: '49 vs prior quarter', copy: 'Restocks stayed active, reinforcing the view that tighter supply is about reliability rather than a dead market.' },
+          oosFlips: { label: 'IN -> OUT stockouts', value: '+24 vs prior quarter', copy: 'More listings moved from IN to OUT than in the prior full quarter, reinforcing the weaker stock picture despite healthy catalog expansion.' },
+          basis: { label: 'Comparison basis', value: 'vs prior full quarter', copy: 'These are completed-quarter totals compared with the immediately preceding quarter.' },
+        },
+      },
+      'this-year': {
+        label: 'This year',
+        scopeLabel: 'this year',
+        basisNote: 'Comparison basis: year to date vs prior year YTD.',
+        deltas: {
+          observed: { text: '+15 vs prior year YTD', kind: '' },
+          stock: { text: '-5 pts vs prior year YTD', kind: 'down' },
+          wishlist: { text: '+4 vs prior year YTD', kind: '' },
+          price: { text: '+GBP 2 vs prior year YTD', kind: 'flat' },
+        },
+        copy: {
+          observed: 'Year to date, the catalog is materially broader than the same point last year. The market does not look like it is shrinking.',
+          stock: 'Availability is weaker than the same point last year, which implies breadth has expanded faster than dependable supply.',
+          wishlist: 'Median wishlist demand is ahead of the same point last year, so the market is attracting interest rather than simply carrying more low-attention listings.',
+          price: 'Prices are somewhat firmer year to date, but the move is still smaller than the availability shift. Supply pressure remains the more important signal.',
+        },
+        pulse: {
+          title: 'Market pulse this year',
+          subtitle: 'This year view: a live year-to-date read against the same point last year.',
+          currentLabel: 'This year absolute level',
+          priorLabel: 'Prior year YTD absolute level',
+          compareNote: 'Compare within a row. Solid shows this year to date; dashed shows the matched point last year.',
+          showPrior: true,
+          axisLabels: ['Jan', 'Jun', 'Dec'],
+          pointLabels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+          endValues: {
+            breadthCurrent: '184',
+            breadthPrior: '169',
+            stockCurrent: '61%',
+            stockPrior: '66%',
+            wishlistCurrent: '18',
+            wishlistPrior: '14',
+          },
+        },
+        events: {
+          title: 'Run-to-run market events this year',
+          subtitle: 'Year-to-date event totals against the same point last year.',
+          newListings: { label: 'Listings added', value: '+58 vs prior year YTD', copy: 'Introductions are running well ahead of the same point last year, which fits the broader catalog picture.' },
+          droppedListings: { label: 'Listings removed', value: '33 vs prior year YTD', copy: 'Churn is higher too, but it is still smaller than the stronger inflow.' },
+          restocks: { label: 'OUT -> IN restocks', value: '74 vs prior year YTD', copy: 'Restocks remain active across the year, so weaker availability is about persistence and reliability rather than inactivity.' },
+          oosFlips: { label: 'IN -> OUT stockouts', value: '+37 vs prior year YTD', copy: 'More listings have moved OUT than at the same point last year, reinforcing the idea that dependable supply has not kept pace with demand and breadth.' },
+          basis: { label: 'Comparison basis', value: 'vs prior year YTD', copy: 'These are year-to-date totals against the matched point last year.' },
+        },
+      },
+      'last-year': {
+        label: 'Last year',
+        scopeLabel: 'last year',
+        basisNote: 'Comparison basis: full last year vs the prior full year.',
+        deltas: {
+          observed: { text: '+11 vs 2024', kind: '' },
+          stock: { text: '-3 pts vs 2024', kind: 'down' },
+          wishlist: { text: '+3 vs 2024', kind: '' },
+          price: { text: '+GBP 1 vs 2024', kind: 'flat' },
+        },
+        copy: {
+          observed: 'Last year finished with more observed species than 2024, which supports the view that assortment has been building, not narrowing.',
+          stock: 'That broader catalog still converted into slightly worse in-stock coverage than 2024, so dependable supply did not keep pace.',
+          wishlist: 'Median wishlist demand also finished above 2024, which makes the softer availability harder to dismiss as random noise.',
+          price: 'Prices only moved a little higher than 2024, again pointing to tightening availability before any broad price repricing.',
+        },
+        pulse: {
+          title: 'Market pulse last year',
+          subtitle: 'Last year view: a completed-year read against the prior full year.',
+          currentLabel: 'Last year absolute level',
+          priorLabel: 'Prior full year absolute level',
+          compareNote: 'Compare within a row. Solid shows last year; dashed shows the prior full year.',
+          showPrior: true,
+          axisLabels: ['Jan', 'Jun', 'Dec'],
+          pointLabels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+          endValues: {
+            breadthCurrent: '180',
+            breadthPrior: '169',
+            stockCurrent: '63%',
+            stockPrior: '66%',
+            wishlistCurrent: '17',
+            wishlistPrior: '14',
+          },
+        },
+        events: {
+          title: 'Run-to-run market events last year',
+          subtitle: 'Last-year event totals against the prior full year.',
+          newListings: { label: 'Listings added', value: '+91 vs 2024', copy: 'The year closed with meaningfully more new listings than 2024, supporting the stronger breadth reading.' },
+          droppedListings: { label: 'Listings removed', value: '52 vs 2024', copy: 'Listings still churned out of scope, but not enough to offset the larger inflow.' },
+          restocks: { label: 'OUT -> IN restocks', value: '118 vs 2024', copy: 'Restocking stayed active across the year, reinforcing the view that the market remained live even while stock was harder to keep in.' },
+          oosFlips: { label: 'IN -> OUT stockouts', value: '+46 vs 2024', copy: 'More listings turned OUT across the year than in 2024, which supports the broader story of tighter supply without suggesting market collapse.' },
+          basis: { label: 'Comparison basis', value: 'vs 2024', copy: 'These are full-year totals compared against the prior full year.' },
+        },
+      },
+      'all-time': {
+        label: 'All time',
+        scopeLabel: 'all time',
+        basisNote: 'Comparison basis: structural context only, with no prior-period delta.',
+        deltas: {
+          observed: { text: 'No prior comparison', kind: 'flat' },
+          stock: { text: 'No prior comparison', kind: 'flat' },
+          wishlist: { text: 'No prior comparison', kind: 'flat' },
+          price: { text: 'No prior comparison', kind: 'flat' },
+        },
+        copy: {
+          observed: 'All-time view is best read as structural context: the catalog is broad enough to support opportunity hunting, but this lens is not about recent acceleration.',
+          stock: 'All-time availability smooths out short-term swings, so it is useful for background context rather than telling you what changed recently.',
+          wishlist: 'All-time wishlist levels show the long-run demand floor across the market, not whether interest just strengthened this month or quarter.',
+          price: 'All-time price mainly describes the market baseline. It is less useful than shorter windows when you are deciding whether recent conditions have shifted.',
+        },
+        pulse: {
+          title: 'Market pulse across all time',
+          subtitle: 'All-time view: structural context rather than a change-detection lens.',
+          currentLabel: 'All-time absolute level',
+          priorLabel: 'No prior baseline',
+          compareNote: 'All-time view has no dashed overlay. Compare within a row; each metric keeps its own vertical scale.',
+          showPrior: false,
+          axisLabels: ['Start', 'Middle', 'Now'],
+          pointLabels: ['Start', 'Early', 'Build', 'Lift', 'Expansion', 'Midpoint', 'Breadth', 'Tightening', 'Demand firming', 'Late cycle', 'Recent', 'Now'],
+          endValues: {
+            breadthCurrent: '184',
+            breadthPrior: '',
+            stockCurrent: '61%',
+            stockPrior: '',
+            wishlistCurrent: '18',
+            wishlistPrior: '',
+          },
+        },
+        events: {
+          title: 'Market events across all time',
+          subtitle: 'All-time event totals as structural context only.',
+          newListings: { label: 'Listings added', value: '286 total', copy: 'Use this as background volume, not as a directional comparison.' },
+          droppedListings: { label: 'Listings removed', value: '172 total', copy: 'All-time churn is useful for scale, but weak for saying what changed recently.' },
+          restocks: { label: 'OUT -> IN restocks', value: '391 total', copy: 'This shows how much movement exists in the market overall, not whether it is improving now.' },
+          oosFlips: { label: 'IN -> OUT stockouts', value: '214 total', copy: 'Use this as structural supply-friction context, not as a directional signal about what changed recently.' },
+          basis: { label: 'Comparison basis', value: 'structural context only', copy: 'All-time totals are not compared to a prior-period baseline.' },
+        },
+      },
+    };
+    const coreGenusData = {
+      Avicularia: {
+        opportunity: 7.4,
+        scarcityRate: '38%',
+        scarcityLabel: 'Middle of pack',
+        scarcityClass: 'flat',
+        scarcityCopy: 'Promising, but not dominant if scarcity is your main breeder signal.',
+        wishlist: '26',
+        wishlistLabel: 'High',
+        wishlistCopy: 'Interest remains healthy even when listings are actually available.',
+        restock: '11d',
+        restockLabel: 'Slow',
+        restockClass: 'down',
+        restockCopy: 'Once missing, these listings do not snap back immediately.',
+        stability: '82%',
+        stabilityLabel: 'Consistent',
+        stabilityCopy: 'Shows whether this genus stays commercially strong across multiple recent windows, not just one recent spike.',
+        tableScarcity: { text: 'Medium', className: 'warn' },
+        tableDemand: { text: 'High', className: '' },
+        tableRestock: { text: 'Slow', className: 'warn' },
+      },
+      Caribena: {
+        opportunity: 6.9,
+        scarcityRate: '34%',
+        scarcityLabel: 'Balanced',
+        scarcityClass: 'flat',
+        scarcityCopy: 'A workable scarcity signal, but not enough on its own to dominate the set.',
+        wishlist: '24',
+        wishlistLabel: 'Good',
+        wishlistCopy: 'Interest is solid, but less intense than the strongest genera in scope.',
+        restock: '8d',
+        restockLabel: 'Healthy',
+        restockClass: '',
+        restockCopy: 'Stock tends to come back at a healthier pace than the slowest genera.',
+        stability: '76%',
+        stabilityLabel: 'Mostly steady',
+        stabilityCopy: 'Shows whether this genus stays commercially strong across multiple recent windows, not just one recent spike.',
+        tableScarcity: { text: 'Medium', className: 'warn' },
+        tableDemand: { text: 'Good', className: '' },
+        tableRestock: { text: 'Healthy', className: '' },
+      },
+      Psalmopoeus: {
+        opportunity: 8.8,
+        scarcityRate: '49%',
+        scarcityLabel: 'High',
+        scarcityClass: '',
+        scarcityCopy: 'Recurring scarcity keeps this genus near the front of the commercial case.',
+        wishlist: '30',
+        wishlistLabel: 'High',
+        wishlistCopy: 'Demand stays strong even when the genus does appear in stock.',
+        restock: '12d',
+        restockLabel: 'Slow',
+        restockClass: 'down',
+        restockCopy: 'Longer return times reinforce the scarcity signal rather than diluting it.',
+        stability: '78%',
+        stabilityLabel: 'Consistent',
+        stabilityCopy: 'Shows whether this genus stays commercially strong across multiple recent windows, not just one recent spike.',
+        tableScarcity: { text: 'High', className: '' },
+        tableDemand: { text: 'High', className: '' },
+        tableRestock: { text: 'Slow', className: 'warn' },
+      },
+      Chromatopelma: {
+        opportunity: 5.7,
+        scarcityRate: '22%',
+        scarcityLabel: 'Lower',
+        scarcityClass: 'down',
+        scarcityCopy: 'Demand is there, but the supply picture looks easier and less commercially tight.',
+        wishlist: '21',
+        wishlistLabel: 'Good',
+        wishlistCopy: 'Interest is still healthy, but the supply side weakens the overall breeder case.',
+        restock: '6d',
+        restockLabel: 'Fast',
+        restockClass: '',
+        restockCopy: 'Fast returns make this genus easier to find and less commercially scarce.',
+        stability: '68%',
+        stabilityLabel: 'More variable',
+        stabilityCopy: 'Shows whether this genus stays commercially strong across multiple recent windows, not just one recent spike.',
+        tableScarcity: { text: 'Low', className: 'risk' },
+        tableDemand: { text: 'Good', className: '' },
+        tableRestock: { text: 'Fast', className: '' },
+      },
+    };
+
+    const genusScopedOverrides = {
+      'current-quarter': {
+        label: 'Current quarter',
+        scopeLabel: 'Q2 2026 to date',
+        basisNote: 'Quarter in progress (Q2 2026) — comparing Apr 1 – Apr 21 against the same span into Q1 (Jan 1 – Jan 21).',
+        deltas: {
+          observed: { text: '+2 vs prior quarter QTD', kind: '' },
+          stock: { text: '-4 pts vs prior quarter QTD', kind: 'down' },
+          wishlist: { text: '+3 vs prior quarter QTD', kind: '' },
+          price: { text: '+GBP 0 vs prior quarter QTD', kind: 'flat' },
+        },
+        copy: {
+          observed: 'Species breadth across your selected genera is ahead of the same point last quarter, so your selection still looks alive on assortment even while actual stock is getting tighter.',
+          stock: '61% of listings for your selected genera are available now. That is below the same point last quarter, which is consistent with more friction on supply than on demand.',
+          wishlist: 'Across your selected genera, median wishlist demand is ahead of the same point last quarter, reinforcing the idea that interest is improving while availability slips.',
+          price: 'Pricing across your selected genera is only modestly firmer than the same point last quarter. Demand looks healthier, but prices are not yet signaling a broad inflation cycle.',
+        },
+        pulse: {
+          title: 'Supply and demand pulse — your genera, this quarter',
+          subtitle: 'Current quarter view: a live read on breadth, availability, and demand for your selected genera relative to the same point last quarter.',
+          currentLabel: 'Q2 2026 to date (Apr 1 – Apr 21)',
+          priorLabel: 'Q1 2026 matched span (Jan 1 – Jan 21)',
+          compareNote: 'Compare within a row. Solid shows Q2 2026 to date (Apr 1 – Apr 21); dashed shows the same span into Q1 2026 (Jan 1 – Jan 21).',
+          showPrior: true,
+          endValues: {
+            breadthCurrent: '14',
+            breadthPrior: '12',
+            stockCurrent: '61%',
+            stockPrior: '65%',
+            wishlistCurrent: '26',
+            wishlistPrior: '23',
+          },
+        },
+        events: {
+          title: 'Run-to-run events for your selected genera, this quarter',
+          subtitle: 'Current-quarter listing events for your selected genera, against the same point last quarter.',
+          newListings: { label: 'Listings added', value: '+6 vs prior quarter QTD', copy: 'Introductions are ahead of the matched point last quarter, which supports the broader species breadth visible in the chart.' },
+          droppedListings: { label: 'Listings removed', value: '4 vs prior quarter QTD', copy: 'Some churn is present, but the removal count is too small to erase the stronger inflow.' },
+          restocks: { label: 'OUT -> IN restocks', value: '11 vs prior quarter QTD', copy: 'Movement is active; stock is not simply frozen, even though the in-stock rate is weaker than last quarter.' },
+          oosFlips: { label: 'IN -> OUT stockouts', value: '+7 vs prior quarter QTD', copy: 'More listings are moving from IN to OUT than at the same point last quarter, which helps explain why availability is softer even while breadth is still expanding.' },
+          basis: { label: 'Comparison basis', value: 'vs prior quarter QTD', copy: 'Read these event totals the same way as the sparklines: active quarter-to-date totals for your selected genera versus the matched point last quarter.' },
+        },
+      },
+    };
+
+    let selectedGenera = [];
+    let isAllSelected = true;
+    let selectedTimeWindow = 'current-quarter';
+    let selectedSparklineRun = null;
+    let searchQuery = '';
+    let compareFocusQuery = '';
+    let focusGenus = null;
+    let manualPeerSet = [];
+    let currentMode = 'none';
+
+    function scoreWidth(score) {
+      return `${Math.round(score * 10)}%`;
+    }
+
+    function scoreText(score) {
+      return score.toFixed(1);
+    }
+
+    function classForDelta(kind) {
+      return kind === 'down' ? 'metric-delta down' : kind === 'flat' ? 'metric-delta flat' : 'metric-delta';
+    }
+
+    function setDelta(node, text, kind) {
+      node.className = classForDelta(kind);
+      node.textContent = text;
+    }
+
+    function toggleSparklineRun(runIndex) {
+      selectedSparklineRun = selectedSparklineRun === runIndex ? null : runIndex;
+      renderMarketSparklines();
+    }
+
+    function createSvgElement(tagName, attributes = {}) {
+      const element = document.createElementNS('http://www.w3.org/2000/svg', tagName);
+      Object.entries(attributes).forEach(([name, value]) => {
+        element.setAttribute(name, value);
+      });
+      return element;
+    }
+
+    function renderMetricSparkline(metricKey, metricConfig, cardConfig, windowConfig, showPrior) {
+      const { container, readout, color, format, label } = cardConfig;
+      const currentSeries = metricConfig.current;
+      const priorSeries = metricConfig.prior || [];
+      const axisLabels = windowConfig.pulse.axisLabels || ['Run 1', 'Run 6', 'Run 12'];
+      const pointLabels = windowConfig.pulse.pointLabels || currentSeries.map((_, index) => `Run ${index + 1}`);
+      const allValues = showPrior ? [...currentSeries, ...priorSeries] : [...currentSeries];
+      const minValue = Math.min(...allValues);
+      const maxValue = Math.max(...allValues);
+      const range = Math.max(maxValue - minValue, 1);
+      const width = 268;
+      const height = 82;
+      const left = 14;
+      const right = 14;
+      const top = 10;
+      const bottom = 18;
+      const innerWidth = width - left - right;
+      const innerHeight = height - top - bottom;
+      const step = innerWidth / (currentSeries.length - 1);
+      const xFor = (index) => left + (index * step);
+      const yFor = (value) => top + ((maxValue - value) / range) * innerHeight;
+      const pointsFor = (series) => series.map((value, index) => `${xFor(index)},${yFor(value)}`).join(' ');
+      const selected = selectedSparklineRun;
+
+      const svg = createSvgElement('svg', {
+        viewBox: `0 0 ${width} ${height}`,
+        role: 'img',
+        'aria-label': showPrior
+          ? `${label} sparkline comparing the active window with the matched prior period.`
+          : `${label} sparkline showing the shape of ${windowConfig.scopeLabel} with no prior-period overlay.`,
+      });
+
+      svg.appendChild(createSvgElement('rect', { x: '0', y: '0', width: `${width}`, height: `${height}`, fill: '#fffaf2' }));
+      svg.appendChild(createSvgElement('line', { x1: `${left}`, y1: `${height - bottom}`, x2: `${width - right}`, y2: `${height - bottom}`, stroke: '#d7cfc0', 'stroke-width': '1' }));
+
+      if (selected !== null) {
+        svg.appendChild(createSvgElement('rect', {
+          x: `${xFor(selected) - (step / 2)}`,
+          y: '0',
+          width: `${step}`,
+          height: `${height - bottom}`,
+          class: 'sparkline-band',
+        }));
+      }
+
+      if (showPrior) {
+        svg.appendChild(createSvgElement('polyline', {
+          points: pointsFor(priorSeries),
+          stroke: color,
+          class: 'sparkline-line-prior',
+        }));
+      }
+
+      svg.appendChild(createSvgElement('polyline', {
+        points: pointsFor(currentSeries),
+        stroke: color,
+        class: 'sparkline-line-current',
+      }));
+
+      currentSeries.forEach((value, index) => {
+        const currentPoint = createSvgElement('circle', {
+          cx: `${xFor(index)}`,
+          cy: `${yFor(value)}`,
+          r: `${selected === index ? 4.4 : 2.7}`,
+          fill: color,
+          class: `sparkline-point-current${selected !== null && selected !== index ? ' is-subdued' : ''}`,
+        });
+        svg.appendChild(currentPoint);
+
+        if (showPrior) {
+          svg.appendChild(createSvgElement('circle', {
+            cx: `${xFor(index)}`,
+            cy: `${yFor(priorSeries[index])}`,
+            r: `${selected === index ? 3.4 : 2.2}`,
+            fill: color,
+            class: `sparkline-point-prior${selected !== null && selected !== index ? ' is-subdued' : ''}`,
+          }));
+        }
+
+        const hit = createSvgElement('rect', {
+          x: `${xFor(index) - (step / 2)}`,
+          y: '0',
+          width: `${step}`,
+          height: `${height - bottom}`,
+          class: 'sparkline-hit',
+          'data-sparkline-run': `${index}`,
+        });
+        hit.addEventListener('click', () => toggleSparklineRun(index));
+        svg.appendChild(hit);
+      });
+
+      svg.appendChild(createSvgElement('text', { x: `${left}`, y: `${height - 4}`, class: 'sparkline-run-labels' })).textContent = axisLabels[0];
+      svg.appendChild(createSvgElement('text', { x: `${xFor(5) - 10}`, y: `${height - 4}`, class: 'sparkline-run-labels' })).textContent = axisLabels[1];
+      svg.appendChild(createSvgElement('text', { x: `${xFor(11) - 22}`, y: `${height - 4}`, class: 'sparkline-run-labels' })).textContent = axisLabels[2];
+
+      container.replaceChildren(svg);
+
+      if (selected === null) {
+        readout.textContent = showPrior
+          ? `${label} shown as active window vs matched prior-period overlay.`
+          : `${label} shown as ${windowConfig.scopeLabel} context with no prior-period overlay.`;
+      } else {
+        const pointLabel = pointLabels[selected] || `Run ${selected + 1}`;
+        const currentValue = format(currentSeries[selected]);
+        const priorValue = showPrior ? format(priorSeries[selected]) : 'no matched baseline';
+        readout.textContent = showPrior
+          ? `${pointLabel}: ${currentValue} current vs ${priorValue} matched prior period.`
+          : `${pointLabel}: ${currentValue} within ${windowConfig.scopeLabel}, with no prior-period overlay.`;
+      }
+    }
+
+    function renderMarketSparklines() {
+      const windowConfig = getEffectiveWindowConfig();
+      const sparklineConfig = marketSparklineSeries[selectedTimeWindow];
+      const showPrior = windowConfig.pulse.showPrior;
+      marketSparklinePriorKey.hidden = !showPrior;
+      marketSparklineBasisNote.textContent = windowConfig.pulse.compareNote;
+      marketSparklineSelectionNote.textContent = selectedSparklineRun === null
+        ? 'Optional: click a run to align that moment across all four cards.'
+        : `Run ${selectedSparklineRun + 1} selected. The same moment is now highlighted across all four KPI cards.`;
+      marketSparklineClear.hidden = selectedSparklineRun === null;
+
+      Object.entries(marketSparklineCards).forEach(([metricKey, cardConfig]) => {
+        renderMetricSparkline(metricKey, sparklineConfig[metricKey], cardConfig, windowConfig, showPrior);
+      });
+    }
+
+    function normalizeSelection(values) {
+      return allGenera.filter((genus) => values.includes(genus));
+    }
+
+    function manualPeerEditingEnabled() {
+      return selectedGenera.length >= 2 && selectedGenera.length <= editableComparisonLimit;
+    }
+
+    function broadComparisonScope() {
+      return selectedGenera.length > editableComparisonLimit;
+    }
+
+    function effectivePeerSet() {
+      if (!focusGenus) {
+        return [];
+      }
+
+      const availablePeers = selectedGenera.filter((genus) => genus !== focusGenus);
+      if (!manualPeerEditingEnabled()) {
+        return availablePeers;
+      }
+
+      const filteredPeers = manualPeerSet.filter((genus) => availablePeers.includes(genus));
+      return filteredPeers.length ? filteredPeers : availablePeers;
+    }
+
+    function metadataForGenus(genus) {
+      const index = allGenera.indexOf(genus);
+      return {
+        speciesSeen: 1 + (index % 6),
+        observations: 18 + ((index * 13) % 47),
+      };
+    }
+
+    function fallbackGenusData(genus) {
+      const index = allGenera.indexOf(genus);
+      const opportunity = 5.2 + (((index * 17) % 36) / 10);
+      const scarcityPercent = 20 + ((index * 11) % 31);
+      const wishlist = 14 + ((index * 7) % 18);
+      const restockDays = 5 + ((index * 5) % 9);
+      const stabilityPercent = 64 + ((index * 9) % 19);
+      const scarcityLabel = scarcityPercent >= 42 ? 'High' : scarcityPercent >= 30 ? 'Middle of pack' : 'Lower';
+      const scarcityClass = scarcityPercent < 30 ? 'down' : scarcityPercent < 42 ? 'flat' : '';
+      const wishlistLabel = wishlist >= 26 ? 'High' : wishlist >= 20 ? 'Good' : 'Mixed';
+      const restockLabel = restockDays >= 11 ? 'Slow' : restockDays >= 8 ? 'Healthy' : 'Fast';
+      const restockClass = restockDays >= 11 ? 'down' : '';
+      const stabilityLabel = stabilityPercent >= 79 ? 'Consistent' : stabilityPercent >= 71 ? 'Mostly steady' : 'More variable';
+
+      return {
+        opportunity,
+        scarcityRate: `${scarcityPercent}%`,
+        scarcityLabel,
+        scarcityClass,
+        scarcityCopy: scarcityPercent >= 42
+          ? 'Recurring scarcity keeps this genus commercially interesting.'
+          : scarcityPercent >= 30
+          ? 'Scarcity is present, but it shares the stage with more balanced supply.'
+          : 'Supply looks easier here, so the breeder case leans more on demand than scarcity.',
+        wishlist: `${wishlist}`,
+        wishlistLabel,
+        wishlistCopy: wishlist >= 26
+          ? 'Interest remains strong whenever stock is actually available.'
+          : wishlist >= 20
+          ? 'Interest is healthy, but not unusually elevated for this scope.'
+          : 'Demand is present, but less forceful than the front-runners in scope.',
+        restock: `${restockDays}d`,
+        restockLabel,
+        restockClass,
+        restockCopy: restockDays >= 11
+          ? 'When this genus disappears, it tends to stay missing for longer.'
+          : restockDays >= 8
+          ? 'Restock cadence looks balanced rather than unusually slow or fast.'
+          : 'Fast returns make this genus easier to source and less commercially tight.',
+        stability: `${stabilityPercent}%`,
+        stabilityLabel,
+        stabilityCopy: 'Shows whether this genus stays commercially strong across multiple recent windows, not just one recent spike.',
+        tableScarcity: { text: scarcityPercent >= 42 ? 'High' : scarcityPercent >= 30 ? 'Medium' : 'Low', className: scarcityPercent >= 42 ? '' : scarcityPercent >= 30 ? 'warn' : 'risk' },
+        tableDemand: { text: wishlist >= 26 ? 'High' : wishlist >= 20 ? 'Good' : 'Mixed', className: '' },
+        tableRestock: { text: restockLabel, className: restockDays >= 11 ? 'warn' : '' },
+      };
+    }
+
+    function genusMetrics(genus) {
+      return coreGenusData[genus] || fallbackGenusData(genus);
+    }
+
+    function matchesPreset(action) {
+      if (action === 'all') return isAllSelected;
+      if (isAllSelected) return false;
+      const preset = selectionPresets[action];
+      if (!preset) {
+        return false;
+      }
+      const normalizedPreset = normalizeSelection(preset);
+      if (normalizedPreset.length !== selectedGenera.length) {
+        return false;
+      }
+      return normalizedPreset.every((genus, index) => selectedGenera[index] === genus);
+    }
+
+    function syncStateAfterSelectionChange() {
+      selectedGenera = normalizeSelection(selectedGenera);
+
+      if (focusGenus && !selectedGenera.includes(focusGenus)) {
+        focusGenus = null;
+        currentMode = 'none';
+      }
+
+      const availablePeers = selectedGenera.filter((genus) => genus !== focusGenus);
+      manualPeerSet = manualPeerSet.filter((genus) => availablePeers.includes(genus));
+
+      if (focusGenus && manualPeerEditingEnabled() && !manualPeerSet.length && availablePeers.length) {
+        manualPeerSet = [...availablePeers];
+      }
+
+      if (focusGenus && broadComparisonScope()) {
+        currentMode = 'market-baseline';
+      }
+
+      if (currentMode === 'peer-average' && !effectivePeerSet().length) {
+        currentMode = 'none';
+      }
+    }
+
+    function sortedPeerSet() {
+      return [...effectivePeerSet()].sort((left, right) => genusMetrics(right).opportunity - genusMetrics(left).opportunity);
+    }
+
+    function leaderGenus() {
+      return sortedPeerSet()[0] || null;
+    }
+
+    function peerAverageScoreValue() {
+      const peers = effectivePeerSet();
+      if (!peers.length) {
+        return 0;
+      }
+
+      const total = peers.reduce((sum, genus) => sum + genusMetrics(genus).opportunity, 0);
+      return total / peers.length;
+    }
+
+    function rankWithinSelection() {
+      const ranked = [...new Set([focusGenus, ...effectivePeerSet()])].sort((left, right) => genusMetrics(right).opportunity - genusMetrics(left).opportunity);
+      return ranked.indexOf(focusGenus) + 1;
+    }
+
+    function readForGenus(genus, focus, leader) {
+      if (genus === leader) {
+        return 'Commercially strongest';
+      }
+      if (genus === focus) {
+        return genusMetrics(genus).opportunity >= 7 ? 'Good, not clear winner' : 'Viable, but behind leader';
+      }
+      if (genusMetrics(genus).opportunity >= 6.5) {
+        return 'More balanced';
+      }
+      return 'Demand, but less scarcity';
+    }
+
+    function renderMarketHealthSectionHeader() {
+      if (isAllSelected) {
+        marketHealthHeading.textContent = 'Is the wider tarantula market growing, becoming harder to source, or levelling off?';
+        marketHealthScopeCopy.textContent = 'These metrics cover all tracked species — the widest possible lens before you narrow to a genus.';
+        marketHealthSectionNote.textContent = 'If the overall market looks flat, treat individual genus comparisons cautiously.';
+        genusAllBtn.classList.add('active');
+        return;
+      }
+      genusAllBtn.classList.remove('active');
+      const count = selectedGenera.length;
+      if (!count) {
+        marketHealthHeading.textContent = 'Add genera to see supply and demand health for your selection.';
+        marketHealthScopeCopy.textContent = 'Use the genus filter above to add genera. Market Health KPIs will reflect whichever genera are in scope.';
+        marketHealthSectionNote.textContent = 'Use the genus filter above to add genera before drawing conclusions.';
+        return;
+      }
+      if (count === 1) {
+        marketHealthHeading.textContent = `Is ${selectedGenera[0]} supply growing, tightening, or levelling off?`;
+      } else if (count <= 3) {
+        const list = selectedGenera.slice(0, -1).join(', ') + ' and ' + selectedGenera[selectedGenera.length - 1];
+        marketHealthHeading.textContent = `For ${list}: is supply growing, tightening, or levelling off?`;
+      } else {
+        marketHealthHeading.textContent = `How healthy is supply and demand across your ${count} selected genera?`;
+      }
+      marketHealthScopeCopy.textContent = 'These metrics ask whether supply and demand for your selected genera look healthy enough to support breeding investment.';
+      marketHealthSectionNote.textContent = 'If your selected genera look flat overall, treat any individual genus comparison cautiously.';
+    }
+
+    function renderSelectedGenera() {
+      selectedGeneraChips.innerHTML = '';
+
+      if (isAllSelected) {
+        const chip = document.createElement('div');
+        chip.className = 'selector-empty';
+        chip.textContent = 'Market Health KPIs cover all genera. Select specific genera to scope section 1 and enable comparison.';
+        selectedGeneraChips.appendChild(chip);
+        globalScopeLabel.textContent = `Current market scope: all genera • ${timeWindowOptions[selectedTimeWindow].scopeLabel}`;
+        selectorCountLabel.textContent = `All genera • ${allGenera.length} available`;
+        collapsedSelectorNote.textContent = 'All genera are in scope for Market Health KPIs. Select specific genera to narrow the focus and unlock comparison controls.';
+        return;
+      }
+
+      if (!selectedGenera.length) {
+        const empty = document.createElement('div');
+        empty.className = 'selector-empty';
+        empty.textContent = 'No genera are currently in scope. Add some from the selector below to unlock comparison work.';
+        selectedGeneraChips.appendChild(empty);
+      } else {
+        selectedGenera.forEach((genus) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'chip selected';
+          button.dataset.genus = genus;
+          button.setAttribute('aria-label', `Remove ${genus} from global filters`);
+          button.innerHTML = `${genus} <span class="dismiss">x</span>`;
+          button.addEventListener('click', () => {
+            selectedGenera = selectedGenera.filter((item) => item !== genus);
+            if (!selectedGenera.length) isAllSelected = true;
+            syncStateAfterSelectionChange();
+            renderAll();
+          });
+          selectedGeneraChips.appendChild(button);
+        });
+      }
+
+      globalScopeLabel.textContent = selectedGenera.length
+        ? `Current market scope: ${selectedGenera.length} genera • ${timeWindowOptions[selectedTimeWindow].scopeLabel}`
+        : `Current market scope: no genera • ${timeWindowOptions[selectedTimeWindow].scopeLabel}`;
+      selectorCountLabel.textContent = `${selectedGenera.length} selected • ${allGenera.length} available`;
+      collapsedSelectorNote.textContent = !selectedGenera.length
+        ? 'Expand to search the market and add genera back into scope.'
+        : selectedGenera.length > editableComparisonLimit
+        ? 'Scope is broad. Comparison controls will treat peers as one implicit benchmark until you narrow the genus set.'
+        : 'Expand to search all genera, adjust the selection, or use lifestyle shortcuts.';
+    }
+
+    function getEffectiveWindowConfig() {
+      if (!isAllSelected && genusScopedOverrides[selectedTimeWindow]) {
+        return genusScopedOverrides[selectedTimeWindow];
+      }
+      return timeWindowOptions[selectedTimeWindow];
+    }
+
+    function updateMarketHealthDeltas() {
+      const windowConfig = getEffectiveWindowConfig();
+      const { deltas, copy, events } = windowConfig;
+      setDelta(marketObservedDelta, deltas.observed.text, deltas.observed.kind);
+      setDelta(marketStockDelta, deltas.stock.text, deltas.stock.kind);
+      setDelta(marketWishlistDelta, deltas.wishlist.text, deltas.wishlist.kind);
+      setDelta(marketPriceDelta, deltas.price.text, deltas.price.kind);
+      marketObservedCopy.textContent = copy.observed;
+      marketStockCopy.textContent = copy.stock;
+      marketWishlistCopy.textContent = copy.wishlist;
+      marketPriceCopy.textContent = copy.price;
+      renderMarketSparklines();
+      marketEventsTitle.textContent = events.title;
+      marketEventsSubtitle.textContent = events.subtitle;
+      marketEventsNewLabel.textContent = events.newListings.label;
+      marketEventsNewValue.textContent = events.newListings.value;
+      marketEventsNewCopy.textContent = events.newListings.copy;
+      marketEventsDroppedLabel.textContent = events.droppedListings.label;
+      marketEventsDroppedValue.textContent = events.droppedListings.value;
+      marketEventsDroppedCopy.textContent = events.droppedListings.copy;
+      marketEventsRestocksLabel.textContent = events.restocks.label;
+      marketEventsRestocksValue.textContent = events.restocks.value;
+      marketEventsRestocksCopy.textContent = events.restocks.copy;
+      marketEventsOosLabel.textContent = events.oosFlips.label;
+      marketEventsOosValue.textContent = events.oosFlips.value;
+      marketEventsOosCopy.textContent = events.oosFlips.copy;
+    }
+
+    function renderTimeWindow() {
+      windowButtons.forEach((button) => {
+        button.classList.toggle('active', button.dataset.window === selectedTimeWindow);
+        button.setAttribute('aria-pressed', button.dataset.window === selectedTimeWindow ? 'true' : 'false');
+      });
+      timeWindowBasisNote.textContent = timeWindowOptions[selectedTimeWindow].basisNote;
+      updateMarketHealthDeltas();
+    }
+
+    function renderSuggestions() {
+      genusSuggestionList.innerHTML = '';
+
+      const filtered = allGenera.filter((genus) => genus.toLowerCase().includes(searchQuery));
+      const visible = filtered.slice(0, 6);
+
+      if (!visible.length) {
+        const empty = document.createElement('div');
+        empty.className = 'selector-empty';
+        empty.textContent = 'No genera match that search.';
+        genusSuggestionList.appendChild(empty);
+        return;
+      }
+
+      visible.forEach((genus) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'suggestion-row';
+        button.dataset.genus = genus;
+        const metadata = metadataForGenus(genus);
+        const isSelected = selectedGenera.includes(genus);
+        button.innerHTML = `
+          <strong>${genus}</strong>
+          <span class="suggestion-meta">
+            ${metadata.speciesSeen} species seen • ${metadata.observations} observations
+            <span class="suggestion-status${isSelected ? ' selected' : ''}">${isSelected ? 'Selected' : 'Add'}</span>
+          </span>
+        `;
+        button.addEventListener('click', () => {
+          if (isSelected) {
+            selectedGenera = selectedGenera.filter((item) => item !== genus);
+            if (!selectedGenera.length) isAllSelected = true;
+          } else {
+            isAllSelected = false;
+            selectedGenera = normalizeSelection([...selectedGenera, genus]);
+          }
+          syncStateAfterSelectionChange();
+          renderAll();
+        });
+        genusSuggestionList.appendChild(button);
+      });
+    }
+
+    function renderQuickPicks() {
+      quickPickButtons.forEach((button) => {
+        button.classList.toggle('active', matchesPreset(button.dataset.selectionAction));
+      });
+    }
+
+    function renderComparisonState() {
+      if (isAllSelected) {
+        compareStateBadge.className = 'compare-state-badge';
+        compareStateBadge.textContent = 'All genera';
+        compareStateTitle.textContent = 'Select specific genera to enable comparison';
+        compareStateCopy.textContent = 'Market Health KPIs show all-market data. To compare a focus genus against peers, select specific genera in the genus filter above.';
+        comparisonPanelCopy.textContent = 'These controls work on a specific genus selection. Add genera in the genus filter to unlock focus and peer selection.';
+        compareModeRow.style.opacity = '0.72';
+        return;
+      }
+      if (!selectedGenera.length) {
+        compareStateBadge.className = 'compare-state-badge';
+        compareStateBadge.textContent = 'No scope';
+        compareStateTitle.textContent = 'Comparison is waiting on global filters';
+        compareStateCopy.textContent = 'Add at least one genus in Global filters before you can choose a focus genus or benchmark.';
+        comparisonPanelCopy.textContent = 'These controls depend on the global genus scope. Start by putting at least one genus into scope.';
+        compareModeRow.style.opacity = '0.72';
+        return;
+      }
+
+      if (broadComparisonScope()) {
+        compareStateBadge.className = 'compare-state-badge broad';
+        compareStateBadge.textContent = 'Broad scope';
+        compareStateTitle.textContent = 'Market-baseline comparison';
+        compareStateCopy.textContent = `The global genus scope is broad at ${selectedGenera.length} genera. You can still choose one focus genus, but peer editing is replaced by a market-baseline comparison.`;
+        comparisonPanelCopy.textContent = 'With a broad global genus scope, this panel still lets you choose a focus genus, but it switches to a market-relative read instead of peer curation.';
+        compareModeRow.style.opacity = '1';
+        return;
+      }
+
+      compareStateBadge.className = 'compare-state-badge';
+      compareStateBadge.textContent = 'Narrow scope';
+      compareStateTitle.textContent = 'Peer-editing comparison';
+      compareStateCopy.textContent = 'With a tighter global genus scope, you can assign a focus genus, edit the peer set directly, or collapse those peers into one average benchmark.';
+      comparisonPanelCopy.textContent = 'These controls assign roles within the globally selected genera. Choose one selected genus as the focus, then decide which of the other selected genera belong in the peer set.';
+      compareModeRow.style.opacity = '1';
+    }
+
+    function updateSectionFraming() {
+      if (!focusGenus) {
+        breederFocusName.textContent = 'Focus genus';
+        peerAverageFocusName.textContent = 'Focus genus';
+        marketBaselineFocusName.textContent = 'Focus genus';
+        breederChartNote.textContent = 'The focus genus can have a credible breeder case without being the strongest purely commercial candidate in the comparison set.';
+        biasQuestionFocus.textContent = '';
+        biasQuestionFocus.hidden = true;
+        biasQuestionFallback.hidden = false;
+        biasRankFocusName.textContent = 'Focus genus';
+        biasGapLabel.textContent = 'vs benchmark';
+        biasPremiumCopy.textContent = 'The focus genus may still look close enough to the top to remain a commercially defensible choice.';
+        biasSvgFocusNone.textContent = 'Focus genus';
+        biasSvgFocusPeer.textContent = 'Focus genus';
+        biasSvgFocusMarket.textContent = 'Focus genus';
+        biasChartNote.textContent = 'The focus genus can win on some ingredients and still trail the strongest benchmark overall. That is a trade-off, not a contradiction.';
+        decisionProfitCopy.textContent = 'The active benchmark currently looks stronger.';
+        decisionDefensibleCopy.textContent = 'The focus genus may still remain defendable if it stays near the top, not near the bottom.';
+        breederSectionCopy.textContent = 'These metrics focus on the commercial signals that matter most for sell-through: demand and recurring supply constraints.';
+        breederSectionNote.textContent = 'Use the score as a summary, but keep the ingredient metrics visible so the commercial case stays explainable.';
+        biasSectionCopy.textContent = 'This section shows whether your preferred genus still holds up once it is compared against the evidence.';
+        biasSectionNote.textContent = 'This section makes the trade-off explicit when personal preference and commercial evidence diverge.';
+        return;
+      }
+
+      if (broadComparisonScope()) {
+        breederSectionCopy.textContent = `${focusGenus} is now being read against the broader market, not against a hand-built peer set. This keeps the question simple: does it still look commercially strong once the whole market is the benchmark?`;
+        breederSectionNote.textContent = 'Because the global genus scope is broad, this section becomes a market-relative read. The ingredient cards still explain why the focus genus looks strong or weak, but peer curation is not part of the interaction.';
+        biasSectionCopy.textContent = `This section now tests whether your preference for ${focusGenus} still holds up against the wider market rather than against a manually chosen peer group.`;
+        biasSectionNote.textContent = 'This section shows whether your preference still holds up when the market, not a hand-picked peer set, becomes the benchmark.';
+        return;
+      }
+
+      if (currentMode === 'market-baseline') {
+        breederSectionCopy.textContent = `${focusGenus} is currently being read against the market baseline. This answers a broader question than peer editing: does it still look attractive once the whole market becomes the benchmark?`;
+        breederSectionNote.textContent = 'The ingredient cards still matter, but the benchmark has changed. Read this view as a market-relative stress test rather than as a peer showdown.';
+        biasSectionCopy.textContent = `This section tests whether your preference for ${focusGenus} still looks commercially defendable when the benchmark is the broader market.`;
+        biasSectionNote.textContent = 'This section shows whether your preference still holds up when the broader market, not a peer set, becomes the benchmark.';
+        return;
+      }
+
+      if (currentMode === 'peer-average') {
+        breederSectionCopy.textContent = `${focusGenus} is being read against a collapsed peer-average benchmark. This reduces noise from one standout competitor and asks whether the focus genus beats the peer set overall.`;
+        breederSectionNote.textContent = 'This section still exposes the ingredients. The benchmark is just more compact now: one peer-average line instead of several separate peer comparisons.';
+        biasSectionCopy.textContent = `This section now asks whether your preference for ${focusGenus} still holds up against the peer set overall, not just against one favourite rival.`;
+        biasSectionNote.textContent = 'This section makes the trade-off easier to read by comparing your preference against the peer set overall, not one convenient rival.';
+        return;
+      }
+
+      breederSectionCopy.textContent = `${focusGenus} is being compared against the selected peer set on the commercial signals that matter most: demand and recurring supply constraints.`;
+      breederSectionNote.textContent = 'Use the score as a summary, but keep the ingredient metrics visible so you can see why the focus genus beats some peers and trails others.';
+      biasSectionCopy.textContent = `This section compares your preference for ${focusGenus} against the peer set you kept in scope, so the trade-off stays visible.`;
+      biasSectionNote.textContent = 'This section makes the trade-off explicit when your chosen genus is compared directly with the peers you kept in scope.';
+    }
+
+    function renderFocusOptions() {
+      focusGenusOptions.innerHTML = '';
+      compareFocusPicker.innerHTML = '';
+
+      if (!selectedGenera.length) {
+        const placeholder = document.createElement('span');
+        placeholder.className = 'compare-pill context-muted';
+        placeholder.textContent = 'Select genera in Global filters first';
+        focusGenusOptions.appendChild(placeholder);
+        return;
+      }
+
+      if (broadComparisonScope()) {
+        const statusPill = document.createElement('span');
+        statusPill.className = focusGenus ? 'compare-pill active focus' : 'compare-pill context-muted';
+        statusPill.textContent = focusGenus
+          ? `Focus genus: ${focusGenus}`
+          : `Pick one focus genus from ${selectedGenera.length} in-scope genera`;
+        focusGenusOptions.appendChild(statusPill);
+
+        const pickerShell = document.createElement('div');
+        pickerShell.className = 'compare-focus-picker';
+        pickerShell.innerHTML = `
+          <div class="search-box">
+            <span class="search-icon">Search</span>
+            <input class="search-input" id="compare-focus-search" type="text" value="${compareFocusQuery}" aria-label="Search focus genus within global scope" />
+          </div>
+          <div class="suggestion-list" id="compare-focus-results"></div>
+        `;
+        compareFocusPicker.appendChild(pickerShell);
+
+        const compareFocusSearch = document.getElementById('compare-focus-search');
+        const compareFocusResults = document.getElementById('compare-focus-results');
+        compareFocusSearch.addEventListener('input', (event) => {
+          compareFocusQuery = event.target.value.trim().toLowerCase();
+          renderFocusOptions();
+        });
+
+        const filtered = selectedGenera.filter((genus) => genus.toLowerCase().includes(compareFocusQuery)).slice(0, 6);
+        if (!filtered.length) {
+          const empty = document.createElement('div');
+          empty.className = 'selector-empty';
+          empty.textContent = 'No in-scope genera match that focus search.';
+          compareFocusResults.appendChild(empty);
+        } else {
+          filtered.forEach((genus) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'suggestion-row';
+            const metadata = metadataForGenus(genus);
+            const selected = genus === focusGenus;
+            button.innerHTML = `
+              <strong>${genus}</strong>
+              <span class="suggestion-meta">
+                ${metadata.speciesSeen} species seen • ${metadata.observations} observations
+                <span class="suggestion-status${selected ? ' selected' : ''}">${selected ? 'Focus' : 'Set focus'}</span>
+              </span>
+            `;
+            button.addEventListener('click', () => {
+              focusGenus = genus;
+              currentMode = 'market-baseline';
+              syncStateAfterSelectionChange();
+              applyFocusState(true);
+            });
+            compareFocusResults.appendChild(button);
+          });
+        }
+        return;
+      }
+
+      selectedGenera.forEach((genus) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'compare-pill';
+        if (focusGenus === genus) {
+          button.classList.add('active', 'focus');
+        }
+        button.textContent = genus;
+        button.dataset.genus = genus;
+        button.setAttribute('aria-pressed', focusGenus === genus ? 'true' : 'false');
+        button.addEventListener('click', () => {
+          focusGenus = genus;
+          manualPeerSet = selectedGenera.filter((item) => item !== focusGenus);
+          syncStateAfterSelectionChange();
+          applyFocusState(Boolean(focusGenus));
+        });
+        focusGenusOptions.appendChild(button);
+      });
+    }
+
+    function renderPeerOptions() {
+      peerSetOptions.innerHTML = '';
+      const peerContextInactive = currentMode === 'market-baseline' && !broadComparisonScope();
+      peerSetSubhead.textContent = peerContextInactive ? 'Saved peer set' : 'Peer set';
+
+      if (!selectedGenera.length) {
+        const placeholder = document.createElement('span');
+        placeholder.className = 'compare-pill context-muted';
+        placeholder.textContent = 'Peer benchmark is unavailable until some genera are in scope';
+        peerSetOptions.appendChild(placeholder);
+        return;
+      }
+
+      if (!focusGenus) {
+        const placeholder = document.createElement('span');
+        placeholder.className = 'compare-pill context-muted';
+        placeholder.textContent = broadComparisonScope()
+          ? `After you choose a focus genus, all other ${selectedGenera.length - 1} in-scope genera become market context only`
+          : 'Choose a focus genus first';
+        peerSetOptions.appendChild(placeholder);
+        return;
+      }
+
+      const options = selectedGenera.filter((genus) => genus !== focusGenus);
+      if (!options.length) {
+        const placeholder = document.createElement('span');
+        placeholder.className = 'compare-pill context-muted';
+        placeholder.textContent = 'Add at least one more genus in Global filters to create a peer benchmark';
+        peerSetOptions.appendChild(placeholder);
+        return;
+      }
+
+      if (!manualPeerEditingEnabled()) {
+        const summary = document.createElement('span');
+        summary.className = 'compare-pill active';
+        summary.textContent = `Peer set is inactive: all other in-scope genera stay as background context (${options.length})`;
+        peerSetOptions.appendChild(summary);
+
+        const helper = document.createElement('span');
+        helper.className = 'compare-pill context-muted';
+        helper.textContent = `Only market baseline is available while the global genus scope is broader than ${editableComparisonLimit}`;
+        peerSetOptions.appendChild(helper);
+        return;
+      }
+
+      options.forEach((genus) => {
+        const selected = effectivePeerSet().includes(genus);
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'compare-pill';
+        if (selected && !peerContextInactive) {
+          button.classList.add('active');
+        }
+        if (peerContextInactive) {
+          button.classList.add('inactive-context');
+        }
+        button.textContent = genus;
+        button.dataset.genus = genus;
+        button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        button.disabled = peerContextInactive;
+        button.addEventListener('click', () => {
+          if (manualPeerSet.includes(genus)) {
+            if (manualPeerSet.length === 1) {
+              return;
+            }
+            manualPeerSet = manualPeerSet.filter((item) => item !== genus);
+          } else {
+            manualPeerSet = [...manualPeerSet, genus];
+          }
+          syncStateAfterSelectionChange();
+          applyFocusState(Boolean(focusGenus));
+        });
+        peerSetOptions.appendChild(button);
+      });
+    }
+
+    function updateBreederMetrics() {
+      const focusData = genusMetrics(focusGenus);
+      breederFocusName.textContent = focusGenus;
+      breederScarcityValue.textContent = focusData.scarcityRate;
+      setDelta(breederScarcityLabel, focusData.scarcityLabel, focusData.scarcityClass);
+      breederScarcityCopy.textContent = focusData.scarcityCopy;
+      breederWishlistValue.textContent = focusData.wishlist;
+      breederWishlistLabel.textContent = focusData.wishlistLabel;
+      breederWishlistCopy.textContent = focusData.wishlistCopy;
+      breederRestockValue.textContent = focusData.restock;
+      setDelta(breederRestockLabel, focusData.restockLabel, focusData.restockClass);
+      breederRestockCopy.textContent = focusData.restockCopy;
+      breederScoreValue.textContent = scoreText(focusData.opportunity);
+    }
+
+    function updateBreederCharts() {
+      const ranked = [...new Set([focusGenus, ...effectivePeerSet()])].sort((left, right) => genusMetrics(right).opportunity - genusMetrics(left).opportunity);
+      const focusScore = genusMetrics(focusGenus).opportunity;
+
+      noneRowEls.forEach((slot, index) => {
+        const genus = ranked[index];
+        if (!genus) {
+          slot.row.hidden = true;
+          slot.row.style.display = 'none';
+          return;
+        }
+        slot.row.hidden = false;
+        slot.row.style.display = 'grid';
+        slot.name.textContent = genus;
+        slot.fill.className = genus === focusGenus ? 'bar-fill alt' : 'bar-fill';
+        slot.fill.style.width = scoreWidth(genusMetrics(genus).opportunity);
+        slot.score.textContent = scoreText(genusMetrics(genus).opportunity);
+      });
+
+      const peerAverage = peerAverageScoreValue();
+      peerAverageFill.style.width = scoreWidth(peerAverage);
+      peerAverageScore.textContent = scoreText(peerAverage);
+      peerAverageFocusName.textContent = focusGenus;
+      peerAverageFocusFill.style.width = scoreWidth(focusScore);
+      peerAverageFocusScore.textContent = scoreText(focusScore);
+
+      marketBaselineFocusName.textContent = focusGenus;
+      marketBaselineFocusFill.style.width = scoreWidth(focusScore);
+      marketBaselineFocusScore.textContent = scoreText(focusScore);
+      marketBaselinePeerFill.style.width = scoreWidth(peerAverage);
+      if (broadComparisonScope()) {
+        marketBaselinePeerLabel.textContent = 'In-scope context';
+        marketBaselinePeerScore.textContent = `${effectivePeerSet().length} genera in context`;
+      } else {
+        marketBaselinePeerLabel.textContent = 'Saved peer set';
+        marketBaselinePeerScore.textContent = `${effectivePeerSet().length} peers saved`;
+      }
+    }
+
+    function updateIngredientsTable() {
+      const ranked = [...new Set([focusGenus, ...effectivePeerSet()])].sort((left, right) => genusMetrics(right).opportunity - genusMetrics(left).opportunity);
+      const leader = ranked[0];
+      ingredientsRows.forEach((slot, index) => {
+        const genus = ranked[index];
+        if (!genus) {
+          slot.row.hidden = true;
+          return;
+        }
+
+        slot.row.hidden = false;
+        slot.row.classList.toggle('highlight', genus === focusGenus);
+        slot.genus.textContent = genus;
+
+        const scarcity = genusMetrics(genus).tableScarcity;
+        const demand = genusMetrics(genus).tableDemand;
+        const restock = genusMetrics(genus).tableRestock;
+        slot.scarcity.textContent = scarcity.text;
+        slot.scarcity.className = `badge${scarcity.className ? ` ${scarcity.className}` : ''}`;
+        slot.demand.textContent = demand.text;
+        slot.demand.className = `badge${demand.className ? ` ${demand.className}` : ''}`;
+        slot.restock.textContent = restock.text;
+        slot.restock.className = `badge${restock.className ? ` ${restock.className}` : ''}`;
+        slot.read.textContent = readForGenus(genus, focusGenus, leader);
+      });
+    }
+
+    function updateBiasSection() {
+      const focusData = genusMetrics(focusGenus);
+      const leader = leaderGenus();
+      const leaderScore = leader ? genusMetrics(leader).opportunity : focusData.opportunity;
+      const gap = focusData.opportunity - leaderScore;
+      const peerAverage = peerAverageScoreValue();
+      const rank = rankWithinSelection();
+      const peers = effectivePeerSet();
+
+      biasQuestionFocus.textContent = focusGenus;
+      biasQuestionFocus.hidden = false;
+      biasQuestionFallback.hidden = true;
+      biasRankFocusName.textContent = focusGenus;
+      biasStabilityValue.textContent = focusData.stability;
+      biasStabilityLabel.textContent = focusData.stabilityLabel;
+      biasStabilityCopy.textContent = focusData.stabilityCopy;
+      biasSvgFocusNone.textContent = focusGenus;
+      biasSvgFocusPeer.textContent = focusGenus;
+      biasSvgFocusMarket.textContent = focusGenus;
+      decisionProfitCopy.textContent = leader && leader !== focusGenus
+        ? `${leader} currently looks stronger.`
+        : `${focusGenus} currently looks strongest in this peer set.`;
+      decisionDefensibleCopy.textContent = focusData.opportunity >= leaderScore - 1.2
+        ? `${focusGenus} remains defendable because it is near the top, not near the bottom.`
+        : `${focusGenus} now needs a stronger preference case because the commercial gap is widening.`;
+
+      if (currentMode === 'none') {
+        biasRankValue.textContent = `#${rank}`;
+        biasRankLabel.textContent = `of ${peers.length + 1} selected genera`;
+        biasRankCopy.textContent = rank === 1
+          ? `${focusGenus} currently leads this selected peer set.`
+          : `${focusGenus} performs well, but the data does not put it at the top.`;
+        biasGapValue.textContent = leader ? gap.toFixed(1) : 'No peers';
+        setDelta(biasGapLabel, leader ? `vs ${leader}` : 'no active peer benchmark', gap < 0 ? 'down' : 'flat');
+        biasGapCopy.textContent = leader
+          ? gap < -1
+            ? `The gap to ${leader} is meaningful, but not overwhelming.`
+            : `${focusGenus} stays close enough to ${leader} that the choice still looks competitive.`
+          : 'There is no second genus in scope, so this readout cannot judge relative strength yet.';
+        biasPremiumValue.textContent = gap < -1.2 ? 'Borderline' : 'Yes';
+        setDelta(biasPremiumLabel, gap < -1.2 ? 'Needs a stronger preference case' : 'Still commercially reasonable', 'flat');
+        biasPremiumCopy.textContent = gap < -1.2
+          ? `${focusGenus} is still viable, but the current leader has opened a more noticeable commercial gap.`
+          : `${focusGenus} is not the leader, but it still looks close enough to the top to remain a commercially defensible choice.`;
+        biasChartTitle.textContent = 'Focus genus vs selected peers';
+        biasChartNote.textContent = `${focusGenus} wins on some ingredients, but ${leader} still leads the strongest overall commercial case in this peer set.`;
+        return;
+      }
+
+      if (currentMode === 'peer-average') {
+        const aboveAverage = focusData.opportunity - peerAverage;
+        biasRankValue.textContent = aboveAverage >= 0 ? 'Above avg' : 'Below avg';
+        biasRankLabel.textContent = 'vs peer-average benchmark';
+        biasRankCopy.textContent = aboveAverage >= 0
+          ? `${focusGenus} stays above the peer-average benchmark once the selected peers are collapsed together.`
+          : `${focusGenus} falls below the peer-average benchmark once the selected peers are collapsed together.`;
+        biasGapValue.textContent = `${aboveAverage >= 0 ? '+' : ''}${Math.round((aboveAverage / peerAverage) * 100)}%`;
+        setDelta(biasGapLabel, 'vs peer average', aboveAverage < 0 ? 'down' : '');
+        biasGapCopy.textContent = aboveAverage >= 0
+          ? `${focusGenus} is slightly above the selected peer set overall.`
+          : `${focusGenus} trails the selected peer set overall once it is averaged.`;
+        biasPremiumValue.textContent = aboveAverage >= 0 ? 'Yes' : 'Borderline';
+        setDelta(biasPremiumLabel, aboveAverage >= 0 ? 'Preference still holds up' : 'Now harder to justify', 'flat');
+        biasPremiumCopy.textContent = aboveAverage >= 0
+          ? `${focusGenus} stays slightly above the peer average here, so backing it still looks commercially easy to justify.`
+          : `${focusGenus} now sits below the peer average, so preference needs more justification than before.`;
+        biasChartTitle.textContent = 'Focus genus vs peer average';
+        biasChartNote.textContent = `Bias-control becomes cleaner here: ${focusGenus} is compared against one aggregated peer benchmark instead of several separate peer lines.`;
+        return;
+      }
+
+      const marketGap = focusData.opportunity - marketAverageScore;
+      biasRankValue.textContent = marketGap >= 1 ? '#1' : marketGap >= 0 ? 'Above mkt' : 'Below mkt';
+      biasRankLabel.textContent = 'vs market baseline';
+      biasRankCopy.textContent = marketGap >= 0
+        ? `Against the broader market, ${focusGenus} still looks like a commercially strong candidate.`
+        : `Against the broader market, ${focusGenus} looks weaker than the baseline even before preference is considered.`;
+      biasGapValue.textContent = marketGap >= 0 ? 'Above market' : 'Below market';
+      setDelta(biasGapLabel, 'vs market baseline', marketGap < 0 ? 'down' : '');
+      biasGapCopy.textContent = marketGap >= 0
+        ? `${focusGenus} looks stronger than the wider market overall, even if the selected peer set stays competitive.`
+        : `${focusGenus} looks weaker than the wider market, which makes a preference-led choice harder to defend.`;
+      biasPremiumValue.textContent = marketGap >= 1 ? 'Strong yes' : marketGap >= 0 ? 'Yes' : 'No';
+      setDelta(biasPremiumLabel, marketGap >= 0 ? 'Preference aligns with market' : 'Preference fights the market', 'flat');
+      biasPremiumCopy.textContent = marketGap >= 1
+        ? `Against the broader market, ${focusGenus} looks strong enough that choosing it barely needs a commercial apology.`
+        : marketGap >= 0
+        ? `${focusGenus} still clears the broader market bar, so preference and market logic remain fairly aligned.`
+        : `${focusGenus} falls below the market baseline, so preference is now doing most of the work.`;
+      biasChartTitle.textContent = 'Focus genus vs market baseline';
+      biasChartNote.textContent = `Here the peer set is visually de-emphasized. The chart is about whether ${focusGenus} beats the broader market, not just the peers you hand-picked.`;
+    }
+
+    function applyMode(mode) {
+      currentMode = focusGenus ? mode : 'none';
+      if (focusGenus && broadComparisonScope()) {
+        currentMode = 'market-baseline';
+      }
+      if (currentMode === 'peer-average' && (!effectivePeerSet().length || !manualPeerEditingEnabled())) {
+        currentMode = 'none';
+      }
+
+      modeButtons.forEach((button) => {
+        const needsPeers = button.dataset.mode === 'peer-average';
+        const available = Boolean(focusGenus) && (!needsPeers ? true : manualPeerEditingEnabled() && Boolean(effectivePeerSet().length));
+        const active = available && button.dataset.mode === currentMode;
+        button.classList.toggle('active', active);
+        button.classList.toggle('disabled-control', !available);
+        button.disabled = !available;
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+
+      document.querySelectorAll('.compare-view').forEach((node) => {
+        node.hidden = node.dataset.compareView !== currentMode;
+      });
+
+      renderPeerOptions();
+
+      if (!focusGenus) {
+        updateSectionFraming();
+        return;
+      }
+
+      updateBreederCharts();
+      updateIngredientsTable();
+
+      const focusScore = genusMetrics(focusGenus).opportunity;
+      const leader = leaderGenus();
+      const peerAverage = peerAverageScoreValue();
+      const peers = effectivePeerSet();
+
+      if (currentMode === 'none') {
+        breederTurnoverDelta.textContent = leader && leader !== focusGenus ? `Best peer is ${leader}` : peers.length ? 'Strongest in selected set' : 'No peer benchmark yet';
+        breederTurnoverCopy.textContent = selectedGenera.length > editableComparisonLimit
+          ? `Composite breeder-opportunity score. Higher means stronger demand relative to supply. Because the global genus scope is still broad, this section reads ${focusGenus} against one implicit benchmark built from the other in-scope genera.`
+          : `Composite breeder-opportunity score. Higher means stronger demand relative to supply. With no comparison mode selected, the section reads ${focusGenus} against each selected peer individually.`;
+        breederChartTitle.textContent = 'Opportunity score by genus';
+        breederChartNote.textContent = !peers.length
+          ? `${focusGenus} cannot be compared yet because there is no peer benchmark in scope.`
+          : leader && leader !== focusGenus
+          ? `${focusGenus} has a credible breeder case, but ${leader} is still the strongest purely commercial candidate in the comparison set.`
+          : `${focusGenus} currently looks strongest in the selected comparison set.`;
+      } else if (currentMode === 'peer-average') {
+        const diff = focusScore - peerAverage;
+        breederTurnoverDelta.textContent = `${diff >= 0 ? '+' : ''}${scoreText(diff)} vs peer average`;
+        breederTurnoverCopy.textContent = `Composite breeder-opportunity score. Higher means stronger demand relative to supply. In peer-average mode, ${focusGenus} is compared against one aggregated benchmark built from the selected peer set.`;
+        breederChartTitle.textContent = `Opportunity score: ${focusGenus} vs peer average`;
+        breederChartNote.textContent = `This view collapses the selected peers into one benchmark, making it easier to judge whether ${focusGenus} is above or below the peer set overall.`;
+      } else {
+        const diff = focusScore - marketAverageScore;
+        breederTurnoverDelta.textContent = `${diff >= 0 ? '+' : ''}${scoreText(diff)} vs market average`;
+        breederTurnoverCopy.textContent = `Composite breeder-opportunity score. Higher means stronger demand relative to supply. In market-baseline mode, the selected peer set is kept only as context while the broader market becomes the active benchmark.`;
+        breederChartTitle.textContent = `Opportunity score: ${focusGenus} vs market baseline`;
+        breederChartNote.textContent = `This view answers a different question: whether ${focusGenus} is outperforming the broader market, not just the peers you hand-picked.`;
+      }
+
+      updateSectionFraming();
+      updateBiasSection();
+    }
+
+    function applyFocusState(selected) {
+      if (!selectedGenera.length) {
+        compareHelp.textContent = 'Add genera in Global filters first. Comparison controls stay empty until the market slice contains at least one genus.';
+      } else if (!selected) {
+        compareHelp.textContent = broadComparisonScope()
+          ? `Global scope is broad at ${selectedGenera.length} genera. You can still choose a focus genus, but the only comparison mode available will be market baseline.`
+          : 'Choose one of the globally selected genera as the focus. The peer set defaults to the remaining selected genera.';
+      } else if (!manualPeerEditingEnabled()) {
+        compareHelp.textContent = `Focus genus is ${focusGenus}. Because the global scope is ${selectedGenera.length} genera wide, peer editing is disabled and the section stays in market-baseline mode.`;
+      } else if (currentMode === 'market-baseline') {
+        compareHelp.textContent = `Focus genus is ${focusGenus}. The saved peer set is muted because market baseline is now the active benchmark.`;
+      } else {
+        compareHelp.textContent = `Focus genus is ${focusGenus}. Peer set defaults to the other selected genera, and you can toggle peers on or off below.`;
+      }
+
+      conditionalSections.forEach((section) => {
+        section.classList.toggle('is-ready', selected);
+      });
+
+      if (!selected) {
+        currentMode = 'none';
+      } else {
+        updateBreederMetrics();
+        updateBreederCharts();
+        updateIngredientsTable();
+      }
+
+      renderFocusOptions();
+      renderPeerOptions();
+      updateSectionFraming();
+      applyMode(currentMode);
+    }
+
+    function renderAll() {
+      renderTimeWindow();
+      renderMarketHealthSectionHeader();
+      renderSelectedGenera();
+      renderSuggestions();
+      renderQuickPicks();
+      renderComparisonState();
+      updateSectionFraming();
+      applyFocusState(Boolean(focusGenus));
+    }
+
+    modeButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const isActive = button.classList.contains('active');
+        applyMode(isActive ? 'none' : button.dataset.mode);
+      });
+    });
+
+    genusSearchInput.addEventListener('input', (event) => {
+      searchQuery = event.target.value.trim().toLowerCase();
+      renderSuggestions();
+    });
+
+    quickPickButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        if (button.dataset.selectionAction === 'all' || button.dataset.selectionAction === 'clear-all') {
+          isAllSelected = button.dataset.selectionAction === 'all';
+          selectedGenera = [];
+        } else {
+          isAllSelected = false;
+          selectedGenera = normalizeSelection(selectionPresets[button.dataset.selectionAction] || []);
+        }
+        syncStateAfterSelectionChange();
+        renderAll();
+      });
+    });
+
+    windowButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        selectedTimeWindow = button.dataset.window;
+        renderAll();
+      });
+    });
+
+    marketSparklineClear.addEventListener('click', () => {
+      selectedSparklineRun = null;
+      renderMarketSparklines();
+    });
+
+    syncStateAfterSelectionChange();
+    renderAll();
+  })();
+</script>
+</html>

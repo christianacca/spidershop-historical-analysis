@@ -11,6 +11,7 @@
     --color-primary-light:      #34495e; /* slightly lighter navy — subheadings, th bg */
     --color-accent:             #3498db; /* blue — buttons, links, borders, active states */
     --color-accent-hover:       #2980b9; /* darker blue — hover state for accent elements */
+    --color-market-health:      #1f7a6b; /* teal — Market Health section accent, also the observed-sparkline series colour */
 
     /* === Status === */
     --color-success:            #27ae60; /* green — download / success actions */
@@ -33,14 +34,17 @@
     --color-date-filter-text:   #856404;
 
     /* === Text === */
-    --color-text:               #333;
+    --color-text:               #1f2a2c; /* warm dark — body text */
     --color-text-heading:       #2c3e50; /* alias of --color-primary */
+    --color-text-primary:       #2c3e50; /* alias of --color-text-heading — use for primary headings */
     --color-text-muted:         #7f8c8d;
+    --color-text-label:         #5d6a6d; /* darker muted — KPI card labels and ? button colour */
     --color-text-dim:           #607080; /* species-detail muted tones */
 
     /* === Surfaces === */
-    --color-bg:                 #f5f5f5; /* page background */
-    --color-surface:            #ffffff;
+    --color-bg:                 #f0ece4; /* warm cream page background */
+    --color-surface:            #fffaf2; /* warm white — cards and surfaces */
+    --color-surface-popover:    rgba(255, 253, 248, 0.98); /* near-pure white with slight transparency — floating popovers/tooltips */
     --color-surface-light:      #f8f9fa; /* cards, filter panels */
     --color-surface-alt:        #ecf0f1; /* nav hover, secondary button bg */
     --color-info-bg:            #e8f4f8; /* info/callout blocks */
@@ -52,12 +56,14 @@
     --color-border:             #dee2e6;
     --color-border-light:       #ddd;
     --color-border-alt:         #e1e8ed;
+    --color-border-warm:        #d7cfc0; /* warm sand — KPI card borders */
 
     /* === Shadows === */
     --shadow-sm:                0 2px 5px rgba(0, 0, 0, 0.05);
     --shadow-md:                0 2px 5px rgba(0, 0, 0, 0.1);
     --shadow-lg:                0 4px 12px rgba(0, 0, 0, 0.1);
     --shadow-card-hover:        0 4px 8px rgba(0, 0, 0, 0.1);
+    --shadow-popover:           0 20px 40px rgba(65, 54, 33, 0.08); /* large warm shadow for floating panels/tooltips */
 
     /* === Spacing === */
     --spacing-xs:   5px;
@@ -67,13 +73,17 @@
     --spacing-xl:   30px;
 
     /* === Border radius === */
-    --radius-sm:    4px;
-    --radius-md:    6px;
-    --radius-lg:    8px;
+    --radius-sm:        4px;
+    --radius-md:        6px;
+    --radius-lg:        8px;
+    --radius-popover:   14px;  /* popovers / tooltips */
+    --radius-pill:      999px; /* pill / chip shape elements */
+    --radius-card-lg:   16px;  /* large card / section card rounding */
 
     /* === Font sizes === */
     --font-sm:      0.9rem;
     --font-base:    0.95rem;
+    --font-lg:      1.4rem; /* large heading font size (~23px) */
 }
 
 /* Reset and Base Styles */
@@ -84,8 +94,8 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    line-height: 1.6;
+    font-family: "Avenir Next", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.5;
     color: var(--color-text);
     background: var(--color-bg);
 }
@@ -170,6 +180,12 @@ nav a.nav__link--active {
 h2 {
     color: var(--color-primary);
     margin-bottom: 20px;
+}
+
+/* Decorative underline for page-level section headings only.
+   Direct-child selector avoids leaking into Svelte component islands
+   mounted deeper inside .content. */
+.content > h2 {
     padding-bottom: 10px;
     border-bottom: 2px solid var(--color-accent);
 }
@@ -643,8 +659,11 @@ footer a:hover {
     font-size: 0.9rem !important;
 }
 
-/* General Details Element */
-details {
+/* Content-disclosure Details Elements */
+/* Deliberately NOT applied to all <details> — component-owned details (e.g. .metric-info) must not inherit these styles */
+details.analysis-methodology,
+details.legend-box,
+details.examples-box {
     background: white;
     padding: 15px;
     border-radius: 8px;
@@ -652,7 +671,9 @@ details {
     border: 1px solid #e1e8ed;
 }
 
-details summary {
+details.analysis-methodology summary,
+details.legend-box summary,
+details.examples-box summary {
     cursor: pointer;
     font-weight: 600;
     color: var(--color-primary);
@@ -661,26 +682,36 @@ details summary {
     transition: background 0.3s;
 }
 
-details summary:hover {
+details.analysis-methodology summary:hover,
+details.legend-box summary:hover,
+details.examples-box summary:hover {
     background: var(--color-surface-light);
 }
 
-details[open] summary {
+details.analysis-methodology[open] summary,
+details.legend-box[open] summary,
+details.examples-box[open] summary {
     margin-bottom: 15px;
     border-bottom: 1px solid var(--color-border-alt);
 }
 
-details p {
+details.analysis-methodology p,
+details.legend-box p,
+details.examples-box p {
     margin: 15px 0;
 }
 
-details ul {
+details.analysis-methodology ul,
+details.legend-box ul,
+details.examples-box ul {
     margin-left: 30px;
     margin-top: 10px;
     margin-bottom: 10px;
 }
 
-details hr {
+details.analysis-methodology hr,
+details.legend-box hr,
+details.examples-box hr {
     margin: 30px 0;
     border: none;
     border-top: 2px solid var(--color-border);
