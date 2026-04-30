@@ -7,6 +7,15 @@ import type { PrecacheEntry } from 'workbox-precaching';
 
 declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: Array<PrecacheEntry | string> };
 
+// Respond to the SKIP_WAITING message sent by wb.messageSkipWaiting() in register-sw.ts.
+// Without this listener the waiting SW never calls self.skipWaiting(), so the Refresh
+// button appears but the page never reloads with the new version.
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 // Must be called BEFORE precacheAndRoute to remove stale entries from prior builds.
 cleanupOutdatedCaches();
 

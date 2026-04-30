@@ -398,3 +398,103 @@ def test_update_toast_appears_when_new_sw_waiting(_e2e_sw_update_context) -> Non
     assert toast.is_visible(), (
         "Expected .sw-update-toast to be visible when a new SW is waiting to activate"
     )
+
+
+@pytest.mark.e2e
+def test_refresh_button_activates_new_sw(_e2e_sw_update_context) -> None:
+    """Clicking Refresh in the update toast activates the waiting SW and reloads.
+
+    This test verifies the full Refresh path end-to-end:
+      1. V1 is active and controlling the page
+      2. sw.js is patched (simulating a deployment)
+      3. V2 installs and enters 'waiting' — toast appears
+      4. User clicks Refresh
+      5. V2 calls self.skipWaiting() (requires the SKIP_WAITING message listener in sw.ts)
+      6. V2 becomes the active controller
+      7. Page reloads — toast is gone, no SW is left waiting
+
+    A missing `self.addEventListener('message', ...)` handler in sw.ts would cause
+    step 5 to silently fail: the toast would never disappear and reg.waiting would
+    remain non-null indefinitely.
+    """
+    page, base_url, output_dir = _e2e_sw_update_context
+
+    # --- Install and activate SW V1 ---
+    page.goto(f"{base_url}/", wait_until="load")
+    page.evaluate("navigator.serviceWorker.ready")
+    page.goto(f"{base_url}/", wait_until="load")
+    page.evaluate("navigator.serviceWorker.ready")
+
+    assert page.evaluate("navigator.serviceWorker.controller !== null"), (
+        "SW V1 must be controlling the page before simulating an update"
+    )
+
+    # --- Simulate a new deployment ---
+    sw_path = output_dir / "sw.js"
+    sw_path.write_text(
+        sw_path.read_text(encoding="utf-8") + "\n// refresh-test-marker",
+        encoding="utf-8",
+    )
+
+    # --- Trigger update check and wait for toast ---
+    console_msgs: list[str] = []
+    page.on("console", lambda msg: console_msgs.append(f"{msg.type}: {msg.text}"))
+
+    page.evaluate("""
+        async () => {
+            const reg = await navigator.serviceWorker.getRegistration();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await reg.update();
+            await new Promise((resolve, reject) => {
+                const deadline = setTimeout(
+                    () => reject(new Error('Timed out waiting for waiting state')), 8_000
+                );
+                const poll = () => {
+                    if (reg.waiting) { clearTimeout(deadline); resolve(); return; }
+                    setTimeout(poll, 50);
+                };
+                poll();
+            });
+        }
+    """)
+
+    try:
+        page.wait_for_selector(".sw-update-toast", timeout=30_000)
+    except Exception as exc:
+        recent_console = "\n".join(console_msgs[-30:]) if console_msgs else "(none)"
+        raise AssertionError(
+            f"Toast did not appear — cannot test Refresh.\nConsole:\n{recent_console}"
+        ) from exc
+
+    # --- Click Refresh and wait for the page to reload ---
+    with page.expect_navigation(wait_until="load", timeout=15_000):
+        page.click(".sw-update-toast button:has-text('Refresh')")
+
+    # --- After reload: V2 must be the active controller, nothing waiting ---
+    page.evaluate("navigator.serviceWorker.ready")
+
+    post_state = page.evaluate("""
+        async () => {
+            const reg = await navigator.serviceWorker.getRegistration();
+            return {
+                waiting: reg?.waiting?.state ?? null,
+                activeState: reg?.active?.state ?? null,
+                controller: navigator.serviceWorker.controller !== null,
+            };
+        }
+    """)
+
+    assert post_state["waiting"] is None, (
+        f"Expected reg.waiting to be null after Refresh — skipWaiting() was not called. "
+        f"Full state: {post_state}. "
+        f"Check that sw.ts has a 'message' event listener for {{type: 'SKIP_WAITING'}}."
+    )
+    assert post_state["activeState"] == "activated", (
+        f"Expected new SW to be activated after Refresh, got: {post_state['activeState']}"
+    )
+    assert post_state["controller"] is True, (
+        "Expected SW to be controlling the page after reload"
+    )
+    assert page.query_selector(".sw-update-toast") is None, (
+        "Expected toast to be gone after successful SW update"
+    )
