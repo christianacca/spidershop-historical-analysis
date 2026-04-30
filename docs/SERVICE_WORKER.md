@@ -149,7 +149,7 @@ sequenceDiagram
     WB->>Page: navigator.serviceWorker.register(swUrl)
     Page->>SW: Download sw.js
     SW->>SW: cleanupOutdatedCaches()
-    SW->>SW: precacheAndRoute(__WB_MANIFEST) — fetch & cache all JS+CSS
+    SW->>SW: precacheAndRoute(__WB_MANIFEST) - fetch and cache all JS+CSS
     SW->>SW: registerRoute NavigationRoute (SWR)
     SW->>SW: registerRoute style (SWR)
     Note over SW: No old SW → skip waiting state
@@ -168,7 +168,7 @@ sequenceDiagram
     participant WB as Workbox (client)
     participant Toast as SwUpdateToast
 
-    Note over GH: New scrape deployed — sw.js content changed
+    Note over GH: New scrape deployed - sw.js content changed
     Page->>GH: Navigation (or periodic update check)
     GH-->>Page: sw.js — HTTP 200 (new bytes)
     Page->>NewSW: Install new SW
@@ -189,7 +189,7 @@ sequenceDiagram
         Note over Page: User sees up-to-date version
     else User clicks Dismiss
         Page->>Toast: needRefresh.set(false)
-        Note over Page: Toast hidden; old SW keeps controlling
+        Note over Page: Toast hidden, old SW keeps controlling
         Note over Page: New SW activates next time all tabs close
     end
 ```
@@ -326,11 +326,11 @@ If you see anything other than **"activated and is running"** in Status, check t
 
 In DevTools → **Application → Cache Storage**, you should see three caches after visiting a few pages:
 
-| Cache | Contains |
-|---|---|
-| `workbox-precache-v2-https://…` | All content-hashed JS and CSS bundles |
-| `html-pages` | HTML pages you have visited |
-| `css-runtime` | Unhashed CSS files (common.css etc.) |
+| Cache | Contains | E2E test |
+|---|---|---|
+| `workbox-precache-v2-https://…` | All content-hashed JS and CSS bundles | `test_precache_contains_hashed_js_bundle` |
+| `html-pages` | HTML pages you have visited | `test_html_page_cached_in_html_pages` |
+| `css-runtime` | Unhashed CSS files (common.css etc.) | `test_css_cached_in_css_runtime` |
 
 If any cache is missing, the SW is not fully initialized. Reload the page and check again.
 
@@ -359,6 +359,9 @@ Waiting:    none
 Installing: none
 Controller: ServiceWorker { ... }
 ```
+
+The scope ending in `/` and `controller` being non-null are both verified automatically by
+`test_sw_registration_scope_covers_site` and `test_sw_activates_after_two_navigations`.
 
 If `Controller` is `null`, the SW has registered but not yet claimed the page. This happens on the very first visit before the SW activates. Reload once.
 

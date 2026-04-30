@@ -6,6 +6,8 @@ Scope:
 - SW activates and becomes the controller after initial page loads
 - Precache manifest covers at least one hashed JS bundle
 - HTML navigation routes land in the `html-pages` SWR cache
+- CSS files land in the `css-runtime` SWR cache
+- SW registration scope covers the whole site (not a narrow per-page scope)
 - `#sw-update-toast-root` mount point present on every page
 - Update toast is hidden on fresh load (no waiting SW)
 - Update toast appears when a new SW version is installed and waiting
@@ -130,6 +132,65 @@ def test_html_page_cached_in_html_pages(e2e_site_minimal) -> None:
     """)
     assert cached is True, (
         "Expected history-insights.html to be cached in the 'html-pages' SWR cache"
+    )
+
+
+@pytest.mark.e2e
+def test_css_cached_in_css_runtime(e2e_site_minimal) -> None:
+    """At least one CSS file is present in the `css-runtime` SWR cache.
+
+    The sw.ts registerRoute for request.destination === 'style' covers the
+    unhashed top-level CSS files (common.css, analysis.css, etc.).  This test
+    verifies that route is active and that visiting a page actually populates
+    the cache — a misconfigured or missing route would leave it empty.
+    """
+    page, base_url, _ = e2e_site_minimal
+
+    page.goto(f"{base_url}/history-insights.html", wait_until="load")
+    page.evaluate("navigator.serviceWorker.ready")
+
+    css_entry_count = page.evaluate("""
+        async () => {
+            const cache = await caches.open('css-runtime');
+            const reqs = await cache.keys();
+            return reqs.filter(r => r.url.endsWith('.css')).length;
+        }
+    """)
+    assert css_entry_count > 0, (
+        f"Expected at least one .css entry in the 'css-runtime' cache, got {css_entry_count}. "
+        "Check that the registerRoute for request.destination === 'style' is active in sw.ts."
+    )
+
+
+@pytest.mark.e2e
+def test_sw_registration_scope_covers_site(e2e_site_minimal) -> None:
+    """The SW registration scope covers the whole site, not a narrow per-page scope.
+
+    The scope must end with '/' (i.e. a directory scope) so that all pages
+    under the deployment root are controlled by a single registration.  A
+    per-page scope (e.g. ending in '.html') would mean each page creates its
+    own registration, causing unpredictable behaviour between navigations.
+    """
+    page, base_url, _ = e2e_site_minimal
+
+    page.goto(f"{base_url}/history-insights.html", wait_until="domcontentloaded")
+    page.evaluate("navigator.serviceWorker.ready")
+
+    scope = page.evaluate("""
+        async () => {
+            const reg = await navigator.serviceWorker.getRegistration();
+            return reg ? reg.scope : null;
+        }
+    """)
+    assert scope is not None, "Expected a SW registration to exist"
+    assert scope.endswith("/"), (
+        f"Expected SW scope to end with '/' (directory scope covering the whole site), got: {scope!r}. "
+        "A scope ending in a filename means only that exact URL is controlled."
+    )
+    # The scope must be a prefix of the page URL, confirming this registration
+    # actually covers the page we navigated to.
+    assert base_url.rstrip("/") + "/" in scope or scope in base_url + "/", (
+        f"SW scope {scope!r} does not appear to cover the test server origin {base_url!r}"
     )
 
 
