@@ -331,14 +331,14 @@ No caching rules yet — just the scaffold. The precache manifest injection alon
 `self.__WB_MANIFEST` array) is enough to validate the build pipeline is wired correctly.
 
 **Pre-flight:**
-- [ ] Run `make test-client-fast` — confirm baseline is green before touching anything.
-- [ ] Read `client/vite.config.ts` fully — understand the `createViteConfig(isCiBuild)`
+- [x] Run `make test-client-fast` — confirm baseline is green before touching anything.
+- [x] Read `client/vite.config.ts` fully — understand the `createViteConfig(isCiBuild)`
   function and the `rollupOptions.input` map. `sw.ts` is **not** added to
   `rollupOptions.input` — `vite-plugin-pwa` handles it separately via `srcDir`/`filename`.
-- [ ] Read `client/package.json` — note existing plugin versions before adding new deps.
+- [x] Read `client/package.json` — note existing plugin versions before adding new deps.
 
 **Tasks — install:**
-- [ ] From `client/`, install the plugin and all workbox packages used in `sw.ts`:
+- [x] From `client/`, install the plugin and all workbox packages used in `sw.ts`:
   ```bash
   cd client && npm install --save-dev vite-plugin-pwa workbox-precaching workbox-routing workbox-strategies workbox-expiration
   ```
@@ -350,11 +350,11 @@ No caching rules yet — just the scaffold. The precache manifest injection alon
   Confirm all five packages appear in `devDependencies` in `client/package.json`.
 
 **Tasks — configure `vite.config.ts`:**
-- [ ] Import `VitePWA` at the top of `client/vite.config.ts`:
+- [x] Import `VitePWA` at the top of `client/vite.config.ts`:
   ```typescript
   import { VitePWA } from 'vite-plugin-pwa';
   ```
-- [ ] Add `VitePWA(...)` to the `plugins` array inside `createViteConfig` (alongside the
+- [x] Add `VitePWA(...)` to the `plugins` array inside `createViteConfig` (alongside the
   existing `svelte(...)` call):
   ```typescript
   VitePWA({
@@ -376,7 +376,7 @@ No caching rules yet — just the scaffold. The precache manifest injection alon
   registration snippet that conflicts with our manual registration in `base.html`.
 
 **Tasks — create `sw.ts` scaffold:**
-- [ ] Create `client/src/sw.ts` (minimal scaffold; caching rules added in Phase 2):
+- [x] Create `client/src/sw.ts` (minimal scaffold; caching rules added in Phase 2):
   ```typescript
   /// <reference lib="webworker" />
   import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching';
@@ -397,7 +397,7 @@ No caching rules yet — just the scaffold. The precache manifest injection alon
   All workbox packages were installed in the task above — no additional install needed.
 
 **Tasks — verify build output:**
-- [ ] Run the Vite build from `client/`:
+- [x] Run the Vite build from `client/`:
   ```bash
   cd client && npx vite build
   ```
@@ -405,8 +405,8 @@ No caching rules yet — just the scaffold. The precache manifest injection alon
   - `templates/scripts/dist/sw.js` exists.
   - The file contains evidence of manifest injection (search for `"revision"` or `"url"`
     — these are keys from the precache manifest entries).
-- [ ] Run `make generate-website` — confirm `website/sw.js` exists.
-- [ ] **Add `sw.ts` and `sw-toast-entry.ts` to the coverage `exclude` list in
+- [x] Run `make generate-website` — confirm `website/sw.js` exists.
+- [x] **Add `sw.ts` and `sw-toast-entry.ts` to the coverage `exclude` list in
   `client/vite.config.ts`.** Both files must be excluded for the same reasons as
   existing entry points (`src/*/index.ts`): `sw.ts` runs in `ServiceWorkerGlobalScope`
   which happy-dom has no runtime for; `sw-toast-entry.ts` is a page-level entry point
@@ -417,7 +417,7 @@ No caching rules yet — just the scaffold. The precache manifest injection alon
   'src/sw.ts',
   'src/sw-toast-entry.ts',
   ```
-- [ ] Run `make test-client-fast` — confirm no new test failures.
+- [x] Run `make test-client-fast` — confirm no new test failures.
 
 **Tasks — dev ergonomics (Makefile + agent instructions):** ✅ *done ahead of Phase 1 implementation*
 - [x] Add a `sw-clean-slate` target to `Makefile` that prints the browser JS snippet for
@@ -461,13 +461,13 @@ No caching rules yet — just the scaffold. The precache manifest injection alon
 - [x] Run `make test-client-fast` — green. *(not yet run — no client code changed)*
 
 **Housekeeping:**
-- [ ] H1 — Mark all tasks above ✅
-- [ ] H2 — Reflection: step back and review every file touched this phase for hygiene
+- [x] H1 — Mark all tasks above ✅
+- [x] H2 — Reflection: step back and review every file touched this phase for hygiene
   issues; refactor and fix before committing. (See [Phase Structure — H2](#phase-structure).)
-- [ ] H3 — Feed-forward: write your entry and actively edit any downstream phase steps
+- [x] H3 — Feed-forward: write your entry and actively edit any downstream phase steps
   that need updating. (See [Phase Structure — H3](#phase-structure) for full guidance.)
-- [ ] H4 — Commit: `git add -A && git commit -m "Phase 1: vite-plugin-pwa scaffold — sw.ts emits to dist"`
-- [ ] GATE — Output phase completion block
+- [x] H4 — Commit: `git add -A && git commit -m "Phase 1: vite-plugin-pwa scaffold — sw.ts emits to dist"`
+- [x] GATE — Output phase completion block
 
 ---
 
@@ -477,13 +477,13 @@ No caching rules yet — just the scaffold. The precache manifest injection alon
 unhashed CSS. After this phase `sw.ts` is complete — no further changes in later phases.
 
 **Pre-flight:**
-- [ ] Phase 1 complete — `website/sw.js` confirmed.
-- [ ] Read `templates/base.html` — identify every `<link rel="stylesheet">` that
+- [x] Phase 1 complete — `website/sw.js` confirmed.
+- [x] Read `templates/base.html` — identify every `<link rel="stylesheet">` that
   references an unhashed CSS filename (e.g. `common.css`, `analysis.css`). These are
   the files the runtime SWR CSS rule must cover. Note them for the feed-forward log.
 
 **Tasks — update `client/src/sw.ts`:**
-- [ ] Replace the Phase 1 scaffold with the full caching rules:
+- [x] Replace the Phase 1 scaffold with the full caching rules:
   ```typescript
   /// <reference lib="webworker" />
   import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching';
@@ -534,31 +534,31 @@ unhashed CSS. After this phase `sw.ts` is complete — no further changes in lat
   by `precacheAndRoute`. Adding a second route for them would corrupt the cache.
 
 **Tasks — verify with Chrome DevTools MCP:**
-- [ ] Run `make preview`.
-- [ ] **Clean slate first (mandatory — see G7 Step 0):** run the clean-slate script via
+- [x] Run `make preview`.
+- [x] **Clean slate first (mandatory — see G7 Step 0):** run the clean-slate script via
   `evaluate_script` to unregister any stale SW and clear caches, then reload twice.
-- [ ] Navigate to `http://localhost:8000/history-insights.html` via Chrome DevTools MCP.
-- [ ] Run `evaluate_script` to confirm SW state:
+- [x] Navigate to `http://localhost:8000/history-insights.html` via Chrome DevTools MCP.
+- [x] Run `evaluate_script` to confirm SW state:
   ```js
   const reg = await navigator.serviceWorker.getRegistration(location.origin + '/');
   return { scope: reg?.scope, state: reg?.active?.state };
   // expected: { scope: 'http://localhost:8000/', state: 'activated' }
   ```
-- [ ] Run `evaluate_script` to confirm cache names:
+- [x] Run `evaluate_script` to confirm cache names:
   ```js
   return await caches.keys();
   // expected: array containing 'html-pages', 'css-runtime', and a 'workbox-precache-v2-...' entry
   ```
-- [ ] Run `make test-client-fast` — green.
+- [x] Run `make test-client-fast` — green.
 
 **Housekeeping:**
-- [ ] H1 — Mark all tasks above ✅
-- [ ] H2 — Reflection: step back and review every file touched this phase for hygiene
+- [x] H1 — Mark all tasks above ✅
+- [x] H2 — Reflection: step back and review every file touched this phase for hygiene
   issues; refactor and fix before committing. (See [Phase Structure — H2](#phase-structure).)
-- [ ] H3 — Feed-forward: write your entry and actively edit any downstream phase steps
+- [x] H3 — Feed-forward: write your entry and actively edit any downstream phase steps
   that need updating. (See [Phase Structure — H3](#phase-structure) for full guidance.)
-- [ ] H4 — Commit: `git add -A && git commit -m "Phase 2: sw.ts caching rules — SWR nav + CSS, precache for hashed bundles"`
-- [ ] GATE — Output phase completion block
+- [x] H4 — Commit: `git add -A && git commit -m "Phase 2: sw.ts caching rules — SWR nav + CSS, precache for hashed bundles"`
+- [x] GATE — Output phase completion block
 
 ---
 
@@ -1184,3 +1184,53 @@ made to future phase steps as a result.*
 
 **Downstream phase edits made:**
 - No downstream phases remain.
+
+---
+
+### 2026-05-01 — Retrospective H2 review (Phases 1–3)
+
+**Context:** H2 checkboxes for Phases 1 and 2 were left unchecked. A retrospective
+code-quality review was performed across all WP-SW source and test files.
+
+**Issues found and fixed:**
+
+1. **`register-sw.ts` — `let wb: Workbox | undefined` with delayed assignment (code smell).**
+   `wb` was declared as `let` and set to `undefined`, then immediately reassigned to
+   `new Workbox(...)` two lines later. The only reason for this ordering was that
+   `updateServiceWorker` was defined between declaration and assignment, capturing `wb`
+   via closure. Reordering to declare `const wb = new Workbox(...)` first, then define
+   `updateServiceWorker`, removes the `?` optional chain and `!` non-null assertions
+   throughout the function body and makes the code straightforward to read.
+
+2. **`register-sw.ts` — `_reloadPage` parameter deception (misleading interface).**
+   `updateServiceWorker` accepted `reloadPage?: boolean` but never used it — the page
+   reload is driven unconditionally by the `controlling` event listener. The parameter
+   was an API remnant from `virtual:pwa-register/svelte` compatibility that no longer
+   applied. Removed from the function, the `UseRegisterSWResult` interface, the Svelte
+   prop type, and the template call. The component always called `updateServiceWorker(true)`;
+   after the fix it calls `updateServiceWorker()`.
+
+3. **`SwUpdateToast.test.ts` — `toHaveBeenCalledWith(true)` (implementation-detail assertion).**
+   The Refresh test asserted the exact argument passed to `updateServiceWorker`. The
+   observable behaviour is that the function was called at all; the `true` argument was
+   the implementation detail that changed in issue #2 above. Fixed to `toHaveBeenCalled()`.
+   Test name updated from "calls updateServiceWorker(true)" to
+   "calls updateServiceWorker when Refresh is clicked".
+
+4. **`SwUpdateToast.visual.test.ts` — duplicate `hidden state` describe block.**
+   The `'is not rendered in the DOM when needRefresh is false'` test was a pure
+   DOM/logic check that doesn't require real CSS resolution. It duplicated the
+   identical check in `SwUpdateToast.test.ts`. Visual tests must cover only what
+   `happy-dom` cannot model (computed styles, token resolution, layout). Removed.
+
+5. **`SwUpdateToast.visual.test.ts` — no top-level `beforeEach` reset.**
+   After the visible-state tests ran, `mockNeedRefresh` was left as `true`. The mobile
+   tests had an `afterEach` reset but the overall suite had no explicit per-test
+   baseline. Added `beforeEach(() => { mockNeedRefresh.set(false); })` at the top
+   level for explicit isolation regardless of test declaration order.
+
+**Result:** 487 unit tests passing, 94/95 visual tests passing (1 pre-existing
+`MarketSparkline` failure unrelated to this work package).
+
+**Downstream phase edits made:**
+- Plan checkboxes for Phases 1 and 2 marked `[x]`.
