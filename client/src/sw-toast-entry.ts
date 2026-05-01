@@ -13,12 +13,13 @@ import { useRegisterSW } from './shared/register-sw';
 // (its asset-inlining heuristic treats new URL(literal, import.meta.url) as an
 // asset reference). We need the URL to stay as a runtime-resolved path.
 //
-// Guard: only mount when SW is supported. Without this guard, useRegisterSW()
-// accesses navigator.serviceWorker and can throw in environments where SW is
-// unsupported or blocked (private browsing on some mobile browsers). The page
-// must function identically without the toast.
+// Guard: only mount when SW is supported and available. Using `navigator.serviceWorker`
+// (truthy check) rather than `'serviceWorker' in navigator` handles environments where
+// the property exists but returns undefined — e.g. Safari private browsing on iOS ≤14.
+// Without this guard, useRegisterSW() accesses navigator.serviceWorker and throws.
+// The page must function identically without the toast.
 const el = document.getElementById('sw-update-toast-root');
-if (el && 'serviceWorker' in navigator) {
+if (el && navigator.serviceWorker) {
   const swUrl = new URL(/* @vite-ignore */ './sw.js', import.meta.url).href;
   const { needRefresh, updateServiceWorker } = useRegisterSW(swUrl);
   mount(SwUpdateToast, { target: el, props: { needRefresh, updateServiceWorker } });
