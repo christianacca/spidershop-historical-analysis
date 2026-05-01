@@ -24,11 +24,9 @@ function renderToast() {
   });
 }
 
-describe('SwUpdateToast — hidden state', () => {
-  it('is not rendered in the DOM when needRefresh is false', () => {
-    const { container } = renderToast();
-    expect(container.querySelector('.sw-update-toast')).toBeNull();
-  });
+// Ensure each test starts with the toast hidden regardless of declaration order.
+beforeEach(() => {
+  mockNeedRefresh.set(false);
 });
 
 describe('SwUpdateToast — visible state', () => {

@@ -3,7 +3,7 @@ import { Workbox } from 'workbox-window';
 
 export interface UseRegisterSWResult {
   needRefresh: ReturnType<typeof writable<boolean>>;
-  updateServiceWorker: (reloadPage?: boolean) => Promise<void>;
+  updateServiceWorker: () => Promise<void>;
 }
 
 /**
@@ -22,18 +22,18 @@ export interface UseRegisterSWResult {
  */
 export function useRegisterSW(swUrl: string): UseRegisterSWResult {
   const needRefresh = writable(false);
-  let wb: Workbox | undefined;
+  const wb = new Workbox(swUrl, { type: 'classic' });
 
-  const updateServiceWorker = async (_reloadPage = true) => {
-    wb?.messageSkipWaiting();
+  // Reload is unconditional: the 'controlling' listener in showSkipWaitingPrompt
+  // always reloads when the new SW takes control. No parameter is needed.
+  const updateServiceWorker = async () => {
+    wb.messageSkipWaiting();
   };
-
-  wb = new Workbox(swUrl, { type: 'classic' });
 
   let needRefreshCalled = false;
   const showSkipWaitingPrompt = () => {
     needRefreshCalled = true;
-    wb!.addEventListener('controlling', (event) => {
+    wb.addEventListener('controlling', (event) => {
       if (event.isUpdate) window.location.reload();
     });
     needRefresh.set(true);

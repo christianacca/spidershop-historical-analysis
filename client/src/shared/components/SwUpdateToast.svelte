@@ -3,14 +3,14 @@
 
   let { needRefresh, updateServiceWorker }: {
     needRefresh: Writable<boolean>;
-    updateServiceWorker: (reloadPage?: boolean) => Promise<void>;
+    updateServiceWorker: () => Promise<void>;
   } = $props();
 </script>
 
 {#if $needRefresh}
   <div class="sw-update-toast" role="status" aria-live="polite">
     <span>New data has been deployed.</span>
-    <button onclick={() => updateServiceWorker(true)}>Refresh</button>
+    <button onclick={() => updateServiceWorker()}>Refresh</button>
     <button onclick={() => needRefresh.set(false)} aria-label="Dismiss">✕</button>
   </div>
 {/if}

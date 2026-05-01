@@ -31,12 +31,12 @@ describe('SwUpdateToast', () => {
     expect(getByRole('status')).toHaveTextContent('New data has been deployed.');
   });
 
-  it('calls updateServiceWorker(true) when Refresh is clicked', async () => {
+  it('calls updateServiceWorker when Refresh is clicked', async () => {
     const { getByText } = renderToast();
     mockNeedRefresh.set(true);
     await Promise.resolve();
     await fireEvent.click(getByText('Refresh'));
-    expect(mockUpdateServiceWorker).toHaveBeenCalledWith(true);
+    expect(mockUpdateServiceWorker).toHaveBeenCalled();
   });
 
   it('dismisses the toast when Dismiss (✕) is clicked', async () => {
