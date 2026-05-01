@@ -28,7 +28,7 @@ describe('SwUpdateToast', () => {
     mockNeedRefresh.set(true);
     // Allow Svelte to flush the reactive update
     await Promise.resolve();
-    expect(getByRole('status')).toHaveTextContent('New data has been deployed.');
+    expect(getByRole('status')).toHaveTextContent('New spider listings available.');
   });
 
   it('calls updateServiceWorker when Refresh is clicked', async () => {

@@ -9,7 +9,7 @@
 
 {#if $needRefresh}
   <div class="sw-update-toast" role="status" aria-live="polite">
-    <span>New data has been deployed.</span>
+    <span>New spider listings available.</span>
     <button onclick={() => updateServiceWorker()}>Refresh</button>
     <button onclick={() => needRefresh.set(false)} aria-label="Dismiss">✕</button>
   </div>
