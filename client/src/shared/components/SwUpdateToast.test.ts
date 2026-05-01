@@ -1,0 +1,49 @@
+import { writable } from 'svelte/store';
+import { render, fireEvent } from '@testing-library/svelte';
+import SwUpdateToast from './SwUpdateToast.svelte';
+
+const mockUpdateServiceWorker = vi.fn();
+const mockNeedRefresh = writable(false);
+
+function renderToast() {
+  return render(SwUpdateToast, {
+    needRefresh: mockNeedRefresh,
+    updateServiceWorker: mockUpdateServiceWorker,
+  });
+}
+
+beforeEach(() => {
+  mockNeedRefresh.set(false);
+  mockUpdateServiceWorker.mockClear();
+});
+
+describe('SwUpdateToast', () => {
+  it('is not rendered when needRefresh is false', () => {
+    const { queryByRole } = renderToast();
+    expect(queryByRole('status')).toBeNull();
+  });
+
+  it('renders the update message when needRefresh is true', async () => {
+    const { getByRole } = renderToast();
+    mockNeedRefresh.set(true);
+    // Allow Svelte to flush the reactive update
+    await Promise.resolve();
+    expect(getByRole('status')).toHaveTextContent('New spider listings available.');
+  });
+
+  it('calls updateServiceWorker when Refresh is clicked', async () => {
+    const { getByText } = renderToast();
+    mockNeedRefresh.set(true);
+    await Promise.resolve();
+    await fireEvent.click(getByText('Refresh'));
+    expect(mockUpdateServiceWorker).toHaveBeenCalled();
+  });
+
+  it('dismisses the toast when Dismiss (✕) is clicked', async () => {
+    const { getByLabelText, queryByRole } = renderToast();
+    mockNeedRefresh.set(true);
+    await Promise.resolve();
+    await fireEvent.click(getByLabelText('Dismiss'));
+    expect(queryByRole('status')).toBeNull();
+  });
+});

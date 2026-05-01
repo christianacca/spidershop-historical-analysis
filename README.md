@@ -178,6 +178,7 @@ Logic summary:
 - **Dependencies:** requests, beautifulsoup4, selenium
 - **Architecture:** Modular (`src/` directory)
 - **Testing:** Runtime assertions (fail fast, descriptive)
+- **Service Worker:** Workbox-powered caching and update notifications — see **[SERVICE_WORKER.md](docs/SERVICE_WORKER.md)**
 
 No machine learning.  
 No black boxes.  

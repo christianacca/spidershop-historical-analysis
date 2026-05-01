@@ -12,7 +12,7 @@
 #   All commands automatically activate the .venv virtual environment
 #   Ensure .venv exists and has dependencies installed first
 
-.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only seed-demo-data generate-website serve-only preview clean-cache clean-artifacts clean-all build-client test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install open-coverage check-coverage test-client test-client-fast test-client-watch open-coverage-client test-visual visual-install storybook .check-venv .check-gh
+.PHONY: help website-serve scrape-website scrape-website-serve download-website download-website-serve download-artifacts scrape-only seed-demo-data generate-website serve-only preview clean-cache clean-artifacts clean-all sw-clean-local sw-clean-deployed build-client test test-file test-snapshots test-snapshots-diff test-update-snapshots test-e2e test-e2e-file test-e2e-debug test-e2e-headed test-e2e-show-trace e2e-install open-coverage check-coverage test-client test-client-fast test-client-watch open-coverage-client test-visual visual-install storybook .check-venv .check-gh
 .PHONY: test-client-file
 
 # Shell configuration
@@ -85,6 +85,8 @@ help:
 	@echo "  make clean-cache            Clear Python bytecode cache (.pyc, __pycache__)"
 	@echo "  make clean-artifacts        Remove downloaded artifacts and generated website"
 	@echo "  make clean-all              Clean everything including test cache and coverage"
+	@echo "  make sw-clean-local         Unregister SW + clear caches on local dev server (requires: make serve-only running)"
+	@echo "  make sw-clean-deployed      Unregister SW + clear caches on the deployed GitHub Pages site"
 	@echo ""
 	@echo "⚠️  Note: These commands automatically use the virtual environment (.venv)"
 
@@ -355,3 +357,12 @@ clean-all: clean-artifacts
 	rm -rf .pytest_cache/ tmp/coverage/
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	@echo "✅ Cleanup complete"
+
+sw-clean-local: .check-venv
+	@echo "🧹 Clearing SW and caches on local dev server (http://127.0.0.1:8000)..."
+	@echo "   (Server must already be running — start it with: make serve-only)"
+	source $(VENV)/bin/activate && python scripts/sw_clean.py --local
+
+sw-clean-deployed: .check-venv
+	@echo "🧹 Clearing SW and caches on deployed GitHub Pages site..."
+	source $(VENV)/bin/activate && python scripts/sw_clean.py --deployed

@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ title }}{% endblock %} - Spider Shop Historical Analysis</title>
     <link rel="stylesheet" href="{{ path_prefix }}common.css">
+    <link rel="manifest" href="{{ path_prefix }}manifest.webmanifest">
+    <meta name="theme-color" content="#2c3e50">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -36,5 +38,8 @@
     </footer>
     
     {% block extra_js %}{% endblock %}
+
+    <div id="sw-update-toast-root"></div>
+    <script type="module" src="{{ path_prefix }}sw-toast-entry.js"></script>
 </body>
 </html>

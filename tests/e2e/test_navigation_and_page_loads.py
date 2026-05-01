@@ -137,25 +137,35 @@ def test_breeder_skeleton_present_before_js_and_removed_after_mount(e2e_site_min
     """Breeder page should ship a server-rendered skeleton and remove it after mount."""
     page, base_url, errors = e2e_site_minimal
 
-    page.route('**/breeder-page.js', lambda route: route.abort())
+    # Use a SW-blocked context so page.route() can reliably intercept breeder-page.js.
+    # The module-scoped fixture may have an active SW (installed by earlier test navigations);
+    # a cached SW serves scripts before the network request is made, defeating route.abort().
+    ctx = page.context.browser.new_context(service_workers="block")
     try:
-        page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+        sw_page = ctx.new_page()
+        sw_page.set_default_timeout(5_000)
 
-        skeleton = page.locator('[data-table-skeleton-for="breeder-table"]')
-        assert skeleton.count() == 1, "Expected breeder skeleton in server-rendered HTML"
-        assert page.locator('#breeder-table').count() == 0, "Table should not mount while page script is blocked"
+        sw_page.route('**/breeder-page.js', lambda route: route.abort())
+        try:
+            sw_page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+            skeleton = sw_page.locator('[data-table-skeleton-for="breeder-table"]')
+            assert skeleton.count() == 1, "Expected breeder skeleton in server-rendered HTML"
+            assert sw_page.locator('#breeder-table').count() == 0, "Table should not mount while page script is blocked"
+        finally:
+            sw_page.unroute('**/breeder-page.js')
+
+        sw_page.goto(f"{base_url}/breeder.html", wait_until="networkidle")
+        sw_page.wait_for_function(
+            """() => !document.querySelector('[data-table-skeleton-for="breeder-table"]')""",
+            timeout=2000,
+        )
+        assert sw_page.locator('[data-table-skeleton-for="breeder-table"]').count() == 0, (
+            "Skeleton should be removed after the breeder table mounts"
+        )
+        assert sw_page.locator('#breeder-table').count() == 1, "Mounted breeder table should be present"
     finally:
-        page.unroute('**/breeder-page.js')
-
-    page.goto(f"{base_url}/breeder.html", wait_until="networkidle")
-    page.wait_for_function(
-        """() => !document.querySelector('[data-table-skeleton-for="breeder-table"]')""",
-        timeout=2000,
-    )
-    assert page.locator('[data-table-skeleton-for="breeder-table"]').count() == 0, (
-        "Skeleton should be removed after the breeder table mounts"
-    )
-    assert page.locator('#breeder-table').count() == 1, "Mounted breeder table should be present"
+        ctx.close()
 
 
 @pytest.mark.e2e
@@ -163,15 +173,22 @@ def test_breeder_skeleton_has_visual_loading_contract_before_js(e2e_site_minimal
     """Blocked-JS first paint should still show a table-shaped animated skeleton."""
     page, base_url, errors = e2e_site_minimal
 
-    page.route('**/breeder-page.js', lambda route: route.abort())
+    # Use a SW-blocked context so page.route() can reliably intercept breeder-page.js.
+    # See test_breeder_skeleton_present_before_js_and_removed_after_mount for rationale.
+    ctx = page.context.browser.new_context(service_workers="block")
     try:
-        page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+        sw_page = ctx.new_page()
+        sw_page.set_default_timeout(5_000)
 
-        skeleton = page.locator('[data-table-skeleton-for="breeder-table"]')
-        assert skeleton.count() == 1, "Expected breeder skeleton in server-rendered HTML"
+        sw_page.route('**/breeder-page.js', lambda route: route.abort())
+        try:
+            sw_page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
 
-        contract = skeleton.evaluate(
-            """(el) => {
+            skeleton = sw_page.locator('[data-table-skeleton-for="breeder-table"]')
+            assert skeleton.count() == 1, "Expected breeder skeleton in server-rendered HTML"
+
+            contract = skeleton.evaluate(
+                """(el) => {
                 const firstHeader = el.querySelector('.table-skeleton__cell--header');
                 const firstBody = el.querySelector('.table-skeleton__cell:not(.table-skeleton__cell--header)');
                 const style = window.getComputedStyle(el);
@@ -186,23 +203,25 @@ def test_breeder_skeleton_has_visual_loading_contract_before_js(e2e_site_minimal
                     borderRadius: style.borderRadius,
                 };
             }"""
-        )
+            )
 
-        assert contract['headerCount'] >= 6, f"Expected table-like header cells, got {contract['headerCount']}"
-        assert contract['rowCount'] >= 8, f"Expected several placeholder rows, got {contract['rowCount']}"
-        assert contract['animationName'] == 'table-skeleton-shimmer', (
-            f"Expected shimmer animation, got {contract['animationName']}"
-        )
-        assert contract['animationDuration'] == '1.8s', (
-            f"Expected 1.8s skeleton shimmer, got {contract['animationDuration']}"
-        )
-        assert contract['backgroundImage'] and contract['backgroundImage'] != 'none', (
-            "Expected gradient background on skeleton cells"
-        )
-        assert contract['minHeight'] != '0px', "Expected reserved skeleton height before mount"
-        assert contract['borderRadius'] != '0px', "Expected softened skeleton card edges"
+            assert contract['headerCount'] >= 6, f"Expected table-like header cells, got {contract['headerCount']}"
+            assert contract['rowCount'] >= 8, f"Expected several placeholder rows, got {contract['rowCount']}"
+            assert contract['animationName'] == 'table-skeleton-shimmer', (
+                f"Expected shimmer animation, got {contract['animationName']}"
+            )
+            assert contract['animationDuration'] == '1.8s', (
+                f"Expected 1.8s skeleton shimmer, got {contract['animationDuration']}"
+            )
+            assert contract['backgroundImage'] and contract['backgroundImage'] != 'none', (
+                "Expected gradient background on skeleton cells"
+            )
+            assert contract['minHeight'] != '0px', "Expected reserved skeleton height before mount"
+            assert contract['borderRadius'] != '0px', "Expected softened skeleton card edges"
+        finally:
+            sw_page.unroute('**/breeder-page.js')
     finally:
-        page.unroute('**/breeder-page.js')
+        ctx.close()
 
 
 @pytest.mark.e2e
