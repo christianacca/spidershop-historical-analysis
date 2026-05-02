@@ -3,10 +3,15 @@
  *
  * Phase 10 gap verification:
  * - G10.1: Section header background must NOT be dark navy (caused by <header> element conflict)
- * - G10.4: Section header must be a flex row, not stacked
+ * - G10.4: Section header must be a flex row (desktop), column (mobile ≤ 480 px)
  * - G10.5: Eyebrow must be a pill shape (border-radius: 999px)
+ *
+ * Phase 13: mobile responsive contracts
+ * - At ≤ 480 px: section header stacks vertically (flex-direction: column)
+ * - At > 480 px: 2-column or 4-column KPI grid (flex-direction: row)
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { page } from '@vitest/browser/context';
 import { render } from '@testing-library/svelte';
 import MarketHealthSection from './MarketHealthSection.svelte';
 import type { MarketHealthPayload } from './types.js';
@@ -30,11 +35,45 @@ describe('MarketHealthSection — G10.1 header background', () => {
 });
 
 describe('MarketHealthSection — G10.4 flex row layout', () => {
-  it('section header has flex-direction: row', () => {
+  afterEach(async () => {
+    // Restore a wide desktop viewport after any viewport-sensitive test.
+    await page.viewport(1280, 720);
+  });
+
+  it('section header has flex-direction: row at desktop viewport (> 480 px)', async () => {
+    await page.viewport(1280, 720);
     const { container } = render(MarketHealthSection, defaultProps());
     const header = container.querySelector('.section-header') as HTMLElement;
     const flexDir = window.getComputedStyle(header).flexDirection;
     expect(flexDir).toBe('row');
+  });
+
+  it('section header stacks vertically at mobile viewport (≤ 480 px)', async () => {
+    await page.viewport(390, 844);
+    const { container } = render(MarketHealthSection, defaultProps());
+    const header = container.querySelector('.section-header') as HTMLElement;
+    const flexDir = window.getComputedStyle(header).flexDirection;
+    expect(flexDir).toBe('column');
+  });
+
+  it('kpi-grid is single-column at mobile viewport (≤ 480 px)', async () => {
+    await page.viewport(390, 844);
+    const { container } = render(MarketHealthSection, defaultProps());
+    const grid = container.querySelector('.kpi-grid') as HTMLElement;
+    const cols = window.getComputedStyle(grid).gridTemplateColumns;
+    // Single column resolves to exactly one track value
+    const trackCount = cols.trim().split(/\s+/).length;
+    expect(trackCount).toBe(1);
+  });
+
+  it('kpi-grid is two-column at tablet viewport (481–760 px)', async () => {
+    await page.viewport(600, 900);
+    const { container } = render(MarketHealthSection, defaultProps());
+    const grid = container.querySelector('.kpi-grid') as HTMLElement;
+    const cols = window.getComputedStyle(grid).gridTemplateColumns;
+    // Two equal columns resolve to two track values
+    const trackCount = cols.trim().split(/\s+/).length;
+    expect(trackCount).toBe(2);
   });
 });
 

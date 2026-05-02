@@ -141,9 +141,7 @@
     />
     {#each priorSeries as v, i}
       {@const isSelected = selectedRun === i}
-      {@const isSubdued  = selectedRun !== null && !isSelected}
       <circle
-        class:is-subdued={isSubdued}
         class="sparkline-point-prior"
         cx={xAt(i)}
         cy={yAt(v, autoRangeResult.min, autoRangeResult.max)}

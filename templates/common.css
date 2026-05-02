@@ -836,3 +836,19 @@ details.examples-box hr {
         padding: 10px;
     }
 }
+
+/* Mobile portrait — stretch page content to full viewport width */
+@media (max-width: 480px) {
+    /* Remove side gutters so the page body fills the full width.
+       Note: header .container { padding: 0 20px } is more specific and
+       keeps the header text inset; only the main page container is affected. */
+    .container {
+        padding: 0;
+    }
+
+    /* Remove card rounding so the content block sits flush edge-to-edge. */
+    .content {
+        border-radius: 0;
+        padding: var(--spacing-md);
+    }
+}

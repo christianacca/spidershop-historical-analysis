@@ -225,6 +225,26 @@
     }
   }
 
+  @media (max-width: 480px) {
+    .market-health-section {
+      padding: var(--spacing-md);
+    }
+
+    .section-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .section-note {
+      max-width: none;
+      align-self: auto;
+    }
+
+    .kpi-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
   .sparkline-support-card {
     display: flex;
     flex-direction: column;
