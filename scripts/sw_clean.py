@@ -53,12 +53,15 @@ def main() -> None:
     group.add_argument("--url", metavar="URL", help="Target an arbitrary URL")
     args = parser.parse_args()
 
+    url_mapping = {
+        'local': (LOCAL_URL, "local dev server"),
+        'deployed': (DEPLOYED_URL, "deployed GitHub Pages site"),
+    }
+    
     if args.local:
-        url = LOCAL_URL
-        label = "local dev server"
+        url, label = url_mapping['local']
     elif args.deployed:
-        url = DEPLOYED_URL
-        label = "deployed GitHub Pages site"
+        url, label = url_mapping['deployed']
     else:
         url = args.url
         label = url

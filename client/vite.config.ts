@@ -4,20 +4,23 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { resolve } from 'path';
 
 function createRollupOutput(isCiBuild: boolean) {
+  const base = {
+    format: 'es' as const,
+    entryFileNames: '[name].js',
+  };
+
   if (isCiBuild) {
     return {
-      format: 'es' as const,
-      entryFileNames: '[name].js',
+      ...base,
       chunkFileNames: 'chunks/[name]-[hash].js',
       assetFileNames: 'assets/[name]-[hash][extname]',
     };
   }
 
   return {
-    format: 'es' as const,
+    ...base,
     preserveModules: true,
     preserveModulesRoot: resolve(__dirname, 'src'),
-    entryFileNames: '[name].js',
     chunkFileNames: '[name].js',
     assetFileNames: 'assets/[name][extname]',
   };

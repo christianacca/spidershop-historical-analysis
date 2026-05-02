@@ -30,9 +30,7 @@ export function useRegisterSW(swUrl: string): UseRegisterSWResult {
     wb.messageSkipWaiting();
   };
 
-  let needRefreshCalled = false;
   const showSkipWaitingPrompt = () => {
-    needRefreshCalled = true;
     wb.addEventListener('controlling', (event) => {
       if (event.isUpdate) window.location.reload();
     });
@@ -45,7 +43,7 @@ export function useRegisterSW(swUrl: string): UseRegisterSWResult {
   // Secondary path: another tab (or a direct browser action) triggered the update
   // externally, skipping the normal 'waiting' state for this registration.
   wb.addEventListener('installed', (event) => {
-    if (!needRefreshCalled && typeof event.isUpdate === 'undefined' && event.isExternal) {
+    if (typeof event.isUpdate === 'undefined' && event.isExternal) {
       showSkipWaitingPrompt();
     }
   });
