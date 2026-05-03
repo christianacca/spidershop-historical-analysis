@@ -749,27 +749,29 @@ details.examples-box hr {
         background: white;
     }
     
-    /* Card cells — stacked eyebrow layout */
+    /* Card cells — side-by-side "label: value" layout */
     .data-table td {
-        display: block;
-        padding: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        padding: 2px 0;
         border: none;
         font-size: 0.95rem;
     }
 
-    /* Eyebrow label above each value */
+    /* Label (left side) */
     .data-table td::before {
-        content: attr(data-label);
-        display: block;
-        font-size: 0.68rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
+        content: attr(data-label) ':';
         color: var(--color-text-muted);
-        margin-bottom: 2px;
+        flex-shrink: 0;
     }
 
-    /* Header and sub-header cells: suppress eyebrow label — they ARE the identity */
+    /* Header and sub-header cells: block layout, no label prefix */
+    .data-table td[data-card-role] {
+        display: block;
+    }
+
     .data-table td[data-card-role]::before {
         display: none;
     }
@@ -829,9 +831,11 @@ details.examples-box hr {
         border-color: var(--color-signal-avoid);
     }
     
-    /* Sparkline cells - keep horizontal layout */
-    .data-table td svg {
-        margin-left: auto;
+    /* Value (right side) — bold */
+    .data-table .card-value {
+        font-weight: 700;
+        text-align: right;
+        min-width: 0;
     }
     
     /* Responsive adjustments for other elements */

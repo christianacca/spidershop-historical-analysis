@@ -108,21 +108,20 @@ describe('SortableTable — mobile card eyebrow label', () => {
     await page.viewport(1280, 720);
   });
 
-  it('td::before has display: block at mobile viewport (≤ 768 px)', async () => {
+  it('td has display: flex at mobile viewport (≤ 768 px)', async () => {
     await page.viewport(390, 844);
     const { container } = render(SortableTable, {
       tableId: 'mobile-label-test',
       rows: TEST_ROWS,
       columns: TEST_COLUMNS,
     });
-    // TEST_COLUMNS have no cardHeader/cardSubheader — all cells show the eyebrow label.
+    // TEST_COLUMNS have no cardHeader/cardSubheader — all cells use flex side-by-side layout.
     const td = container.querySelectorAll('tbody td')[0] as HTMLElement;
     expect(td).not.toBeNull();
-    const before = window.getComputedStyle(td, '::before');
-    expect(before.display).toBe('block');
+    expect(window.getComputedStyle(td).display).toBe('flex');
   });
 
-  it('td[data-card-role="header"]::before has display: none at mobile (header suppresses eyebrow)', async () => {
+  it('td[data-card-role="header"]::before has display: none at mobile (header suppresses label)', async () => {
     await page.viewport(390, 844);
     const { container } = render(SortableTable, {
       tableId: 'mobile-header-role-test',
@@ -135,7 +134,7 @@ describe('SortableTable — mobile card eyebrow label', () => {
     expect(before.display).toBe('none');
   });
 
-  it('td::before has display: none at desktop viewport (> 768 px)', async () => {
+  it('td does not have display: flex at desktop viewport (> 768 px)', async () => {
     await page.viewport(1280, 720);
     const { container } = render(SortableTable, {
       tableId: 'desktop-label-test',
@@ -144,10 +143,7 @@ describe('SortableTable — mobile card eyebrow label', () => {
     });
     const td = container.querySelectorAll('tbody td')[0] as HTMLElement;
     expect(td).not.toBeNull();
-    const before = window.getComputedStyle(td, '::before');
-    // At desktop widths (> 768 px) the media-query block does not apply,
-    // so ::before has no content and no explicit display → browser default (none or inline).
-    // We assert it is NOT block, which is the mobile-only stacked layout.
-    expect(before.display).not.toBe('block');
+    // At desktop widths the media-query block does not apply — td is not flex.
+    expect(window.getComputedStyle(td).display).not.toBe('flex');
   });
 });
