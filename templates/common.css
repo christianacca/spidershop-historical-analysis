@@ -831,9 +831,9 @@ details.examples-box hr {
         border-color: var(--color-signal-avoid);
     }
     
-    /* Value (right side) — bold */
+    /* Value (right side) — semibold; colour contrast with the muted label does most work */
     .data-table .card-value {
-        font-weight: 700;
+        font-weight: 600;
         text-align: right;
         min-width: 0;
     }
