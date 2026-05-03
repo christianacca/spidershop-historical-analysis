@@ -5,12 +5,17 @@ Scope:
 - SW registration on all pages (via base.html) produces no errors
 - SW activates and becomes the controller after initial page loads
 - Precache manifest covers at least one hashed JS bundle
+- Precache manifest covers at least one CSS file (via additionalManifestEntries)
+- Install handler pre-fetches ALL 6 main HTML pages before SW enters waiting state
+- html-pages cache is populated by install handler, not only by navigation
+- Toast only fires after install handler completes (ordering guarantee)
 - HTML navigation routes land in the `html-pages` SWR cache
-- CSS files land in the `css-runtime` SWR cache
 - SW registration scope covers the whole site (not a narrow per-page scope)
 - `#sw-update-toast-root` mount point present on every page
 - Update toast is hidden on fresh load (no waiting SW)
-- Update toast appears when a new SW version is installed and waiting
+- Update toast appears when a new SW version is installed and waiting;
+  html-pages cache contains fresh entries at that point
+- Refresh button activates new SW and fresh HTML is served on reload
 - Pages load and function correctly when SW is blocked (progressive enhancement)
 
 Test isolation:
@@ -136,13 +141,54 @@ def test_html_page_cached_in_html_pages(e2e_site_minimal) -> None:
 
 
 @pytest.mark.e2e
-def test_css_cached_in_css_runtime(e2e_site_minimal) -> None:
-    """At least one CSS file is present in the `css-runtime` SWR cache.
+def test_install_prefetches_all_main_pages(e2e_site_minimal) -> None:
+    """Install handler pre-fetches all 6 main HTML pages before SW enters waiting.
 
-    The sw.ts registerRoute for request.destination === 'style' covers the
-    unhashed top-level CSS files (common.css, analysis.css, etc.).  This test
-    verifies that route is active and that visiting a page actually populates
-    the cache — a misconfigured or missing route would leave it empty.
+    This verifies the race-condition fix: by the time any toast fires, fresh HTML
+    is already in html-pages for every main page — not just pages the user navigated
+    to.  We prove this by checking for pages that were never explicitly navigated to
+    in this test context.
+
+    The module-scoped fixture starts fresh; the tests that precede this one navigated
+    only to history-insights.html and index.html — NOT to breeder.html, dealer.html,
+    snapshot.html, or history.html.  Finding those pages in html-pages proves they
+    were put there by the install handler, not by navigation.
+    """
+    page, base_url, _ = e2e_site_minimal
+
+    # Navigate to any page and wait for SW to be active.
+    page.goto(f"{base_url}/history-insights.html", wait_until="domcontentloaded")
+    page.evaluate("navigator.serviceWorker.ready")
+
+    # These pages were NEVER explicitly navigated to in this test module.
+    # If they appear in html-pages it can only be because the install handler fetched them.
+    never_navigated = ["breeder.html", "dealer.html", "snapshot.html", "history.html"]
+
+    cached_pages = page.evaluate("""
+        async () => {
+            const cache = await caches.open('html-pages');
+            const keys = await cache.keys();
+            return keys.map(r => r.url);
+        }
+    """)
+
+    missing = [p for p in never_navigated if not any(p in url for url in cached_pages)]
+    assert not missing, (
+        f"The following main pages were NOT found in html-pages cache, "
+        f"meaning the install-time pre-fetch did not run or failed for them: {missing}.\n"
+        f"Cached URLs: {cached_pages}"
+    )
+
+
+@pytest.mark.e2e
+def test_css_cached_in_precache(e2e_site_minimal) -> None:
+    """At least one CSS file is present in the Workbox precache.
+
+    The unhashed top-level CSS files (common.css, analysis.css, etc.) are added
+    to the precache manifest via additionalManifestEntries in vite.config.ts with
+    a content-derived revision.  They are therefore served cache-first and swapped
+    atomically with JS bundles when a new SW activates — no separate css-runtime
+    cache is needed.
     """
     page, base_url, _ = e2e_site_minimal
 
@@ -151,14 +197,28 @@ def test_css_cached_in_css_runtime(e2e_site_minimal) -> None:
 
     css_entry_count = page.evaluate("""
         async () => {
-            const cache = await caches.open('css-runtime');
+            const keys = await caches.keys();
+            const precacheName = keys.find(k => k.startsWith('workbox-precache-v2-'));
+            if (!precacheName) return 0;
+            const cache = await caches.open(precacheName);
             const reqs = await cache.keys();
-            return reqs.filter(r => r.url.endsWith('.css')).length;
+            return reqs.filter(r => r.url.includes('.css')).length;
         }
     """)
     assert css_entry_count > 0, (
-        f"Expected at least one .css entry in the 'css-runtime' cache, got {css_entry_count}. "
-        "Check that the registerRoute for request.destination === 'style' is active in sw.ts."
+        f"Expected at least one .css entry in the workbox-precache-v2-* cache, got {css_entry_count}. "
+        "Check that additionalManifestEntries in vite.config.ts includes the unhashed CSS files."
+    )
+
+    no_runtime_cache = page.evaluate("""
+        async () => {
+            const keys = await caches.keys();
+            return !keys.includes('css-runtime');
+        }
+    """)
+    assert no_runtime_cache is True, (
+        "Found a 'css-runtime' cache — it should no longer exist. "
+        "CSS is now handled by the precache, not a runtime route."
     )
 
 
@@ -399,6 +459,29 @@ def test_update_toast_appears_when_new_sw_waiting(_e2e_sw_update_context) -> Non
         "Expected .sw-update-toast to be visible when a new SW is waiting to activate"
     )
 
+    # Step 5: Assert the ordering guarantee — html-pages cache must already contain
+    # ALL main pages at the point the toast fires.  This proves the install handler
+    # completed its pre-fetch BEFORE the SW entered waiting state (and therefore
+    # before the toast could appear).  Clicking Refresh at this point is guaranteed
+    # to serve fresh HTML with no race condition.
+    main_pages = [
+        "index.html", "breeder.html", "dealer.html",
+        "snapshot.html", "history.html", "history-insights.html",
+    ]
+    cached_urls = page.evaluate("""
+        async () => {
+            const cache = await caches.open('html-pages');
+            const keys = await cache.keys();
+            return keys.map(r => r.url);
+        }
+    """)
+    missing_from_cache = [p for p in main_pages if not any(p in u for u in cached_urls)]
+    assert not missing_from_cache, (
+        f"Toast appeared but html-pages cache is MISSING these main pages: {missing_from_cache}.\n"
+        f"This means the install pre-fetch did not complete before the SW entered waiting.\n"
+        f"Cached: {cached_urls}"
+    )
+
 
 @pytest.mark.e2e
 def test_refresh_button_activates_new_sw(_e2e_sw_update_context) -> None:
@@ -497,4 +580,24 @@ def test_refresh_button_activates_new_sw(_e2e_sw_update_context) -> None:
     )
     assert page.query_selector(".sw-update-toast") is None, (
         "Expected toast to be gone after successful SW update"
+    )
+
+    # Verify html-pages cache still contains all main pages after reload.
+    # The new SW's install handler pre-fetched them, cleanupOutdatedCaches removed old
+    # entries, and the SWR route on the Refresh reload re-populated the navigated page.
+    main_pages = [
+        "index.html", "breeder.html", "dealer.html",
+        "snapshot.html", "history.html", "history-insights.html",
+    ]
+    cached_urls_after = page.evaluate("""
+        async () => {
+            const cache = await caches.open('html-pages');
+            const keys = await cache.keys();
+            return keys.map(r => r.url);
+        }
+    """)
+    missing_after = [p for p in main_pages if not any(p in u for u in cached_urls_after)]
+    assert not missing_after, (
+        f"After Refresh, html-pages cache is missing: {missing_after}.\n"
+        f"Cached: {cached_urls_after}"
     )
