@@ -227,7 +227,12 @@
 
   @media (max-width: 480px) {
     .market-health-section {
-      padding: var(--spacing-md);
+      /* Remove the card chrome — content fills the page background directly */
+      padding: 0;
+      background: none;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
     }
 
     .section-header {
