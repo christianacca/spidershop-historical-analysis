@@ -225,6 +225,15 @@
     }
   }
 
+  /* Phone landscape: width is typically 667–926 px so the 760px breakpoint doesn't fire,
+     but card content is too cramped at 4 columns. Switch to 2 columns when the device
+     height indicates a phone held sideways (≤ 500 px). */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .kpi-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
   @media (max-width: 480px) {
     .market-health-section {
       /* Remove the card chrome — content fills the page background directly */

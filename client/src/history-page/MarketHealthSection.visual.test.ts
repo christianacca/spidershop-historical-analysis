@@ -10,6 +10,7 @@
  * - At ≤ 480 px: section header stacks vertically (flex-direction: column)
  * - At > 480 px: 2-column or 4-column KPI grid (flex-direction: row)
  * - At ≤ 480 px: .market-health-section card chrome stripped (background/border/shadow/radius all removed)
+ * - Phone landscape (width > 760 px, height ≤ 500 px): KPI grid collapses to 2 columns
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { page } from '@vitest/browser/context';
@@ -73,6 +74,16 @@ describe('MarketHealthSection — G10.4 flex row layout', () => {
     const grid = container.querySelector('.kpi-grid') as HTMLElement;
     const cols = window.getComputedStyle(grid).gridTemplateColumns;
     // Two equal columns resolve to two track values
+    const trackCount = cols.trim().split(/\s+/).length;
+    expect(trackCount).toBe(2);
+  });
+
+  it('kpi-grid is two-column on phone landscape (width > 760 px, height ≤ 500 px)', async () => {
+    // iPhone 12 Pro landscape: 844 × 390
+    await page.viewport(844, 390);
+    const { container } = render(MarketHealthSection, defaultProps());
+    const grid = container.querySelector('.kpi-grid') as HTMLElement;
+    const cols = window.getComputedStyle(grid).gridTemplateColumns;
     const trackCount = cols.trim().split(/\s+/).length;
     expect(trackCount).toBe(2);
   });
