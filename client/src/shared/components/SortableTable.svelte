@@ -443,6 +443,7 @@
                 _warnState === 'multi-variant'
               )}
               <td
+                data-label={col.label ?? col.key}
                 class:signal-hot={isSignalCol && cellValue.includes('🔥')}
                 class:signal-watch={isSignalCol && cellValue.includes('⚠️')}
                 class:signal-avoid={isSignalCol && cellValue.includes('❌')}

@@ -10,12 +10,16 @@
  *   - The controls row must use flex layout with wrapping so filter buttons
  *     reflow onto multiple lines on narrow viewports.              (step 41)
  *
+ *   - Mobile card layout (≤ 768 px): td::before must use display: block so
+ *     the eyebrow label sits above the value.                      (step 48)
+ *
  * These are CSS structural properties — not colour contracts — which is why
  * they live in this file rather than alongside component colour tests.
  * happy-dom does expose getComputedStyle, but it does not model CSS cascade
  * reliably for layout properties on composed components.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
+import { page } from '@vitest/browser/context';
 import { render, fireEvent } from '@testing-library/svelte';
 import { tokenRgb } from '../../test-utils/token-colors';
 import SortableTable from './SortableTable.svelte';
@@ -94,5 +98,45 @@ describe('SortableTable — active signal filter button', () => {
     ) as HTMLElement;
     await fireEvent.click(hotBtn);
     expect(window.getComputedStyle(hotBtn).backgroundColor).toBe(tokenRgb('--color-accent'));
+  });
+});
+
+// ── Mobile card layout — eyebrow label (step 48) ─────────────────────────────
+
+describe('SortableTable — mobile card eyebrow label', () => {
+  afterEach(async () => {
+    await page.viewport(1280, 720);
+  });
+
+  it('td::before has display: block at mobile viewport (≤ 768 px)', async () => {
+    await page.viewport(390, 844);
+    const { container } = render(SortableTable, {
+      tableId: 'mobile-label-test',
+      rows: TEST_ROWS,
+      columns: TEST_COLUMNS,
+    });
+    // Deliberately pick the SECOND td — the first child's ::before is suppressed
+    // (it acts as the card title) so querying it would yield display: none.
+    const td = container.querySelectorAll('tbody td')[1] as HTMLElement;
+    expect(td).not.toBeNull();
+    const before = window.getComputedStyle(td, '::before');
+    expect(before.display).toBe('block');
+  });
+
+  it('td::before has display: none at desktop viewport (> 768 px)', async () => {
+    await page.viewport(1280, 720);
+    const { container } = render(SortableTable, {
+      tableId: 'desktop-label-test',
+      rows: TEST_ROWS,
+      columns: TEST_COLUMNS,
+    });
+    // Same second td — at desktop no media query fires so ::before is unstyled (none/inline).
+    const td = container.querySelectorAll('tbody td')[1] as HTMLElement;
+    expect(td).not.toBeNull();
+    const before = window.getComputedStyle(td, '::before');
+    // At desktop widths (> 768 px) the media-query block does not apply,
+    // so ::before has no content and no explicit display → browser default (none or inline).
+    // We assert it is NOT block, which is the mobile-only stacked layout.
+    expect(before.display).not.toBe('block');
   });
 });

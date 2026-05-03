@@ -1053,3 +1053,29 @@ test('does NOT show warning tip on Wishlist History cell regardless of Price Evi
   const wishlistHistoryTd = cells[0][5]; // Wishlist History column
   expect(wishlistHistoryTd.querySelector('.warning-tip')).toBeNull();
 });
+
+// ── data-label attributes (mobile card layout) ────────────────────────────────
+
+describe('data-label attributes', () => {
+  it('every visible <td> has data-label matching its column label', () => {
+    const { container } = renderTable();
+    const rows = container.querySelectorAll('tbody tr');
+    rows.forEach((tr) => {
+      const cells = tr.querySelectorAll('td');
+      cells.forEach((td, i) => {
+        const expected = COLUMNS[i].label;
+        expect(td.getAttribute('data-label')).toBe(expected);
+      });
+    });
+  });
+
+  it('falls back to column key when label is absent', () => {
+    const { container } = render(SortableTable, {
+      tableId: 'key-only-test',
+      rows: [{ name: 'X' }],
+      columns: [{ key: 'name' }], // no label property
+    });
+    const td = container.querySelector('tbody td') as HTMLElement;
+    expect(td.getAttribute('data-label')).toBe('name');
+  });
+});
