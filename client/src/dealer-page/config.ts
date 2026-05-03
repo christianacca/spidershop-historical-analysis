@@ -4,7 +4,7 @@ import { createFilterConfig } from '../shared/filter-config.js';
 export const DEALER_PAGE_CONFIG: SortableTablePageConfig = {
   tableId: 'dealer-table',
   columns: [
-    { key: 'Species', type: 'species-link', linkViewParam: 'dealer' },
+    { key: 'Species', type: 'species-link', linkViewParam: 'dealer', cardHeader: true },
     { key: 'Size (cm)' },
     { key: 'Stock Reliability' },
     { key: 'Avg OOS Duration' },

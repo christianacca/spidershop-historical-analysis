@@ -4,7 +4,7 @@ import { createFilterConfig } from '../shared/filter-config.js';
 export const BREEDER_PAGE_CONFIG: SortableTablePageConfig = {
   tableId: 'breeder-table',
   columns: [
-    { key: 'Species', type: 'species-link', linkViewParam: 'breeder' },
+    { key: 'Species', type: 'species-link', linkViewParam: 'breeder', cardHeader: true },
     { key: 'Size (cm)' },
     { key: 'OOS' },
     { key: 'OOS Runs' },

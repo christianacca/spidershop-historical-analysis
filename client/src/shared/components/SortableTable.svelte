@@ -30,6 +30,10 @@
     hidden?: boolean;
     /** When true, a warning icon is shown on this column's cells if the row has a non-standard price evidence state. */
     showPriceWarning?: boolean;
+    /** When true, this column renders as the card title in mobile card layout (suppresses eyebrow label). */
+    cardHeader?: boolean;
+    /** When true, this column renders as the card sub-title in mobile card layout (suppresses eyebrow label). */
+    cardSubheader?: boolean;
   }
 
   export interface SignalFilterConfig {
@@ -72,6 +76,10 @@
 
   const priceRange = computeRange(rows, filterConfig.priceColumn, 'float');
   const wishlistRange = computeRange(rows, filterConfig.wishlistColumn, 'int');
+
+  // ── Card layout metadata (static — columns never change after mount) ────────
+  const hasCardHeader = columns.some(c => !c.hidden && c.cardHeader);
+  const hasCardSubheader = columns.some(c => !c.hidden && c.cardSubheader);
 
   // ── Data (raw — rows never change after mount) ─────────────────────────────
   const allRows = $state.raw(rows);
@@ -429,7 +437,7 @@
     </thead>
     <tbody>
       {#each visibleRows as row}
-        <tr>
+        <tr data-card-layout={hasCardHeader && !hasCardSubheader ? 'header-only' : undefined}>
           {#each columns as col}
             {#if !col.hidden}
               {@const isSignalCol = col.key === (filterConfig.signalFilter?.column ?? '')}
@@ -444,6 +452,7 @@
               )}
               <td
                 data-label={col.label ?? col.key}
+                data-card-role={col.cardHeader ? 'header' : col.cardSubheader ? 'subheader' : undefined}
                 class:signal-hot={isSignalCol && cellValue.includes('🔥')}
                 class:signal-watch={isSignalCol && cellValue.includes('⚠️')}
                 class:signal-avoid={isSignalCol && cellValue.includes('❌')}

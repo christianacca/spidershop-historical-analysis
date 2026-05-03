@@ -115,12 +115,24 @@ describe('SortableTable — mobile card eyebrow label', () => {
       rows: TEST_ROWS,
       columns: TEST_COLUMNS,
     });
-    // Deliberately pick the SECOND td — the first child's ::before is suppressed
-    // (it acts as the card title) so querying it would yield display: none.
-    const td = container.querySelectorAll('tbody td')[1] as HTMLElement;
+    // TEST_COLUMNS have no cardHeader/cardSubheader — all cells show the eyebrow label.
+    const td = container.querySelectorAll('tbody td')[0] as HTMLElement;
     expect(td).not.toBeNull();
     const before = window.getComputedStyle(td, '::before');
     expect(before.display).toBe('block');
+  });
+
+  it('td[data-card-role="header"]::before has display: none at mobile (header suppresses eyebrow)', async () => {
+    await page.viewport(390, 844);
+    const { container } = render(SortableTable, {
+      tableId: 'mobile-header-role-test',
+      rows: TEST_ROWS,
+      columns: [{ key: 'species', label: 'Species', cardHeader: true }, { key: 'price', label: 'Price' }],
+    });
+    const headerTd = container.querySelector('tbody td[data-card-role="header"]') as HTMLElement;
+    expect(headerTd).not.toBeNull();
+    const before = window.getComputedStyle(headerTd, '::before');
+    expect(before.display).toBe('none');
   });
 
   it('td::before has display: none at desktop viewport (> 768 px)', async () => {
@@ -130,8 +142,7 @@ describe('SortableTable — mobile card eyebrow label', () => {
       rows: TEST_ROWS,
       columns: TEST_COLUMNS,
     });
-    // Same second td — at desktop no media query fires so ::before is unstyled (none/inline).
-    const td = container.querySelectorAll('tbody td')[1] as HTMLElement;
+    const td = container.querySelectorAll('tbody td')[0] as HTMLElement;
     expect(td).not.toBeNull();
     const before = window.getComputedStyle(td, '::before');
     // At desktop widths (> 768 px) the media-query block does not apply,

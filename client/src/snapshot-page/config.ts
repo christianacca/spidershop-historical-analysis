@@ -4,8 +4,8 @@ import { createFilterConfig } from '../shared/filter-config.js';
 export const SNAPSHOT_PAGE_CONFIG: SortableTablePageConfig = {
   tableId: 'snapshot-table',
   columns: [
-    { key: 'Common Name' },
-    { key: 'Scientific Name' },
+    { key: 'Common Name', cardHeader: true },
+    { key: 'Scientific Name', cardSubheader: true },
     { key: 'Size (cm)' },
     { key: 'Price (GBP)' },
     { key: 'Wishlist Count' },

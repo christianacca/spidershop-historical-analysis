@@ -769,11 +769,44 @@ details.examples-box hr {
         margin-bottom: 2px;
     }
 
-    /* The first cell is the card title — suppress its eyebrow label */
-    .data-table td:first-child::before {
+    /* Header and sub-header cells: suppress eyebrow label — they ARE the identity */
+    .data-table td[data-card-role]::before {
         display: none;
     }
-    
+
+    /* Hoist header/sub-header cells to the top of each card regardless of column order */
+    .data-table td[data-card-role="header"]  { order: -2; }
+    .data-table td[data-card-role="subheader"] { order: -1; }
+
+    /* Card header — prominent species/common name */
+    .data-table td[data-card-role="header"] {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--color-primary);
+    }
+
+    /* Card sub-header — scientific name in smaller, muted italics */
+    .data-table td[data-card-role="subheader"] {
+        font-size: 0.82rem;
+        font-style: italic;
+        color: var(--color-text-muted);
+        margin-top: -6px; /* tighten gap with header */
+    }
+
+    /* Divider below sub-header (when present) */
+    .data-table td[data-card-role="subheader"] {
+        border-bottom: 1px solid var(--color-border-alt);
+        padding-bottom: 8px;
+        margin-bottom: 4px;
+    }
+
+    /* Divider below header when there is no sub-header (breeder/dealer Species column) */
+    .data-table tr[data-card-layout="header-only"] td[data-card-role="header"] {
+        border-bottom: 1px solid var(--color-border-alt);
+        padding-bottom: 8px;
+        margin-bottom: 4px;
+    }
+
     /* Signal/Risk cells - prominent colour border in card layout */
     .data-table .signal-hot,
     .data-table .signal-watch,
@@ -799,16 +832,6 @@ details.examples-box hr {
     /* Sparkline cells - keep horizontal layout */
     .data-table td svg {
         margin-left: auto;
-    }
-    
-    /* Species name - make it larger and more prominent */
-    .data-table td:first-child {
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: var(--color-primary);
-        padding-bottom: 8px;
-        border-bottom: 2px solid var(--color-border-alt);
-        margin-bottom: 8px;
     }
     
     /* Responsive adjustments for other elements */

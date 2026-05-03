@@ -250,10 +250,10 @@
         {% for run in chart_data.runs %}
         {% if run.observed %}
         <tr>
-          <td>{{ run.date }}</td>
-          <td>{{ run.size }}</td>
-          <td>£{{ run.price }}</td>
-          <td>{{ run.wishlist }}</td>
+          <td data-label="Scrape Date">{{ run.date }}</td>
+          <td data-label="Size (cm)">{{ run.size }}</td>
+          <td data-label="Price (GBP)">£{{ run.price }}</td>
+          <td data-label="Wishlist Count">{{ run.wishlist }}</td>
         </tr>
         {% endif %}
         {% endfor %}

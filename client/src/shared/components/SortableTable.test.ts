@@ -1079,3 +1079,54 @@ describe('data-label attributes', () => {
     expect(td.getAttribute('data-label')).toBe('name');
   });
 });
+
+// ── data-card-role attributes (mobile card header/sub-header) ─────────────────
+
+describe('data-card-role attributes', () => {
+  it('td has data-card-role="header" when column has cardHeader: true', () => {
+    const { container } = render(SortableTable, {
+      tableId: 'card-role-test',
+      rows: [{ name: 'Spider', sci: 'Araneae' }],
+      columns: [
+        { key: 'name', label: 'Common Name', cardHeader: true },
+        { key: 'sci', label: 'Scientific Name', cardSubheader: true },
+      ],
+    });
+    const cells = container.querySelectorAll('tbody td');
+    expect(cells[0].getAttribute('data-card-role')).toBe('header');
+    expect(cells[1].getAttribute('data-card-role')).toBe('subheader');
+  });
+
+  it('td has no data-card-role when column has no card role', () => {
+    const { container } = render(SortableTable, {
+      tableId: 'no-role-test',
+      rows: [{ name: 'Spider' }],
+      columns: [{ key: 'name', label: 'Common Name' }],
+    });
+    const td = container.querySelector('tbody td') as HTMLElement;
+    expect(td.getAttribute('data-card-role')).toBeNull();
+  });
+
+  it('tr has data-card-layout="header-only" when cardHeader present but no cardSubheader', () => {
+    const { container } = render(SortableTable, {
+      tableId: 'header-only-test',
+      rows: [{ species: 'Spider' }],
+      columns: [{ key: 'species', label: 'Species', cardHeader: true }],
+    });
+    const tr = container.querySelector('tbody tr') as HTMLElement;
+    expect(tr.getAttribute('data-card-layout')).toBe('header-only');
+  });
+
+  it('tr has no data-card-layout when both cardHeader and cardSubheader are present', () => {
+    const { container } = render(SortableTable, {
+      tableId: 'full-header-test',
+      rows: [{ name: 'Spider', sci: 'Araneae' }],
+      columns: [
+        { key: 'name', cardHeader: true },
+        { key: 'sci', cardSubheader: true },
+      ],
+    });
+    const tr = container.querySelector('tbody tr') as HTMLElement;
+    expect(tr.getAttribute('data-card-layout')).toBeNull();
+  });
+});
