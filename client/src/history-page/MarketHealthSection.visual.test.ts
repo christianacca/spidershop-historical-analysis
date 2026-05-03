@@ -9,6 +9,7 @@
  * Phase 13: mobile responsive contracts
  * - At ≤ 480 px: section header stacks vertically (flex-direction: column)
  * - At > 480 px: 2-column or 4-column KPI grid (flex-direction: row)
+ * - At ≤ 480 px: .market-health-section card chrome stripped (background/border/shadow/radius all removed)
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { page } from '@vitest/browser/context';
@@ -74,6 +75,34 @@ describe('MarketHealthSection — G10.4 flex row layout', () => {
     // Two equal columns resolve to two track values
     const trackCount = cols.trim().split(/\s+/).length;
     expect(trackCount).toBe(2);
+  });
+});
+
+describe('MarketHealthSection — Phase 13: section card chrome removed on mobile', () => {
+  afterEach(async () => {
+    await page.viewport(1280, 720);
+  });
+
+  it('section has no background, border, or box-shadow at mobile viewport (≤ 480 px)', async () => {
+    await page.viewport(390, 844);
+    const { container } = render(MarketHealthSection, defaultProps());
+    const section = container.querySelector('.market-health-section') as HTMLElement;
+    const style = window.getComputedStyle(section);
+    expect(style.backgroundColor).toBe('rgba(0, 0, 0, 0)'); // transparent / none
+    expect(style.borderTopWidth).toBe('0px');
+    expect(style.boxShadow).toBe('none');
+    expect(style.borderRadius).toBe('0px');
+  });
+
+  it('section retains background, border, and box-shadow at desktop viewport (> 480 px)', async () => {
+    await page.viewport(1280, 720);
+    const { container } = render(MarketHealthSection, defaultProps());
+    const section = container.querySelector('.market-health-section') as HTMLElement;
+    const style = window.getComputedStyle(section);
+    // Must have a non-transparent background and a visible border
+    expect(style.backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
+    expect(parseFloat(style.borderTopWidth)).toBeGreaterThan(0);
+    expect(style.boxShadow).not.toBe('none');
   });
 });
 
