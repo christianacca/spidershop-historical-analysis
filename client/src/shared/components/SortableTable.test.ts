@@ -1130,3 +1130,40 @@ describe('data-card-role attributes', () => {
     expect(tr.getAttribute('data-card-layout')).toBeNull();
   });
 });
+
+// ── data-mobile-align attributes (P3: left-align long text in mobile cards) ─
+
+describe('data-mobile-align attributes', () => {
+  it('td renders data-mobile-align="left" when column has mobileTextAlign: "left"', () => {
+    const { container } = render(SortableTable, {
+      tableId: 'mobile-align-test',
+      rows: [{ rec: 'Buy this species now' }],
+      columns: [{ key: 'rec', label: 'Recommendation', mobileTextAlign: 'left' as const }],
+    });
+    const td = container.querySelector('tbody td[data-label="Recommendation"]') as HTMLElement;
+    expect(td).not.toBeNull();
+    expect(td.getAttribute('data-mobile-align')).toBe('left');
+  });
+
+  it('td renders data-mobile-align="right" when column has mobileTextAlign: "right"', () => {
+    const { container } = render(SortableTable, {
+      tableId: 'mobile-align-right-test',
+      rows: [{ val: '£12.99' }],
+      columns: [{ key: 'val', label: 'Price', mobileTextAlign: 'right' as const }],
+    });
+    const td = container.querySelector('tbody td[data-label="Price"]') as HTMLElement;
+    expect(td).not.toBeNull();
+    expect(td.getAttribute('data-mobile-align')).toBe('right');
+  });
+
+  it('td has no data-mobile-align when column does not set mobileTextAlign', () => {
+    const { container } = render(SortableTable, {
+      tableId: 'no-align-test',
+      rows: [{ name: 'Spider' }],
+      columns: [{ key: 'name', label: 'Species' }],
+    });
+    const td = container.querySelector('tbody td[data-label="Species"]') as HTMLElement;
+    expect(td).not.toBeNull();
+    expect(td.getAttribute('data-mobile-align')).toBeNull();
+  });
+});

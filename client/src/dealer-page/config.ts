@@ -15,7 +15,7 @@ export const DEALER_PAGE_CONFIG: SortableTablePageConfig = {
     { key: 'Wishlist History', type: 'sparkline' },
     { key: 'Stock Availability', type: 'sparkline' },
     { key: 'Dealer Risk' },
-    { key: 'Dealer Recommendation' },
+    { key: 'Dealer Recommendation', mobileTextAlign: 'left' as const },
     { key: 'Drivers', hidden: true },
     { key: 'Lineage Status', hidden: true },
     { key: 'Price Evidence State', hidden: true },

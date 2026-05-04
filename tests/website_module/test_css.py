@@ -230,3 +230,115 @@ class TestHamburgerNavCss:
         assert "flex-direction: column" in rule_body or "flex-direction:column" in rule_body, (
             "nav.nav--open ul must have flex-direction:column inside the ≤768px media query"
         )
+
+
+class TestMobileUXCss:
+    """CSS structure tests for the four mobile UX patterns (Phase 14).
+
+    These tests verify that the CSS files contain the correct selectors and rules
+    for each UX pattern identified in the mobile audit.  They check structural
+    presence only — computed-style assertions live in the E2E suite.
+    """
+
+    import re as _re
+
+    # ── P1: Stat cards 2×2 grid at tablet ─────────────────────────────────────
+
+    def test_summary_stats_two_columns_at_tablet(self):
+        """analysis.css ≤768px block must set .summary-stats to a 2-column grid."""
+        import re
+        css = get_css_content("analysis.css")
+        mobile_idx = css.find("max-width: 768px")
+        assert mobile_idx != -1, "≤768px breakpoint must exist in analysis.css"
+        mobile_css = css[mobile_idx:]
+        match = re.search(r'\.summary-stats\s*\{([^}]*?)\}', mobile_css)
+        assert match is not None, ".summary-stats rule must exist inside ≤768px block"
+        rule_body = match.group(1)
+        assert "1fr 1fr" in rule_body or "repeat(2" in rule_body, (
+            ".summary-stats in ≤768px must use a 2-column grid (e.g. '1fr 1fr')"
+        )
+
+    def test_summary_stats_one_column_at_small_phone(self):
+        """analysis.css ≤480px block must revert .summary-stats to single column."""
+        import re
+        css = get_css_content("analysis.css")
+        phone_idx = css.find("max-width: 480px")
+        assert phone_idx != -1, "≤480px breakpoint must exist in analysis.css"
+        phone_css = css[phone_idx:]
+        match = re.search(r'\.summary-stats\s*\{([^}]*?)\}', phone_css)
+        assert match is not None, ".summary-stats rule must exist inside ≤480px block"
+        rule_body = match.group(1)
+        has_single = (
+            "grid-template-columns: 1fr" in rule_body
+            or "grid-template-columns:1fr" in rule_body
+        )
+        assert has_single, (
+            ".summary-stats in ≤480px must revert to a 1-column grid"
+        )
+
+    # ── P2: Signal cell eyebrow-label suppression ─────────────────────────────
+
+    def test_signal_cells_suppress_before_pseudo_in_mobile(self):
+        """common.css ≤768px block must set display:none on signal td::before."""
+        import re
+        css = get_css_content("common.css")
+        mobile_idx = css.find("max-width: 768px")
+        assert mobile_idx != -1
+        mobile_css = css[mobile_idx:]
+        # Expect a rule like: .data-table td.signal-hot::before { display: none }
+        # The rule may cover hot/watch/avoid in a group selector
+        assert "signal-hot::before" in mobile_css or "signal-watch::before" in mobile_css, (
+            "A signal td::before selector must exist inside the ≤768px block of common.css"
+        )
+        before_idx = mobile_css.find("signal-hot::before")
+        if before_idx == -1:
+            before_idx = mobile_css.find("signal-watch::before")
+        # Find the closing brace for the rule that contains this selector
+        rule_end = mobile_css.find("}", before_idx)
+        rule_block = mobile_css[before_idx:rule_end]
+        assert "display: none" in rule_block or "display:none" in rule_block, (
+            "signal td::before must be set to display:none inside the ≤768px block"
+        )
+
+    def test_signal_cells_block_display_in_mobile(self):
+        """common.css ≤768px block must override signal cells to display:block."""
+        import re
+        css = get_css_content("common.css")
+        mobile_idx = css.find("max-width: 768px")
+        assert mobile_idx != -1
+        mobile_css = css[mobile_idx:]
+        # After the ::before suppression there must be a sibling rule for the
+        # cells themselves that sets display:block so content is centred.
+        # Look for any selector containing signal-hot without ::before
+        match = re.search(
+            r'\.data-table\s+(?:td\.)?signal-hot(?!::before)[^{]*\{([^}]*?)\}',
+            mobile_css,
+        )
+        assert match is not None, (
+            "A .data-table signal-hot (cell) rule must exist inside the ≤768px block"
+        )
+        rule_body = match.group(1)
+        assert "display: block" in rule_body or "display:block" in rule_body, (
+            "Signal cells must have display:block inside the ≤768px block"
+        )
+
+    # ── P4: Reduced header padding at ≤480px ─────────────────────────────────
+
+    def test_header_reduced_padding_at_small_phone(self):
+        """common.css ≤480px block must set header padding to a smaller value."""
+        import re
+        css = get_css_content("common.css")
+        phone_idx = css.find("max-width: 480px")
+        assert phone_idx != -1, "≤480px breakpoint must exist in common.css"
+        phone_css = css[phone_idx:]
+        # Strip CSS block comments so comment text (e.g. "header .container { … }")
+        # does not create false positives in the selector search.
+        no_comments = re.sub(r'/\*.*?\*/', '', phone_css, flags=re.DOTALL)
+        match = re.search(r'\bheader\b[^{]*\{([^}]*?)\}', no_comments)
+        assert match is not None, (
+            "A 'header' selector rule must exist inside the ≤480px block of common.css"
+        )
+        rule_body = match.group(1)
+        assert "padding" in rule_body, (
+            "The header rule inside ≤480px must set padding"
+        )

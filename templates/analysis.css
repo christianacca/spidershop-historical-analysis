@@ -442,8 +442,10 @@
 
 /* Mobile Responsive for Analysis Elements */
 @media (max-width: 768px) {
+    /* Two-column grid at tablet (481–768 px): halves the scroll distance before
+       the table while making good use of the available width. */
     .summary-stats {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
     }
 
     .analysis-methodology {
@@ -469,5 +471,12 @@
     .methodology-tab {
         width: 100%;
         justify-content: center;
+    }
+}
+
+/* Small phone: revert summary-stats to single column (two columns are too narrow). */
+@media (max-width: 480px) {
+    .summary-stats {
+        grid-template-columns: 1fr;
     }
 }

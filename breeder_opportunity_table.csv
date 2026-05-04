@@ -1,0 +1,7 @@
+Species,Size (cm),OOS,OOS Runs,Stock Pattern,Price,Price History,Wishlist,Wishlist Pressure,Wishlist Delta,Wishlist History,Signal,Recommendation,Drivers,Lineage Status,Previous Size (cm),Current Active Size (cm),Transition Date,Price Evidence State,Wishlist Evidence State,Transition Message
+Aphonopelma seemanni,1.5,,4,Sustained,£25.00 ↑,▁▄▇,5 🔥 ↑,🔥,↑,,🔥,,Stock: Sustained OOS (4 runs); Demand: Wishlist 🔥,none,,,,standard,standard,
+Brachypelma hamorii,2.0,,2,Emerging,£28.00 →,▇▄▁,8 ⚠️ →,⚠️,→,,⚠️,,Stock: Emerging OOS (2 runs); Demand: Wishlist ⚠️,none,,,,standard,standard,
+Grammostola pulchra,3.5,,0,Always,£30.00 ↓,,12 ❌ →,❌,→,,❌,,,none,,,,standard,standard,
+Lasiodora parahybana,4.0,,6,Cyclical,£20.00 ↑,,3 🔥 ↑,🔥,↑,,🔥,,Stock: Cyclical OOS (6 runs); Price: Rising,none,,,,standard,standard,
+Pterinochilus murinus,1.0,,3,Emerging,£15.00 →,,10 ⚠️ →,⚠️,→,,⚠️,,Stock: Emerging OOS (3 runs),none,,,,standard,standard,
+Psalmopoeus irminia,1.2,,0,Newly Observed,£18.00 →,,6 ⚠️ ↑,⚠️,↑,,⚠️,,Stock: Newly Observed (currently IN); Coverage: observed 2/5 runs,none,,,,standard,standard,

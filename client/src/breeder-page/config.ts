@@ -14,7 +14,7 @@ export const BREEDER_PAGE_CONFIG: SortableTablePageConfig = {
     { key: 'Wishlist' },
     { key: 'Wishlist History', type: 'sparkline' },
     { key: 'Signal' },
-    { key: 'Recommendation' },
+    { key: 'Recommendation', mobileTextAlign: 'left' as const },
     { key: 'Drivers', hidden: true },
     { key: 'Lineage Status', hidden: true },
     { key: 'Price Evidence State', hidden: true },

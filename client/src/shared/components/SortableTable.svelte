@@ -34,6 +34,9 @@
     cardHeader?: boolean;
     /** When true, this column renders as the card sub-title in mobile card layout (suppresses eyebrow label). */
     cardSubheader?: boolean;
+    /** Override text alignment of the card value in mobile layout.
+     *  Use 'left' for long prose values (e.g. Recommendation) to avoid a ragged left edge. */
+    mobileTextAlign?: 'left' | 'right';
   }
 
   export interface SignalFilterConfig {
@@ -453,6 +456,7 @@
               <td
                 data-label={col.label ?? col.key}
                 data-card-role={col.cardHeader ? 'header' : col.cardSubheader ? 'subheader' : undefined}
+                data-mobile-align={col.mobileTextAlign ?? undefined}
                 class:signal-hot={isSignalCol && cellValue.includes('🔥')}
                 class:signal-watch={isSignalCol && cellValue.includes('⚠️')}
                 class:signal-avoid={isSignalCol && cellValue.includes('❌')}

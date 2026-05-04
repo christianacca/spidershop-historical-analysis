@@ -846,6 +846,20 @@ details.examples-box hr {
         margin-bottom: 4px;
     }
 
+    /* Signal/Risk cells: switch to block layout (no side-by-side label/value) and
+       suppress the eyebrow label — the coloured border + emoji are self-explanatory. */
+    .data-table td.signal-hot,
+    .data-table td.signal-watch,
+    .data-table td.signal-avoid {
+        display: block;
+    }
+
+    .data-table td.signal-hot::before,
+    .data-table td.signal-watch::before,
+    .data-table td.signal-avoid::before {
+        display: none;
+    }
+
     /* Signal/Risk cells - prominent colour border in card layout */
     .data-table .signal-hot,
     .data-table .signal-watch,
@@ -932,5 +946,18 @@ details.examples-box hr {
     .content {
         border-radius: 0;
         padding: var(--spacing-md);
+    }
+
+    /* Reduce header padding: at 390px the default 20px top/bottom padding consumes
+       ~21% of viewport height before any content is visible. Tightening to 12px
+       reclaims ~16px of prime real estate without sacrificing visual clarity. */
+    header {
+        padding: 12px 0;
+    }
+
+    /* Left-align long text values in mobile card layout.
+       Right-aligned multi-line text creates a ragged left edge that is hard to scan. */
+    .data-table td[data-mobile-align="left"] .card-value {
+        text-align: left;
     }
 }
