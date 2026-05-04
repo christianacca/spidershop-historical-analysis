@@ -3,6 +3,10 @@
 
 {% block title %}{{ scientific_name }} - Species Detail{% endblock %}
 
+{# Species detail pages don't need the main nav — breadcrumbs + back buttons handle navigation #}
+{% block nav_toggle %}{% endblock %}
+{% block nav %}{% endblock %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="{{ path_prefix }}analysis.css">
 <link rel="stylesheet" href="{{ path_prefix }}species-detail.css">

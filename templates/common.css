@@ -124,6 +124,17 @@ header .container {
     padding: 0 20px;
 }
 
+.header__inner {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.header__title {
+    flex: 1;
+}
+
 header h1 {
     font-size: 2rem;
     margin-bottom: 10px;
@@ -132,6 +143,32 @@ header h1 {
 header p {
     font-size: 1.1rem;
     opacity: 0.9;
+}
+
+/* Hamburger toggle — hidden on desktop */
+.nav-toggle {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 40px;
+    height: 40px;
+    padding: 8px;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 4px;
+}
+
+.nav-toggle__bar {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background: white;
+    border-radius: 2px;
+    transition: opacity 0.2s;
 }
 
 /* Navigation */
@@ -842,9 +879,20 @@ details.examples-box hr {
     header h1 {
         font-size: 1.5rem;
     }
-    
-    nav ul {
-        flex-direction: column;
+
+    /* Hamburger: show the toggle button */
+    .nav-toggle {
+        display: flex;
+    }
+
+    /* Nav: hidden by default on mobile; revealed when .nav--open is toggled */
+    nav {
+        display: none;
+        margin-bottom: 0;
+    }
+
+    nav.nav--open {
+        display: block;
     }
 }
 
