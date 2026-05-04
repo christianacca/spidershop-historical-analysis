@@ -1523,3 +1523,135 @@ class TestGenerateHistoryPage:
 
             assert soup.find('div', class_='date-filter-section') is None, "Date filter section should not exist when search disabled"
             assert soup.find('input', attrs={'data-date-value': True}) is None, "Date checkboxes should not exist when search disabled"
+
+
+class TestHamburgerNav:
+    """HTML structure tests for the hamburger navigation added in Phase 13.
+
+    Each regular page (extending base.html) must render:
+    - A .nav-toggle button with the correct ARIA attributes
+    - Three .nav-toggle__bar spans inside it
+    - A <nav id="main-nav"> element containing links
+    - A .header__inner wrapper around the title and the toggle
+
+    Species detail pages must suppress both elements entirely — breadcrumbs
+    and back buttons already provide all the navigation context needed.
+    """
+
+    # ------------------------------------------------------------------
+    # Regular pages — hamburger button present
+    # ------------------------------------------------------------------
+
+    def test_homepage_has_nav_toggle_button(self):
+        """Homepage must contain the hamburger button."""
+        html = generate_homepage()
+        soup = BeautifulSoup(html, 'html.parser')
+        btn = soup.find('button', class_='nav-toggle')
+        assert btn is not None, "Homepage must have a .nav-toggle button"
+
+    def test_nav_toggle_has_aria_expanded_false(self):
+        """Hamburger button must start in closed state (aria-expanded=false)."""
+        html = generate_homepage()
+        soup = BeautifulSoup(html, 'html.parser')
+        btn = soup.find('button', class_='nav-toggle')
+        assert btn is not None
+        assert btn.get('aria-expanded') == 'false', (
+            f"nav-toggle must have aria-expanded='false', got {btn.get('aria-expanded')!r}"
+        )
+
+    def test_nav_toggle_has_aria_controls_main_nav(self):
+        """Hamburger button must reference the nav via aria-controls."""
+        html = generate_homepage()
+        soup = BeautifulSoup(html, 'html.parser')
+        btn = soup.find('button', class_='nav-toggle')
+        assert btn is not None
+        assert btn.get('aria-controls') == 'main-nav', (
+            f"nav-toggle must have aria-controls='main-nav', got {btn.get('aria-controls')!r}"
+        )
+
+    def test_nav_toggle_has_three_bar_spans(self):
+        """Hamburger icon must consist of three .nav-toggle__bar spans."""
+        html = generate_homepage()
+        soup = BeautifulSoup(html, 'html.parser')
+        btn = soup.find('button', class_='nav-toggle')
+        assert btn is not None
+        bars = btn.find_all('span', class_='nav-toggle__bar')
+        assert len(bars) == 3, f"nav-toggle must have 3 bar spans, found {len(bars)}"
+
+    def test_homepage_has_main_nav(self):
+        """Homepage must contain a <nav id='main-nav'> element."""
+        html = generate_homepage()
+        soup = BeautifulSoup(html, 'html.parser')
+        nav = soup.find('nav', id='main-nav')
+        assert nav is not None, "Homepage must have <nav id='main-nav'>"
+
+    def test_homepage_nav_contains_all_links(self):
+        """Main nav must contain links to every section of the site."""
+        html = generate_homepage()
+        soup = BeautifulSoup(html, 'html.parser')
+        nav = soup.find('nav', id='main-nav')
+        assert nav is not None
+        hrefs = {a.get('href') for a in nav.find_all('a')}
+        for expected in ('index.html', 'snapshot.html', 'history.html', 'breeder.html', 'dealer.html'):
+            assert expected in hrefs, f"Main nav is missing a link to {expected}"
+
+    def test_header_inner_wraps_title_and_toggle(self):
+        """The .header__inner div must contain both the title block and the toggle button."""
+        html = generate_homepage()
+        soup = BeautifulSoup(html, 'html.parser')
+        inner = soup.find('div', class_='header__inner')
+        assert inner is not None, "<header> must have a .header__inner wrapper"
+        assert inner.find('div', class_='header__title') is not None, (
+            ".header__inner must contain .header__title"
+        )
+        assert inner.find('button', class_='nav-toggle') is not None, (
+            ".header__inner must contain the .nav-toggle button"
+        )
+
+    def test_analysis_page_has_nav_toggle_button(self, tmp_path):
+        """Analysis pages (e.g. snapshot) must also contain the hamburger button."""
+        from conftest import temp_csv_file
+        csv_content = "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
+        csv_content += "2026-01-01,Aphonopelma seemanni,Costa Rican Zebra,1.5,25.00,5,http://example.com\n"
+        with temp_csv_file(csv_content) as filename:
+            config = page_config.snapshot(filename).with_title("Test Snapshot").with_description("Desc").build()
+            html = generate_snapshot_page(config)
+        soup = BeautifulSoup(html, 'html.parser')
+        assert soup.find('button', class_='nav-toggle') is not None, (
+            "Snapshot page must have a .nav-toggle button"
+        )
+        assert soup.find('nav', id='main-nav') is not None, (
+            "Snapshot page must have <nav id='main-nav'>"
+        )
+
+    # ------------------------------------------------------------------
+    # Species detail pages — hamburger and nav suppressed
+    # ------------------------------------------------------------------
+
+    def test_species_detail_has_no_nav_toggle(self):
+        """Species detail page must NOT render the hamburger button."""
+        from website.species_detail import generate_species_page
+        html = generate_species_page(
+            scientific_name='Aphonopelma seemanni',
+            common_name='Costa Rican Zebra',
+            species_data={},
+            chart_data={'runs': []},
+        )
+        soup = BeautifulSoup(html, 'html.parser')
+        assert soup.find('button', class_='nav-toggle') is None, (
+            "Species detail page must NOT render the .nav-toggle hamburger button"
+        )
+
+    def test_species_detail_has_no_main_nav(self):
+        """Species detail page must NOT render the main navigation."""
+        from website.species_detail import generate_species_page
+        html = generate_species_page(
+            scientific_name='Aphonopelma seemanni',
+            common_name='Costa Rican Zebra',
+            species_data={},
+            chart_data={'runs': []},
+        )
+        soup = BeautifulSoup(html, 'html.parser')
+        assert soup.find('nav') is None, (
+            "Species detail page must NOT render a <nav> element"
+        )

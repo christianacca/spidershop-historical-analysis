@@ -894,6 +894,17 @@ details.examples-box hr {
     nav.nav--open {
         display: block;
     }
+
+    /* Open state: single-column stack so each link occupies a full row */
+    nav.nav--open ul {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    /* Larger tap targets for touch devices */
+    nav.nav--open a {
+        padding: 12px 20px;
+    }
 }
 
 /* Tablet breakpoint - keep table layout but optimize spacing */
