@@ -1,6 +1,0 @@
-Species,Size (cm),Stock Reliability,Avg OOS Duration,Restock Speed,Price,Price History,Wishlist,Wishlist History,Stock Availability,Dealer Risk,Dealer Recommendation,Drivers,Lineage Status,Previous Size (cm),Current Active Size (cm),Transition Date,Price Evidence State,Wishlist Evidence State,Transition Message
-Aphonopelma seemanni,1.5,Low,,Slow,£25.00 ↑,,,,,🔥,,Risk: Low reliability; Demand: Rising wishlist,none,,,,standard,standard,
-Brachypelma hamorii,2.0,Medium,,Medium,£28.00 →,,,,,⚠️,,,none,,,,standard,standard,
-Grammostola pulchra,3.5,High,,Fast,£30.00 ↓,,,,,❌,,,none,,,,standard,standard,
-Lasiodora parahybana,4.0,Low,,Slow,£20.00 ↑,,,,,🔥,,,none,,,,standard,standard,
-Pterinochilus murinus,1.0,Medium,,Fast,£15.00 →,,,,,⚠️,,,none,,,,standard,standard,
