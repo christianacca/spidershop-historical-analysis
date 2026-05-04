@@ -921,6 +921,37 @@ details.examples-box hr {
     }
 }
 
+/* Landscape phone: viewport height ≤ 500 px means the full horizontal nav wraps
+   to multiple rows, consuming nearly half the screen.  Show the hamburger toggle
+   and hide the nav — same pattern as the ≤768px mobile breakpoint. */
+@media (max-height: 500px) {
+    /* Show hamburger regardless of viewport width */
+    .nav-toggle {
+        display: flex;
+    }
+
+    /* Hide the full nav by default; revealed when .nav--open is toggled */
+    nav {
+        display: none;
+        margin-bottom: 0;
+    }
+
+    nav.nav--open {
+        display: block;
+    }
+
+    /* Single-column stack so each link occupies a full row */
+    nav.nav--open ul {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    /* Larger tap targets for touch devices */
+    nav.nav--open a {
+        padding: 12px 20px;
+    }
+}
+
 /* Tablet breakpoint - keep table layout but optimize spacing */
 @media (min-width: 769px) and (max-width: 1024px) {
     .data-table {
@@ -930,6 +961,27 @@ details.examples-box hr {
     .data-table th,
     .data-table td {
         padding: 10px;
+    }
+
+    /* Prevent the nav from wrapping to a second row at tablet widths.
+       flex-wrap:nowrap is the only reliable approach — padding reduction alone
+       is not enough because headless Chromium renders fonts slightly wider than
+       desktop Chrome, so text-width calculations can differ.
+       Items that overflow at narrow tablet widths (769–~880px) are clipped by
+       overflow-x:hidden; at 1024px all 6 items fit within the container. */
+    nav {
+        overflow-x: hidden;
+    }
+
+    nav ul {
+        flex-wrap: nowrap;
+        padding: 0 4px;
+    }
+
+    nav a {
+        padding: 8px 10px;
+        white-space: nowrap;
+        font-size: 0.9rem;
     }
 }
 
@@ -959,5 +1011,14 @@ details.examples-box hr {
        Right-aligned multi-line text creates a ragged left edge that is hard to scan. */
     .data-table td[data-mobile-align="left"] .card-value {
         text-align: left;
+    }
+}
+
+/* Galaxy Fold / very narrow phone (≤ 320 px): the page title wraps to 3 lines
+   at the default 1.5rem size set by the ≤768px breakpoint above.  Scale it down
+   to keep the title to 2 lines at most and reduce header height. */
+@media (max-width: 320px) {
+    header h1 {
+        font-size: 1.2rem;
     }
 }

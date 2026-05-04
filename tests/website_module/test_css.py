@@ -342,3 +342,104 @@ class TestMobileUXCss:
         assert "padding" in rule_body, (
             "The header rule inside ≤480px must set padding"
         )
+
+
+class TestLandscapeNavCss:
+    """CSS structure tests for the landscape-phone nav fix (P5).
+
+    At ≤500 px viewport height (landscape phone), the full horizontal nav wraps
+    to multiple rows, consuming nearly half the screen.  The fix shows the
+    hamburger toggle and hides the nav at this height breakpoint.
+    """
+
+    def test_max_height_breakpoint_exists(self):
+        """common.css must contain a max-height:500px breakpoint."""
+        css = get_css_content("common.css")
+        assert "max-height: 500px" in css, (
+            "A max-height:500px breakpoint must exist in common.css for landscape phone nav"
+        )
+
+    def test_max_height_breakpoint_shows_nav_toggle(self):
+        """Inside the max-height:500px block, .nav-toggle must be display:flex."""
+        import re
+        css = get_css_content("common.css")
+        mh_idx = css.find("max-height: 500px")
+        assert mh_idx != -1, "max-height:500px breakpoint must exist"
+        mh_css = css[mh_idx:]
+        toggle_idx = mh_css.find(".nav-toggle")
+        assert toggle_idx != -1, ".nav-toggle must be declared inside max-height:500px block"
+        block_start = mh_css.find("{", toggle_idx)
+        block_end = mh_css.find("}", block_start)
+        rule_block = mh_css[block_start:block_end]
+        assert "display: flex" in rule_block or "display:flex" in rule_block, (
+            ".nav-toggle must have display:flex inside the max-height:500px breakpoint"
+        )
+
+    def test_max_height_breakpoint_hides_nav(self):
+        """Inside the max-height:500px block, bare nav must be display:none."""
+        import re
+        css = get_css_content("common.css")
+        mh_idx = css.find("max-height: 500px")
+        assert mh_idx != -1
+        mh_css = css[mh_idx:]
+        match = re.search(r'\bnav\s*\{([^}]*?)\}', mh_css)
+        assert match is not None, "A bare 'nav { }' rule must exist in max-height:500px block"
+        rule_body = match.group(1)
+        assert "display: none" in rule_body or "display:none" in rule_body, (
+            "nav must be display:none inside the max-height:500px breakpoint"
+        )
+
+    def test_tablet_breakpoint_prevents_nav_wrap(self):
+        """In the 769px–1024px tablet breakpoint, nav ul must set flex-wrap:nowrap
+        so the nav never grows to 2 rows regardless of font rendering."""
+        import re
+        css = get_css_content("common.css")
+        tablet_idx = css.find("min-width: 769px")
+        assert tablet_idx != -1, "769px–1024px tablet breakpoint must exist in common.css"
+        tablet_css = css[tablet_idx:]
+        next_media = tablet_css.find("@media", 1)
+        tablet_block = tablet_css[:next_media] if next_media != -1 else tablet_css
+        assert "nav ul" in tablet_block, (
+            "nav ul rule must be declared in the 769px–1024px tablet breakpoint"
+        )
+        match = re.search(r'nav\s+ul\s*\{([^}]*?)\}', tablet_block)
+        assert match is not None
+        rule_body = match.group(1)
+        assert "flex-wrap: nowrap" in rule_body or "flex-wrap:nowrap" in rule_body, (
+            "nav ul must have flex-wrap:nowrap in the 769px–1024px breakpoint "
+            "to prevent wrapping regardless of font rendering"
+        )
+
+
+class TestFoldHeaderCss:
+    """CSS structure tests for the Galaxy Fold header h1 fix (P6).
+
+    At ≤320 px (Galaxy Fold folded), the page title wraps to 3 lines at the
+    default 1.5rem size.  A narrower-viewport breakpoint scales it down.
+    """
+
+    def test_narrow_viewport_breakpoint_exists(self):
+        """common.css must contain a max-width:320px breakpoint."""
+        css = get_css_content("common.css")
+        assert "max-width: 320px" in css, (
+            "A max-width:320px breakpoint must exist in common.css for Galaxy Fold"
+        )
+
+    def test_narrow_viewport_scales_header_h1(self):
+        """Inside the max-width:320px block, header h1 must set a smaller font-size."""
+        import re
+        css = get_css_content("common.css")
+        narrow_idx = css.find("max-width: 320px")
+        assert narrow_idx != -1
+        narrow_css = css[narrow_idx:]
+        next_media = narrow_css.find("@media", 1)
+        narrow_block = narrow_css[:next_media] if next_media != -1 else narrow_css
+        assert "header h1" in narrow_block, (
+            "header h1 must be restyled inside the max-width:320px block"
+        )
+        match = re.search(r'header\s+h1\s*\{([^}]*?)\}', narrow_block)
+        assert match is not None, "A 'header h1 { }' rule must be in the max-width:320px block"
+        rule_body = match.group(1)
+        assert "font-size" in rule_body, (
+            "header h1 must set font-size inside the max-width:320px block"
+        )

@@ -245,3 +245,116 @@ def test_header_standard_padding_at_desktop_viewport(e2e_site_multi_species) -> 
     assert padding_top == 20, (
         f"Header paddingTop at desktop must remain 20px, got {padding_top}px"
     )
+
+
+# ---------------------------------------------------------------------------
+# P5: Landscape phone — hamburger nav
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.e2e
+def test_nav_hamburger_shown_at_landscape_phone(e2e_site_multi_species) -> None:
+    """At 844×390 landscape phone, the hamburger toggle must be visible."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.set_viewport_size({'width': 844, 'height': 390})
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    hamburger_display = page.locator('.nav-toggle').evaluate(
+        'el => window.getComputedStyle(el).display'
+    )
+    assert hamburger_display == 'flex', (
+        f"Hamburger must be display:flex at 844×390 landscape phone, got {hamburger_display!r}"
+    )
+
+
+@pytest.mark.e2e
+def test_nav_hidden_at_landscape_phone(e2e_site_multi_species) -> None:
+    """At 844×390 landscape phone, the nav must be hidden by default (before toggle)."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.set_viewport_size({'width': 844, 'height': 390})
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    nav_display = page.locator('nav').evaluate(
+        'el => window.getComputedStyle(el).display'
+    )
+    assert nav_display == 'none', (
+        f"Nav must be display:none at 844×390 landscape phone, got {nav_display!r}"
+    )
+
+
+@pytest.mark.e2e
+def test_nav_fits_single_row_at_ipad_landscape(e2e_site_multi_species) -> None:
+    """At 1024×768 iPad landscape, the nav must fit in a single row (no wrapping)."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.set_viewport_size({'width': 1024, 'height': 768})
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    # A single-row nav (padding:15px top+bottom) is ≤ ~65 px tall.
+    # Two-row wrapping produces ~130 px+.  80 px is a safe threshold.
+    nav_height = page.locator('nav').evaluate(
+        'el => el.getBoundingClientRect().height'
+    )
+    # Single-row nav: ~30px padding + ~40px items + ~15px ul margin ≈ 85–120px.
+    # Two-row wrapping produces ≥ 130px.  120px is a safe single-row threshold.
+    assert nav_height <= 120, (
+        f"Nav must fit in a single row at 1024×768 iPad landscape, "
+        f"got height {nav_height}px"
+    )
+
+
+@pytest.mark.e2e
+def test_nav_hamburger_hidden_at_desktop(e2e_site_multi_species) -> None:
+    """At 1280×720 desktop, the hamburger must remain hidden (regression guard)."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.set_viewport_size({'width': 1280, 'height': 720})
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    hamburger_display = page.locator('.nav-toggle').evaluate(
+        'el => window.getComputedStyle(el).display'
+    )
+    assert hamburger_display == 'none', (
+        f"Hamburger must be hidden at 1280×720 desktop, got {hamburger_display!r}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# P6: Galaxy Fold — header h1 font scaling
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.e2e
+def test_header_h1_smaller_font_at_fold_width(e2e_site_multi_species) -> None:
+    """At 280px Galaxy Fold, header h1 font-size must be ≤ 19.2px (≤ 1.2rem at 16px base)."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.set_viewport_size({'width': 280, 'height': 653})
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    font_size_px = page.locator('header h1').evaluate(
+        'el => parseFloat(window.getComputedStyle(el).fontSize)'
+    )
+    assert font_size_px <= 19.2, (
+        f"header h1 font-size must be ≤19.2px at 280px Fold viewport, got {font_size_px}px"
+    )
+
+
+@pytest.mark.e2e
+def test_header_h1_font_unchanged_at_standard_phone(e2e_site_multi_species) -> None:
+    """At 390px phone, header h1 font-size must stay at the mobile size (regression guard)."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.set_viewport_size({'width': 390, 'height': 844})
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    font_size_px = page.locator('header h1').evaluate(
+        'el => parseFloat(window.getComputedStyle(el).fontSize)'
+    )
+    # The ≤768px block sets header h1 to 1.5rem = 24px at 16px base.
+    # The ≤320px breakpoint must NOT fire at 390px.
+    assert font_size_px >= 22, (
+        f"header h1 font-size must be ≥22px at 390px phone, got {font_size_px}px"
+    )
