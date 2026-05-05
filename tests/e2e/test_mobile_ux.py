@@ -46,8 +46,13 @@ def test_summary_stats_two_column_grid_at_tablet_viewport(e2e_site_multi_species
 
 
 @pytest.mark.e2e
-def test_summary_stats_one_column_at_phone_viewport(e2e_site_multi_species) -> None:
-    """At a 390 px phone viewport the summary stats must collapse to a 1-column grid."""
+def test_summary_stats_two_column_grid_at_phone_viewport(e2e_site_multi_species) -> None:
+    """At a 390 px phone viewport the summary stats must render as a 2-column grid.
+
+    The KPI card content (a large number + short label) comfortably fits at ~175 px
+    per column.  Single-column was reverted — the 2×2 layout is preferred on all
+    phones wider than the Galaxy Fold (≤320 px).
+    """
     page, base_url, errors = e2e_site_multi_species
 
     page.set_viewport_size({'width': 390, 'height': 844})
@@ -57,8 +62,43 @@ def test_summary_stats_one_column_at_phone_viewport(e2e_site_multi_species) -> N
         'el => window.getComputedStyle(el).gridTemplateColumns'
     )
     tracks = grid_columns.split()
+    assert len(tracks) == 2, (
+        f"Expected 2 grid tracks at 390px phone viewport, got {len(tracks)} in: {grid_columns!r}"
+    )
+
+
+@pytest.mark.e2e
+def test_summary_stats_two_column_grid_at_large_phone_viewport(e2e_site_multi_species) -> None:
+    """At a 430 px (iPhone 14 Pro Max) viewport the summary stats must be 2 columns."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.set_viewport_size({'width': 430, 'height': 932})
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    grid_columns = page.locator('.summary-stats').evaluate(
+        'el => window.getComputedStyle(el).gridTemplateColumns'
+    )
+    tracks = grid_columns.split()
+    assert len(tracks) == 2, (
+        f"Expected 2 grid tracks at 430px phone viewport, got {len(tracks)} in: {grid_columns!r}"
+    )
+
+
+@pytest.mark.e2e
+def test_summary_stats_one_column_at_fold_viewport(e2e_site_multi_species) -> None:
+    """At 320 px (Galaxy Fold) the summary stats fall back to 1 column — cards are
+    too narrow (~142 px each) to be comfortable in a 2-column layout."""
+    page, base_url, errors = e2e_site_multi_species
+
+    page.set_viewport_size({'width': 320, 'height': 780})
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    grid_columns = page.locator('.summary-stats').evaluate(
+        'el => window.getComputedStyle(el).gridTemplateColumns'
+    )
+    tracks = grid_columns.split()
     assert len(tracks) == 1, (
-        f"Expected 1 grid track at 390px phone viewport, got {len(tracks)} in: {grid_columns!r}"
+        f"Expected 1 grid track at 320px Galaxy Fold viewport, got {len(tracks)} in: {grid_columns!r}"
     )
 
 

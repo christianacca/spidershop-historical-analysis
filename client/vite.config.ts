@@ -120,6 +120,8 @@ export function createViteConfig(isCiBuild = !!process.env.CI): UserConfig {
         'src/shared/register-sw.ts',
         // Toast entry: page-level entry that only runs in a real browser.
         'src/sw-toast-entry.ts',
+        // View Transitions entry: registers a browser event listener — E2E only.
+        'src/view-transitions-entry.ts',
       ],
       // Thresholds ratcheted after post-migration hardening phases 2–7.
       // lines/statements measured at 96.9%; set to 95 (rounded down to nearest 5%).
@@ -146,6 +148,7 @@ export function createViteConfig(isCiBuild = !!process.env.CI): UserConfig {
         'history-page': resolve(__dirname, 'src/history-page/index.ts'),
         'species-page': resolve(__dirname, 'src/species-page/index.ts'),
         'sw-toast-entry': resolve(__dirname, 'src/sw-toast-entry.ts'),
+        'view-transitions-entry': resolve(__dirname, 'src/view-transitions-entry.ts'),
       },
       output: createRollupOutput(isCiBuild),
     },

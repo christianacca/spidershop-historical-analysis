@@ -54,6 +54,11 @@
     to   { transform: translateY(0); opacity: 1; }
   }
 
+  @keyframes slide-down {
+    from { transform: translateY(calc(-100% - var(--spacing-md))); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+
   .sw-update-toast {
     position: fixed;
     bottom: var(--spacing-lg);
@@ -84,7 +89,17 @@
 
   @media (max-width: 480px) {
     .sw-update-toast {
+      /* On mobile, position at the top of the viewport rather than the bottom.
+         position:fixed;bottom:N uses the CSS viewport height, which on iOS Safari
+         and Android Chrome may exceed the actual visible area (URL bar + system
+         navigation bar), pushing the toast below the visible screen.
+         top:N is always visible — browser chrome at the top pushes content
+         downward, so the toast stays within the visual viewport. */
+      top: var(--spacing-md);
+      bottom: auto;
       left: var(--spacing-lg);
+      flex-wrap: wrap;
+      animation-name: slide-down;
     }
 
     button {

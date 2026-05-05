@@ -258,22 +258,26 @@ class TestMobileUXCss:
             ".summary-stats in ≤768px must use a 2-column grid (e.g. '1fr 1fr')"
         )
 
-    def test_summary_stats_one_column_at_small_phone(self):
-        """analysis.css ≤480px block must revert .summary-stats to single column."""
+    def test_summary_stats_one_column_at_fold_viewport(self):
+        """analysis.css ≤320px block must revert .summary-stats to single column.
+
+        Galaxy Fold (280–320 px) is too narrow for 2 columns (~142 px each).
+        All wider phones (390 px+) keep the 2-column layout from the ≤768px rule.
+        """
         import re
         css = get_css_content("analysis.css")
-        phone_idx = css.find("max-width: 480px")
-        assert phone_idx != -1, "≤480px breakpoint must exist in analysis.css"
-        phone_css = css[phone_idx:]
-        match = re.search(r'\.summary-stats\s*\{([^}]*?)\}', phone_css)
-        assert match is not None, ".summary-stats rule must exist inside ≤480px block"
+        fold_idx = css.find("max-width: 320px")
+        assert fold_idx != -1, "≤320px breakpoint must exist in analysis.css"
+        fold_css = css[fold_idx:]
+        match = re.search(r'\.summary-stats\s*\{([^}]*?)\}', fold_css)
+        assert match is not None, ".summary-stats rule must exist inside ≤320px block"
         rule_body = match.group(1)
         has_single = (
             "grid-template-columns: 1fr" in rule_body
             or "grid-template-columns:1fr" in rule_body
         )
         assert has_single, (
-            ".summary-stats in ≤480px must revert to a 1-column grid"
+            ".summary-stats in ≤320px must revert to a 1-column grid"
         )
 
     # ── P2: Signal cell eyebrow-label suppression ─────────────────────────────
