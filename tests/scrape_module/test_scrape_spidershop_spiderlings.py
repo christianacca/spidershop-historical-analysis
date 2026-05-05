@@ -117,7 +117,8 @@ class TestMainOrchestration:
             'Costa Rican Red Leg',     # common name
             '1-2',                      # size
             '100.00',                   # price
-            '0'                         # wishlist count
+            '0',                        # wishlist count
+            'Terrestrial',              # lifestyle
         )
         
         # Mock history (empty)
@@ -173,7 +174,7 @@ class TestMainOrchestration:
         ]
         
         # Mock product scraping
-        mock_scraping['scrape_product'].return_value = ('Genus species', 'Common Name', '2', '50.00', '5')
+        mock_scraping['scrape_product'].return_value = ('Genus species', 'Common Name', '2', '50.00', '5', 'Fossorial')
         
         # Mock history
         mock_history['load'].return_value = []
@@ -219,7 +220,7 @@ class TestMainOrchestration:
         
         mock_scraping['fetch'].side_effect = [MINIMAL_PRODUCT_LIST_HTML, HTTPError(response=response_404)]
         mock_scraping['extract_urls'].return_value = ['https://example.com/product/test/']
-        mock_scraping['scrape_product'].return_value = ('Genus species', 'Common', '1', '25.00', '3')
+        mock_scraping['scrape_product'].return_value = ('Genus species', 'Common', '1', '25.00', '3', 'Terrestrial')
         
         # Mock old history format without wishlist_count
         old_history = [
@@ -248,6 +249,46 @@ class TestMainOrchestration:
         
         # Verify wishlist_count was added
         assert old_history[0]['wishlist_count'] == '0'
+
+    def test_main_migrates_old_history_adds_empty_lifestyle(
+        self, mock_scraping, mock_history, mock_analysis, mock_file_system, mock_browser
+    ):
+        """Test that main() adds lifestyle field (empty string) to old history rows."""
+        from requests.exceptions import HTTPError
+        response_404 = type('Response', (), {'status_code': 404})()
+
+        mock_scraping['fetch'].side_effect = [MINIMAL_PRODUCT_LIST_HTML, HTTPError(response=response_404)]
+        mock_scraping['extract_urls'].return_value = ['https://example.com/product/test/']
+        mock_scraping['scrape_product'].return_value = ('Genus species', 'Common', '1', '25.00', '3', 'Terrestrial')
+
+        old_history = [
+            {
+                'scrape_datetime': '2025-01-01T00:00+00:00',
+                'scientific_name': 'Old species',
+                'common_name': 'Old common',
+                'size_cm': '2',
+                'price_gbp': '30.00',
+                'wishlist_count': '0',
+                'page_url': 'https://www.thespidershop.co.uk/product/old-species/',
+                # No lifestyle field
+            }
+        ]
+        mock_history['load'].return_value = old_history
+
+        mock_analysis['build_breeder'].return_value = []
+        mock_analysis['write_breeder'].return_value = True
+        mock_analysis['build_dealer'].return_value = []
+        mock_analysis['write_dealer'].return_value = True
+        mock_file_system['exists'].return_value = True
+        mock_file_system['csv_count'].return_value = 1
+        mock_file_system['read_summary'].return_value = (
+            "## 🧬 Breeder Opportunity Matrix (Top 10)\n"
+            "## 🏪 Dealer Supply Risk Matrix (Top 10)"
+        )
+
+        main()
+
+        assert old_history[0].get('lifestyle') == ''
         
     def test_main_deduplicates_history_rows(
         self, mock_scraping, mock_history, mock_analysis, mock_file_system, mock_browser
@@ -260,7 +301,7 @@ class TestMainOrchestration:
         
         mock_scraping['fetch'].side_effect = [MINIMAL_PRODUCT_LIST_HTML, HTTPError(response=response_404)]
         mock_scraping['extract_urls'].return_value = ['https://example.com/product/test/']
-        mock_scraping['scrape_product'].return_value = ('Genus species', 'Common', '1', '25.00', '3')
+        mock_scraping['scrape_product'].return_value = ('Genus species', 'Common', '1', '25.00', '3', '')
         
         # Use a mock datetime that will match the scraped data
         with patch('scrape.scrape_spidershop_spiderlings.datetime') as mock_datetime:
@@ -280,7 +321,8 @@ class TestMainOrchestration:
                     'size_cm': '1',
                     'price_gbp': '25.00',
                     'wishlist_count': '3',
-                    'page_url': 'https://example.com/product/test/'
+                    'page_url': 'https://example.com/product/test/',
+                    'lifestyle': '',
                 }
             ]
             mock_history['load'].return_value = existing_history
@@ -321,7 +363,7 @@ class TestMainOrchestration:
         
         mock_scraping['fetch'].side_effect = [MINIMAL_PRODUCT_LIST_HTML, HTTPError(response=response_404)]
         mock_scraping['extract_urls'].return_value = ['https://example.com/product/test/']
-        mock_scraping['scrape_product'].return_value = ('Genus species', 'Common', '1', '25.00', '3')
+        mock_scraping['scrape_product'].return_value = ('Genus species', 'Common', '1', '25.00', '3', '')
         mock_history['load'].return_value = []
         mock_analysis['build_breeder'].return_value = []
         mock_analysis['write_breeder'].return_value = False  # Writer returns False
@@ -345,7 +387,7 @@ class TestMainOrchestration:
         
         mock_scraping['fetch'].side_effect = [MINIMAL_PRODUCT_LIST_HTML, HTTPError(response=response_404)]
         mock_scraping['extract_urls'].return_value = ['https://example.com/product/test/']
-        mock_scraping['scrape_product'].return_value = ('Genus species', 'Common', '1', '25.00', '3')
+        mock_scraping['scrape_product'].return_value = ('Genus species', 'Common', '1', '25.00', '3', '')
         mock_history['load'].return_value = []
         mock_analysis['build_breeder'].return_value = []
         mock_analysis['write_breeder'].return_value = True
@@ -418,19 +460,19 @@ class TestMainOrchestration:
             [],  # Page 2 is empty (triggers stop)
         ]
         mock_scraping["scrape_product"].side_effect = [
-            ("Aphonopelma seemanni", "Costa Rican Zebra", "1.0", "25.00", "5"),
-            ("Grammostola pulchra", "Brazilian Black", "2.0", "40.00", "15"),
+            ("Aphonopelma seemanni", "Costa Rican Zebra", "1.0", "25.00", "5", "Terrestrial"),
+            ("Grammostola pulchra", "Brazilian Black", "2.0", "40.00", "15", "Terrestrial"),
         ]
         
         # Create minimal history with just enough data for integration test
         # (detailed analysis scenarios are tested in unit tests)
         history_content = (
-            "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url\n"
-            "2025-01-01T10:00:00,Aphonopelma seemanni,Costa Rican Zebra,1.0,20.00,3,https://example.com/1\n"
-            "2025-01-01T10:00:00,Cyriocosmus elegans,Trinidad Dwarf,0.5,25.00,15,https://example.com/2\n"
-            "2025-01-08T10:00:00,Aphonopelma seemanni,Costa Rican Zebra,1.0,22.00,4,https://example.com/1\n"
-            "2025-01-15T10:00:00,Aphonopelma seemanni,Costa Rican Zebra,1.0,23.00,4,https://example.com/1\n"
-            "2025-01-22T10:00:00,Aphonopelma seemanni,Costa Rican Zebra,1.0,24.00,5,https://example.com/1\n"
+            "scrape_datetime,scientific_name,common_name,size_cm,price_gbp,wishlist_count,page_url,lifestyle\n"
+            "2025-01-01T10:00:00,Aphonopelma seemanni,Costa Rican Zebra,1.0,20.00,3,https://example.com/1,\n"
+            "2025-01-01T10:00:00,Cyriocosmus elegans,Trinidad Dwarf,0.5,25.00,15,https://example.com/2,\n"
+            "2025-01-08T10:00:00,Aphonopelma seemanni,Costa Rican Zebra,1.0,22.00,4,https://example.com/1,\n"
+            "2025-01-15T10:00:00,Aphonopelma seemanni,Costa Rican Zebra,1.0,23.00,4,https://example.com/1,\n"
+            "2025-01-22T10:00:00,Aphonopelma seemanni,Costa Rican Zebra,1.0,24.00,5,https://example.com/1,\n"
         )
         (tmp_path / "spidershop_spiderlings_history.csv").write_text(history_content)
         

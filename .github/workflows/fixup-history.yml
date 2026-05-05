@@ -1,0 +1,120 @@
+name: Fix Up History Artifact
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fixup:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      actions: write
+
+    steps:
+      # --------------------------------
+      # Checkout repository
+      # --------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # --------------------------------
+      # Python setup
+      # --------------------------------
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # --------------------------------
+      # Resolve branch + artifact names
+      # --------------------------------
+      - name: Resolve branch-scoped artifact names
+        id: artifact_names
+        run: |
+          DEFAULT_BRANCH="master"
+          BRANCH_NAME="${GITHUB_REF_NAME}"
+          SAFE_BRANCH="$(echo "$BRANCH_NAME" | tr '/' '-')"
+
+          if [ "$BRANCH_NAME" = "$DEFAULT_BRANCH" ]; then
+            HISTORY_NAME="spidershop-history"
+          else
+            HISTORY_NAME="spidershop-history__${SAFE_BRANCH}"
+          fi
+
+          echo "history_name=$HISTORY_NAME" >> $GITHUB_OUTPUT
+          echo "default_history_name=spidershop-history" >> $GITHUB_OUTPUT
+
+          echo "Resolved branch: $BRANCH_NAME"
+          echo "Resolved history artifact name: $HISTORY_NAME"
+
+      # ------------------------------------------------
+      # Download history artifact (branch-scoped with fallback)
+      # ------------------------------------------------
+      - name: Download history artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          REPO_OWNER="$(echo '${{ github.repository }}' | cut -d'/' -f1)"
+          REPO_NAME="$(echo '${{ github.repository }}' | cut -d'/' -f2)"
+
+          # Try branch-scoped history first
+          if ./scripts/download_artifact.sh "$REPO_OWNER" "$REPO_NAME" \
+              "${{ steps.artifact_names.outputs.history_name }}" "."; then
+            echo "✅ Downloaded branch history: ${{ steps.artifact_names.outputs.history_name }}"
+          # Fallback to default branch history (if not on default branch)
+          elif [ "${{ github.ref_name }}" != "master" ]; then
+            echo "⚠️  Branch history not found, trying default branch..."
+            if ./scripts/download_artifact.sh "$REPO_OWNER" "$REPO_NAME" \
+                "${{ steps.artifact_names.outputs.default_history_name }}" "."; then
+              echo "✅ Downloaded default history: ${{ steps.artifact_names.outputs.default_history_name }}"
+            else
+              echo "❌ No history artifact found — nothing to fix up"
+              exit 1
+            fi
+          else
+            echo "❌ No history artifact found — nothing to fix up"
+            exit 1
+          fi
+
+      # --------------------------------
+      # Backup original artifact (pre-fixup)
+      # --------------------------------
+      - name: Get current date
+        id: date
+        run: echo "today=$(date -u +%Y-%m-%d)" >> $GITHUB_OUTPUT
+
+      - name: Upload pre-fixup backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact_names.outputs.history_name }}--backup--${{ steps.date.outputs.today }}
+          path: spidershop_spiderlings_history.csv
+          if-no-files-found: error
+
+      # --------------------------------
+      # Run fixup pipeline
+      # --------------------------------
+      - name: Run history fixup
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+        run: |
+          python scripts/run_history_fixup.py \
+            --input  spidershop_spiderlings_history.csv \
+            --output spidershop_spiderlings_history.csv
+
+      # --------------------------------
+      # Upload fixed history artifact
+      # (replaces the artifact that scrape.yml will download next run)
+      # --------------------------------
+      - name: Upload fixed history artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact_names.outputs.history_name }}
+          path: spidershop_spiderlings_history.csv
+          if-no-files-found: error
+          overwrite: true

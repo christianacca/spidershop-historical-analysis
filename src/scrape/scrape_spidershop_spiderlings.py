@@ -42,8 +42,8 @@ def main():
                 break
 
             for pu in product_urls:
-                sci, com, size, price, wishlist = scrape_product(pu)
-                all_rows.append([scrape_dt, sci, com, size, price, wishlist, pu])
+                sci, com, size, price, wishlist, lifestyle = scrape_product(pu)
+                all_rows.append([scrape_dt, sci, com, size, price, wishlist, pu, lifestyle])
 
             page += 1
 
@@ -56,14 +56,17 @@ def main():
 
         history_rows = load_history(HISTORY_FILE)
         
-        # Add wishlist_count field to old history rows for backward compatibility
+        # Add missing fields to old history rows for backward compatibility
         needs_rewrite = False
         for row in history_rows:
             if "wishlist_count" not in row:
                 row["wishlist_count"] = "0"
                 needs_rewrite = True
+            if "lifestyle" not in row:
+                row["lifestyle"] = ""
+                needs_rewrite = True
         
-        # If we added the new field to old rows, rewrite the history file with updated schema
+        # If any fields were added to old rows, rewrite the history file with updated schema
         if needs_rewrite and history_rows:
             with open(HISTORY_FILE, "w", newline="", encoding="utf-8") as f:
                 w = csv.DictWriter(f, fieldnames=CSV_HEADER)
