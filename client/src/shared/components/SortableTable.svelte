@@ -30,6 +30,13 @@
     hidden?: boolean;
     /** When true, a warning icon is shown on this column's cells if the row has a non-standard price evidence state. */
     showPriceWarning?: boolean;
+    /** When true, this column renders as the card title in mobile card layout (suppresses eyebrow label). */
+    cardHeader?: boolean;
+    /** When true, this column renders as the card sub-title in mobile card layout (suppresses eyebrow label). */
+    cardSubheader?: boolean;
+    /** Override text alignment of the card value in mobile layout.
+     *  Use 'left' for long prose values (e.g. Recommendation) to avoid a ragged left edge. */
+    mobileTextAlign?: 'left' | 'right';
   }
 
   export interface SignalFilterConfig {
@@ -72,6 +79,10 @@
 
   const priceRange = computeRange(rows, filterConfig.priceColumn, 'float');
   const wishlistRange = computeRange(rows, filterConfig.wishlistColumn, 'int');
+
+  // ── Card layout metadata (static — columns never change after mount) ────────
+  const hasCardHeader = columns.some(c => !c.hidden && c.cardHeader);
+  const hasCardSubheader = columns.some(c => !c.hidden && c.cardSubheader);
 
   // ── Data (raw — rows never change after mount) ─────────────────────────────
   const allRows = $state.raw(rows);
@@ -429,7 +440,7 @@
     </thead>
     <tbody>
       {#each visibleRows as row}
-        <tr>
+        <tr data-card-layout={hasCardHeader && !hasCardSubheader ? 'header-only' : undefined}>
           {#each columns as col}
             {#if !col.hidden}
               {@const isSignalCol = col.key === (filterConfig.signalFilter?.column ?? '')}
@@ -443,19 +454,24 @@
                 _warnState === 'multi-variant'
               )}
               <td
+                data-label={col.label ?? col.key}
+                data-card-role={col.cardHeader ? 'header' : col.cardSubheader ? 'subheader' : undefined}
+                data-mobile-align={col.mobileTextAlign ?? undefined}
                 class:signal-hot={isSignalCol && cellValue.includes('🔥')}
                 class:signal-watch={isSignalCol && cellValue.includes('⚠️')}
                 class:signal-avoid={isSignalCol && cellValue.includes('❌')}
               >
-                {#if col.type === 'sparkline'}
-                  <SparklineBar dto={row[col.key] as SparklineDto | string} />{#if _showPriceWarn}<span class="warning-tip" tabindex="0">ℹ️<span class="warning-tip__text">{String(row[filterConfig.transitionMessageKey ?? ''] ?? '')}</span></span>{/if}
-                {:else if col.type === 'species-link'}
-                  {@const slug = slugify(cellValue)}
-                  {@const viewSuffix = col.linkViewParam ? `?view=${col.linkViewParam}` : ''}
-                  {#if slug}<a href="species/{slug}.html{viewSuffix}">{cellValue}</a>{:else}{cellValue}{/if}
-                {:else}
-                  {cellValue}<InfoTooltip tip={isSignalCol && filterConfig.driversKey ? String(row[filterConfig.driversKey] ?? '') : ''} />{#if _showPriceWarn}<span class="warning-tip" tabindex="0">ℹ️<span class="warning-tip__text">{String(row[filterConfig.transitionMessageKey ?? ''] ?? '')}</span></span>{/if}
-                {/if}
+                <span class="card-value">
+                  {#if col.type === 'sparkline'}
+                    <SparklineBar dto={row[col.key] as SparklineDto | string} />{#if _showPriceWarn}<span class="warning-tip" tabindex="0">ℹ️<span class="warning-tip__text">{String(row[filterConfig.transitionMessageKey ?? ''] ?? '')}</span></span>{/if}
+                  {:else if col.type === 'species-link'}
+                    {@const slug = slugify(cellValue)}
+                    {@const viewSuffix = col.linkViewParam ? `?view=${col.linkViewParam}` : ''}
+                    {#if slug}<a href="species/{slug}.html{viewSuffix}">{cellValue}</a>{:else}{cellValue}{/if}
+                  {:else}
+                    {cellValue}<InfoTooltip tip={isSignalCol && filterConfig.driversKey ? String(row[filterConfig.driversKey] ?? '') : ''} />{#if _showPriceWarn}<span class="warning-tip" tabindex="0">ℹ️<span class="warning-tip__text">{String(row[filterConfig.transitionMessageKey ?? ''] ?? '')}</span></span>{/if}
+                  {/if}
+                </span>
               </td>
             {/if}
           {/each}

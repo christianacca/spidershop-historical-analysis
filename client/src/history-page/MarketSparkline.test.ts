@@ -52,9 +52,9 @@ describe('MarketSparkline', () => {
     // Circles with large radius on current series
     const largeCurrent = container.querySelectorAll('[r="4.4"]');
     expect(largeCurrent.length).toBeGreaterThanOrEqual(1);
-    // Subdued class applied to non-selected points (current + prior)
+    // Subdued class applied only to non-selected current-series points (prior series stays at its baseline opacity)
     const subdued = container.querySelectorAll('.is-subdued');
-    expect(subdued.length).toBe(22); // 11 current + 11 prior
+    expect(subdued.length).toBe(11); // 11 non-selected current-series circles only
   });
 
   it('renders baseline axis line', () => {
@@ -251,7 +251,7 @@ describe('MarketSparkline — truncated series (fewer than 12 runs)', () => {
 });
 
 // ===========================================================================
-// Hover / selected column highlight (mock: .sparkline-band + .is-subdued on prior)
+// Hover / selected column highlight (mock: .sparkline-band + .is-subdued on current series only)
 // ===========================================================================
 
 describe('MarketSparkline — selected-run highlight (band + subdued effects)', () => {
@@ -283,10 +283,10 @@ describe('MarketSparkline — selected-run highlight (band + subdued effects)', 
     expect(parseFloat(band.getAttribute('height')!)).toBe(64); // H(82) - BOTTOM_PAD(18)
   });
 
-  it('prior circles get .is-subdued when a different run is selected', () => {
+  it('prior circles do NOT get .is-subdued when a run is selected (prior maintains baseline opacity)', () => {
     const { container } = render(MarketSparkline, defaultProps({ selectedRun: 5 }));
     const subduedPrior = container.querySelectorAll('circle.sparkline-point-prior.is-subdued');
-    expect(subduedPrior.length).toBe(11); // 11 of 12 prior points
+    expect(subduedPrior.length).toBe(0); // prior series maintains its 0.45 opacity
   });
 
   it('prior circle at selectedRun does NOT get .is-subdued', () => {
@@ -296,9 +296,9 @@ describe('MarketSparkline — selected-run highlight (band + subdued effects)', 
     expect(selectedPrior.classList.contains('is-subdued')).toBe(false);
   });
 
-  it('total .is-subdued elements is 22 when run selected (11 current + 11 prior)', () => {
+  it('total .is-subdued elements is 11 when run selected (current series non-selected only, prior not subdued)', () => {
     const { container } = render(MarketSparkline, defaultProps({ selectedRun: 5 }));
     const all = container.querySelectorAll('.is-subdued');
-    expect(all.length).toBe(22);
+    expect(all.length).toBe(11);
   });
 });

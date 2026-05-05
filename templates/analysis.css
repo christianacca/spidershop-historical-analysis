@@ -442,8 +442,10 @@
 
 /* Mobile Responsive for Analysis Elements */
 @media (max-width: 768px) {
+    /* Two-column grid at tablet (481–768 px): halves the scroll distance before
+       the table while making good use of the available width. */
     .summary-stats {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
     }
 
     .analysis-methodology {
@@ -469,5 +471,14 @@
     .methodology-tab {
         width: 100%;
         justify-content: center;
+    }
+}
+
+/* Galaxy Fold (≤320 px): revert summary-stats to single column. At 320 px
+   two columns would be ~142 px each — too cramped for the stat values.
+   All wider phones (390 px, 430 px, …) keep the 2-column layout set above. */
+@media (max-width: 320px) {
+    .summary-stats {
+        grid-template-columns: 1fr;
     }
 }

@@ -3,6 +3,10 @@
 
 {% block title %}{{ scientific_name }} - Species Detail{% endblock %}
 
+{# Species detail pages don't need the main nav — breadcrumbs + back buttons handle navigation #}
+{% block nav_toggle %}{% endblock %}
+{% block nav %}{% endblock %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="{{ path_prefix }}analysis.css">
 <link rel="stylesheet" href="{{ path_prefix }}species-detail.css">
@@ -250,10 +254,10 @@
         {% for run in chart_data.runs %}
         {% if run.observed %}
         <tr>
-          <td>{{ run.date }}</td>
-          <td>{{ run.size }}</td>
-          <td>£{{ run.price }}</td>
-          <td>{{ run.wishlist }}</td>
+          <td data-label="Scrape Date">{{ run.date }}</td>
+          <td data-label="Size (cm)">{{ run.size }}</td>
+          <td data-label="Price (GBP)">£{{ run.price }}</td>
+          <td data-label="Wishlist Count">{{ run.wishlist }}</td>
         </tr>
         {% endif %}
         {% endfor %}

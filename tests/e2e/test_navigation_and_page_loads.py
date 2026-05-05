@@ -372,3 +372,169 @@ def test_homepage_styling(e2e_site_minimal) -> None:
     disclaimer_text = disclaimer.first.text_content()
     assert 'not affiliated' in disclaimer_text.lower(), \
         f".disclaimer should contain affiliation notice, got: {disclaimer_text[:80]}"
+
+
+# ---------------------------------------------------------------------------
+# Hamburger navigation — JS toggle behaviour
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.e2e
+def test_hamburger_hidden_on_desktop(e2e_site_minimal) -> None:
+    """The nav-toggle button must not be visible at a desktop viewport (1280 px wide)."""
+    page, base_url, _errors = e2e_site_minimal
+
+    page.set_viewport_size({'width': 1280, 'height': 720})
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    btn = page.locator('#nav-toggle')
+    assert btn.count() == 1, "nav-toggle button must exist in the DOM"
+    display = btn.evaluate('el => window.getComputedStyle(el).display')
+    assert display == 'none', (
+        f"nav-toggle must be display:none at 1280px viewport, got display={display!r}"
+    )
+
+
+@pytest.mark.e2e
+def test_hamburger_visible_on_mobile(e2e_site_minimal) -> None:
+    """The nav-toggle button must be visible at a mobile viewport (390 px wide)."""
+    page, base_url, _errors = e2e_site_minimal
+
+    page.set_viewport_size({'width': 390, 'height': 844})
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    btn = page.locator('#nav-toggle')
+    assert btn.count() == 1, "nav-toggle button must exist in the DOM"
+    display = btn.evaluate('el => window.getComputedStyle(el).display')
+    assert display == 'flex', (
+        f"nav-toggle must be display:flex at 390px mobile viewport, got display={display!r}"
+    )
+
+
+@pytest.mark.e2e
+def test_nav_hidden_by_default_on_mobile(e2e_site_minimal) -> None:
+    """The main nav must be hidden (display:none) before the hamburger is clicked."""
+    page, base_url, _errors = e2e_site_minimal
+
+    page.set_viewport_size({'width': 390, 'height': 844})
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    nav = page.locator('#main-nav')
+    assert nav.count() == 1, "<nav id='main-nav'> must exist in the DOM"
+    display = nav.evaluate('el => window.getComputedStyle(el).display')
+    assert display == 'none', (
+        f"main-nav must be display:none before toggle, got display={display!r}"
+    )
+
+
+@pytest.mark.e2e
+def test_clicking_hamburger_opens_nav(e2e_site_minimal) -> None:
+    """Clicking the hamburger must make the nav visible and update aria-expanded."""
+    page, base_url, _errors = e2e_site_minimal
+
+    page.set_viewport_size({'width': 390, 'height': 844})
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    btn = page.locator('#nav-toggle')
+    btn.click()
+
+    nav = page.locator('#main-nav')
+    display = nav.evaluate('el => window.getComputedStyle(el).display')
+    assert display != 'none', (
+        f"main-nav must be visible after hamburger click, got display={display!r}"
+    )
+    aria = btn.get_attribute('aria-expanded')
+    assert aria == 'true', (
+        f"nav-toggle aria-expanded must be 'true' when open, got {aria!r}"
+    )
+
+
+@pytest.mark.e2e
+def test_clicking_hamburger_twice_closes_nav(e2e_site_minimal) -> None:
+    """Clicking the hamburger a second time must hide the nav again."""
+    page, base_url, _errors = e2e_site_minimal
+
+    page.set_viewport_size({'width': 390, 'height': 844})
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    btn = page.locator('#nav-toggle')
+    btn.click()  # open
+    btn.click()  # close
+
+    nav = page.locator('#main-nav')
+    display = nav.evaluate('el => window.getComputedStyle(el).display')
+    assert display == 'none', (
+        f"main-nav must be hidden after second hamburger click, got display={display!r}"
+    )
+    aria = btn.get_attribute('aria-expanded')
+    assert aria == 'false', (
+        f"nav-toggle aria-expanded must be 'false' when closed, got {aria!r}"
+    )
+
+
+@pytest.mark.e2e
+def test_open_nav_items_stack_in_single_column(e2e_site_minimal) -> None:
+    """When the menu is open, nav items must stack vertically (flex-direction:column)."""
+    page, base_url, _errors = e2e_site_minimal
+
+    page.set_viewport_size({'width': 390, 'height': 844})
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    page.locator('#nav-toggle').click()
+
+    nav_ul = page.locator('#main-nav ul')
+    flex_dir = nav_ul.evaluate('el => window.getComputedStyle(el).flexDirection')
+    assert flex_dir == 'column', (
+        f"nav ul must be flex-direction:column when menu is open, got {flex_dir!r}"
+    )
+
+
+@pytest.mark.e2e
+def test_clicking_nav_link_closes_menu(e2e_site_minimal) -> None:
+    """Clicking a nav link while the menu is open must close the menu.
+
+    This guards the inline JS that listens for click events on <a> tags inside
+    the nav and removes .nav--open when one is activated.
+    """
+    page, base_url, _errors = e2e_site_minimal
+
+    page.set_viewport_size({'width': 390, 'height': 844})
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+
+    page.locator('#nav-toggle').click()
+
+    # Click a link that navigates to another page within the same site
+    page.locator('#main-nav a[href="snapshot.html"]').click()
+
+    # After navigation the new page's nav should be closed by default
+    nav = page.locator('#main-nav')
+    display = nav.evaluate('el => window.getComputedStyle(el).display')
+    assert display == 'none', (
+        f"After nav-link click, main-nav must be closed (display:none), got {display!r}"
+    )
+
+
+@pytest.mark.e2e
+def test_species_detail_has_no_hamburger_or_nav(e2e_site_minimal) -> None:
+    """Species detail pages must render without a hamburger button or main nav.
+
+    Navigation is provided by breadcrumbs and Back-to-Table buttons; the
+    site-wide nav is deliberately suppressed to reduce clutter on detail pages.
+    """
+    page, base_url, _errors = e2e_site_minimal
+
+    # Navigate to the species page via the breeder table link
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+    page.locator('table a[href^="species/"]').first.click()
+    page.wait_for_load_state('domcontentloaded')
+
+    assert '#/species/' in page.url or '/species/' in page.url, (
+        "Expected to be on a species detail page"
+    )
+
+    assert page.locator('#nav-toggle').count() == 0, (
+        "Species detail page must NOT have a #nav-toggle hamburger button"
+    )
+    assert page.locator('#main-nav').count() == 0, (
+        "Species detail page must NOT have #main-nav"
+    )

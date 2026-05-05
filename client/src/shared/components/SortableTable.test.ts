@@ -1053,3 +1053,117 @@ test('does NOT show warning tip on Wishlist History cell regardless of Price Evi
   const wishlistHistoryTd = cells[0][5]; // Wishlist History column
   expect(wishlistHistoryTd.querySelector('.warning-tip')).toBeNull();
 });
+
+// ── data-label attributes (mobile card layout) ────────────────────────────────
+
+describe('data-label attributes', () => {
+  it('every visible <td> has data-label matching its column label', () => {
+    const { container } = renderTable();
+    const rows = container.querySelectorAll('tbody tr');
+    rows.forEach((tr) => {
+      const cells = tr.querySelectorAll('td');
+      cells.forEach((td, i) => {
+        const expected = COLUMNS[i].label;
+        expect(td.getAttribute('data-label')).toBe(expected);
+      });
+    });
+  });
+
+  it('falls back to column key when label is absent', () => {
+    const { container } = render(SortableTable, {
+      tableId: 'key-only-test',
+      rows: [{ name: 'X' }],
+      columns: [{ key: 'name' }], // no label property
+    });
+    const td = container.querySelector('tbody td') as HTMLElement;
+    expect(td.getAttribute('data-label')).toBe('name');
+  });
+});
+
+// ── data-card-role attributes (mobile card header/sub-header) ─────────────────
+
+describe('data-card-role attributes', () => {
+  it('td has data-card-role="header" when column has cardHeader: true', () => {
+    const { container } = render(SortableTable, {
+      tableId: 'card-role-test',
+      rows: [{ name: 'Spider', sci: 'Araneae' }],
+      columns: [
+        { key: 'name', label: 'Common Name', cardHeader: true },
+        { key: 'sci', label: 'Scientific Name', cardSubheader: true },
+      ],
+    });
+    const cells = container.querySelectorAll('tbody td');
+    expect(cells[0].getAttribute('data-card-role')).toBe('header');
+    expect(cells[1].getAttribute('data-card-role')).toBe('subheader');
+  });
+
+  it('td has no data-card-role when column has no card role', () => {
+    const { container } = render(SortableTable, {
+      tableId: 'no-role-test',
+      rows: [{ name: 'Spider' }],
+      columns: [{ key: 'name', label: 'Common Name' }],
+    });
+    const td = container.querySelector('tbody td') as HTMLElement;
+    expect(td.getAttribute('data-card-role')).toBeNull();
+  });
+
+  it('tr has data-card-layout="header-only" when cardHeader present but no cardSubheader', () => {
+    const { container } = render(SortableTable, {
+      tableId: 'header-only-test',
+      rows: [{ species: 'Spider' }],
+      columns: [{ key: 'species', label: 'Species', cardHeader: true }],
+    });
+    const tr = container.querySelector('tbody tr') as HTMLElement;
+    expect(tr.getAttribute('data-card-layout')).toBe('header-only');
+  });
+
+  it('tr has no data-card-layout when both cardHeader and cardSubheader are present', () => {
+    const { container } = render(SortableTable, {
+      tableId: 'full-header-test',
+      rows: [{ name: 'Spider', sci: 'Araneae' }],
+      columns: [
+        { key: 'name', cardHeader: true },
+        { key: 'sci', cardSubheader: true },
+      ],
+    });
+    const tr = container.querySelector('tbody tr') as HTMLElement;
+    expect(tr.getAttribute('data-card-layout')).toBeNull();
+  });
+});
+
+// ── data-mobile-align attributes (P3: left-align long text in mobile cards) ─
+
+describe('data-mobile-align attributes', () => {
+  it('td renders data-mobile-align="left" when column has mobileTextAlign: "left"', () => {
+    const { container } = render(SortableTable, {
+      tableId: 'mobile-align-test',
+      rows: [{ rec: 'Buy this species now' }],
+      columns: [{ key: 'rec', label: 'Recommendation', mobileTextAlign: 'left' as const }],
+    });
+    const td = container.querySelector('tbody td[data-label="Recommendation"]') as HTMLElement;
+    expect(td).not.toBeNull();
+    expect(td.getAttribute('data-mobile-align')).toBe('left');
+  });
+
+  it('td renders data-mobile-align="right" when column has mobileTextAlign: "right"', () => {
+    const { container } = render(SortableTable, {
+      tableId: 'mobile-align-right-test',
+      rows: [{ val: '£12.99' }],
+      columns: [{ key: 'val', label: 'Price', mobileTextAlign: 'right' as const }],
+    });
+    const td = container.querySelector('tbody td[data-label="Price"]') as HTMLElement;
+    expect(td).not.toBeNull();
+    expect(td.getAttribute('data-mobile-align')).toBe('right');
+  });
+
+  it('td has no data-mobile-align when column does not set mobileTextAlign', () => {
+    const { container } = render(SortableTable, {
+      tableId: 'no-align-test',
+      rows: [{ name: 'Spider' }],
+      columns: [{ key: 'name', label: 'Species' }],
+    });
+    const td = container.querySelector('tbody td[data-label="Species"]') as HTMLElement;
+    expect(td).not.toBeNull();
+    expect(td.getAttribute('data-mobile-align')).toBeNull();
+  });
+});

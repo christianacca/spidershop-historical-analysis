@@ -82,8 +82,12 @@ def test_server(output_dir: Path):
         base_url: The URL to access the server (e.g., "http://127.0.0.1:54321")
     """
     handler = functools.partial(_SilentHandler, directory=str(output_dir))
-    
-    with socketserver.TCPServer(("127.0.0.1", 0), handler) as httpd:
+
+    # ThreadingTCPServer handles each request in a new thread.
+    # This is required because the Speculation Rules API issues concurrent
+    # prefetch requests alongside normal page navigations; a single-threaded
+    # TCPServer serialises them, causing Playwright navigation timeouts.
+    with socketserver.ThreadingTCPServer(("127.0.0.1", 0), handler) as httpd:
         port = httpd.server_address[1]
         thread = threading.Thread(target=httpd.serve_forever, daemon=True)
         thread.start()

@@ -1671,6 +1671,123 @@ Create `tests/e2e/test_history_insights.py`.
 
 ---
 
+## Phase 13 — Mobile Responsiveness
+
+**Goal:** Make the Market Health section usable on phones in portrait orientation. The
+section is currently largely unusable below 500 px: the section heading wraps to 7 lines,
+KPI cards are too narrow for their content, and the events grid values wrap badly. All
+fixes are CSS-only breakpoint additions — no TypeScript logic changes.
+
+> **Branch:** create `history-page-mobile-responsive` from the current commit on `master`
+> (or whatever branch carries Phase 12). This work package ships as its own PR.
+
+---
+
+### Mobile UX Inventory (390 × 844 px, iPhone 14 portrait)
+
+The following issues were identified using Chrome DevTools MCP emulation at
+390 × 844 × DPR 3 with touch enabled. All widths are CSS layout pixels.
+
+**Container chain on 390 px viewport:**
+- `.container` (20 px padding each side) → 350 px content width
+- `.content` (30 px padding each side) → 290 px content width  ← `#market-health-root`
+- `.market-health-section` card (30 px padding each side) → 230 px inner content
+
+| # | Issue | Severity | Root cause |
+|---|---|---|---|
+| I1 | Section header heading wraps to 7+ lines | Critical | `.section-header` is always `flex-direction: row`; heading column gets ~109 px, H2 font-size 22.4 px |
+| I2 | Section note is clipped/truncated | Critical | `max-width: 38ch` in half of a 230 px row; text overflows card |
+| I3 | KPI grid: 2-col at 230 px = 115 px per card | Critical | Existing 760 px breakpoint goes 4→2 col; no narrower breakpoint |
+| I4 | Card titles wrap excessively ("IN-STOCK RATE" = 3 lines) | Critical | Consequence of I3 (115 px cards) |
+| I5 | Sparklines shrink to ~88 px wide | Major | Consequence of I3; hit areas too small to tap |
+| I6 | "GBP 25" value wraps to 2 lines ("GBP" / "25") | Major | Consequence of I3; `font-size: 2rem` at 115 px |
+| I7 | Section card padding 30 px too large on mobile | Major | `padding: var(--spacing-xl)` unchanged for all viewports |
+| I8 | Events grid: 2-col at 230 px = 115 px per tile | Major | `grid-template-columns: 1fr 1fr` with no breakpoint |
+| I9 | Event values wrap badly ("0 vs prior quarter QTD" = 4 lines) | Major | Consequence of I8 |
+| I10 | Total scroll height ~4 300 px on a ~1 140 px viewport | Moderate | Consequence of I1, I3, I8 — resolves when layout fixes land |
+
+Issues I5, I6, I10 resolve automatically when I3 is fixed (single-column cards are ~240 px
+wide in a reduced-padding card). Issues I4, I9 resolve when I3/I8 are fixed.
+
+**What is acceptable on mobile without changes:**
+- Sparkline support card (flex-wrap handles wrapping well)
+- KPI copy text (wraps naturally and is readable)
+- Navigation (already vertical list)
+- Basis note and selection note text
+
+---
+
+### 13.1 — MarketHealthSection.svelte mobile breakpoints
+
+> **Breakpoint:** `480 px` — this is the threshold where the 2-column KPI grid becomes
+> unworkable. At 481–760 px (tablet portrait) the 2-column layout is acceptable.
+
+- [ ] Add `@media (max-width: 480px)` block to `MarketHealthSection.svelte <style>`:
+  - `.market-health-section { padding: var(--spacing-md); }` — reduce card padding
+    from 30 px to 16 px; raises inner content from 230 px to ~258 px
+  - `.section-header { flex-direction: column; align-items: flex-start; }` — stack
+    heading and note vertically instead of side by side
+  - `.section-note { max-width: none; align-self: auto; }` — allow note to run full
+    width when stacked
+  - `.kpi-grid { grid-template-columns: 1fr; }` — single-column KPI cards on narrow
+    screens
+
+- [ ] Run `make test-client-fast` — green
+
+---
+
+### 13.2 — MarketEventsCard.svelte mobile breakpoints
+
+- [ ] Add `@media (max-width: 480px)` block to `MarketEventsCard.svelte <style>`:
+  - `.events-grid { grid-template-columns: 1fr; }` — single-column event tiles
+- [ ] Run `make test-client-fast` — green
+
+---
+
+### 13.3 — Visual verification via Chrome DevTools MCP
+
+- [ ] Rebuild and re-serve: `make preview` (stops any running server, regenerates, starts
+  fresh at `http://localhost:8000`)
+- [ ] Emulate 390 × 844 × DPR 3 mobile portrait in Chrome DevTools MCP
+- [ ] Navigate to `http://localhost:8000/history-insights.html`
+- [ ] Confirm the following via `evaluate_script`:
+  - `sectionHeaderFlexDirection` = `"column"` at 390 px
+  - `kpiGridColumns` contains `"1fr"` (single column)
+  - `kpiCardWidth` ≥ 220 (at least 220 px wide — gives sparklines ~190 px)
+  - `eventsGridColumns` contains `"1fr"` (single column)
+- [ ] Take a screenshot at scroll positions 0, 1000, 2000 to confirm no layout breakage
+- [ ] Confirm total scroll height is under 3 000 px (was ~4 300 px)
+
+---
+
+### 13.4 — Visual contracts
+
+- [ ] Add a new `@media (max-width: 480px)` visual contract to the existing visual test
+  file that covers `MarketHealthSection` computed styles (or create
+  `MarketHealthSection.visual.test.ts` if one does not yet exist). The contract must assert:
+  - `.section-header` has `flex-direction: column` at viewport width ≤ 480 px
+  - `.kpi-grid` `grid-template-columns` resolves to a single-column value at ≤ 480 px
+  - At viewport width 600 px the 2-column grid is still active (regression guard)
+- [ ] Run `make test-visual` — green
+
+---
+
+### 13.5 — Full test suite
+
+- [ ] `make test-client` — green (coverage ≥ 80 %; new visual contract included)
+- [ ] `make test-e2e` — green (no regressions; structural changes are additive CSS only)
+
+**Housekeeping:**
+- [ ] H1 — Mark all tasks above ✅
+- [ ] H2 — Reflection: no hardcoded colours; no `any` casts; no `// TODO` shortcuts;
+  confirm breakpoints use `var(--spacing-*)` tokens not raw px values for padding
+- [ ] H3 — Feed-forward log entry
+- [ ] H4 — Commit: `git add -A && git commit -m "Phase 13: mobile responsiveness for Market Health section"`
+  then `git log --oneline -1` to confirm
+- [ ] GATE — Output phase completion block
+
+---
+
 
 
 | Item | Status |

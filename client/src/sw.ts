@@ -20,14 +20,46 @@ self.addEventListener('message', (event) => {
 cleanupOutdatedCaches();
 
 // Cache-first for hashed JS/CSS bundles (auto-managed via precache manifest).
+// The unhashed top-level CSS files (common.css, analysis.css, etc.) are also
+// included via additionalManifestEntries in vite.config.ts — they behave
+// identically to hashed bundles: cache-first, atomically swapped on SW update.
 precacheAndRoute(self.__WB_MANIFEST);
 
-// SWR for all HTML navigation requests — covers *.html and /species/<slug>/ paths.
-// Never cache-first: pages contain inline window.marketHealthRawData.
-// ExpirationPlugin bounds cache growth: the site has 160+ species pages (~12 KB
-// each uncompressed) plus 6 main pages (~250 KB each). Without a limit the cache
-// grows indefinitely. maxAgeSeconds = 14 days (2× weekly scrape cadence) so a page
-// the user visited two weeks ago is evicted rather than served stale forever.
+// Pre-fetch all main HTML pages into the html-pages cache during SW install.
+// Workbox waits for ALL event.waitUntil promises before transitioning to waiting,
+// so the toast can only fire after this completes. By the time the user sees
+// "New data has been deployed", fresh HTML is already in the cache — clicking
+// Refresh is guaranteed to serve the latest market data with no race condition.
+// Failures are swallowed so a single unreachable page never aborts the install;
+// the SWR route will populate the cache on first navigation as a fallback.
+self.addEventListener('install', (event) => {
+  const scope = self.registration.scope;
+  const mainPages = [
+    `${scope}index.html`,
+    `${scope}breeder.html`,
+    `${scope}dealer.html`,
+    `${scope}snapshot.html`,
+    `${scope}history.html`,
+    `${scope}history-insights.html`,
+  ];
+  event.waitUntil(
+    caches.open('html-pages').then(cache =>
+      Promise.all(
+        mainPages.map(url =>
+          fetch(new Request(url, { cache: 'reload', credentials: 'same-origin' }))
+            .then(resp => { if (resp.ok) return cache.put(url, resp); })
+            .catch(() => {}),
+        ),
+      ),
+    ),
+  );
+});
+
+// HTML pages: StaleWhileRevalidate — serve from cache immediately, refresh in background.
+// The install handler above ensures fresh HTML is already in the cache before the toast
+// fires, eliminating the race condition where a user clicks Refresh before the SWR
+// background fetch has completed.
+// ExpirationPlugin bounds cache growth: 160+ species pages + 6 main pages.
 registerRoute(
   new NavigationRoute(
     new StaleWhileRevalidate({
@@ -37,20 +69,5 @@ registerRoute(
       ],
     }),
   ),
-);
-
-// Runtime SWR for unhashed CSS files not covered by the precache manifest:
-// common.css, analysis.css, homepage.css, species-detail.css.
-// Small fixed set (≤5 files) — maxEntries is a safety net against unexpected growth.
-// Do NOT add a route for scripts — hashed JS bundles are handled exclusively by
-// precacheAndRoute above; a second route for them would corrupt the cache.
-registerRoute(
-  ({ request }) => request.destination === 'style',
-  new StaleWhileRevalidate({
-    cacheName: 'css-runtime',
-    plugins: [
-      new ExpirationPlugin({ maxEntries: 20, maxAgeSeconds: 30 * 24 * 60 * 60 }),
-    ],
-  }),
 );
 

@@ -77,3 +77,35 @@ interface Window {
   speciesChartData?: SpeciesChartData;
   historyChartData?: HistoryChartData;
 }
+
+// ── View Transitions Level 2 ─────────────────────────────────────────────────
+// `types` is not in the standard TS DOM lib yet; declared here so that
+// view-transitions-entry.ts can call vt.types.add() without casting.
+
+interface ViewTransitionTypes {
+  add(type: string): void;
+  delete(type: string): void;
+  has(type: string): boolean;
+}
+
+interface ViewTransition {
+  // Augments the existing lib.dom.d.ts ViewTransition — TypeScript merges declarations.
+  readonly types: ViewTransitionTypes;
+}
+
+interface PageRevealEvent extends Event {
+  readonly viewTransition: ViewTransition | null;
+}
+
+// ── Navigation API (used by view-transitions-entry.ts) ──────────────────────
+// window.navigation is Chrome 102+. These declarations are minimal and cover
+// only the fields consumed by the direction-detection logic.
+
+interface NavigationHistoryEntry {
+  readonly url: string;
+}
+
+interface NavigationActivation {
+  readonly entry: NavigationHistoryEntry;
+  readonly from: NavigationHistoryEntry | null;
+}

@@ -5,19 +5,57 @@
     needRefresh: Writable<boolean>;
     updateServiceWorker: () => Promise<void>;
   } = $props();
+
+  const AUTO_REFRESH_SECONDS = 30;
+  let countdown = $state(AUTO_REFRESH_SECONDS);
+  let timer: ReturnType<typeof setInterval> | null = null;
+
+  $effect(() => {
+    if ($needRefresh) {
+      countdown = AUTO_REFRESH_SECONDS;
+      timer = setInterval(() => {
+        countdown -= 1;
+        if (countdown <= 0) {
+          clearInterval(timer!);
+          timer = null;
+          void updateServiceWorker();
+        }
+      }, 1000);
+      return () => {
+        if (timer) {
+          clearInterval(timer);
+          timer = null;
+        }
+      };
+    }
+  });
+
+  function dismiss() {
+    if (timer) {
+      clearInterval(timer);
+      timer = null;
+    }
+    needRefresh.set(false);
+  }
 </script>
 
 {#if $needRefresh}
-  <div class="sw-update-toast" role="status" aria-live="polite">
-    <span>New spider listings available.</span>
-    <button onclick={() => updateServiceWorker()}>Refresh</button>
-    <button onclick={() => needRefresh.set(false)} aria-label="Dismiss">✕</button>
+  <div class="sw-update-toast">
+    <span role="status" aria-live="polite">New spider listings available.</span>
+    <span aria-hidden="true">Refreshing in {countdown}s…</span>
+    <button onclick={() => void updateServiceWorker()}>Refresh now</button>
+    <button onclick={dismiss} aria-label="Dismiss">✕</button>
   </div>
 {/if}
 
 <style>
   @keyframes slide-up {
     from { transform: translateY(calc(100% + var(--spacing-lg))); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+
+  @keyframes slide-down {
+    from { transform: translateY(calc(-100% - var(--spacing-md))); opacity: 0; }
     to   { transform: translateY(0); opacity: 1; }
   }
 
@@ -51,7 +89,17 @@
 
   @media (max-width: 480px) {
     .sw-update-toast {
+      /* On mobile, position at the top of the viewport rather than the bottom.
+         position:fixed;bottom:N uses the CSS viewport height, which on iOS Safari
+         and Android Chrome may exceed the actual visible area (URL bar + system
+         navigation bar), pushing the toast below the visible screen.
+         top:N is always visible — browser chrome at the top pushes content
+         downward, so the toast stays within the visual viewport. */
+      top: var(--spacing-md);
+      bottom: auto;
       left: var(--spacing-lg);
+      flex-wrap: wrap;
+      animation-name: slide-down;
     }
 
     button {

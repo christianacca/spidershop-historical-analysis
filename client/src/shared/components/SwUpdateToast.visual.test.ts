@@ -68,14 +68,18 @@ describe('SwUpdateToast — mobile layout (≤480px viewport)', () => {
     mockNeedRefresh.set(false);
   });
 
-  it('left edge is pinned to --spacing-lg on mobile', async () => {
+  it('is positioned at the top of the viewport on mobile', async () => {
     await page.viewport(MOBILE_WIDTH, MOBILE_HEIGHT);
     mockNeedRefresh.set(true);
     const { container } = renderToast();
     await Promise.resolve();
     const toast = container.querySelector('.sw-update-toast') as HTMLElement;
+    const style = window.getComputedStyle(toast);
+    // Toast moves to top on mobile to avoid iOS/Android bottom-chrome clipping.
+    const expectedTop = tokenHex('--spacing-md'); // '15px'
+    expect(style.top).toBe(expectedTop);
     const expectedLeft = tokenHex('--spacing-lg'); // '20px'
-    expect(window.getComputedStyle(toast).left).toBe(expectedLeft);
+    expect(style.left).toBe(expectedLeft);
   });
 
   it('buttons have a minimum 44px touch target height on mobile', async () => {

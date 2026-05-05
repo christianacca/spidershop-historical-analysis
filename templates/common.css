@@ -124,6 +124,17 @@ header .container {
     padding: 0 20px;
 }
 
+.header__inner {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.header__title {
+    flex: 1;
+}
+
 header h1 {
     font-size: 2rem;
     margin-bottom: 10px;
@@ -132,6 +143,32 @@ header h1 {
 header p {
     font-size: 1.1rem;
     opacity: 0.9;
+}
+
+/* Hamburger toggle — hidden on desktop */
+.nav-toggle {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 40px;
+    height: 40px;
+    padding: 8px;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 4px;
+}
+
+.nav-toggle__bar {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background: white;
+    border-radius: 2px;
+    transition: opacity 0.2s;
 }
 
 /* Navigation */
@@ -343,128 +380,63 @@ h3 {
     }
 }
 
-/* Color-coded signal cells */
-.data-table .signal-hot {
-    background: linear-gradient(135deg, #fff5f5 0%, #ffe5e5 100%);
-    border-left: 4px solid var(--color-signal-hot);
+/* Color-coded signal cells — shared layout properties */
+.data-table .signal-hot,
+.data-table .signal-watch,
+.data-table .signal-avoid {
     text-align: center;
     font-size: 1.8rem;
     padding: 8px;
     font-weight: bold;
     white-space: nowrap;
+}
+
+/* Per-signal background gradient and left-border accent colour */
+.data-table .signal-hot {
+    background: linear-gradient(135deg, #fff5f5 0%, #ffe5e5 100%);
+    border-left: 4px solid var(--color-signal-hot);
 }
 
 .data-table .signal-watch {
     background: linear-gradient(135deg, #fffef5 0%, #fff7e5 100%);
     border-left: 4px solid var(--color-signal-watch);
-    text-align: center;
-    font-size: 1.8rem;
-    padding: 8px;
-    font-weight: bold;
-    white-space: nowrap;
 }
 
 .data-table .signal-avoid {
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
     border-left: 4px solid var(--color-signal-avoid);
-    text-align: center;
-    font-size: 1.8rem;
-    padding: 8px;
-    font-weight: bold;
-    white-space: nowrap;
 }
 
-/* Info Tip (inline icon + tooltip — used in stat cards and data tables) */
-.info-tip {
-    display: inline-block;
-    margin-left: 6px;
-    cursor: pointer;
-    font-size: 0.85rem;
-    opacity: 0.7;
-    position: relative;
-    transition: opacity 0.2s;
-}
+/* Info Tip and Warning Tip — shared base, colour overrides only.
+   Both are inline icon + tooltip combos.  The only difference is the brand
+   colour used for the tooltip background and arrow. */
 
-.info-tip:hover,
-.info-tip:focus {
-    opacity: 1;
-    outline: none;
-}
-
-.info-tip__text {
-    visibility: hidden;
-    opacity: 0;
-    position: absolute;
-    bottom: 125%;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: var(--color-primary);
-    color: #fff;
-    padding: 12px 16px;
-    border-radius: var(--radius-md);
-    font-size: 0.85rem;
-    min-width: 200px;
-    max-width: 400px;
-    text-align: left;
-    text-transform: none;
-    letter-spacing: normal;
-    line-height: 1.5;
-    z-index: 1000;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    transition: opacity 0.3s, visibility 0.3s;
-    pointer-events: none;
-    white-space: normal;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-}
-
-.info-tip__text::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 6px solid transparent;
-    border-top-color: var(--color-primary);
-}
-
-.info-tip:hover .info-tip__text,
-.info-tip:focus .info-tip__text {
-    visibility: visible;
-    opacity: 1;
-}
-
-@media (hover: none) and (pointer: coarse) {
-    .info-tip:active .info-tip__text {
-        visibility: visible;
-        opacity: 1;
-    }
-}
-
-@media (max-width: 768px) {
-    .info-tip__text {
-        width: 240px;
-        font-size: 0.8rem;
-    }
-}
-
-/* Warning Tip (inline warning icon + tooltip — price evidence disclosure on transition rows) */
+/* Container — shared properties */
+.info-tip,
 .warning-tip {
     display: inline-block;
     margin-left: 6px;
     cursor: pointer;
     font-size: 0.85rem;
-    opacity: 0.8;
     position: relative;
     transition: opacity 0.2s;
 }
 
+/* Container — individual resting opacity */
+.info-tip    { opacity: 0.7; }
+.warning-tip { opacity: 0.8; }
+
+/* Container — active / focus state */
+.info-tip:hover,
+.info-tip:focus,
 .warning-tip:hover,
 .warning-tip:focus {
     opacity: 1;
     outline: none;
 }
 
+/* Tooltip text — shared properties */
+.info-tip__text,
 .warning-tip__text {
     visibility: hidden;
     opacity: 0;
@@ -472,7 +444,6 @@ h3 {
     bottom: 125%;
     left: 50%;
     transform: translateX(-50%);
-    background-color: var(--color-signal-watch);
     color: #fff;
     padding: 12px 16px;
     border-radius: var(--radius-md);
@@ -492,6 +463,12 @@ h3 {
     overflow-wrap: break-word;
 }
 
+/* Tooltip text — individual brand colours */
+.info-tip__text    { background-color: var(--color-primary); }
+.warning-tip__text { background-color: var(--color-signal-watch); }
+
+/* Arrow pseudo-element — shared properties */
+.info-tip__text::after,
 .warning-tip__text::after {
     content: '';
     position: absolute;
@@ -499,26 +476,54 @@ h3 {
     left: 50%;
     transform: translateX(-50%);
     border: 6px solid transparent;
-    border-top-color: var(--color-signal-watch);
 }
 
+/* Arrow pseudo-element — individual tip colours */
+.info-tip__text::after    { border-top-color: var(--color-primary); }
+.warning-tip__text::after { border-top-color: var(--color-signal-watch); }
+
+/* Show on hover / focus */
+.info-tip:hover    .info-tip__text,
+.info-tip:focus    .info-tip__text,
 .warning-tip:hover .warning-tip__text,
 .warning-tip:focus .warning-tip__text {
     visibility: visible;
     opacity: 1;
 }
 
+/* Show on tap for touch-only devices */
 @media (hover: none) and (pointer: coarse) {
+    .info-tip:active    .info-tip__text,
     .warning-tip:active .warning-tip__text {
         visibility: visible;
         opacity: 1;
     }
 }
 
+/* Mobile: switch to position:fixed so the tooltip is positioned relative to
+   the viewport and does NOT contribute to document.documentElement.scrollWidth.
+   position:absolute tooltips near the right edge of a narrow viewport extend
+   beyond the layout viewport, causing scrollWidth > clientWidth which widens
+   the visual viewport and breaks cross-document view-transition animations.
+   The caret arrow is hidden — it would point to the wrong place when the
+   tooltip is pinned to the bottom of the screen. */
 @media (max-width: 768px) {
+    .info-tip__text,
     .warning-tip__text {
-        width: 240px;
+        position: fixed;
+        left: 16px;
+        right: 16px;
+        bottom: 24px;
+        top: auto;
+        width: auto;
+        max-width: none;
+        transform: none;
         font-size: 0.8rem;
+    }
+
+    .info-tip__text::after,
+    .warning-tip__text::after {
+        display: none;
     }
 }
 
@@ -719,6 +724,10 @@ details.examples-box hr {
 
 /* Mobile Responsive Card Layout */
 @media (max-width: 768px) {
+    /* Tooltip overflow was the original source of mobile scrollWidth expansion.
+       The fix is in .info-tip__text and .warning-tip__text above: position:fixed
+       removes them from document flow so they never expand scrollWidth. */
+
     /* Hide table structure on mobile */
     .data-table thead {
         display: none;
@@ -749,81 +758,131 @@ details.examples-box hr {
         background: white;
     }
     
-    /* Card cells with labels */
+    /* Card cells — side-by-side "label: value" layout */
     .data-table td {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0;
+        gap: 8px;
+        padding: 2px 0;
         border: none;
         font-size: 0.95rem;
     }
-    
-    /* Add labels from data-label attribute */
+
+    /* Label (left side) */
     .data-table td::before {
-        content: attr(data-label);
-        font-weight: 600;
-        color: #555;
-        margin-right: 15px;
+        content: attr(data-label) ':';
+        color: var(--color-text-muted);
         flex-shrink: 0;
     }
-    
-    /* Signal/Risk cells - make them prominent in card layout */
-    .data-table .signal-hot,
-    .data-table .signal-watch,
-    .data-table .signal-avoid {
-        padding: 12px 16px;
+
+    /* Header and sub-header cells: block layout, no label prefix */
+    .data-table td[data-card-role] {
+        display: block;
+    }
+
+    .data-table td[data-card-role]::before {
+        display: none;
+    }
+
+    /* Hoist header/sub-header cells to the top of each card regardless of column order */
+    .data-table td[data-card-role="header"]  { order: -2; }
+    .data-table td[data-card-role="subheader"] { order: -1; }
+
+    /* Card header — prominent species/common name */
+    .data-table td[data-card-role="header"] {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--color-primary);
+    }
+
+    /* Card sub-header — scientific name in smaller, muted italics; with
+       divider below and tightened gap with header */
+    .data-table td[data-card-role="subheader"] {
+        font-size: 0.82rem;
+        font-style: italic;
+        color: var(--color-text-muted);
+        margin-top: -6px; /* tighten gap with header */
+        border-bottom: 1px solid var(--color-border-alt);
+        padding-bottom: 8px;
+        margin-bottom: 4px;
+    }
+
+    /* Divider below header when there is no sub-header (breeder/dealer Species column) */
+    .data-table tr[data-card-layout="header-only"] td[data-card-role="header"] {
+        border-bottom: 1px solid var(--color-border-alt);
+        padding-bottom: 8px;
+        margin-bottom: 4px;
+    }
+
+    /* Signal/Risk cells: block layout + prominent colour border in card layout.
+       Suppresses the eyebrow label (::before) — the coloured border + emoji are self-explanatory. */
+    .data-table td.signal-hot,
+    .data-table td.signal-watch,
+    .data-table td.signal-avoid {
+        display: block;
+        padding: 10px 12px;
         border-radius: 8px;
         border-left: none;
         border: 2px solid;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
     }
-    
-    .data-table .signal-hot {
-        border-color: var(--color-signal-hot);
+
+    .data-table td.signal-hot::before,
+    .data-table td.signal-watch::before,
+    .data-table td.signal-avoid::before {
+        display: none;
     }
+
+    .data-table td.signal-hot   { border-color: var(--color-signal-hot);   }
+    .data-table td.signal-watch { border-color: var(--color-signal-watch); }
+    .data-table td.signal-avoid { border-color: var(--color-signal-avoid); }
     
-    .data-table .signal-watch {
-        border-color: var(--color-signal-watch);
-    }
-    
-    .data-table .signal-avoid {
-        border-color: var(--color-signal-avoid);
-    }
-    
-    .data-table .signal-hot::before,
-    .data-table .signal-watch::before,
-    .data-table .signal-avoid::before {
-        font-weight: 700;
-        font-size: 1rem;
-    }
-    
-    /* Sparkline cells - keep horizontal layout */
-    .data-table td svg {
-        margin-left: auto;
-    }
-    
-    /* Species name - make it larger and more prominent */
-    .data-table td:first-child {
-        font-size: 1.1rem;
+    /* Value (right side) — semibold; colour contrast with the muted label does most work */
+    .data-table .card-value {
         font-weight: 600;
-        color: var(--color-primary);
-        padding-bottom: 8px;
-        border-bottom: 2px solid var(--color-border-alt);
-        margin-bottom: 8px;
+        text-align: right;
+        min-width: 0;
     }
     
     /* Responsive adjustments for other elements */
     header h1 {
         font-size: 1.5rem;
     }
-    
-    nav ul {
+}
+
+/* Hamburger / collapsible nav — shared rules for both triggers:
+   portrait mobile (≤768 px wide) and landscape phone (≤500 px tall).
+   Both conditions collapse the horizontal nav to save screen real estate.
+   The comma in the media query list means OR — either condition alone
+   is enough to activate the hamburger. */
+@media (max-width: 768px), (max-height: 500px) {
+    .nav-toggle {
+        display: flex;
+    }
+
+    nav {
+        display: none;
+        margin-bottom: 0;
+    }
+
+    nav.nav--open {
+        display: block;
+    }
+
+    nav.nav--open ul {
         flex-direction: column;
+        gap: 4px;
+    }
+
+    nav.nav--open a {
+        padding: 12px 20px;
     }
 }
+
+/* Landscape phone: viewport height ≤ 500 px means the full horizontal nav wraps
+   to multiple rows, consuming nearly half the screen.  The hamburger/nav rules
+   are shared with the ≤768px mobile breakpoint above (via comma media query).
+   Only non-nav landscape-specific rules appear here. */
 
 /* Tablet breakpoint - keep table layout but optimize spacing */
 @media (min-width: 769px) and (max-width: 1024px) {
@@ -835,4 +894,129 @@ details.examples-box hr {
     .data-table td {
         padding: 10px;
     }
+
+    /* Prevent the nav from wrapping to a second row at tablet widths.
+       flex-wrap:nowrap is the only reliable approach — padding reduction alone
+       is not enough because headless Chromium renders fonts slightly wider than
+       desktop Chrome, so text-width calculations can differ.
+       Items that overflow at narrow tablet widths (769–~880px) are clipped by
+       overflow-x:hidden; at 1024px all 6 items fit within the container. */
+    nav {
+        overflow-x: hidden;
+    }
+
+    nav ul {
+        flex-wrap: nowrap;
+        padding: 0 4px;
+    }
+
+    nav a {
+        padding: 8px 10px;
+        white-space: nowrap;
+        font-size: 0.9rem;
+    }
+}
+
+/* Mobile portrait — stretch page content to full viewport width */
+@media (max-width: 480px) {
+    /* Remove side gutters so the page body fills the full width.
+       Note: header .container { padding: 0 20px } is more specific and
+       keeps the header text inset; only the main page container is affected. */
+    .container {
+        padding: 0;
+    }
+
+    /* Remove card rounding so the content block sits flush edge-to-edge. */
+    .content {
+        border-radius: 0;
+        padding: var(--spacing-md);
+    }
+
+    /* Reduce header padding: at 390px the default 20px top/bottom padding consumes
+       ~21% of viewport height before any content is visible. Tightening to 12px
+       reclaims ~16px of prime real estate without sacrificing visual clarity. */
+    header {
+        padding: 12px 0;
+    }
+
+    /* Left-align long text values in mobile card layout.
+       Right-aligned multi-line text creates a ragged left edge that is hard to scan. */
+    .data-table td[data-mobile-align="left"] .card-value {
+        text-align: left;
+    }
+}
+
+/* Galaxy Fold / very narrow phone (≤ 320 px): the page title wraps to 3 lines
+   at the default 1.5rem size set by the ≤768px breakpoint above.  Scale it down
+   to keep the title to 2 lines at most and reduce header height. */
+@media (max-width: 320px) {
+    header h1 {
+        font-size: 1.2rem;
+    }
+}
+
+/* ============================================================
+ * Cross-Document View Transitions — directional slide
+ *
+ * Browser support: Chrome 131+, Edge 131+, Firefox 131+, Safari 18.2+.
+ * @view-transition is silently ignored by browsers without support.
+ * html:active-view-transition-type() requires VT Level 2 (same versions).
+ *
+ * Direction is set by view-transitions-entry.js via vt.types.add().
+ * Navigations with no type set receive the browser's default cross-fade.
+ * ============================================================ */
+
+/* Disable all VT animations when the user prefers reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+    @view-transition {
+        navigation: none;
+    }
+}
+
+@view-transition {
+    navigation: auto;
+}
+
+/* vt- prefix avoids collision with existing app animation keyframes.
+   Cover/uncover: the species detail page slides over the listing (like an iOS
+   sheet) and slides back off on return.  The listing page stays fixed — only
+   the detail moves.  This is subtler than a full push: the static listing
+   behind the incoming detail gives depth without both pages flying across the
+   screen simultaneously.
+   mix-blend-mode: normal overrides the UA cross-fade default so the static
+   page is fully opaque and the sliding page is drawn on top. */
+@keyframes vt-slide-in-right {
+    from { transform: translateX(100%); }
+    to   { transform: translateX(0);    }
+}
+
+@keyframes vt-slide-out-right {
+    from { transform: translateX(0);    }
+    to   { transform: translateX(100%); }
+}
+
+/* Forward: listing page → species detail.
+   Listing stays put; detail slides in from the right over it. */
+html:active-view-transition-type(forward)::view-transition-old(root) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+
+html:active-view-transition-type(forward)::view-transition-new(root) {
+    animation: 0.3s ease-out both vt-slide-in-right;
+    mix-blend-mode: normal;
+    z-index: 1;
+}
+
+/* Backward: species detail → listing page.
+   Detail slides off to the right; listing is revealed underneath. */
+html:active-view-transition-type(backward)::view-transition-old(root) {
+    animation: 0.3s ease-in both vt-slide-out-right;
+    mix-blend-mode: normal;
+    z-index: 1;
+}
+
+html:active-view-transition-type(backward)::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
 }

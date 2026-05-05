@@ -55,6 +55,12 @@
     gap: var(--spacing-sm);
   }
 
+  @media (max-width: 480px) {
+    .events-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
   .event-tile {
     display: flex;
     flex-direction: column;

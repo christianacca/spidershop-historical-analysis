@@ -4,7 +4,7 @@ import { createFilterConfig } from '../shared/filter-config.js';
 export const DEALER_PAGE_CONFIG: SortableTablePageConfig = {
   tableId: 'dealer-table',
   columns: [
-    { key: 'Species', type: 'species-link', linkViewParam: 'dealer' },
+    { key: 'Species', type: 'species-link', linkViewParam: 'dealer', cardHeader: true },
     { key: 'Size (cm)' },
     { key: 'Stock Reliability' },
     { key: 'Avg OOS Duration' },
@@ -15,7 +15,7 @@ export const DEALER_PAGE_CONFIG: SortableTablePageConfig = {
     { key: 'Wishlist History', type: 'sparkline' },
     { key: 'Stock Availability', type: 'sparkline' },
     { key: 'Dealer Risk' },
-    { key: 'Dealer Recommendation' },
+    { key: 'Dealer Recommendation', mobileTextAlign: 'left' as const },
     { key: 'Drivers', hidden: true },
     { key: 'Lineage Status', hidden: true },
     { key: 'Price Evidence State', hidden: true },

@@ -12,12 +12,24 @@
 <body>
     <header>
         <div class="container">
-            <h1>🕷️ Spider Shop Historical Analysis</h1>
-            <p>Tarantula Spiderling Pricing & Market Data</p>
+            <div class="header__inner">
+                <div class="header__title">
+                    <h1>🕷️ Spider Shop Historical Analysis</h1>
+                    <p>Tarantula Spiderling Pricing & Market Data</p>
+                </div>
+                {% block nav_toggle %}
+                <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="main-nav" aria-label="Toggle navigation">
+                    <span class="nav-toggle__bar"></span>
+                    <span class="nav-toggle__bar"></span>
+                    <span class="nav-toggle__bar"></span>
+                </button>
+                {% endblock %}
+            </div>
         </div>
     </header>
     
-    <nav>
+    {% block nav %}
+    <nav id="main-nav">
         <div class="container">
             <ul>
                 {% for item in nav_items %}
@@ -26,6 +38,26 @@
             </ul>
         </div>
     </nav>
+    {% endblock %}
+
+    <script>
+    (function () {
+        var btn = document.getElementById('nav-toggle');
+        var nav = document.getElementById('main-nav');
+        if (!btn || !nav) return;
+        btn.addEventListener('click', function () {
+            var open = nav.classList.toggle('nav--open');
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+        // Close nav when a link is clicked (navigating away or same-page anchor)
+        nav.addEventListener('click', function (e) {
+            if (e.target.tagName === 'A') {
+                nav.classList.remove('nav--open');
+                btn.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }());
+    </script>
     
     <div class="container">
         {% block content %}{% endblock %}
@@ -41,5 +73,31 @@
 
     <div id="sw-update-toast-root"></div>
     <script type="module" src="{{ path_prefix }}sw-toast-entry.js"></script>
+    <!-- Inline classic script to avoid a render-blocking network request for ~15 lines.
+         Must NOT be type="module", defer, or async — those delay execution past the
+         pagereveal event (which fires before DOMContentLoaded). A synchronous external
+         script would also work but adds an unnecessary round-trip. -->
+    <script>
+    (function () {
+      function isSpeciesPage(url) {
+        return !!url && /\/species\//.test(url);
+      }
+      window.addEventListener('pagereveal', function (e) {
+        var vt = e.viewTransition;
+        if (!vt) return;
+        var nav = window.navigation;
+        var act = nav && nav.activation;
+        if (!act || !act.from) return;
+        var fromSpecies = isSpeciesPage(act.from.url);
+        var toSpecies = isSpeciesPage(act.entry.url);
+        if (!fromSpecies && toSpecies) { vt.types.add('forward'); }
+        else if (fromSpecies && !toSpecies) { vt.types.add('backward'); }
+      });
+    }());
+    </script>
+    <script type="module" src="{{ path_prefix }}view-transitions-entry.js"></script>
+    <script type="speculationrules">
+{"prefetch":[{"source":"document","eagerness":"moderate","where":{"href_matches":"species/*.html"}}]}
+    </script>
 </body>
 </html>

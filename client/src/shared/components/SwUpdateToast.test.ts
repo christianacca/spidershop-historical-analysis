@@ -26,16 +26,15 @@ describe('SwUpdateToast', () => {
   it('renders the update message when needRefresh is true', async () => {
     const { getByRole } = renderToast();
     mockNeedRefresh.set(true);
-    // Allow Svelte to flush the reactive update
     await Promise.resolve();
     expect(getByRole('status')).toHaveTextContent('New spider listings available.');
   });
 
-  it('calls updateServiceWorker when Refresh is clicked', async () => {
+  it('calls updateServiceWorker when "Refresh now" is clicked', async () => {
     const { getByText } = renderToast();
     mockNeedRefresh.set(true);
     await Promise.resolve();
-    await fireEvent.click(getByText('Refresh'));
+    await fireEvent.click(getByText('Refresh now'));
     expect(mockUpdateServiceWorker).toHaveBeenCalled();
   });
 
@@ -45,5 +44,59 @@ describe('SwUpdateToast', () => {
     await Promise.resolve();
     await fireEvent.click(getByLabelText('Dismiss'));
     expect(queryByRole('status')).toBeNull();
+  });
+
+  describe('countdown auto-refresh', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('shows "Refreshing in 30s…" when toast first appears', async () => {
+      const { container } = renderToast();
+      mockNeedRefresh.set(true);
+      await Promise.resolve();
+      expect(container).toHaveTextContent('Refreshing in 30s');
+    });
+
+    it('decrements the countdown every second', async () => {
+      const { container } = renderToast();
+      mockNeedRefresh.set(true);
+      await Promise.resolve();
+
+      vi.advanceTimersByTime(1000);
+      await Promise.resolve();
+      expect(container).toHaveTextContent('Refreshing in 29s');
+
+      vi.advanceTimersByTime(1000);
+      await Promise.resolve();
+      expect(container).toHaveTextContent('Refreshing in 28s');
+    });
+
+    it('calls updateServiceWorker automatically after 30 seconds', async () => {
+      renderToast();
+      mockNeedRefresh.set(true);
+      await Promise.resolve();
+
+      vi.advanceTimersByTime(30_000);
+      await Promise.resolve();
+
+      expect(mockUpdateServiceWorker).toHaveBeenCalledOnce();
+    });
+
+    it('dismiss cancels the auto-refresh', async () => {
+      const { getByLabelText } = renderToast();
+      mockNeedRefresh.set(true);
+      await Promise.resolve();
+
+      await fireEvent.click(getByLabelText('Dismiss'));
+      vi.advanceTimersByTime(30_000);
+      await Promise.resolve();
+
+      expect(mockUpdateServiceWorker).not.toHaveBeenCalled();
+    });
   });
 });

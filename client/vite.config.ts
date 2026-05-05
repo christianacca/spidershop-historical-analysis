@@ -2,6 +2,18 @@ import { defineConfig, type UserConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { VitePWA } from 'vite-plugin-pwa';
 import { resolve } from 'path';
+import { createHash } from 'crypto';
+import { readFileSync } from 'fs';
+
+// Compute a short content-hash for a file so it can be added to the Workbox
+// precache manifest as an unversioned entry with a revision.  When the file
+// changes, the revision changes, and the new SW will fetch a fresh copy at
+// install time — identical behaviour to content-hashed JS bundles.
+function fileRevision(filePath: string): string {
+  return createHash('sha1').update(readFileSync(filePath)).digest('hex').slice(0, 8);
+}
+
+const templatesDir = resolve(__dirname, '../templates');
 
 function createRollupOutput(isCiBuild: boolean) {
   if (isCiBuild) {
@@ -45,8 +57,21 @@ export function createViteConfig(isCiBuild = !!process.env.CI): UserConfig {
         enabled: false,            // SW irrelevant in Vite dev server for this project
       },
       injectManifest: {
-        // Only precache content-hashed JS/CSS — never HTML (Python-generated, not in dist)
+        // Precache content-hashed JS/CSS from the Vite build output.
+        // Never HTML (Python-generated, not in dist).
         globPatterns: ['**/*.{js,css}'],
+        // Add the unhashed top-level CSS files that live in templates/ and are
+        // referenced by Python-rendered HTML with plain filenames.  Using
+        // additionalManifestEntries with a content-derived revision makes them
+        // behave identically to hashed JS bundles: cache-first, and atomically
+        // swapped (via cleanupOutdatedCaches) when the new SW activates.
+        // This eliminates the need for a separate css-runtime runtime cache.
+        additionalManifestEntries: [
+          { url: 'common.css',         revision: fileRevision(`${templatesDir}/common.css`) },
+          { url: 'analysis.css',       revision: fileRevision(`${templatesDir}/analysis.css`) },
+          { url: 'homepage.css',       revision: fileRevision(`${templatesDir}/homepage.css`) },
+          { url: 'species-detail.css', revision: fileRevision(`${templatesDir}/species-detail.css`) },
+        ],
       },
     }),
   ],
@@ -95,6 +120,8 @@ export function createViteConfig(isCiBuild = !!process.env.CI): UserConfig {
         'src/shared/register-sw.ts',
         // Toast entry: page-level entry that only runs in a real browser.
         'src/sw-toast-entry.ts',
+        // View Transitions entry: registers a browser event listener — E2E only.
+        'src/view-transitions-entry.ts',
       ],
       // Thresholds ratcheted after post-migration hardening phases 2–7.
       // lines/statements measured at 96.9%; set to 95 (rounded down to nearest 5%).
@@ -121,6 +148,7 @@ export function createViteConfig(isCiBuild = !!process.env.CI): UserConfig {
         'history-page': resolve(__dirname, 'src/history-page/index.ts'),
         'species-page': resolve(__dirname, 'src/species-page/index.ts'),
         'sw-toast-entry': resolve(__dirname, 'src/sw-toast-entry.ts'),
+        'view-transitions-entry': resolve(__dirname, 'src/view-transitions-entry.ts'),
       },
       output: createRollupOutput(isCiBuild),
     },

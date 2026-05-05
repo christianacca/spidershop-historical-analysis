@@ -65,10 +65,10 @@ E2E test that runs with SW explicitly blocked (see Phase 4).
 
 | Resource type | Strategy | Rationale |
 |---|---|---|
-| HTML navigation routes (`*.html`, `/species/<slug>/`) | Stale-while-revalidate via `NavigationRoute` | Never precache HTML — pages embed `window.marketHealthRawData` inline (~13 KB gzip), so cache-first would serve stale market data. SWR serves the cached page instantly while revalidating in the background. |
+| HTML navigation routes (`*.html`, `/species/<slug>/`) | **StaleWhileRevalidate** via `NavigationRoute` + install-time pre-fetch | SWR serves cached pages immediately for instant render; background fetch keeps cache fresh. All 6 main pages are pre-fetched into `html-pages` during SW install so fresh data is available before the update toast fires. (Was NetworkFirst briefly — see feed-forward 2026-05-03 #2.) |
 | Hashed JS/CSS bundles | Cache-first via precache manifest | Handled automatically by `precacheAndRoute(self.__WB_MANIFEST)`. Content hash changes on every build, so the manifest revision is always fresh. |
-| Unhashed static CSS (`common.css`, `analysis.css`, `homepage.css`, `species-detail.css`) | Runtime SWR rule | No content hash in filenames; they change between deploys. SWR keeps them fresh without blocking page load. |
-| Species detail pages (`/species/<slug>/index.html`) | SWR on demand, never precache | Hundreds of pages — precaching all would bloat the SW install. SWR caches them on first user visit. |
+| Unhashed static CSS (`common.css`, `analysis.css`, `homepage.css`, `species-detail.css`) | **Precache** via `additionalManifestEntries` | Added to the precache manifest in `vite.config.ts` with a SHA-1 content-revision hash computed at build time. Swapped atomically with JS bundles when the new SW activates — no separate runtime CSS cache. (Was NetworkFirst briefly — see feed-forward 2026-05-03 #2.) |
+| Species detail pages (`/species/<slug>/index.html`) | SWR on demand via `html-pages` cache | Pre-fetching all species pages would bloat the SW install. SWR caches them on first user visit and serves fresh on subsequent visits. |
 | External resources | Network-only (no rule) | Do not intercept CDN or third-party requests. |
 
 ### G3 — Service worker foot guns to avoid
@@ -104,13 +104,17 @@ E2E test that runs with SW explicitly blocked (see Phase 4).
 
 - `needRefresh: Writable<boolean>` — becomes `true` when a new SW has been installed and
   is waiting to activate.
-- `updateServiceWorker(reloadPage?: boolean)` — calls `skipWaiting()` on the waiting SW
-  and optionally reloads the page. Call with `true` so the user gets the freshest page.
+- `updateServiceWorker()` — calls `skipWaiting()` on the waiting SW; page reload is
+  driven unconditionally by the `controlling` event in `register-sw.ts`.
 
-`SwUpdateToast.svelte` subscribes to `needRefresh` and renders a "New data has been
-deployed" notification only when it is `true`. The component mounts from
-`sw-toast-entry.ts`, which is a separate Vite entry that runs on every page (referenced
-in `base.html` directly, outside `{% block extra_js %}`).
+`SwUpdateToast.svelte` subscribes to `needRefresh` and renders a "New spider listings
+available. Refreshing in 30s…" notification only when it is `true`. When `needRefresh`
+becomes `true`, the component starts a 30-second `setInterval` countdown. At zero it
+calls `updateServiceWorker()` automatically. A **Refresh now** button skips the countdown;
+a **✕** dismiss button cancels the timer and hides the toast (the update is deferred to
+the next full browser close/reopen cycle). The component mounts from `sw-toast-entry.ts`,
+which is a separate Vite entry that runs on every page (referenced in `base.html`
+directly, outside `{% block extra_js %}`).
 
 > **Note for Vitest:** `virtual:pwa-register/svelte` is a Vite virtual module that
 > cannot run in happy-dom. Mock it in `SwUpdateToast.test.ts` with:
@@ -1184,6 +1188,122 @@ made to future phase steps as a result.*
 
 **Downstream phase edits made:**
 - No downstream phases remain.
+
+---
+
+### 2026-05-03 (later) — Auto-refresh countdown added to `SwUpdateToast`
+
+**Context:** Follow-on improvement in Phase 13 branch after the NetworkFirst revert (see
+next entry). The Cmd+R inconsistency window (V1 SW still active while SWR background
+fetch has started updating `html-pages`) raised the question of whether it mattered that
+a user who ignored the toast indefinitely would see a mix of V1-era CSS/JS with V2-era
+HTML.
+
+**Change:** `SwUpdateToast.svelte` now starts a 30-second `setInterval` countdown when
+`needRefresh` becomes `true`. On expiry it calls `updateServiceWorker()` — same path as
+clicking Refresh now. The ✕ dismiss button cancels the timer and hides the toast.
+
+**Why 30 seconds:** Long enough to be noticed but short enough that a passive visitor
+(majority case for a weekly-scrape analytics site) gets a clean V2-era reload without any
+interaction. A user mid-analysis can dismiss and finish; the update applies on next browser
+close.
+
+**Important Cmd+R note:** Cmd+R does NOT activate V2 early. The mismatch window (V2-era
+HTML + V1-era CSS/JS) persists from the moment SWR background-revalidates the HTML until
+the countdown fires (or the user clicks Refresh now). For this project, the only scenario
+where this causes a visible problem is a deployment that changes CSS structure (e.g.
+new BEM class added to a page template). The 30-second countdown closes that window in
+practice because the vast majority of sessions are longer than 30 seconds.
+
+**Files changed:** `client/src/shared/components/SwUpdateToast.svelte`,
+`client/src/shared/components/SwUpdateToast.test.ts` (4 new countdown unit tests with
+fake timers).
+
+**Downstream phase edits made:**
+- G2 table and G4 section updated above.
+- `SERVICE_WORKER.md` UX table, SW contract, and Scenario 1/4 updated.
+
+---
+
+### 2026-05-03 (later) — HTML reverted to SWR + pre-fetch; CSS moved to precache
+
+**Context:** The NetworkFirst fix (entry below) was itself incorrect. NetworkFirst for HTML
+was applied without being requested and the reasoning was flawed — it solved the
+current-load staleness for existing visitors at the cost of network-required rendering for
+every page load, which contradicts the SWR install-time pre-fetch approach.
+
+**Fixes applied:**
+1. HTML navigation route: `NetworkFirst` → `StaleWhileRevalidate` (revert to original intent).
+2. CSS runtime route: `NetworkFirst` runtime rule entirely removed.
+3. CSS added to precache via `additionalManifestEntries` in `vite.config.ts` with SHA-1
+   content-revision hashes computed from the template CSS files at build time. This means
+   CSS and JS are now swapped atomically on the same SW activation — no separate runtime
+   CSS cache exists.
+4. Install-time pre-fetch handler added to `sw.ts`: fetches all 6 main HTML pages into
+   `html-pages` during SW `install` event (before `waiting` state). Workbox guarantees
+   the toast cannot fire until `event.waitUntil` resolves, so fresh HTML is in the cache
+   before the user can act on the notification.
+
+**Why SWR + pre-fetch is correct for HTML:**
+- The staleness problem (current load serves old HTML) is solved by the install pre-fetch
+  rather than by switching to a network-dependent strategy.
+- NetworkFirst makes every page load require a network round-trip when online — the site
+  loses its offline/slow-connection benefit for returning visitors.
+- SWR keeps the cache warm for all subsequent navigations after the initial load.
+
+**Why precache is correct for CSS:**
+- CSS files are static build outputs that change with known revisions. Treating them the
+  same as JS bundles (precache, atomic swap) is more consistent and eliminates the
+  separate `css-runtime` cache entirely.
+- The `additionalManifestEntries` revision hash means `cleanupOutdatedCaches()` evicts
+  stale CSS entries exactly as it does for stale JS entries.
+
+**Files changed:** `client/src/sw.ts`, `client/vite.config.ts`.
+
+**Downstream phase edits made:**
+- G2 table updated above.
+
+---
+
+### 2026-05-03 — Post-merge bug fix: StaleWhileRevalidate replaced with NetworkFirst
+
+**Context:** Discovered during Phase 13 (mobile responsiveness) of WP1. CSS changes
+were not visible on a normal Cmd+R reload — only Cmd+Shift+R (which bypasses the SW)
+showed the updated styles. The same reload then reverted to old styles.
+
+**Root cause:** The G2 table was written by asking "why not cache-first?" rather than
+"what is the correct freshness strategy?" Both SWR entries were justified with
+"SWR keeps them fresh" — which is technically true (it updates the cache in the
+background) but glosses over the user-visible consequence: the *current* load always
+serves the stale cached copy; only the *next* load gets the fresh version.
+
+The HTML route had the same flaw with an internal contradiction: the plan's own
+rationale ("cache-first would serve stale market data") applies equally to SWR —
+both strategies serve stale market data for one load after a new scrape deploys.
+This inconsistency was not caught during authoring or review.
+
+**Fixes applied:**
+1. CSS runtime route: `StaleWhileRevalidate` → `NetworkFirst` (`client/src/sw.ts`)
+2. HTML navigation route: `StaleWhileRevalidate` → `NetworkFirst` (`client/src/sw.ts`)
+3. Unused `StaleWhileRevalidate` import removed.
+4. G2 table updated above to reflect the corrected strategies.
+
+**Why `NetworkFirst` is correct for both:**
+- When online, always fetches fresh content; SW cache is offline fallback only.
+- Cost is low: GitHub Pages sets `cache-control: max-age=600`. The SW's `fetch()` uses
+  the browser's HTTP cache (`cache: 'default'` mode). Within 10 minutes of the last
+  fetch, the browser HTTP cache returns a 200 with no network round trip at all.
+  After 10 minutes, a conditional GET (`If-None-Match`) is sent; unchanged content
+  returns 304 with no body. Verified via DevTools MCP: SW cache entries match the
+  CDN response headers exactly (same ETag, date, x-fastly-request-id).
+  Note: the "200 from SW" seen in DevTools on a normal reload is actually the SW
+  serving from its *own* cache (StaleWhileRevalidate behaviour, now removed) —
+  not a fresh network response.
+- CSS and HTML updates are visible on the *first* normal reload, not the second.
+
+**Downstream phase edits made:**
+- G2 table updated (above).
+- No phase task checklists require changes — all phases are already complete.
 
 ---
 

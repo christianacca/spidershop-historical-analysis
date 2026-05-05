@@ -29,4 +29,16 @@ describe('createViteConfig', () => {
     expect(output).not.toHaveProperty('preserveModules');
     expect(output).not.toHaveProperty('preserveModulesRoot');
   });
+
+  it('includes view-transitions-entry in rollup inputs', () => {
+    const config = createViteConfig();
+    const inputs = config.build?.rollupOptions?.input as Record<string, string>;
+    expect(inputs).toHaveProperty('view-transitions-entry');
+  });
+
+  it('excludes view-transitions-entry.ts from coverage', () => {
+    const config = createViteConfig();
+    const excluded = config.test?.coverage?.exclude as string[];
+    expect(excluded).toContain('src/view-transitions-entry.ts');
+  });
 });

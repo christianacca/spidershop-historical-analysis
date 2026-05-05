@@ -328,7 +328,7 @@ describe('stable page configs', () => {
     expect(BREEDER_PAGE_CONFIG.postMount).toBeUndefined();
     expect(BREEDER_PAGE_CONFIG.columns).toEqual(
       expect.arrayContaining([
-        { key: 'Species', type: 'species-link', linkViewParam: 'breeder' },
+        { key: 'Species', type: 'species-link', linkViewParam: 'breeder', cardHeader: true },
         { key: 'Drivers', hidden: true },
         { key: 'Price Evidence State', hidden: true },
         { key: 'Transition Message', hidden: true },
@@ -351,7 +351,7 @@ describe('stable page configs', () => {
     expect(DEALER_PAGE_CONFIG.postMount).toBeUndefined();
     expect(DEALER_PAGE_CONFIG.columns).toEqual(
       expect.arrayContaining([
-        { key: 'Species', type: 'species-link', linkViewParam: 'dealer' },
+        { key: 'Species', type: 'species-link', linkViewParam: 'dealer', cardHeader: true },
         { key: 'Stock Availability', type: 'sparkline' },
         { key: 'Price Evidence State', hidden: true },
         { key: 'Transition Message', hidden: true },
@@ -363,8 +363,8 @@ describe('stable page configs', () => {
     expect(SNAPSHOT_PAGE_CONFIG).toEqual({
       tableId: 'snapshot-table',
       columns: [
-        { key: 'Common Name' },
-        { key: 'Scientific Name' },
+        { key: 'Common Name', cardHeader: true },
+        { key: 'Scientific Name', cardSubheader: true },
         { key: 'Size (cm)' },
         { key: 'Price (GBP)' },
         { key: 'Wishlist Count' },
