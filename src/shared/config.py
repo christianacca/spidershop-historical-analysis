@@ -21,6 +21,7 @@ CSV_HEADER = [
     "price_gbp",
     "wishlist_count",
     "page_url",
+    "lifestyle",
 ]
 
 HEADERS = {

@@ -235,7 +235,7 @@ class TestScrapeProduct:
         """
         mock_fetch.return_value = mock_html
 
-        scientific_name, common_name, size_cm, price_gbp, wishlist_count = scrape_product("https://example.com/product/test")
+        scientific_name, common_name, size_cm, price_gbp, wishlist_count, _ = scrape_product("https://example.com/product/test")
 
         assert scientific_name == "Aphonopelma seemanni"
         assert common_name == "Costa Rican Zebra"
@@ -259,7 +259,7 @@ class TestScrapeProduct:
         """
         mock_fetch.return_value = mock_html
 
-        _, _, size_cm, _, _ = scrape_product("https://example.com/product/test")
+        _, _, size_cm, _, _, _ = scrape_product("https://example.com/product/test")
 
         assert size_cm == "2.5"
 
@@ -278,7 +278,7 @@ class TestScrapeProduct:
         """
         mock_fetch.return_value = mock_html
 
-        _, _, size_cm, _, _ = scrape_product("https://example.com/product/test")
+        _, _, size_cm, _, _, _ = scrape_product("https://example.com/product/test")
 
         assert size_cm == "3"
 
@@ -296,7 +296,7 @@ class TestScrapeProduct:
         """
         mock_fetch.return_value = mock_html
 
-        scientific_name, common_name, _, _, _ = scrape_product("https://example.com/product/test")
+        scientific_name, common_name, _, _, _, _ = scrape_product("https://example.com/product/test")
 
         assert scientific_name == ""
         assert common_name == "Common Name"
@@ -315,7 +315,7 @@ class TestScrapeProduct:
         """
         mock_fetch.return_value = mock_html
 
-        scientific_name, common_name, size_cm, _, _ = scrape_product("https://example.com/product/test")
+        scientific_name, common_name, size_cm, _, _, _ = scrape_product("https://example.com/product/test")
 
         assert scientific_name == "Aphonopelma seemanni"
         assert common_name == ""
@@ -335,7 +335,7 @@ class TestScrapeProduct:
         """
         mock_fetch.return_value = mock_html
 
-        _, _, _, price_gbp, _ = scrape_product("https://example.com/product/test")
+        _, _, _, price_gbp, _, _ = scrape_product("https://example.com/product/test")
 
         assert price_gbp == ""
 
@@ -353,7 +353,7 @@ class TestScrapeProduct:
         """
         mock_fetch.return_value = mock_html
 
-        _, _, _, _, wishlist_count = scrape_product("https://example.com/product/test")
+        _, _, _, _, wishlist_count, _ = scrape_product("https://example.com/product/test")
 
         assert wishlist_count == "0"
 
@@ -372,7 +372,7 @@ class TestScrapeProduct:
         """
         mock_fetch.return_value = mock_html
 
-        scientific_name, common_name, size_cm, price_gbp, wishlist_count = scrape_product("https://example.com/product/test")
+        scientific_name, common_name, size_cm, price_gbp, wishlist_count, _ = scrape_product("https://example.com/product/test")
 
         assert scientific_name == "Aphonopelma seemanni"
         assert common_name == "Costa Rican Zebra"
@@ -394,7 +394,7 @@ class TestScrapeProduct:
         """
         mock_fetch.return_value = mock_html
 
-        scientific_name, _, _, price_gbp, _ = scrape_product("https://example.com/product/test")
+        scientific_name, _, _, price_gbp, _, _ = scrape_product("https://example.com/product/test")
 
         assert scientific_name == "Brachypelma boehmei"
         assert price_gbp == "35.00"
@@ -414,7 +414,7 @@ class TestScrapeProduct:
         """
         mock_fetch.return_value = mock_html
 
-        _, _, _, _, wishlist_count = scrape_product("https://example.com/product/test")
+        _, _, _, _, wishlist_count, _ = scrape_product("https://example.com/product/test")
 
         assert wishlist_count == "0"
 
@@ -433,7 +433,7 @@ class TestScrapeProduct:
         """
         mock_fetch.return_value = mock_html
 
-        _, _, _, _, wishlist_count = scrape_product("https://example.com/product/test")
+        _, _, _, _, wishlist_count, _ = scrape_product("https://example.com/product/test")
 
         assert wishlist_count == "1"
 
@@ -452,7 +452,7 @@ class TestScrapeProduct:
         """
         mock_fetch.return_value = mock_html
 
-        _, common_name, size_cm, _, _ = scrape_product("https://example.com/product/test")
+        _, common_name, size_cm, _, _, _ = scrape_product("https://example.com/product/test")
 
         assert common_name == "Costa Rican Zebra"
         assert size_cm == ""
@@ -486,7 +486,7 @@ class TestScrapeProduct:
         """
         mock_fetch.return_value = mock_html
 
-        _, _, _, price_gbp, _ = scrape_product("https://example.com/product/test")
+        _, _, _, price_gbp, _, _ = scrape_product("https://example.com/product/test")
 
         assert price_gbp == "1250.50"
 
@@ -519,10 +519,58 @@ class TestScrapeProduct:
         """
         mock_fetch.return_value = mock_html
 
-        scientific_name, common_name, size_cm, price_gbp, wishlist_count = scrape_product("https://example.com/product/test")
+        scientific_name, common_name, size_cm, price_gbp, wishlist_count, _ = scrape_product("https://example.com/product/test")
 
         assert scientific_name == "Abdomegaphobema mesomelas"
         assert common_name == "Costa Rican Red Leg"
         assert size_cm == "2"  # Upper bound of range
         assert price_gbp == "100.00"
         assert wishlist_count == "38"
+
+    @patch('scrape.scraper.fetch_with_browser')
+    def test_scrape_product_lifestyle_parsed(self, mock_fetch):
+        """Should parse lifestyle from .spices-info .col.lifestyle .rowb."""
+        mock_html = """
+        <html>
+            <body>
+                <h1>Megaphobema mesomelas</h1>
+                <h2>Costa Rican Red Leg (2cm)</h2>
+                <span class="woocommerce-Price-amount">£100.00</span>
+                <span class="yith-wcwl-add-to-wishlist__counter">5 users have this item in their wishlists</span>
+                <div class="spices-info">
+                    <div class="col lifestyle">
+                        <div class="row"><p>Lifestyle</p></div>
+                        <div class="rowb">Terrestrial</div>
+                    </div>
+                </div>
+            </body>
+        </html>
+        """
+        mock_fetch.return_value = mock_html
+
+        result = scrape_product("https://example.com/product/test")
+
+        assert len(result) == 6
+        _, _, _, _, _, lifestyle = result
+        assert lifestyle == "Terrestrial"
+
+    @patch('scrape.scraper.fetch_with_browser')
+    def test_scrape_product_missing_lifestyle_returns_empty_string(self, mock_fetch):
+        """Should return empty string when lifestyle element is absent."""
+        mock_html = """
+        <html>
+            <body>
+                <h1>Aphonopelma seemanni</h1>
+                <h2>Costa Rican Zebra (2cm)</h2>
+                <span class="woocommerce-Price-amount">£25.00</span>
+                <span class="yith-wcwl-add-to-wishlist__counter">5 users have this item in their wishlists</span>
+            </body>
+        </html>
+        """
+        mock_fetch.return_value = mock_html
+
+        result = scrape_product("https://example.com/product/test")
+
+        assert len(result) == 6
+        _, _, _, _, _, lifestyle = result
+        assert lifestyle == ""

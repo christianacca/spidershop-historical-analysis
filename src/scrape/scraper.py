@@ -25,7 +25,7 @@ def extract_product_urls(category_html: str, category_url: str) -> List[str]:
 
     return urls
 
-def scrape_product(product_url: str) -> Tuple[str, str, str, str, str]:
+def scrape_product(product_url: str) -> Tuple[str, str, str, str, str, str]:
     # Use browser automation to handle JavaScript-rendered wishlist counter
     # Wait for the wishlist element to load (with timeout fallback)
     html = fetch_with_browser(product_url, wait_for_selector=".yith-wcwl-add-to-wishlist__counter", timeout=10)
@@ -46,4 +46,7 @@ def scrape_product(product_url: str) -> Tuple[str, str, str, str, str]:
     wishlist_el = soup.select_one(".yith-wcwl-add-to-wishlist__counter")
     wishlist_count = parse_wishlist_count(normalize_whitespace(wishlist_el.get_text()) if wishlist_el else "")
 
-    return scientific_name, common_name, size_cm, price_gbp, wishlist_count
+    lifestyle_el = soup.select_one(".spices-info .col.lifestyle .rowb")
+    lifestyle = normalize_whitespace(lifestyle_el.get_text()) if lifestyle_el else ""
+
+    return scientific_name, common_name, size_cm, price_gbp, wishlist_count, lifestyle
