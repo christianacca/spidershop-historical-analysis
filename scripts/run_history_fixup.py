@@ -61,7 +61,10 @@ def _print_report(all_stats) -> int:
         else:
             print("  Errors       : none")
     print()
-    return 1 if has_errors else 0
+    
+    if has_errors:
+        return 1
+    return 0
 
 
 def main() -> int:

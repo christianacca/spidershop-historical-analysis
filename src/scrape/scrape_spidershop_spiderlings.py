@@ -67,7 +67,7 @@ def main():
                 needs_rewrite = True
         
         # If any fields were added to old rows, rewrite the history file with updated schema
-        if needs_rewrite and history_rows:
+        if needs_rewrite:
             with open(HISTORY_FILE, "w", newline="", encoding="utf-8") as f:
                 w = csv.DictWriter(f, fieldnames=CSV_HEADER)
                 w.writeheader()

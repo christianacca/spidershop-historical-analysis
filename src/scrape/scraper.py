@@ -32,21 +32,33 @@ def scrape_product(product_url: str) -> Tuple[str, str, str, str, str, str]:
     soup = BeautifulSoup(html, "html.parser")
 
     h1 = soup.find("h1")
-    scientific_name = normalize_whitespace(h1.get_text()) if h1 else ""
+    scientific_name = ""
+    if h1:
+        scientific_name = normalize_whitespace(h1.get_text())
 
     h2 = soup.find("h2")
-    common_line = normalize_whitespace(h2.get_text()) if h2 else ""
+    common_line = ""
+    if h2:
+        common_line = normalize_whitespace(h2.get_text())
 
     common_name = remove_size_parenthetical_only(common_line)
     size_cm = parse_size_cm(common_line)
 
     price_el = soup.select_one(".woocommerce-Price-amount")
-    price_gbp = parse_price(normalize_whitespace(price_el.get_text()) if price_el else "")
+    price_text = ""
+    if price_el:
+        price_text = normalize_whitespace(price_el.get_text())
+    price_gbp = parse_price(price_text)
 
     wishlist_el = soup.select_one(".yith-wcwl-add-to-wishlist__counter")
-    wishlist_count = parse_wishlist_count(normalize_whitespace(wishlist_el.get_text()) if wishlist_el else "")
+    wishlist_text = ""
+    if wishlist_el:
+        wishlist_text = normalize_whitespace(wishlist_el.get_text())
+    wishlist_count = parse_wishlist_count(wishlist_text)
 
     lifestyle_el = soup.select_one(".spices-info .col.lifestyle .rowb")
-    lifestyle = normalize_whitespace(lifestyle_el.get_text()) if lifestyle_el else ""
+    lifestyle = ""
+    if lifestyle_el:
+        lifestyle = normalize_whitespace(lifestyle_el.get_text())
 
     return scientific_name, common_name, size_cm, price_gbp, wishlist_count, lifestyle
