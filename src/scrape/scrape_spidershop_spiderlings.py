@@ -57,14 +57,14 @@ def main():
         history_rows = load_history(HISTORY_FILE)
         
         # Add missing fields to old history rows for backward compatibility
-        needs_rewrite = False
+        needs_rewrite = any(
+            "wishlist_count" not in row or "lifestyle" not in row
+            for row in history_rows
+        )
+        
         for row in history_rows:
-            if "wishlist_count" not in row:
-                row["wishlist_count"] = "0"
-                needs_rewrite = True
-            if "lifestyle" not in row:
-                row["lifestyle"] = ""
-                needs_rewrite = True
+            row.setdefault("wishlist_count", "0")
+            row.setdefault("lifestyle", "")
         
         # If any fields were added to old rows, rewrite the history file with updated schema
         if needs_rewrite and history_rows:

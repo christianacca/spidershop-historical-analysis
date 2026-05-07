@@ -121,11 +121,6 @@ class LifestyleFixup:
     """
 
     def apply(self, rows: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], FixupStats]:
-        stats = LifestyleFixup._compute(rows)
-        return rows, stats
-
-    @staticmethod
-    def _compute(rows: List[Dict[str, Any]]) -> FixupStats:
         stats = FixupStats(name="LifestyleFixup")
 
         # Group rows by scientific_name
@@ -158,7 +153,7 @@ class LifestyleFixup:
                     f"{name}: HTTP error fetching {product_url} — {exc}"
                 )
 
-        return stats
+        return rows, stats
 
 
 # ---------------------------------------------------------------------------
