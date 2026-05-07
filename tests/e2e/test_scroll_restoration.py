@@ -62,6 +62,12 @@ def test_scroll_position_restored_when_going_back_to_breeder_page(e2e_site_multi
 
     assert "/species/" in page.url, "Expected to navigate to a species detail page"
 
+    # Wait for the view transition animation to finish (0.3 s) before triggering the
+    # backward navigation.  Without this wait, the VT is still running when we click
+    # back, causing Chrome to throw 'Transition was skipped' which gets recorded as a
+    # page error and fails the fixture teardown assertion.
+    page.wait_for_timeout(400)
+
     # Navigate back using the "Back to Breeder Table" button
     back_btn = page.locator("#back-breeder")
     assert back_btn.count() == 1, "Expected #back-breeder button on species page"
@@ -106,6 +112,10 @@ def test_scroll_position_restored_when_going_back_to_dealer_page(e2e_site_multi_
         species_link.click()
 
     assert "/species/" in page.url, "Expected to navigate to a species detail page"
+
+    # Wait for the forward VT to complete before clicking back (prevents
+    # 'Transition was skipped' DOMException from being captured as a page error).
+    page.wait_for_timeout(400)
 
     # Navigate back using the "Back to Dealer Table" button
     back_btn = page.locator("#back-dealer")
