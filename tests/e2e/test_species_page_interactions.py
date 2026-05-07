@@ -578,3 +578,78 @@ def test_species_detail_observation_coverage_emphasizes_key_dates(e2e_site_minim
         f"Latest observed should stay visually neutral unless stale, got border-left width {latest_border}"
 
 
+@pytest.mark.e2e
+def test_breadcrumb_reflects_dealer_origin_when_navigating_from_dealer_page(e2e_site_minimal) -> None:
+    """Breadcrumb should show Dealer as origin when navigating from the dealer page.
+
+    Bug: species pages are static HTML where default_view is baked in at generation time
+    (always 'breeder' if the species has breeder data). When a user arrives via a dealer
+    table link (?view=dealer), JavaScript switches the active tab but historically did
+    NOT update the breadcrumb, so it still showed 'Breeder → Species → ...' instead of
+    'Dealer → Species → ...'.
+    """
+    page, base_url, errors = e2e_site_minimal
+
+    # Navigate from dealer page — the species link includes ?view=dealer
+    page.goto(f"{base_url}/dealer.html", wait_until="domcontentloaded")
+    species_link = page.locator('table a[href^="species/"]').first
+    with page.expect_navigation():
+        species_link.click()
+
+    # Wait for JS to initialize (initViewFromURL clicks the dealer tab)
+    page.wait_for_timeout(200)
+
+    breadcrumb_link = page.locator('.breadcrumbs a').first
+    assert breadcrumb_link.inner_text().strip() == "Dealer", (
+        "Breadcrumb origin should read 'Dealer' when arriving from the dealer page, "
+        f"got: '{breadcrumb_link.inner_text().strip()}'"
+    )
+    assert "dealer.html" in breadcrumb_link.get_attribute("href"), (
+        "Breadcrumb link should point to dealer.html when arriving from the dealer page"
+    )
+
+
+@pytest.mark.e2e
+def test_breadcrumb_updates_when_switching_tabs(e2e_site_minimal) -> None:
+    """Breadcrumb origin should update dynamically when switching between Breeder/Dealer tabs."""
+    page, base_url, errors = e2e_site_minimal
+
+    # Start from breeder page
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+    species_link = page.locator('table a[href^="species/"]').first
+    with page.expect_navigation():
+        species_link.click()
+    page.wait_for_timeout(200)
+
+    breadcrumb_link = page.locator('.breadcrumbs a').first
+
+    # Initially: breeder origin
+    assert breadcrumb_link.inner_text().strip() == "Breeder", (
+        f"Breadcrumb should start as 'Breeder', got: '{breadcrumb_link.inner_text().strip()}'"
+    )
+    assert "breeder.html" in breadcrumb_link.get_attribute("href"), (
+        "Breadcrumb link should point to breeder.html initially"
+    )
+
+    # Switch to dealer tab
+    page.locator("#tab-dealer").click()
+    page.wait_for_timeout(100)
+
+    assert breadcrumb_link.inner_text().strip() == "Dealer", (
+        f"Breadcrumb should update to 'Dealer' after switching tab, got: '{breadcrumb_link.inner_text().strip()}'"
+    )
+    assert "dealer.html" in breadcrumb_link.get_attribute("href"), (
+        "Breadcrumb link should point to dealer.html after switching to dealer tab"
+    )
+
+    # Switch back to breeder tab
+    page.locator("#tab-breeder").click()
+    page.wait_for_timeout(100)
+
+    assert breadcrumb_link.inner_text().strip() == "Breeder", (
+        f"Breadcrumb should revert to 'Breeder' after switching back, got: '{breadcrumb_link.inner_text().strip()}'"
+    )
+    assert "breeder.html" in breadcrumb_link.get_attribute("href"), (
+        "Breadcrumb link should point to breeder.html after switching back to breeder tab"
+    )
+
