@@ -5,6 +5,10 @@ const { mountMock, assertPayloadMock } = vi.hoisted(() => ({
   assertPayloadMock: vi.fn(),
 }));
 
+const { completeScrollRestorationMock } = vi.hoisted(() => ({
+  completeScrollRestorationMock: vi.fn(),
+}));
+
 const HistoryTableMock = { name: 'HistoryTableMock' };
 
 vi.mock('svelte', () => ({
@@ -17,6 +21,10 @@ vi.mock('./payload-validation.js', () => ({
 
 vi.mock('./components/SortableTable.svelte', () => ({
   default: { name: 'SortableTableMock' },
+}));
+
+vi.mock('./scroll-restoration.js', () => ({
+  completeScrollRestoration: completeScrollRestorationMock,
 }));
 
 import SortableTable from './components/SortableTable.svelte';
@@ -38,6 +46,7 @@ describe('initSortableTablePage', () => {
     document.body.innerHTML = '';
     mountMock.mockReset();
     assertPayloadMock.mockReset();
+    completeScrollRestorationMock.mockReset();
     vi.useFakeTimers();
     performanceNowSpy = vi.spyOn(performance, 'now').mockReturnValue(40);
     delete (window as Window & Record<string, unknown>)['breeder-tableData'];
@@ -163,6 +172,24 @@ describe('initSortableTablePage', () => {
         wishlistColumn: 'Wishlist Count',
       },
     });
+  });
+
+  it('calls completeScrollRestoration after mounting to correct scroll position if skeleton was clamped', () => {
+    const rows = [{ Species: 'Aphonopelma seemanni' }];
+    document.body.innerHTML = `
+      <div data-table-shell="breeder-table" data-table-ready="false">
+        <div data-table-skeleton-for="breeder-table"></div>
+        <div id="breeder-table-root"></div>
+      </div>
+    `;
+    (window as Window & Record<string, unknown>)['breeder-tableData'] = rows;
+
+    initSortableTablePage({
+      tableId: 'breeder-table',
+      columns: [{ key: 'Species', label: 'Species' }],
+    });
+
+    expect(completeScrollRestorationMock).toHaveBeenCalledTimes(1);
   });
 });
 

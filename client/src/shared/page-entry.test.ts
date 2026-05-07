@@ -1,8 +1,12 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { registerPageInitMock, registerSortableTablePageMock } = vi.hoisted(() => ({
   registerPageInitMock: vi.fn(),
   registerSortableTablePageMock: vi.fn(),
+}));
+
+const { saveScrollPositionMock } = vi.hoisted(() => ({
+  saveScrollPositionMock: vi.fn(),
 }));
 
 vi.mock('./page-init.js', () => ({
@@ -10,9 +14,22 @@ vi.mock('./page-init.js', () => ({
   registerSortableTablePage: registerSortableTablePageMock,
 }));
 
+vi.mock('./scroll-restoration.js', () => ({
+  saveScrollPosition: saveScrollPositionMock,
+}));
+
 import { bootstrapSortableTablePage } from './page-entry.js';
 
 describe('bootstrapSortableTablePage', () => {
+  beforeEach(() => {
+    saveScrollPositionMock.mockReset();
+  });
+
+  afterEach(() => {
+    // Remove any pagehide listeners added during the test to avoid pollution
+    window.dispatchEvent(new Event('pagehide'));
+  });
+
   it('registers the sortable table page config directly when no pre-init hook is supplied', () => {
     const config = { tableId: 'snapshot-table', columns: [] };
 
@@ -33,5 +50,15 @@ describe('bootstrapSortableTablePage', () => {
     registeredInit();
     expect(beforeTableInit).toHaveBeenCalledTimes(1);
     expect(registerSortableTablePageMock).toHaveBeenCalledWith(config);
+  });
+
+  it('saves scroll position with the current page URL when the page is hidden', () => {
+    const config = { tableId: 'breeder-table', columns: [] };
+    bootstrapSortableTablePage(config);
+
+    // Simulate user leaving the page
+    window.dispatchEvent(new Event('pagehide'));
+
+    expect(saveScrollPositionMock).toHaveBeenCalledWith(window.location.href, window.scrollY);
   });
 });
