@@ -125,8 +125,14 @@ jobs:
       # --------------------------------
       # Build client-side assets
       # --------------------------------
+      - name: Set build version
+        id: build-version
+        run: echo "value=$(git rev-parse --short HEAD)-r${GITHUB_RUN_ID}" >> $GITHUB_OUTPUT
+
       - name: Build client assets
         uses: ./.github/actions/build-client
+        with:
+          build-version: ${{ steps.build-version.outputs.value }}
 
       # --------------------------------
       # Generate static website

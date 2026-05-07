@@ -2,6 +2,17 @@ import { mount } from 'svelte';
 import SwUpdateToast from './shared/components/SwUpdateToast.svelte';
 import { useRegisterSW } from './shared/register-sw';
 
+// Expose the build version globally so DevTools console inspection and the
+// footer version element always reflect what the SW is actually serving.
+// If the SW is stuck on an old bundle, this value will be the OLD version —
+// that discrepancy between what's shown here and the latest deployed version
+// is the diagnostic signal we rely on.
+(window as Record<string, unknown>).__buildVersion = __BUILD_VERSION__;
+const versionEl = document.getElementById('site-version-display');
+if (versionEl) {
+  versionEl.textContent = __BUILD_VERSION__;
+}
+
 // Compute the SW URL at runtime from import.meta.url so it is correct in every
 // hosting context — local dev (http://localhost:PORT/sw.js) and GitHub Pages
 // subpath deployment (https://…/spidershop-historical-analysis/sw.js) alike.
