@@ -91,7 +91,23 @@
         var fromSpecies = isSpeciesPage(act.from.url);
         var toSpecies = isSpeciesPage(act.entry.url);
         if (!fromSpecies && toSpecies) { vt.types.add('forward'); }
-        else if (fromSpecies && !toSpecies) { vt.types.add('backward'); }
+        else if (fromSpecies && !toSpecies) {
+          vt.types.add('backward');
+          // Phase 1: restore scroll position saved by the listing page pagehide handler.
+          // Fires before the VT animation starts so the listing is already scrolled
+          // correctly when the species page slides off. Phase 2 (after Svelte mount)
+          // corrects the position if the skeleton was shorter than the full content.
+          try {
+            var key = 'vt-scroll:' + act.entry.url;
+            var savedY = sessionStorage.getItem(key);
+            if (savedY !== null) {
+              sessionStorage.removeItem(key);
+              var y = parseInt(savedY, 10);
+              window.__vtScrollRestoreY = y;
+              window.scrollTo({ top: y, behavior: 'instant' });
+            }
+          } catch (_) {}
+        }
       });
     }());
     </script>

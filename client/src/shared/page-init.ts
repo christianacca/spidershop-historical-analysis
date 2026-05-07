@@ -2,6 +2,7 @@ import { mount } from 'svelte';
 import SortableTable from './components/SortableTable.svelte';
 import type { ColumnConfig, FilterConfig } from './components/SortableTable.svelte';
 import { assertPayload } from './payload-validation.js';
+import { completeScrollRestoration } from './scroll-restoration.js';
 
 type TableRows = Record<string, unknown>[];
 type TableComponent = Parameters<typeof mount>[0];
@@ -80,6 +81,8 @@ export function initSortableTablePage(config: SortableTablePageConfig): void {
   }
 
   mount(component, { target, props });
+  // Phase 2: correct scroll if skeleton was too short to reach the saved position.
+  completeScrollRestoration();
   completeTableMount(tableId);
   postMount?.();
 }
