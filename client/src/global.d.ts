@@ -3,6 +3,13 @@
  */
 
 /**
+ * Build version string injected by Vite at build time.
+ * Format: "{shortSha}-r{runId}" in CI (e.g. "abc1234-r25523830085").
+ * Falls back to "local-dev" when built locally without VITE_BUILD_VERSION set.
+ */
+declare const __BUILD_VERSION__: string;
+
+/**
  * Open structural type for a row read from a Python-generated table payload.
  * Deliberately wide because Python owns the column names and they differ per
  * page. TypeScript cannot enforce column names here — use assertPayload() in

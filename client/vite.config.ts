@@ -132,6 +132,11 @@ export function createViteConfig(isCiBuild = !!process.env.CI): UserConfig {
       perFile: false,
     },
   },
+  // Inject build version at compile time. Set VITE_BUILD_VERSION in CI.
+  // Falls back to 'local-dev' for local builds.
+  define: {
+    __BUILD_VERSION__: JSON.stringify(process.env.VITE_BUILD_VERSION ?? 'local-dev'),
+  },
   build: {
     outDir: resolve(__dirname, '../templates/scripts/dist'),
     emptyOutDir: true,
