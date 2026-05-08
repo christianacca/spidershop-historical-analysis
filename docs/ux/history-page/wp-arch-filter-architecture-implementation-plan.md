@@ -773,23 +773,23 @@ Before writing any Phase 3 code, confirm:
 ### Housekeeping
 
 ```
-[ ] H1 - All Phase 4 tasks checked off
-[ ] H2 - Reflection scan: global h2 margin-bottom override confirmed; no Layer 2 CSS bleed into islands; all token references valid; FilterPanel has no state of its own
-[ ] H3 - Feed-forward log entry (dated)
-[ ] H4 - Commit: "WP-Arch Phase 4: FiltersPanel integration, responsive layout, coverage gate"
-          Verify: git log --oneline -1
-[ ] GATE - Output Phase 4 completion block
+[x] H1 - All Phase 4 tasks checked off
+[x] H2 - Reflection scan: global h2 margin-bottom override confirmed (.panel-heading { margin: 0 0 4px } beats h2 { margin-bottom: 20px }); no Layer 2 CSS bleed; all token refs valid; FiltersPanel has no reactive state; .filter-group label is Svelte-scoped (not naked)
+[x] H3 - Feed-forward log entry added (dated)
+[x] H4 - Commit: "WP-Arch Phase 4: FiltersPanel integration, responsive layout, coverage gate"
+          Verify: git log --oneline -1 → cf72a58 WP-Arch Phase 4: FiltersPanel integration, responsive layout, coverage gate
+[x] GATE - Output Phase 4 completion block
 ```
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
 ║  PHASE 4 COMPLETE                                            ║
 ╠══════════════════════════════════════════════════════════════╣
-║  Tests:    [paste final line of: make test-client]
-║  Visual:   [paste final line of: make test-visual]
-║  Commit:   [paste: git log --oneline -1]
-║  Stories:  [FiltersPanel AllMode → verified] [FiltersPanel NarrowMode → verified]
-║  Blockers: none / [deferred item]
+║  Tests:    Test Files  34 passed (34) | Tests  614 passed (614)
+║  Visual:   Test Files  18 passed (18) | Tests  153 passed (153)
+║  Commit:   cf72a58 WP-Arch Phase 4: FiltersPanel integration, responsive layout, coverage gate
+║  Stories:  FiltersPanel AllMode ✓ NarrowOneGenus ✓ NarrowFourGenera ✓ (verified via integrated preview)
+║  Blockers: none — 760px padding rule placed in FiltersPanel.svelte (not :global() in HistoryInsightsRoot) for correct CSS specificity
 ╚══════════════════════════════════════════════════════════════╝
 ```
 
@@ -993,5 +993,5 @@ Before writing E2E tests, do one final check:
 | 8 May 2026 | 1 | `--color-breeder-focus: #cc6b49` added to `:root`. Mount point renamed to `#history-insights-root`. `HistoryInsightsRoot.svelte` created with minimal shell; `index.ts` updated. design-tokens snapshot updated for new token (intentional). `initialWindowId` optional prop added for test-time control (not used at runtime). All 563 unit tests + 138 visual tests pass. |
 | 8 May 2026 | 2 | `TimeWindowSelector.svelte` created: 7 pill buttons, `aria-pressed`, `flex-wrap: wrap` base style, no breakpoints. Wired into `HistoryInsightsRoot` temporarily (before FiltersPanel). 13 new unit tests + 6 new visual tests all pass. Stories: `@storybook/test` is not installed in this project — `fn()` replaced with inline `console.log` callback (matches WP1 story pattern). All 8 stories verified in live Storybook: active pill renders with dark background + white text, default pills white with warm border, basis note renders below. P2-9 preview: clicking each window button on `history-insights.html` confirmed basis note updates correctly and `MarketHealthSection` re-renders with new data (KPI values, deltas, events heading all change). `font-size: 0.88rem` used for `.window` buttons (not spec-specified; spec §7 only specifies quick-pick font-size at 0.86rem, not window buttons — 0.88rem matches mock visual; no action needed). |
 | 8 May 2026 | 3 | `GenusSelector.svelte` created with full state machine. `<script lang="ts" module>` used for LIFESTYLE_PRESETS module-level const (Svelte 5 syntax). `initialExpanded` prop added for Storybook testability — same approach as Phase 2's `initialWindowId`. `@storybook/test` is not installed — use inline `console.log` callbacks in stories (consistent with Phase 2 note). Visual tests use `expect(value).toMatch(/rgba\(204, 107, 73/)` regex pattern instead of exact equality — browser's `getComputedStyle` alpha values have decimal precision variance. `make generate-website` needed to pick up new JS bundle when preview server is already running (stale assets). Real dataset has 17 genera; Arboreal preset selects 3 of them (Caribena, Psalmopoeus, Poecilotheria) because the remaining LIFESTYLE_PRESETS genera are not in the real data — this confirms runtime filtering against `availableGenera` works correctly. |
-| _(add here)_ | 4 | |
+| 8 May 2026 | 4 | `FiltersPanel.svelte` created as a thin stateless wrapper. `HistoryInsightsRoot.svelte` restructured with `.hero` two-column grid and static hero panel copy. Deviation from plan: the `@media (max-width: 760px)` padding rule for `.filters-panel` was placed inside `FiltersPanel.svelte` (not `:global()` in HistoryInsightsRoot) to avoid a CSS specificity conflict — the scoped base rule `.filters-panel.svelte-xxx { padding: 24px }` has specificity 0,2,0 which beats `:global(.filters-panel) { padding: 18px }` at 0,1,0. Both correctly resolve at 760px by source-order when in the same file. Mobile portrait (390×844): card chrome stripped, scope-label white-space: normal, border-radius 12px — all confirmed via DevTools MCP. Phone landscape (844×390): card chrome retained, single-column layout, 6 of 7 pills fit in single row (last pill wraps by 8px gap; acceptable per spec §11). Coverage thresholds all met. |
 | _(add here)_ | 5 | |
