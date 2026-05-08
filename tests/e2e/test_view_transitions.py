@@ -327,3 +327,61 @@ def test_no_horizontal_overflow_on_mobile_portrait(e2e_site_minimal) -> None:
             )
     finally:
         mobile_ctx.close()
+
+
+@pytest.mark.e2e
+def test_pagereveal_handler_is_in_head_not_body(e2e_site_minimal) -> None:
+    """The pagereveal inline script must be in <head>, not at the end of <body>.
+
+    Chrome DevRel mandate: "register the listener in a classic parser-blocking
+    script in the <head> (not a module, not async, not defer)".
+
+    pagereveal fires at the first rendering opportunity — BEFORE DOMContentLoaded
+    and before any end-of-body scripts run.  When the script was placed at the end
+    of <body>, the event fired before the listener was registered on every cross-doc
+    navigation, silently skipping VT direction detection (forward/backward types).
+
+    Mutation targets:
+    - Move the script back to the end of <body> → head_scripts is empty,
+      test fails: 'no pagereveal listener found inside <head>'.
+    - Remove the script from head but keep it in body → same failure.
+    - Make the script defer or type='module' → it is excluded from
+      head_scripts (non-module filter), test also fails.
+    """
+    page, base_url, _ = e2e_site_minimal
+
+    for path in ALL_MAIN_PAGES + ["species/aphonopelma-seemanni.html"]:
+        page.goto(f"{base_url}/{path}", wait_until="domcontentloaded")
+
+        # Collect inline non-module scripts that are direct children of <head>
+        head_inline_text = page.evaluate("""() => {
+            const headScripts = Array.from(document.head.querySelectorAll('script'));
+            return headScripts
+                .filter(s => !s.src && s.type !== 'module' && s.type !== 'speculationrules')
+                .map(s => s.textContent)
+                .join('\\n');
+        }""")
+
+        assert "pagereveal" in head_inline_text, (
+            f"{path}: pagereveal listener not found inside <head>. "
+            "It must be a parser-blocking classic script in <head> so that it is "
+            "registered before the first rendering opportunity (before DOMContentLoaded). "
+            "Placing it at the end of <body> causes VT direction detection to be silently "
+            "skipped on every cross-doc navigation."
+        )
+
+        # Also confirm it does NOT appear in any body inline scripts
+        # (proves the body copy was removed, not just that a head copy was added)
+        body_inline_text = page.evaluate("""() => {
+            const bodyScripts = Array.from(document.body.querySelectorAll('script'));
+            return bodyScripts
+                .filter(s => !s.src && s.type !== 'module' && s.type !== 'speculationrules')
+                .map(s => s.textContent)
+                .join('\\n');
+        }""")
+
+        assert "pagereveal" not in body_inline_text, (
+            f"{path}: pagereveal listener was found in an inline <body> script. "
+            "The <head> version already registers the handler; the <body> copy is redundant "
+            "and may interfere with the expected once-per-navigation semantics."
+        )

@@ -8,6 +8,44 @@
     <link rel="manifest" href="{{ path_prefix }}manifest.webmanifest">
     <meta name="theme-color" content="#2c3e50">
     {% block extra_css %}{% endblock %}
+    <!-- pagereveal must be a classic parser-blocking script in <head>.
+         Per Chrome DevRel docs: "register the listener in a classic parser-blocking
+         script in the <head> (not a module, not async, not defer)", because
+         the event can fire before DOMContentLoaded, before any deferred scripts run. -->
+    <script>
+    (function () {
+      function isSpeciesPage(url) {
+        return !!url && /\/species\//.test(url);
+      }
+      window.addEventListener('pagereveal', function (e) {
+        var vt = e.viewTransition;
+        if (!vt) return;
+        var nav = window.navigation;
+        var act = nav && nav.activation;
+        if (!act || !act.from) return;
+        var fromSpecies = isSpeciesPage(act.from.url);
+        var toSpecies = isSpeciesPage(act.entry.url);
+        if (!fromSpecies && toSpecies) { vt.types.add('forward'); }
+        else if (fromSpecies && !toSpecies) {
+          vt.types.add('backward');
+          // Phase 1: restore scroll position saved by the listing page pagehide handler.
+          // Fires before the VT animation starts so the listing is already scrolled
+          // correctly when the species page slides off. Phase 2 (after Svelte mount)
+          // corrects the position if the skeleton was shorter than the full content.
+          try {
+            var key = 'vt-scroll:' + act.entry.url;
+            var savedY = sessionStorage.getItem(key);
+            if (savedY !== null) {
+              sessionStorage.removeItem(key);
+              var y = parseInt(savedY, 10);
+              window.__vtScrollRestoreY = y;
+              window.scrollTo({ top: y, behavior: 'instant' });
+            }
+          } catch (_) {}
+        }
+      });
+    }());
+    </script>
 </head>
 <body>
     <header>
@@ -74,44 +112,6 @@
 
     <div id="sw-update-toast-root"></div>
     <script type="module" src="{{ path_prefix }}sw-toast-entry.js"></script>
-    <!-- Inline classic script to avoid a render-blocking network request for ~15 lines.
-         Must NOT be type="module", defer, or async — those delay execution past the
-         pagereveal event (which fires before DOMContentLoaded). A synchronous external
-         script would also work but adds an unnecessary round-trip. -->
-    <script>
-    (function () {
-      function isSpeciesPage(url) {
-        return !!url && /\/species\//.test(url);
-      }
-      window.addEventListener('pagereveal', function (e) {
-        var vt = e.viewTransition;
-        if (!vt) return;
-        var nav = window.navigation;
-        var act = nav && nav.activation;
-        if (!act || !act.from) return;
-        var fromSpecies = isSpeciesPage(act.from.url);
-        var toSpecies = isSpeciesPage(act.entry.url);
-        if (!fromSpecies && toSpecies) { vt.types.add('forward'); }
-        else if (fromSpecies && !toSpecies) {
-          vt.types.add('backward');
-          // Phase 1: restore scroll position saved by the listing page pagehide handler.
-          // Fires before the VT animation starts so the listing is already scrolled
-          // correctly when the species page slides off. Phase 2 (after Svelte mount)
-          // corrects the position if the skeleton was shorter than the full content.
-          try {
-            var key = 'vt-scroll:' + act.entry.url;
-            var savedY = sessionStorage.getItem(key);
-            if (savedY !== null) {
-              sessionStorage.removeItem(key);
-              var y = parseInt(savedY, 10);
-              window.__vtScrollRestoreY = y;
-              window.scrollTo({ top: y, behavior: 'instant' });
-            }
-          } catch (_) {}
-        }
-      });
-    }());
-    </script>
     <script type="module" src="{{ path_prefix }}view-transitions-entry.js"></script>
     <script type="speculationrules">
 {"prefetch":[{"source":"document","eagerness":"moderate","where":{"href_matches":"species/*.html"}}]}

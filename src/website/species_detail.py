@@ -11,16 +11,10 @@ from typing import Optional, Dict, List, Tuple, Set
 from collections import defaultdict
 from datetime import datetime
 
-from jinja2 import Environment, FileSystemLoader
-
 from website.csv_utils import read_csv_file
+from website.html_utils import jinja_env
 from shared.history_utils import build_species_presence_timeline
 from shared.parsing import format_datetime_smart
-
-
-# Initialize Jinja2 environment
-template_dir = Path(__file__).parent.parent.parent / "templates"
-jinja_env = Environment(loader=FileSystemLoader(str(template_dir)))
 
 
 def slugify_species(scientific_name: str) -> str:
