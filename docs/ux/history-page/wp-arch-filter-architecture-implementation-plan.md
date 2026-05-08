@@ -369,23 +369,23 @@ as `match`, `differs`, or `not applicable` (if element is absent in current stat
 ### Housekeeping
 
 ```
-[ ] H1 - All Phase 2 tasks checked off
-[ ] H2 - Reflection scan: aria-pressed on all 7 buttons; no business logic in component; basisNote from payload not hardcoded
-[ ] H3 - Feed-forward log entry (dated)
-[ ] H4 - Commit: "WP-Arch Phase 2: TimeWindowSelector component and stories"
-          Verify: git log --oneline -1
-[ ] GATE - Output Phase 2 completion block
+[x] H1 - All Phase 2 tasks checked off
+[x] H2 - Reflection scan: aria-pressed on all 7 buttons; no business logic in component; basisNote from payload not hardcoded; all token refs confirmed; no naked selectors
+[x] H3 - Feed-forward log entry added (dated)
+[x] H4 - Commit: "WP-Arch Phase 2: TimeWindowSelector component and stories"
+          Verify: git log --oneline -1 → 030690c WP-Arch Phase 2: TimeWindowSelector component and stories
+[x] GATE - Output Phase 2 completion block
 ```
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
 ║  PHASE 2 COMPLETE                                            ║
 ╠══════════════════════════════════════════════════════════════╣
-║  Tests:    [paste final line of: make test-client-fast]
-║  Visual:   [paste final line of: make test-visual]
-║  Commit:   [paste: git log --oneline -1]
+║  Tests:    Test Files  32 passed (32) | Tests  576 passed (576)
+║  Visual:   Test Files  17 passed (17) | Tests  144 passed (144)
+║  Commit:   030690c WP-Arch Phase 2: TimeWindowSelector component and stories
 ║  Stories:  ThisMonthActive ✓ LastMonthActive ✓ CurrentQuarterActive ✓ LastQuarterActive ✓ ThisYearActive ✓ LastYearActive ✓ AllTimeActive ✓ Interactive ✓
-║  Blockers: none / [deferred item]
+║  Blockers: none
 ╚══════════════════════════════════════════════════════════════╝
 ```
 
@@ -991,7 +991,7 @@ Before writing E2E tests, do one final check:
 |---|---|---|
 | 8 May 2026 | 0 | All 11 computed-style rows captured via Chrome DevTools MCP. All spec §7 values match mock. Only `.filters-panel border-radius` differs (20px mock vs 18px implementation) — by-design deviation #7, already logged. `--color-breeder-focus` confirmed missing from `common.css` — add in Phase 1. Naked `h2 { margin-bottom: 20px }` in common.css confirmed — Phase 1/4 must add `.panel-heading { margin: 0 0 4px }` scoped override in FiltersPanel.svelte. No naked button/input/label/details/summary selectors found. `make storybook` command confirmed (`cd client && npm run storybook`, port 6006). Divergence log pre-populated with all 7 by-design deviations from spec §12 — no additional deviations found. |
 | 8 May 2026 | 1 | `--color-breeder-focus: #cc6b49` added to `:root`. Mount point renamed to `#history-insights-root`. `HistoryInsightsRoot.svelte` created with minimal shell; `index.ts` updated. design-tokens snapshot updated for new token (intentional). `initialWindowId` optional prop added for test-time control (not used at runtime). All 563 unit tests + 138 visual tests pass. |
-| _(add here)_ | 2 | |
+| 8 May 2026 | 2 | `TimeWindowSelector.svelte` created: 7 pill buttons, `aria-pressed`, `flex-wrap: wrap` base style, no breakpoints. Wired into `HistoryInsightsRoot` temporarily (before FiltersPanel). 13 new unit tests + 6 new visual tests all pass. Stories use `fn()` from `@storybook/test` for `onWindowChange` in meta args. No new tokens or CSS collisions. `font-size: 0.88rem` used for `.window` buttons (not spec-specified; spec §7 only specifies quick-pick font-size at 0.86rem, not window buttons — 0.88rem matches mock visual; no action needed). |
 | _(add here)_ | 3 | |
 | _(add here)_ | 4 | |
 | _(add here)_ | 5 | |
