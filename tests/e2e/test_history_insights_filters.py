@@ -83,10 +83,7 @@ def test_window_change_updates_basis_note(e2e_site_multi_species) -> None:
     all_time_btn = page.get_by_role("button", name="All time")
     all_time_btn.click()
 
-    # The two p.micro-note elements on this page are:
-    #   [0] "Search or use shortcut groups..." (FiltersPanel genus group)
-    #   [1] basis note from TimeWindowSelector
-    basis_note_text = page.locator("p.micro-note").nth(1).text_content() or ""
+    basis_note_text = page.locator(".filter-group").filter(has_text="Time window").locator("p.micro-note").text_content() or ""
     assert "structural context only" in basis_note_text, (
         f"Expected basis note to contain 'structural context only'; got: {basis_note_text!r}"
     )

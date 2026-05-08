@@ -99,17 +99,6 @@
     gap: 8px;
   }
 
-  .scope-label {
-    display: inline-flex;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: rgba(31, 122, 107, 0.12);
-    color: var(--color-market-health);
-    font-size: 0.86rem;
-    font-weight: 700;
-    white-space: nowrap;
-  }
-
   .filter-note {
     color: var(--color-text-label);
     font-size: 0.92rem;
@@ -137,7 +126,7 @@
       padding: 0;
     }
 
-    .scope-label {
+    :global(.scope-label) {
       white-space: normal;
       border-radius: 12px;
     }

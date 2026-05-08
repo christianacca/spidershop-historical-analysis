@@ -33,10 +33,9 @@
       ? `All genera • ${availableGenera.length} available`
       : `${selectedGenera.length} of ${availableGenera.length} genera selected`
   );
+  const filterQuery = $derived(search.trim().toLowerCase());
   const filteredSuggestions = $derived(
-    search.trim() === ''
-      ? availableGenera
-      : availableGenera.filter(g => g.toLowerCase().includes(search.trim().toLowerCase()))
+    filterQuery === '' ? availableGenera : availableGenera.filter(g => g.toLowerCase().includes(filterQuery))
   );
 
   function toggleGenus(genus: string) {
@@ -161,17 +160,6 @@
     align-items: center;
     gap: 8px;
     min-width: 0;
-  }
-
-  .scope-label {
-    display: inline-flex;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: rgba(31, 122, 107, 0.12);
-    color: var(--color-market-health);
-    font-size: 0.86rem;
-    font-weight: 700;
-    white-space: nowrap;
   }
 
   .selector-toggle {
