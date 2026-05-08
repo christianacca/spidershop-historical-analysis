@@ -1,5 +1,6 @@
 <script lang="ts">
   import MarketHealthSection from './MarketHealthSection.svelte';
+  import TimeWindowSelector from './TimeWindowSelector.svelte';
   import type { MarketHealthRawData, MarketHealthPayload, WindowId } from './types.js';
   import { buildMarketHealthPayload } from './market-health-engine.js';
 
@@ -20,4 +21,9 @@
   );
 </script>
 
+<TimeWindowSelector
+  {windowId}
+  basisNote={payload.windowBasisNote}
+  onWindowChange={(id) => { windowId = id; }}
+/>
 <MarketHealthSection {payload} />
