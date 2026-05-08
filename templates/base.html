@@ -39,6 +39,11 @@
               sessionStorage.removeItem(key);
               var y = parseInt(savedY, 10);
               window.__vtScrollRestoreY = y;
+              // Ensure the page is tall enough to scroll to Y without clamping.
+              // The skeleton may be shorter than the Svelte-mounted page; without
+              // this, scroll clamps to the skeleton bottom and briefly reveals
+              // content that should be off-screen (e.g. methodology section).
+              document.documentElement.style.minHeight = (y + window.innerHeight) + 'px';
               window.scrollTo({ top: y, behavior: 'instant' });
             }
           } catch (_) {}
