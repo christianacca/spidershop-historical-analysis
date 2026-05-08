@@ -6,15 +6,13 @@
 
   interface Props {
     rawData: MarketHealthRawData;
-    /** Exposed for test-time control only. Do not pass at runtime. */
-    initialWindowId?: WindowId;
   }
 
-  let { rawData, initialWindowId = 'current-quarter' }: Props = $props();
+  let { rawData }: Props = $props();
 
   let selectedGenera: string[] = $state([]);
   let isAllSelected: boolean = $state(true);
-  let windowId: WindowId = $state(initialWindowId);
+  let windowId: WindowId = $state('current-quarter');
 
   const payload: MarketHealthPayload = $derived(
     buildMarketHealthPayload(rawData, windowId, { selectedGenera, isAllSelected })

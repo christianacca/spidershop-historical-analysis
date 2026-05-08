@@ -1,4 +1,4 @@
-import { render } from '@testing-library/svelte';
+import { render, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect } from 'vitest';
 import HistoryInsightsRoot from './HistoryInsightsRoot.svelte';
 import { rawMarketHealthData } from './__fixtures__/marketHealthRaw.js';
@@ -10,10 +10,8 @@ describe('HistoryInsightsRoot', () => {
   });
 
   it('defaults to current-quarter window', () => {
-    const { container } = render(HistoryInsightsRoot, { rawData: rawMarketHealthData });
-    // sparklineBasisNote is rendered in .sparkline-basis-note by MarketHealthSection
-    const basisNote = container.querySelector('.sparkline-basis-note');
-    expect(basisNote?.textContent).toContain('Q2');
+    const { getByText } = render(HistoryInsightsRoot, { rawData: rawMarketHealthData });
+    expect(getByText('Current quarter').getAttribute('aria-pressed')).toBe('true');
   });
 
   it('defaults to all-mode (isAllSelected: true)', () => {
@@ -22,14 +20,10 @@ describe('HistoryInsightsRoot', () => {
     expect(heading?.textContent).toContain('wider tarantula market');
   });
 
-  it('payload windowId changes when initialWindowId prop differs', () => {
-    const { container } = render(HistoryInsightsRoot, {
-      rawData: rawMarketHealthData,
-      initialWindowId: 'all-time',
-    });
-    // all-time window has showPrior = false; the prior legend swatch is hidden
-    const priorKey = container.querySelector('.legend-prior-key') as HTMLElement | null;
-    expect(priorKey).not.toBeNull();
-    expect(priorKey?.hidden).toBe(true);
+  it('clicking a window button updates the active window', async () => {
+    const { getByText } = render(HistoryInsightsRoot, { rawData: rawMarketHealthData });
+    await fireEvent.click(getByText('All time'));
+    expect(getByText('All time').getAttribute('aria-pressed')).toBe('true');
+    expect(getByText('Current quarter').getAttribute('aria-pressed')).toBe('false');
   });
 });

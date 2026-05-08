@@ -56,14 +56,6 @@ describe('TimeWindowSelector — aria-pressed', () => {
 });
 
 describe('TimeWindowSelector — onWindowChange callback', () => {
-  it('clicking a non-active button fires onWindowChange with the correct WindowId', async () => {
-    const onWindowChange = vi.fn();
-    const { getByText } = render(TimeWindowSelector, defaultProps({ onWindowChange }));
-    await fireEvent.click(getByText('This month'));
-    expect(onWindowChange).toHaveBeenCalledOnce();
-    expect(onWindowChange).toHaveBeenCalledWith('this-month');
-  });
-
   it('clicking the already-active button still fires onWindowChange', async () => {
     const onWindowChange = vi.fn();
     const { getByText } = render(TimeWindowSelector, defaultProps({
