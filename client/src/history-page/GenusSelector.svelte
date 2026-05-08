@@ -28,17 +28,15 @@
   let expanded: boolean = $state(initialExpanded);
   let search: string = $state('');
 
-  const availableCount = $derived(availableGenera.length);
-  const selectedCount = $derived(selectedGenera.length);
   const countLabel = $derived(
     isAllSelected
-      ? `All genera • ${availableCount} available`
-      : `${selectedCount} of ${availableCount} genera selected`
+      ? `All genera • ${availableGenera.length} available`
+      : `${selectedGenera.length} of ${availableGenera.length} genera selected`
   );
   const filteredSuggestions = $derived(
     search.trim() === ''
       ? availableGenera
-      : availableGenera.filter(g => g.toLowerCase().includes(search.toLowerCase()))
+      : availableGenera.filter(g => g.toLowerCase().includes(search.trim().toLowerCase()))
   );
 
   function toggleGenus(genus: string) {
@@ -57,10 +55,6 @@
   function selectAll() {
     onSelectionChange([], true);
     expanded = false;
-  }
-
-  function clearAll() {
-    selectAll();
   }
 
   function applyPreset(key: keyof typeof LIFESTYLE_PRESETS) {
@@ -139,7 +133,7 @@
         <button class="quick-pick" onclick={() => applyPreset('arboreal')}>Arboreal</button>
         <button class="quick-pick" onclick={() => applyPreset('terrestrial')}>Terrestrial</button>
         <button class="quick-pick" onclick={() => applyPreset('fossorial')}>Fossorial</button>
-        <button class="quick-pick-action" onclick={clearAll}>Clear all</button>
+        <button class="quick-pick-action" onclick={selectAll}>Clear all</button>
       </div>
     </div>
   {/if}

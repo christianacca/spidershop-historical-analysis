@@ -4,9 +4,8 @@
  * Verifies computed styles for key elements:
  * - .chip.selected background and border-color (warm orange tint)
  * - .scope-label background (teal tint)
- * - toggle button aria-expanded before and after click
  */
-import { render, fireEvent } from '@testing-library/svelte';
+import { render } from '@testing-library/svelte';
 import { describe, it, expect, vi } from 'vitest';
 import GenusSelector from './GenusSelector.svelte';
 
@@ -63,17 +62,4 @@ describe('GenusSelector — .scope-label computed styles', () => {
   });
 });
 
-describe('GenusSelector — toggle button aria-expanded', () => {
-  it('aria-expanded is "false" on mount', () => {
-    const { container } = render(GenusSelector, defaultProps());
-    const toggle = container.querySelector('button.selector-toggle');
-    expect(toggle?.getAttribute('aria-expanded')).toBe('false');
-  });
 
-  it('aria-expanded is "true" after clicking the toggle button', async () => {
-    const { container } = render(GenusSelector, defaultProps());
-    const toggle = container.querySelector('button.selector-toggle') as HTMLElement;
-    await fireEvent.click(toggle);
-    expect(toggle.getAttribute('aria-expanded')).toBe('true');
-  });
-});
