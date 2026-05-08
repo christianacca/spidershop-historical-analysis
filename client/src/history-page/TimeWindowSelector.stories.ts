@@ -1,12 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/svelte';
-import { fn } from '@storybook/test';
 import TimeWindowSelector from './TimeWindowSelector.svelte';
 
 const meta: Meta<typeof TimeWindowSelector> = {
   component: TimeWindowSelector,
   title: 'history-page/TimeWindowSelector',
   args: {
-    onWindowChange: fn(),
+    onWindowChange: (id: string) => console.log('onWindowChange', id),
   },
 };
 
