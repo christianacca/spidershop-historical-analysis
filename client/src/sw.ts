@@ -4,6 +4,7 @@ import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { StaleWhileRevalidate } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
 import type { PrecacheEntry } from 'workbox-precaching';
+import { shouldEvictOnActivate } from './sw-activate.js';
 
 declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: Array<PrecacheEntry | string> };
 
@@ -67,24 +68,16 @@ self.addEventListener('install', (event) => {
 // the SW update — one small network hit, but always correct HTML.
 self.addEventListener('activate', (event) => {
   const scope = self.registration.scope;
-  const mainPages = new Set([
-    `${scope}index.html`,
-    `${scope}breeder.html`,
-    `${scope}dealer.html`,
-    `${scope}snapshot.html`,
-    `${scope}history.html`,
-    `${scope}history-insights.html`,
-  ]);
   event.waitUntil(
     caches.open('html-pages').then(cache =>
       cache.keys().then(keys =>
         Promise.all(
           keys
-            .filter(req => !mainPages.has(req.url))
+            .filter(req => shouldEvictOnActivate(req.url, scope))
             .map(req => cache.delete(req)),
         ),
       ),
-    ),
+    ).then(() => self.clients.claim()),
   );
 });
 

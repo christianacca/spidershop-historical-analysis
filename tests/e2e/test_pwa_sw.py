@@ -601,3 +601,221 @@ def test_refresh_button_activates_new_sw(_e2e_sw_update_context) -> None:
         f"After Refresh, html-pages cache is missing: {missing_after}.\n"
         f"Cached: {cached_urls_after}"
     )
+
+
+@pytest.mark.e2e
+def test_install_does_not_cache_species_pages(e2e_site_minimal) -> None:
+    """The install handler must NOT pre-cache species detail pages.
+
+    Species pages contain an inline pagereveal script baked at HTML-generation time.
+    Pre-caching them during install would mean stale HTML with an outdated script
+    is served after a deploy until the user explicitly navigates to that species.
+    Keeping species pages out of the install cache ensures the activate handler can
+    evict any previous copy that was lazily cached, so the first post-update visit
+    always fetches fresh HTML.
+
+    Mutation targets:
+    - Add species pages to the install handler's `mainPages` array → species URLs
+      appear in html-pages immediately after install, test fails.
+    - Add a separate `caches.open('html-pages').then(cache => cache.put(speciesUrl, ...))` 
+      in the install handler → same failure.
+    """
+    page, base_url, _ = e2e_site_minimal
+
+    # Navigate once to activate the SW (do NOT visit any species page).
+    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
+    page.evaluate("async () => { await navigator.serviceWorker.ready; }")
+
+    # Read all keys currently in the html-pages cache.
+    cached_urls: list[str] = page.evaluate("""
+        async () => {
+            const cache = await caches.open('html-pages');
+            const keys = await cache.keys();
+            return keys.map(r => r.url);
+        }
+    """)
+
+    species_in_cache = [u for u in cached_urls if "/species/" in u]
+    assert species_in_cache == [], (
+        f"The install handler must NOT pre-cache species detail pages, "
+        f"but found these species URLs in html-pages immediately after install: {species_in_cache}. "
+        "Species pages contain an inline pagereveal script baked at HTML-generation time; "
+        "pre-caching them would serve stale scripts after a deploy."
+    )
+
+
+@pytest.mark.e2e
+def test_species_page_in_cache_after_navigation(e2e_site_minimal) -> None:
+    """A species page IS lazily cached after the user navigates to it (SWR route).
+
+    This is the complementary proof to test_install_does_not_cache_species_pages:
+    species pages are intentionally absent from the install cache but ARE added to
+    html-pages via the StaleWhileRevalidate NavigationRoute on first visit.  The
+    activate handler's job is to evict these lazily-cached entries on the NEXT SW
+    update, not prevent them from being cached at all.
+    """
+    page, base_url, _ = e2e_site_minimal
+
+    # Navigate to a species page — the SWR route should cache it.
+    page.goto(f"{base_url}/species/aphonopelma-seemanni.html", wait_until="domcontentloaded")
+    page.evaluate("async () => { await navigator.serviceWorker.ready; }")
+    # Give the SWR background-fetch a moment to write to the cache.
+    page.wait_for_timeout(500)
+
+    cached_urls: list[str] = page.evaluate("""
+        async () => {
+            const cache = await caches.open('html-pages');
+            const keys = await cache.keys();
+            return keys.map(r => r.url);
+        }
+    """)
+
+    species_cached = any("/species/" in u for u in cached_urls)
+    assert species_cached, (
+        "Expected at least one species page URL in html-pages after navigation. "
+        "The StaleWhileRevalidate NavigationRoute should have cached it. "
+        "If this fails, check that the NavigationRoute is still registered in sw.ts."
+    )
+
+
+@pytest.mark.e2e
+def test_activate_evicts_previously_cached_species_page(_e2e_sw_update_context) -> None:
+    """SW activate handler evicts stale species HTML from html-pages on every SW update.
+
+    Root cause of the bug this tests:
+    Species pages contain an inline pagereveal script baked at HTML-generation time.
+    After a deploy the old HTML (with the outdated script) was served from cache,
+    silently breaking view-transition direction detection.
+
+    This test:
+    1. Installs SW V1 and directly injects a fake species URL into html-pages cache.
+    2. Patches sw.js on disk (simulates a deploy).
+    3. Triggers SW V2 install + activation.
+    4. Confirms the species URL is gone from html-pages (evicted by activate handler).
+    5. Confirms all six main pages are still present (install pre-fetched them).
+
+    Direct cache injection (step 1) is used instead of SWR navigation to avoid
+    the inherent race between SWR's async cache.put and V2's activate eviction.
+
+    Mutation targets:
+    - Remove the `activate` event listener from sw.ts → species URL survives,
+      test fails: 'species page was NOT evicted'.
+    - Change the `activate` filter from `!mainPages.has` to `mainPages.has` →
+      main pages are evicted instead, subsequent assertion fails.
+    - Remove `history-insights.html` from the mainPages Set in sw-activate.ts →
+      history-insights is evicted, retained-main-pages assertion fails.
+    """
+    page, base_url, output_dir = _e2e_sw_update_context
+
+    # ── Step 1: Install and activate SW V1 ───────────────────────────────────
+    # Two navigations: first installs, second ensures V1 is controlling the page.
+    page.goto(f"{base_url}/", wait_until="load")
+    page.evaluate("navigator.serviceWorker.ready")
+    page.goto(f"{base_url}/", wait_until="load")
+    page.evaluate("navigator.serviceWorker.ready")
+
+    # ── Step 2: Inject a fake species entry directly into html-pages cache ────
+    # Direct injection is deterministic: the entry is in cache before V2 activates,
+    # without relying on SWR navigation timing.
+    species_url = f"{base_url}/species/aphonopelma-seemanni.html"
+    page.evaluate(f"""
+        async () => {{
+            const cache = await caches.open('html-pages');
+            await cache.put(
+                '{species_url}',
+                new Response('<html>fake species</html>', {{
+                    headers: {{'Content-Type': 'text/html'}}
+                }})
+            );
+        }}
+    """)
+
+    before_urls: list[str] = page.evaluate("""
+        async () => {
+            const cache = await caches.open('html-pages');
+            const keys = await cache.keys();
+            return keys.map(r => r.url);
+        }
+    """)
+    species_present_before = any("/species/" in u for u in before_urls)
+    assert species_present_before, (
+        "Precondition failed: species entry could not be injected into html-pages cache. "
+        "Cannot test eviction without a cached species entry."
+    )
+
+    # ── Step 3: Patch sw.js + explicitly trigger update + wait for waiting state ─
+    sw_path = output_dir / "sw.js"
+    sw_path.write_text(sw_path.read_text(encoding="utf-8") + "\n/* v2-patch */", encoding="utf-8")
+
+    # Use reg.update() (same approach as test_refresh_button_activates_new_sw) to
+    # trigger V2 install reliably, then poll for waiting state from within JS to
+    # avoid the race between a Python-side page navigation and SW update detection.
+    page.evaluate("""
+        async () => {
+            const reg = await navigator.serviceWorker.getRegistration();
+            await new Promise(resolve => setTimeout(resolve, 300));
+            await reg.update();
+            await new Promise((resolve, reject) => {
+                const deadline = setTimeout(
+                    () => reject(new Error('Timed out waiting for V2 waiting state')), 20_000
+                );
+                const poll = () => {
+                    if (reg.waiting) { clearTimeout(deadline); resolve(); return; }
+                    setTimeout(poll, 50);
+                };
+                poll();
+            });
+        }
+    """)
+
+    # ── Step 4: Send SKIP_WAITING and wait for V2 to take control ────────────
+    # We listen for `controllerchange` inside JS before returning to Python.
+    # `controllerchange` fires when V2 calls clients.claim() — which happens at
+    # the END of the activate event.waitUntil chain (after cache eviction).
+    # So when this evaluate resolves, eviction is already complete.
+    page.evaluate("""
+        async () => {
+            const controllerChanged = new Promise((resolve) => {
+                navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true });
+            });
+            const reg = await navigator.serviceWorker.getRegistration();
+            if (reg?.waiting) {
+                reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+            await controllerChanged;
+        }
+    """)
+
+    # Reload once so the page is fresh under V2 control; then await ready
+    # to confirm V2 is fully activated before we inspect the cache.
+    page.reload(wait_until="load")
+    page.evaluate("navigator.serviceWorker.ready")
+
+    # ── Step 5: Verify species page was evicted ───────────────────────────────
+    after_urls: list[str] = page.evaluate("""
+        async () => {
+            const cache = await caches.open('html-pages');
+            const keys = await cache.keys();
+            return keys.map(r => r.url);
+        }
+    """)
+
+    species_after_update = [u for u in after_urls if "/species/" in u]
+    assert species_after_update == [], (
+        f"Species page was NOT evicted from html-pages after SW update. "
+        f"Found: {species_after_update}. "
+        "The SW activate handler must evict all non-main-page entries so stale "
+        "species HTML (with outdated inline scripts) is not served after a deploy."
+    )
+
+    # ── Step 6: Verify main pages are still present ───────────────────────────
+    main_pages = [
+        "index.html", "breeder.html", "dealer.html",
+        "snapshot.html", "history.html", "history-insights.html",
+    ]
+    missing_main = [p for p in main_pages if not any(p in u for u in after_urls)]
+    assert missing_main == [], (
+        f"After SW update and eviction, these main pages are missing from html-pages: {missing_main}. "
+        "The activate handler must only evict non-main-page entries; "
+        "main pages were pre-fetched by the install handler and must be retained."
+    )
