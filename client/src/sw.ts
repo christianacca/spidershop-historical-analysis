@@ -55,6 +55,39 @@ self.addEventListener('install', (event) => {
   );
 });
 
+// On every SW activation, evict all non-main-page entries from the html-pages cache.
+// Species detail pages (and any other previously-cached pages) are served via the SWR
+// NavigationRoute and are only lazily populated — they are NOT pre-fetched during install.
+// Without this eviction, after a deploy the old species HTML (with potentially outdated
+// inline scripts, including the view-transition pagereveal handler) would be served on
+// the first post-update visit, silently breaking view transitions and scroll restoration.
+// The six main pages are safe: the install handler already pre-fetched them with
+// fresh content before this activate handler runs (Workbox guarantees install completes
+// before activate).  Species pages will be fetched fresh on first navigation after
+// the SW update — one small network hit, but always correct HTML.
+self.addEventListener('activate', (event) => {
+  const scope = self.registration.scope;
+  const mainPages = new Set([
+    `${scope}index.html`,
+    `${scope}breeder.html`,
+    `${scope}dealer.html`,
+    `${scope}snapshot.html`,
+    `${scope}history.html`,
+    `${scope}history-insights.html`,
+  ]);
+  event.waitUntil(
+    caches.open('html-pages').then(cache =>
+      cache.keys().then(keys =>
+        Promise.all(
+          keys
+            .filter(req => !mainPages.has(req.url))
+            .map(req => cache.delete(req)),
+        ),
+      ),
+    ),
+  );
+});
+
 // HTML pages: StaleWhileRevalidate — serve from cache immediately, refresh in background.
 // The install handler above ensures fresh HTML is already in the cache before the toast
 // fires, eliminating the race condition where a user clicks Refresh before the SWR
