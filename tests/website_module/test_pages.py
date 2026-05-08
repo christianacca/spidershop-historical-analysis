@@ -1655,3 +1655,305 @@ class TestHamburgerNav:
         assert soup.find('nav') is None, (
             "Species detail page must NOT render a <nav> element"
         )
+
+
+class TestBuildVersionFooter:
+    """The build_version token must appear in the footer of every generated page.
+
+    build_version is injected via the shared jinja_env global (html_utils.py).
+    The env var BUILD_VERSION is the CI-time version string.  If species_detail.py
+    ever creates its own Jinja environment it will miss that global, so this class
+    tests every page generator independently.
+
+    Mutation targets:
+    - Revert species_detail.py to use its own private jinja_env → test for species
+      page fails because the global is never set.
+    - Remove the site-version-display span from base.html → span tests fail.
+    - Change the env var name to something other than BUILD_VERSION → tests detect
+      that 'sentinel-abc' no longer appears.
+    """
+
+    _SENTINEL = "sentinel-build-abc123"
+
+    def setup_method(self):
+        os.environ["BUILD_VERSION"] = self._SENTINEL
+        # Re-import so the env var is picked up by the module-level assignment.
+        import importlib
+        import website.html_utils as hu
+        hu.jinja_env.globals['build_version'] = os.environ.get('BUILD_VERSION', 'local-dev')
+
+    def teardown_method(self):
+        os.environ.pop("BUILD_VERSION", None)
+        import website.html_utils as hu
+        hu.jinja_env.globals['build_version'] = os.environ.get('BUILD_VERSION', 'local-dev')
+
+    def test_homepage_footer_contains_build_version(self):
+        """generate_homepage() must embed the build_version sentinel in the footer."""
+        html = generate_homepage()
+        soup = BeautifulSoup(html, 'html.parser')
+        footer = soup.find('footer')
+        assert footer is not None, "Page must have a <footer>"
+        assert self._SENTINEL in footer.get_text(), (
+            f"Footer must contain build_version '{self._SENTINEL}'; "
+            "check that html_utils.jinja_env.globals['build_version'] is set from BUILD_VERSION"
+        )
+
+    def test_homepage_has_site_version_span(self):
+        """Footer must include the #site-version-display span for the JS bundle version."""
+        html = generate_homepage()
+        soup = BeautifulSoup(html, 'html.parser')
+        span = soup.find('span', id='site-version-display')
+        assert span is not None, (
+            "Footer must contain <span id='site-version-display'> for the JS bundle version"
+        )
+
+    def test_analysis_page_footer_contains_build_version(self, tmp_path):
+        """generate_analysis_page() must embed build_version in the footer."""
+        csv = tmp_path / "breeder.csv"
+        csv.write_text("Species,Size (cm),Signal\nAphonopelma seemanni,1.5,🔥\n", encoding="utf-8")
+        cfg = BasePageConfig(
+            title="Breeder",
+            description="Test",
+            csv_filename=str(csv),
+            table_id="breeder-table",
+            active_page="breeder",
+        )
+        html = generate_analysis_page(cfg)
+        soup = BeautifulSoup(html, 'html.parser')
+        footer = soup.find('footer')
+        assert footer is not None
+        assert self._SENTINEL in footer.get_text(), (
+            "Analysis page footer must contain the build_version sentinel"
+        )
+
+    def test_species_page_footer_contains_build_version(self):
+        """generate_species_page() must embed build_version in the footer.
+
+        Root cause: species_detail.py previously created its own private jinja_env
+        which never received the build_version global → HTML: always blank on
+        species pages.  This test fails if that regression is re-introduced.
+        """
+        from website.species_detail import generate_species_page
+        html = generate_species_page(
+            scientific_name="Aphonopelma seemanni",
+            common_name="Costa Rican Zebra",
+            species_data={},
+            chart_data={"runs": []},
+        )
+        soup = BeautifulSoup(html, 'html.parser')
+        footer = soup.find('footer')
+        assert footer is not None, "Species page must have a <footer>"
+        assert self._SENTINEL in footer.get_text(), (
+            f"Species page footer must contain build_version '{self._SENTINEL}'. "
+            "species_detail.py must import and use the shared jinja_env from html_utils, "
+            "not create its own private Jinja2 environment."
+        )
+
+    def test_species_page_has_site_version_span(self):
+        """Species page footer must include the #site-version-display span."""
+        from website.species_detail import generate_species_page
+        html = generate_species_page(
+            scientific_name="Aphonopelma seemanni",
+            common_name="Costa Rican Zebra",
+            species_data={},
+            chart_data={"runs": []},
+        )
+        soup = BeautifulSoup(html, 'html.parser')
+        span = soup.find('span', id='site-version-display')
+        assert span is not None, (
+            "Species page footer must contain <span id='site-version-display'> "
+            "for the JS bundle version diagnostic"
+        )
+
+    def test_default_build_version_is_local_dev(self):
+        """Without BUILD_VERSION env var, build_version falls back to 'local-dev'."""
+        import website.html_utils as hu
+        os.environ.pop("BUILD_VERSION", None)
+        hu.jinja_env.globals['build_version'] = os.environ.get('BUILD_VERSION', 'local-dev')
+
+        html = generate_homepage()
+        soup = BeautifulSoup(html, 'html.parser')
+        footer = soup.find('footer')
+        assert footer is not None
+        assert 'local-dev' in footer.get_text(), (
+            "When BUILD_VERSION is not set, footer must show 'local-dev' (the fallback)"
+        )
+
+
+class TestPagerevealScriptInHead:
+    """The pagereveal inline classic script must live in <head>.
+
+    Chrome DevRel docs mandate: "register the listener in a classic parser-blocking
+    script in the <head> (not a module, not async, not defer)" because the pagereveal
+    event fires before DOMContentLoaded — before any end-of-body or deferred scripts run.
+
+    Placing the script at the end of <body> (as it was before this fix) means the
+    browser can fire pagereveal before the listener is registered, causing VT
+    direction-detection to be silently skipped on some navigations.
+
+    Mutation targets:
+    - Move the <script> block back to the end of <body> → tests detect it is absent
+      from <head> (or absent altogether when scanning only the head).
+    - Remove the 'pagereveal' string from the script → content test fails.
+    - Make the script type="module" → type test fails.
+    """
+
+    def _head_scripts(self, html: str):
+        """Return all inline non-module <script> elements that are children of <head>."""
+        soup = BeautifulSoup(html, 'html.parser')
+        head = soup.find('head')
+        assert head is not None, "Page must have a <head> element"
+        return [
+            s for s in head.find_all('script')
+            if not s.get('src')
+            and s.get('type', '') not in ('module', 'speculationrules')
+        ]
+
+    def _assert_pagereveal_in_head(self, html: str, page_label: str):
+        scripts = self._head_scripts(html)
+        combined = "\n".join(s.get_text() for s in scripts)
+        assert "pagereveal" in combined, (
+            f"{page_label}: no inline non-module script containing 'pagereveal' found in <head>. "
+            "The pagereveal handler must be a parser-blocking script in <head> — "
+            "NOT at the end of <body> — so it is registered before the first rendering opportunity."
+        )
+
+    def test_homepage_pagereveal_handler_is_in_head(self):
+        """Homepage must have the pagereveal handler in a <head> inline classic script."""
+        html = generate_homepage()
+        self._assert_pagereveal_in_head(html, "Homepage")
+
+    def test_analysis_page_pagereveal_handler_is_in_head(self, tmp_path):
+        """Analysis (breeder) page must have the pagereveal handler in <head>."""
+        csv = tmp_path / "breeder.csv"
+        csv.write_text("Species,Size (cm),Signal\nAphonopelma seemanni,1.5,🔥\n", encoding="utf-8")
+        cfg = BasePageConfig(
+            title="Breeder",
+            description="Test",
+            csv_filename=str(csv),
+            table_id="breeder-table",
+            active_page="breeder",
+        )
+        html = generate_analysis_page(cfg)
+        self._assert_pagereveal_in_head(html, "Analysis page")
+
+    def test_species_page_pagereveal_handler_is_in_head(self):
+        """Species detail page must also have the pagereveal handler in <head>."""
+        from website.species_detail import generate_species_page
+        html = generate_species_page(
+            scientific_name="Aphonopelma seemanni",
+            common_name="Costa Rican Zebra",
+            species_data={},
+            chart_data={"runs": []},
+        )
+        self._assert_pagereveal_in_head(html, "Species page")
+
+    def test_pagereveal_script_is_not_a_module(self):
+        """The pagereveal handler script must NOT be type='module' (would be deferred)."""
+        html = generate_homepage()
+        soup = BeautifulSoup(html, 'html.parser')
+        head = soup.find('head')
+        assert head is not None
+        # A module script in head with 'pagereveal' content would be wrong
+        module_scripts_with_pagereveal = [
+            s for s in head.find_all('script', type='module')
+            if 'pagereveal' in (s.get_text() or "")
+        ]
+        assert len(module_scripts_with_pagereveal) == 0, (
+            "The pagereveal handler must NOT be type='module' — module scripts are deferred "
+            "past DOMContentLoaded and will miss the pagereveal event on cross-doc navigations."
+        )
+
+    def test_pagereveal_script_calls_vt_types_add(self):
+        """The pagereveal handler must call vt.types.add() to signal VT direction.
+
+        Mutation target: removing the types.add() calls → VT direction type is never
+        set → CSS @view-transition-type animations never fire (forward/backward slide
+        does not play, just a default fade).
+
+        The regex strips block comments before checking so a commented-out call
+        does not produce a false-green.
+        """
+        import re as _re
+        html = generate_homepage()
+        scripts = self._head_scripts(html)
+        combined = "\n".join(s.get_text() for s in scripts)
+        assert "pagereveal" in combined, (
+            "No inline pagereveal handler found in <head> — cannot check types.add() call"
+        )
+        # Strip /* ... */ block comments so a commented-out call doesn't fool the check
+        stripped = _re.sub(r'/\*.*?\*/', '', combined, flags=_re.DOTALL)
+        assert "types.add" in stripped, (
+            "The pagereveal handler must call vt.types.add('forward') / vt.types.add('backward') "
+            "to set the VT direction type that CSS animations key off. "
+            "The call was not found in uncommented script content."
+        )
+
+    def test_pagereveal_not_in_body(self):
+        """The pagereveal handler must NOT appear in a <body> inline script.
+
+        Confirms the old placement has been fully removed.
+        """
+        html = generate_homepage()
+        soup = BeautifulSoup(html, 'html.parser')
+        body = soup.find('body')
+        assert body is not None
+        body_inline_scripts = [
+            s for s in body.find_all('script')
+            if not s.get('src')
+            and s.get('type', '') not in ('module', 'speculationrules')
+        ]
+        body_combined = "\n".join(s.get_text() for s in body_inline_scripts)
+        assert "pagereveal" not in body_combined, (
+            "pagereveal handler was found in an inline <body> script — it must live in <head>. "
+            "Placing it at the end of <body> causes VT animations to be skipped when the "
+            "browser fires pagereveal before the parser reaches the script tag."
+        )
+
+
+class TestHtmlUtilsBuildVersionInit:
+    """html_utils.py must initialise jinja_env.globals['build_version'] from BUILD_VERSION.
+
+    The module-level initialisation runs at import time.  These tests reload the
+    module to confirm the assignment reads from the environment variable rather
+    than hard-coding a value.
+
+    Mutation target:
+    - Remove `jinja_env.globals['build_version'] = os.environ.get('BUILD_VERSION', 'local-dev')`
+      from html_utils.py → reloading the module no longer sets the global, tests fail.
+    - Change the env var key from 'BUILD_VERSION' to something else → sentinel test fails.
+    - Remove the fallback 'local-dev' → default-value test fails.
+    """
+
+    def test_jinja_env_reads_build_version_from_env_var(self, monkeypatch):
+        """When BUILD_VERSION is set, html_utils.jinja_env must use it as build_version."""
+        import importlib
+        import website.html_utils as hu
+
+        monkeypatch.setenv("BUILD_VERSION", "test-sentinel-xyz")
+        importlib.reload(hu)
+        try:
+            assert hu.jinja_env.globals.get('build_version') == "test-sentinel-xyz", (
+                "After reloading html_utils with BUILD_VERSION='test-sentinel-xyz', "
+                "jinja_env.globals['build_version'] must equal 'test-sentinel-xyz'. "
+                "Check that html_utils.py assigns jinja_env.globals['build_version'] "
+                "from os.environ.get('BUILD_VERSION', 'local-dev')."
+            )
+        finally:
+            importlib.reload(hu)  # Restore to avoid contaminating later tests
+
+    def test_jinja_env_defaults_to_local_dev_when_var_absent(self, monkeypatch):
+        """Without BUILD_VERSION, html_utils.jinja_env must fall back to 'local-dev'."""
+        import importlib
+        import website.html_utils as hu
+
+        monkeypatch.delenv("BUILD_VERSION", raising=False)
+        importlib.reload(hu)
+        try:
+            assert hu.jinja_env.globals.get('build_version') == 'local-dev', (
+                "When BUILD_VERSION env var is not set, "
+                "jinja_env.globals['build_version'] must equal 'local-dev'. "
+                "Check the fallback in html_utils.py: os.environ.get('BUILD_VERSION', 'local-dev')."
+            )
+        finally:
+            importlib.reload(hu)
