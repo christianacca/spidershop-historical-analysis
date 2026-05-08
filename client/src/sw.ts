@@ -77,7 +77,7 @@ self.addEventListener('activate', (event) => {
             .map(req => cache.delete(req)),
         ),
       ),
-    ),
+    ).then(() => self.clients.claim()),
   );
 });
 

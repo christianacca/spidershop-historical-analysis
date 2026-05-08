@@ -688,11 +688,14 @@ def test_activate_evicts_previously_cached_species_page(_e2e_sw_update_context) 
     silently breaking view-transition direction detection.
 
     This test:
-    1. Installs SW V1 and navigates to a species page → caches it via SWR.
+    1. Installs SW V1 and directly injects a fake species URL into html-pages cache.
     2. Patches sw.js on disk (simulates a deploy).
     3. Triggers SW V2 install + activation.
     4. Confirms the species URL is gone from html-pages (evicted by activate handler).
     5. Confirms all six main pages are still present (install pre-fetched them).
+
+    Direct cache injection (step 1) is used instead of SWR navigation to avoid
+    the inherent race between SWR's async cache.put and V2's activate eviction.
 
     Mutation targets:
     - Remove the `activate` event listener from sw.ts → species URL survives,
@@ -705,14 +708,27 @@ def test_activate_evicts_previously_cached_species_page(_e2e_sw_update_context) 
     page, base_url, output_dir = _e2e_sw_update_context
 
     # ── Step 1: Install and activate SW V1 ───────────────────────────────────
-    page.goto(f"{base_url}/", wait_until="domcontentloaded")
-    page.evaluate("async () => { await navigator.serviceWorker.ready; }")
-    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
-    page.evaluate("async () => { await navigator.serviceWorker.ready; }")
+    # Two navigations: first installs, second ensures V1 is controlling the page.
+    page.goto(f"{base_url}/", wait_until="load")
+    page.evaluate("navigator.serviceWorker.ready")
+    page.goto(f"{base_url}/", wait_until="load")
+    page.evaluate("navigator.serviceWorker.ready")
 
-    # ── Step 2: Navigate to a species page → SWR caches it ───────────────────
-    page.goto(f"{base_url}/species/aphonopelma-seemanni.html", wait_until="domcontentloaded")
-    page.wait_for_timeout(600)  # Allow SWR background fetch to complete
+    # ── Step 2: Inject a fake species entry directly into html-pages cache ────
+    # Direct injection is deterministic: the entry is in cache before V2 activates,
+    # without relying on SWR navigation timing.
+    species_url = f"{base_url}/species/aphonopelma-seemanni.html"
+    page.evaluate(f"""
+        async () => {{
+            const cache = await caches.open('html-pages');
+            await cache.put(
+                '{species_url}',
+                new Response('<html>fake species</html>', {{
+                    headers: {{'Content-Type': 'text/html'}}
+                }})
+            );
+        }}
+    """)
 
     before_urls: list[str] = page.evaluate("""
         async () => {
@@ -723,40 +739,59 @@ def test_activate_evicts_previously_cached_species_page(_e2e_sw_update_context) 
     """)
     species_present_before = any("/species/" in u for u in before_urls)
     assert species_present_before, (
-        "Precondition failed: species page was not cached by SWR. "
+        "Precondition failed: species entry could not be injected into html-pages cache. "
         "Cannot test eviction without a cached species entry."
     )
 
-    # ── Step 3: Patch sw.js on disk to trigger SW V2 install ─────────────────
+    # ── Step 3: Patch sw.js + explicitly trigger update + wait for waiting state ─
     sw_path = output_dir / "sw.js"
-    original_sw = sw_path.read_text(encoding="utf-8")
-    patched_sw = original_sw + "\n/* v2-patch */"
-    sw_path.write_text(patched_sw, encoding="utf-8")
+    sw_path.write_text(sw_path.read_text(encoding="utf-8") + "\n/* v2-patch */", encoding="utf-8")
 
-    # Navigate twice: first visit starts V2 install (V1 still controlling),
-    # second visit the new SW takes over after skipWaiting/activate.
-    # The toast triggers skipWaiting automatically in the test context, but
-    # we also inject the message manually to be deterministic.
-    page.goto(f"{base_url}/breeder.html", wait_until="domcontentloaded")
-    page.wait_for_timeout(800)
-
-    # Force skip-waiting so V2 activates immediately
+    # Use reg.update() (same approach as test_refresh_button_activates_new_sw) to
+    # trigger V2 install reliably, then poll for waiting state from within JS to
+    # avoid the race between a Python-side page navigation and SW update detection.
     page.evaluate("""
         async () => {
+            const reg = await navigator.serviceWorker.getRegistration();
+            await new Promise(resolve => setTimeout(resolve, 300));
+            await reg.update();
+            await new Promise((resolve, reject) => {
+                const deadline = setTimeout(
+                    () => reject(new Error('Timed out waiting for V2 waiting state')), 20_000
+                );
+                const poll = () => {
+                    if (reg.waiting) { clearTimeout(deadline); resolve(); return; }
+                    setTimeout(poll, 50);
+                };
+                poll();
+            });
+        }
+    """)
+
+    # ── Step 4: Send SKIP_WAITING and wait for V2 to take control ────────────
+    # We listen for `controllerchange` inside JS before returning to Python.
+    # `controllerchange` fires when V2 calls clients.claim() — which happens at
+    # the END of the activate event.waitUntil chain (after cache eviction).
+    # So when this evaluate resolves, eviction is already complete.
+    page.evaluate("""
+        async () => {
+            const controllerChanged = new Promise((resolve) => {
+                navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true });
+            });
             const reg = await navigator.serviceWorker.getRegistration();
             if (reg?.waiting) {
                 reg.waiting.postMessage({ type: 'SKIP_WAITING' });
             }
+            await controllerChanged;
         }
     """)
-    page.wait_for_timeout(400)
 
-    # Reload to let V2 take control
-    page.reload(wait_until="domcontentloaded")
-    page.evaluate("async () => { await navigator.serviceWorker.ready; }")
-    page.wait_for_timeout(400)
+    # Reload once so the page is fresh under V2 control; then await ready
+    # to confirm V2 is fully activated before we inspect the cache.
+    page.reload(wait_until="load")
+    page.evaluate("navigator.serviceWorker.ready")
 
-    # ── Step 4: Verify species page was evicted ───────────────────────────────
+    # ── Step 5: Verify species page was evicted ───────────────────────────────
     after_urls: list[str] = page.evaluate("""
         async () => {
             const cache = await caches.open('html-pages');
@@ -773,7 +808,7 @@ def test_activate_evicts_previously_cached_species_page(_e2e_sw_update_context) 
         "species HTML (with outdated inline scripts) is not served after a deploy."
     )
 
-    # ── Step 5: Verify main pages are still present ───────────────────────────
+    # ── Step 6: Verify main pages are still present ───────────────────────────
     main_pages = [
         "index.html", "breeder.html", "dealer.html",
         "snapshot.html", "history.html", "history-insights.html",
