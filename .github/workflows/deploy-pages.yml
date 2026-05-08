@@ -140,6 +140,7 @@ jobs:
       - name: Generate HTML website
         env:
           PYTHONPATH: ${{ github.workspace }}/src
+          BUILD_VERSION: ${{ steps.build-version.outputs.value }}
         run: |
           python -m website
 

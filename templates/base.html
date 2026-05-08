@@ -67,7 +67,7 @@
         <p>Data scraped from <a href="https://thespidershop.co.uk/" target="_blank">The Spider Shop UK</a></p>
         <p><a href="https://github.com/christianacca/spidershop-historical-analysis" target="_blank">View on GitHub</a></p>
         <p>Generated: {{ timestamp }}</p>
-        <p class="site-version">JS bundle: <span id="site-version-display" title="Version of JavaScript bundle served by the Service Worker. Stays stale until SW updates.">—</span></p>
+        <p class="site-version">HTML: {{ build_version }} &nbsp;|&nbsp; JS bundle: <span id="site-version-display" title="Version of JavaScript bundle served by the Service Worker. Stays stale until SW updates.">—</span></p>
     </footer>
     
     {% block extra_js %}{% endblock %}
