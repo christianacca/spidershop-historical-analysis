@@ -45,6 +45,7 @@ describe('beginScrollRestoration', () => {
   afterEach(() => {
     scrollToSpy.mockRestore();
     delete (window as { __vtScrollRestoreY?: number }).__vtScrollRestoreY;
+    document.documentElement.style.minHeight = '';
   });
 
   it('returns false when no position is saved for the URL', () => {
@@ -86,6 +87,18 @@ describe('beginScrollRestoration', () => {
     beginScrollRestoration('http://localhost/breeder.html');
     expect(scrollToSpy).not.toHaveBeenCalled();
   });
+
+  it('sets minHeight on documentElement to prevent scroll clamping on short skeletons', () => {
+    sessionStorage.setItem(`${SCROLL_KEY_PREFIX}http://localhost/breeder.html`, '600');
+    beginScrollRestoration('http://localhost/breeder.html');
+    expect(document.documentElement.style.minHeight).toBe(`${600 + window.innerHeight}px`);
+  });
+
+  it('does not set minHeight when nothing is saved', () => {
+    document.documentElement.style.minHeight = '';
+    beginScrollRestoration('http://localhost/breeder.html');
+    expect(document.documentElement.style.minHeight).toBe('');
+  });
 });
 
 describe('completeScrollRestoration', () => {
@@ -123,5 +136,12 @@ describe('completeScrollRestoration', () => {
     completeScrollRestoration();
     completeScrollRestoration();
     expect(scrollToSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears the minHeight set by phase 1', () => {
+    document.documentElement.style.minHeight = '2000px';
+    (window as { __vtScrollRestoreY?: number }).__vtScrollRestoreY = 350;
+    completeScrollRestoration();
+    expect(document.documentElement.style.minHeight).toBe('');
   });
 });

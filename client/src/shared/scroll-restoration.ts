@@ -54,6 +54,13 @@ export function beginScrollRestoration(url: string): boolean {
 
     // Stash for phase 2 (in case the skeleton is shorter than the full content)
     (window as { __vtScrollRestoreY?: number }).__vtScrollRestoreY = y;
+
+    // Ensure the page is tall enough to scroll to Y without clamping.
+    // The skeleton may be shorter than the Svelte-mounted page; without this,
+    // scroll clamps to the skeleton bottom and briefly reveals content that
+    // should be off-screen (e.g. the methodology section at the page bottom).
+    document.documentElement.style.minHeight = `${y + window.innerHeight}px`;
+
     window.scrollTo({ top: y, behavior: 'instant' });
     return true;
   } catch {
@@ -72,6 +79,9 @@ export function completeScrollRestoration(): void {
   const w = window as { __vtScrollRestoreY?: number };
   const y = w.__vtScrollRestoreY;
   if (y === undefined) return;
+
+  // Clear the minHeight set by phase 1 now that the page is fully mounted.
+  document.documentElement.style.minHeight = '';
 
   delete w.__vtScrollRestoreY;
   window.scrollTo({ top: y, behavior: 'instant' });
