@@ -249,23 +249,23 @@ as `match`, `differs`, or `not applicable` (if element is absent in current stat
 ### Housekeeping
 
 ```
-[ ] H1 - All Phase 1 tasks checked off
-[ ] H2 - Reflection scan: token exists in :root; no naked-button/input collisions introduced; props typed correctly
-[ ] H3 - Feed-forward log entry added (dated)
-[ ] H4 - Commit: "WP-Arch Phase 1: add --color-breeder-focus token, HistoryInsightsRoot foundation"
+[x] H1 - All Phase 1 tasks checked off
+[x] H2 - Reflection scan: token exists in :root; no naked-button/input collisions introduced; props typed correctly
+[x] H3 - Feed-forward log entry added (dated)
+[x] H4 - Commit: "WP-Arch Phase 1: add --color-breeder-focus token, HistoryInsightsRoot foundation"
           Verify: git log --oneline -1
-[ ] GATE - Output Phase 1 completion block
+[x] GATE - Output Phase 1 completion block
 ```
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
 ║  PHASE 1 COMPLETE                                            ║
 ╠══════════════════════════════════════════════════════════════╣
-║  Tests:    [paste final line of: make test-client-fast]
-║  Visual:   [paste final line of: make test-visual]
-║  Commit:   [paste: git log --oneline -1]
+║  Tests:    Test Files  31 passed (31) | Tests  563 passed (563)
+║  Visual:   Test Files  16 passed (16) | Tests  138 passed (138)
+║  Commit:   38a377b WP-Arch Phase 1: add --color-breeder-focus token, HistoryInsightsRoot foundation
 ║  Stories:  N/A
-║  Blockers: none / [deferred item]
+║  Blockers: none — design-tokens snapshot updated for new --color-breeder-focus token (intentional)
 ╚══════════════════════════════════════════════════════════════╝
 ```
 
@@ -990,7 +990,7 @@ Before writing E2E tests, do one final check:
 | Date | Phase | Notes |
 |---|---|---|
 | 8 May 2026 | 0 | All 11 computed-style rows captured via Chrome DevTools MCP. All spec §7 values match mock. Only `.filters-panel border-radius` differs (20px mock vs 18px implementation) — by-design deviation #7, already logged. `--color-breeder-focus` confirmed missing from `common.css` — add in Phase 1. Naked `h2 { margin-bottom: 20px }` in common.css confirmed — Phase 1/4 must add `.panel-heading { margin: 0 0 4px }` scoped override in FiltersPanel.svelte. No naked button/input/label/details/summary selectors found. `make storybook` command confirmed (`cd client && npm run storybook`, port 6006). Divergence log pre-populated with all 7 by-design deviations from spec §12 — no additional deviations found. |
-| _(add here)_ | 1 | |
+| 8 May 2026 | 1 | `--color-breeder-focus: #cc6b49` added to `:root`. Mount point renamed to `#history-insights-root`. `HistoryInsightsRoot.svelte` created with minimal shell; `index.ts` updated. design-tokens snapshot updated for new token (intentional). `initialWindowId` optional prop added for test-time control (not used at runtime). All 563 unit tests + 138 visual tests pass. |
 | _(add here)_ | 2 | |
 | _(add here)_ | 3 | |
 | _(add here)_ | 4 | |
