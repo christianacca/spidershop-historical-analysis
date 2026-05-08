@@ -9,6 +9,7 @@ exports[`design tokens — templates/common.css > token map matches snapshot 1`]
   "--color-border-alt": "#e1e8ed",
   "--color-border-light": "#ddd",
   "--color-border-warm": "#d7cfc0",
+  "--color-breeder-focus": "#cc6b49",
   "--color-danger": "#e74c3c",
   "--color-date-filter": "#ffc107",
   "--color-date-filter-bg": "#fff8e1",

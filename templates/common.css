@@ -12,6 +12,7 @@
     --color-accent:             #3498db; /* blue — buttons, links, borders, active states */
     --color-accent-hover:       #2980b9; /* darker blue — hover state for accent elements */
     --color-market-health:      #1f7a6b; /* teal — Market Health section accent, also the observed-sparkline series colour */
+    --color-breeder-focus:      #cc6b49; /* warm orange — selected genus chip, breeder-focus emphasis */
 
     /* === Status === */
     --color-success:            #27ae60; /* green — download / success actions */
