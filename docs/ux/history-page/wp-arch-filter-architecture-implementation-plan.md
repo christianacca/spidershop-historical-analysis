@@ -934,7 +934,7 @@ Before writing E2E tests, do one final check:
 ║  PHASE 5 COMPLETE — WP-ARCH DONE                            ║
 ╠══════════════════════════════════════════════════════════════╣
 ║  Tests:    228 passed in 124.29s (0:02:04) — make test-e2e
-║  Commit:   [paste: git log --oneline -1]
+║  Commit:   f048984 WP-Arch Phase 5: E2E tests, live verification, divergence log finalized
 ║  Stories:  N/A (all stories verified in Phases 2–4)
 ║  Blockers: none — arboreal preset adapted to terrestrial for multi-species fixture;
 ║            Psalmopoeus (6th genus in fixture) discovered via test run, count corrected
