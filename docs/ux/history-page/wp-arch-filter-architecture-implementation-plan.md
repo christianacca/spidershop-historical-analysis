@@ -149,15 +149,15 @@ as `match`, `differs`, or `not applicable` (if element is absent in current stat
 
 ### Tasks
 
-- [ ] **P1-1** Add `--color-breeder-focus: #cc6b49;` to the `:root` block of
+- [x] **P1-1** Add `--color-breeder-focus: #cc6b49;` to the `:root` block of
   `templates/common.css`. Place it immediately after `--color-market-health` in the Brand /
   Accent section. Add a comment: `/* warm orange — selected genus chip, breeder-focus emphasis */`
 
-- [ ] **P1-2** Update `templates/history_insights_page.html`:
+- [x] **P1-2** Update `templates/history_insights_page.html`:
   - Change `<div id="market-health-root"></div>` to `<div id="history-insights-root"></div>`
   - No other changes to this file
 
-- [ ] **P1-3** Create `client/src/history-page/HistoryInsightsRoot.svelte`.
+- [x] **P1-3** Create `client/src/history-page/HistoryInsightsRoot.svelte`.
 
   **Minimum viable content for Phase 1 (filters not yet wired):**
   ```svelte
@@ -186,7 +186,7 @@ as `match`, `differs`, or `not applicable` (if element is absent in current stat
 
   This is intentionally minimal. The hero/filter UI is added in Phases 2–4.
 
-- [ ] **P1-4** Update `client/src/history-page/index.ts`:
+- [x] **P1-4** Update `client/src/history-page/index.ts`:
   - Import `HistoryInsightsRoot` instead of `MarketHealthSection`
   - Remove the `buildMarketHealthPayloadAllWindows` call and `allPayloads` variable
   - Change mount target from `#market-health-root` to `#history-insights-root`
@@ -216,7 +216,7 @@ as `match`, `differs`, or `not applicable` (if element is absent in current stat
   }
   ```
 
-- [ ] **P1-5** Write `client/src/history-page/HistoryInsightsRoot.test.ts`.
+- [x] **P1-5** Write `client/src/history-page/HistoryInsightsRoot.test.ts`.
 
   Tests to cover:
   - Renders `MarketHealthSection` when `rawData` has records
@@ -227,16 +227,16 @@ as `match`, `differs`, or `not applicable` (if element is absent in current stat
   Use `@testing-library/svelte` `render()`. Expose `windowId` as a prop for testability or
   test via the derived payload output.
 
-- [ ] **P1-6** Write a visual contract test at
+- [x] **P1-6** Write a visual contract test at
   `client/src/history-page/HistoryInsightsRoot.visual.test.ts`:
   - Verify `--color-breeder-focus` CSS custom property resolves to `rgb(204, 107, 73)` in the
     browser (use `getComputedStyle(document.documentElement).getPropertyValue('--color-breeder-focus').trim()`).
 
-- [ ] **P1-7** Run `make test-client-fast` — confirm all tests pass (green).
+- [x] **P1-7** Run `make test-client-fast` — confirm all tests pass (green).
 
-- [ ] **P1-8** Run `make test-visual` — confirm the new visual contract passes.
+- [x] **P1-8** Run `make test-visual` — confirm the new visual contract passes.
 
-- [ ] **P1-9** Run `make preview`. Navigate to `http://localhost:8000/history-insights.html`.
+- [x] **P1-9** Run `make preview`. Navigate to `http://localhost:8000/history-insights.html`.
   Confirm the Market Health section renders identically to the pre-WP-Arch state.
 
 ### Acceptance criteria
@@ -278,7 +278,7 @@ as `match`, `differs`, or `not applicable` (if element is absent in current stat
 
 ### Tasks
 
-- [ ] **P2-1** Create `client/src/history-page/TimeWindowSelector.svelte`.
+- [x] **P2-1** Create `client/src/history-page/TimeWindowSelector.svelte`.
 
   **Props interface:**
   ```typescript
@@ -305,7 +305,7 @@ as `match`, `differs`, or `not applicable` (if element is absent in current stat
   and ensures 7 pills wrap gracefully at all viewport widths — including mobile portrait —
   without requiring any breakpoint rule.
 
-- [ ] **P2-2** Write `client/src/history-page/TimeWindowSelector.test.ts`.
+- [x] **P2-2** Write `client/src/history-page/TimeWindowSelector.test.ts`.
 
   Tests to cover:
   - All 7 buttons render with correct labels
@@ -314,7 +314,7 @@ as `match`, `differs`, or `not applicable` (if element is absent in current stat
   - Clicking the already-active button still fires `onWindowChange`
   - `basisNote` is rendered as text content in the `.micro-note`
 
-- [ ] **P2-3** Write `client/src/history-page/TimeWindowSelector.visual.test.ts`.
+- [x] **P2-3** Write `client/src/history-page/TimeWindowSelector.visual.test.ts`.
 
   Visual contracts to assert (via `evaluate_script` in browser-backed tests):
   - Active button `backgroundColor` resolves to `rgb(31, 42, 44)` (= `var(--color-text)`)
@@ -324,7 +324,7 @@ as `match`, `differs`, or `not applicable` (if element is absent in current stat
     at least one pill has a `offsetTop` greater than the first pill (confirming multi-row
     wrapping when all 7 pills don't fit in ~358 px)
 
-- [ ] **P2-4** Write `client/src/history-page/TimeWindowSelector.stories.ts`.
+- [x] **P2-4** Write `client/src/history-page/TimeWindowSelector.stories.ts`.
 
   Named exports (each passes a `windowId` and appropriate `basisNote`):
   1. `ThisMonthActive` — `windowId: 'this-month'`; dynamic in-progress basis note
@@ -338,14 +338,14 @@ as `match`, `differs`, or `not applicable` (if element is absent in current stat
 
   Follow the WP1 story pattern: `satisfies Story`, typed `args`, no wrapping function.
 
-- [ ] **P2-5** Wire `TimeWindowSelector` into `HistoryInsightsRoot.svelte`:
+- [x] **P2-5** Wire `TimeWindowSelector` into `HistoryInsightsRoot.svelte`:
   - Import and render `TimeWindowSelector` inside the root (temporarily, before `FiltersPanel` is built)
   - Pass `windowId`, `basisNote` (`payload.windowBasisNote`), and `onWindowChange` callback
   - `onWindowChange` handler: `(id) => { windowId = id; }`
 
-- [ ] **P2-6** Run `make test-client-fast` — confirm green.
+- [x] **P2-6** Run `make test-client-fast` — confirm green.
 
-- [ ] **P2-7** Run `make test-visual` — confirm all visual contracts pass.
+- [x] **P2-7** Run `make test-visual` — confirm all visual contracts pass.
 
 - [x] **P2-8** Open `make storybook`. Navigate to `history-page/TimeWindowSelector`. Verify all
   8 stories render correctly. Verify:
