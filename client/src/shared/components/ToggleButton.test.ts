@@ -133,6 +133,57 @@ test('badgeId is forwarded to the badge element id', () => {
   expect(container.querySelector('#filterBadge-test')).toBeTruthy();
 });
 
+// ── Variant ──────────────────────────────────────────────────────────────────
+
+test('variant=primary — button has toggle-btn--primary class', () => {
+  const { getByRole } = render(ToggleButton, {
+    expanded: false,
+    onToggle: vi.fn(),
+    variant: 'primary',
+    children: staticChildren,
+  });
+
+  expect(getByRole('button')).toHaveClass('toggle-btn--primary');
+  expect(getByRole('button')).not.toHaveClass('toggle-btn--muted');
+});
+
+test('variant=muted — button has toggle-btn--muted class', () => {
+  const { getByRole } = render(ToggleButton, {
+    expanded: false,
+    onToggle: vi.fn(),
+    variant: 'muted',
+    children: staticChildren,
+  });
+
+  expect(getByRole('button')).toHaveClass('toggle-btn--muted');
+  expect(getByRole('button')).not.toHaveClass('toggle-btn--primary');
+});
+
+test('variant=pill — button has toggle-btn--pill class', () => {
+  const { getByRole } = render(ToggleButton, {
+    expanded: false,
+    onToggle: vi.fn(),
+    variant: 'pill',
+    children: staticChildren,
+  });
+
+  expect(getByRole('button')).toHaveClass('toggle-btn--pill');
+  expect(getByRole('button')).not.toHaveClass('toggle-btn--primary');
+  expect(getByRole('button')).not.toHaveClass('toggle-btn--muted');
+});
+
+test('default variant — button has none of the variant modifier classes', () => {
+  const { getByRole } = render(ToggleButton, {
+    expanded: false,
+    onToggle: vi.fn(),
+    children: staticChildren,
+  });
+
+  expect(getByRole('button')).not.toHaveClass('toggle-btn--primary');
+  expect(getByRole('button')).not.toHaveClass('toggle-btn--muted');
+  expect(getByRole('button')).not.toHaveClass('toggle-btn--pill');
+});
+
 // ── Extra class / attribute forwarding ──────────────────────────────────────
 
 test('extra class names from class prop appear on the button', () => {

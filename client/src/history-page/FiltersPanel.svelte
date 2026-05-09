@@ -1,6 +1,7 @@
 <script lang="ts">
   import GenusSelector from './GenusSelector.svelte';
   import TimeWindowSelector from './TimeWindowSelector.svelte';
+  import ToggleButton from '../shared/components/ToggleButton.svelte';
   import type { WindowId } from './types.js';
 
   interface Props {
@@ -29,6 +30,8 @@
     onWindowChange,
   }: Props = $props();
 
+  let panelExpanded: boolean = $state(true);
+
   const globalScopeText = $derived(
     isAllSelected
       ? `Current market scope: all genera • ${windowLabel}`
@@ -37,29 +40,39 @@
 </script>
 
 <aside class="filters-panel">
-  <div>
+  <div class="panel-header">
     <h2 class="panel-heading">Global filters</h2>
-    <p class="filter-note">Both the time window and genus selection apply to every section on this page.</p>
+    <ToggleButton
+      expanded={panelExpanded}
+      onToggle={() => (panelExpanded = !panelExpanded)}
+      variant="muted"
+    >
+      {#snippet children(expanded)}
+        {expanded ? 'Hide' : 'Show'}
+      {/snippet}
+    </ToggleButton>
   </div>
   <div class="scope-inline">
     <span class="scope-label">{globalScopeText}</span>
-    <p class="filter-note">All KPIs, charts, preview rows, and CSV export reflect this scope.</p>
   </div>
-  <div class="filter-group">
-    <label>Genus multi-select</label>
-    <GenusSelector
-      {availableGenera}
-      {selectedGenera}
-      {isAllSelected}
-      {mostObservedGenera}
-      {onSelectionChange}
-    />
-    <p class="micro-note">Search or use shortcut groups such as lifestyle to narrow the genus list quickly.</p>
-  </div>
-  <div class="filter-group">
-    <label>Time window</label>
-    <TimeWindowSelector {windowId} {basisNote} {onWindowChange} />
-  </div>
+  {#if panelExpanded}
+    <p class="filter-note">Both the time window and genus selection apply to every section on this page.</p>
+    <div class="filter-group">
+      <label>Genus multi-select</label>
+      <GenusSelector
+        {availableGenera}
+        {selectedGenera}
+        {isAllSelected}
+        {mostObservedGenera}
+        {onSelectionChange}
+      />
+      <p class="micro-note">Search or use shortcut groups such as lifestyle to narrow the genus list quickly.</p>
+    </div>
+    <div class="filter-group">
+      <label>Time window</label>
+      <TimeWindowSelector {windowId} {basisNote} {onWindowChange} />
+    </div>
+  {/if}
 </aside>
 
 <style>
@@ -74,8 +87,15 @@
     box-shadow: var(--shadow-popover);
   }
 
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
   .panel-heading {
-    margin: 0 0 4px;
+    margin: 0;
     font-size: 1rem;
     font-weight: 700;
     color: var(--color-text);
@@ -95,8 +115,8 @@
   }
 
   .scope-inline {
-    display: grid;
-    gap: 8px;
+    display: flex;
+    align-items: center;
   }
 
   .filter-note {

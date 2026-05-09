@@ -60,3 +60,69 @@ and `priorRunDates` (any series works — all four share identical run ordering)
 ---
 
 _Add new entries below as further extensions are made._
+
+---
+
+## IE-2 — Redundant filter-note sentence removed from FiltersPanel
+
+**Scope:** `FiltersPanel.svelte` — `.scope-inline` block  
+**Implemented:** WP-Arch (pre-WP2 height-reduction pass)
+
+### What the mock says
+
+Below the global scope lozenge, the mock renders:
+
+> _All KPIs, charts, preview rows, and CSV export reflect this scope._
+
+### What the implementation does
+
+That sentence is omitted. The paragraph immediately above the scope lozenge already reads
+"Both the time window and genus selection apply to every section on this page." — which
+conveys the same intent. Repeating it in the lozenge area added vertical clutter without
+adding information.
+
+### Why
+
+On mobile portrait the filters panel occupies significant vertical real estate. Removing the
+duplicate sentence reduces height with no information loss.
+
+---
+
+## IE-3 — Collapsible filters panel
+
+**Scope:** `FiltersPanel.svelte`  
+**Implemented:** WP-Arch (pre-WP2 height-reduction pass)
+
+### What the mock says
+
+The mock has no collapse mechanism for the filters panel. The full panel (genus selector +
+time window selector + scope note) is always visible, offset by the large "Three ways to
+assess the market" hero copy on the left which fills the available vertical space.
+
+### What the implementation adds
+
+A **Hide / Show** toggle button sits in the panel header row alongside the "Global filters"
+heading. Clicking it collapses the panel body, leaving only:
+
+1. The panel header row (heading + toggle button)
+2. The global scope lozenge ("Current market scope: …")
+
+The genus selector, time window selector, and the filter-note paragraph are hidden when
+collapsed.
+
+The panel starts **expanded** by default. Users who have set their filters and want to
+reclaim vertical space can collapse it.
+
+### Why
+
+Without the "Three ways to assess the market" left-panel content (which is explicitly
+out of scope for WP-Arch, per §2 of the spec), the filters panel dominates the hero area
+on narrower viewports. On mobile portrait this is especially pronounced — the time window
+pills wrap across multiple lines and the genus selector adds further height. The collapse
+toggle lets users recover that space once they have selected their filters.
+
+### Scope boundary
+
+State (`panelExpanded`) is local to `FiltersPanel.svelte`. No changes to
+`HistoryInsightsRoot.svelte`, `GenusSelector.svelte`, or `TimeWindowSelector.svelte`.
+

@@ -1,4 +1,4 @@
-import { render } from '@testing-library/svelte';
+import { render, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi } from 'vitest';
 import FiltersPanel from './FiltersPanel.svelte';
 
@@ -86,5 +86,52 @@ describe('FiltersPanel — global scope label text', () => {
     expect(label?.textContent?.trim()).toBe(
       'Current market scope: your 4 selected genera • This year'
     );
+  });
+});
+
+describe('FiltersPanel — collapse toggle', () => {
+  it('panel starts expanded by default — GenusSelector and TimeWindowSelector visible', () => {
+    const { container } = render(FiltersPanel, defaultProps());
+    expect(container.querySelector('.selector-shell')).not.toBeNull();
+    expect(container.querySelector('.window-row')).not.toBeNull();
+  });
+
+  it('toggle button has is-expanded class when expanded', () => {
+    const { container } = render(FiltersPanel, defaultProps());
+    const btn = container.querySelector('.panel-header button');
+    expect(btn).toHaveClass('is-expanded');
+  });
+
+  it('clicking toggle hides GenusSelector and TimeWindowSelector', async () => {
+    const { container } = render(FiltersPanel, defaultProps());
+    const btn = container.querySelector('.panel-header button') as HTMLButtonElement;
+    await fireEvent.click(btn);
+    expect(container.querySelector('.selector-shell')).toBeNull();
+    expect(container.querySelector('.window-row')).toBeNull();
+  });
+
+  it('toggle button does not have is-expanded class when collapsed', async () => {
+    const { container } = render(FiltersPanel, defaultProps());
+    const btn = container.querySelector('.panel-header button') as HTMLButtonElement;
+    await fireEvent.click(btn);
+    expect(btn).not.toHaveClass('is-expanded');
+  });
+
+  it('scope label is always visible regardless of panel state', async () => {
+    const { container } = render(FiltersPanel, defaultProps());
+    const btn = container.querySelector('.panel-header button') as HTMLButtonElement;
+    await fireEvent.click(btn);
+    const label = container.querySelector('.scope-label');
+    expect(label).not.toBeNull();
+    expect(label?.textContent?.trim()).toBe('Current market scope: all genera • Current quarter');
+  });
+
+  it('clicking toggle again re-expands the panel', async () => {
+    const { container } = render(FiltersPanel, defaultProps());
+    const btn = container.querySelector('.panel-header button') as HTMLButtonElement;
+    await fireEvent.click(btn);
+    await fireEvent.click(btn);
+    expect(container.querySelector('.selector-shell')).not.toBeNull();
+    expect(container.querySelector('.window-row')).not.toBeNull();
   });
 });

@@ -60,11 +60,11 @@ describe('FiltersPanel — .filters-panel layout', () => {
     expect(window.getComputedStyle(panel).display).toBe('grid');
   });
 
-  it('.panel-heading marginBottom is 4px (overrides global h2 20px)', () => {
+  it('.panel-heading marginBottom is 0px', () => {
     const { container } = render(FiltersPanel, defaultProps());
     const heading = container.querySelector('.panel-heading') as HTMLElement;
     expect(heading).not.toBeNull();
-    expect(window.getComputedStyle(heading).marginBottom).toBe('4px');
+    expect(window.getComputedStyle(heading).marginBottom).toBe('0px');
   });
 });
 

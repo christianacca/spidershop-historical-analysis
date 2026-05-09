@@ -7,6 +7,8 @@
 </script>
 
 <script lang="ts">
+  import ToggleButton from '../shared/components/ToggleButton.svelte';
+
   interface Props {
     availableGenera: string[];
     selectedGenera: string[];
@@ -71,15 +73,18 @@
     <div class="selector-title">
       <span class="scope-label">{countLabel}</span>
     </div>
-    <button
+    <ToggleButton
+      variant="pill"
       class="selector-toggle"
+      expanded={expanded}
+      onToggle={() => (expanded = !expanded)}
       aria-expanded={expanded}
       aria-controls="genus-expanded-content"
-      onclick={() => (expanded = !expanded)}
     >
-      <span class="toggle-icon" class:rotated={expanded}>▶</span>
-      {expanded ? 'Hide genus selector' : 'Show genus selector'}
-    </button>
+      {#snippet children(exp)}
+        {exp ? 'Hide genus selector' : 'Show genus selector'}
+      {/snippet}
+    </ToggleButton>
   </div>
 
   {#if !isAllSelected}
@@ -160,30 +165,6 @@
     align-items: center;
     gap: 8px;
     min-width: 0;
-  }
-
-  .selector-toggle {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
-    border-radius: 999px;
-    border: 1px solid var(--color-border-warm);
-    background: #fff;
-    color: var(--color-text);
-    font-size: 0.86rem;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-
-  .toggle-icon {
-    display: inline-block;
-    font-size: 0.6rem;
-    transition: transform 0.2s;
-  }
-
-  .toggle-icon.rotated {
-    transform: rotate(90deg);
   }
 
   .chips {
