@@ -33,8 +33,16 @@ export function useRegisterSW(swUrl: string): UseRegisterSWResult {
   let needRefreshCalled = false;
   const showSkipWaitingPrompt = () => {
     needRefreshCalled = true;
-    wb.addEventListener('controlling', (event) => {
-      if (event.isUpdate) window.location.reload();
+    // Reload unconditionally: this listener is only added when an update is confirmed
+    // (inside showSkipWaitingPrompt), so 'controlling' here always means the new SW
+    // just took over after an explicit user action or auto-countdown.
+    //
+    // The `event.isUpdate` guard was previously used here but is unreliable: when a
+    // new tab opens and the waiting SW was already present before this Workbox instance
+    // was created, Workbox never sees 'updatefound', so _isUpdate stays undefined and
+    // event.isUpdate is falsy — causing the reload to be silently skipped.
+    wb.addEventListener('controlling', () => {
+      window.location.reload();
     });
     needRefresh.set(true);
   };
