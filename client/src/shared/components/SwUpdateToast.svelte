@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Writable } from 'svelte/store';
+  import Spinner from './Spinner.svelte';
 
   let { needRefresh, updateServiceWorker }: {
     needRefresh: Writable<boolean>;
@@ -8,6 +9,7 @@
 
   const AUTO_REFRESH_SECONDS = 30;
   let countdown = $state(AUTO_REFRESH_SECONDS);
+  let refreshing = $state(false);
   let timer: ReturnType<typeof setInterval> | null = null;
 
   $effect(() => {
@@ -37,14 +39,32 @@
     }
     needRefresh.set(false);
   }
+
+  async function handleRefresh() {
+    if (timer) {
+      clearInterval(timer);
+      timer = null;
+    }
+    refreshing = true;
+    await updateServiceWorker();
+    // Reload is handled by updateServiceWorker in register-sw.ts:
+    // - Normal case (waiting SW): via the 'controlling' event listener.
+    // - Race case (no waiting SW): via direct window.location.reload().
+  }
 </script>
 
 {#if $needRefresh}
   <div class="sw-update-toast">
     <span role="status" aria-live="polite">New spider listings available.</span>
-    <span aria-hidden="true">Refreshing in {countdown}s…</span>
-    <button onclick={() => void updateServiceWorker()}>Refresh now</button>
-    <button onclick={dismiss} aria-label="Dismiss">✕</button>
+    {#if refreshing}
+      <Spinner label="Refreshing page" />
+    {:else}
+      <span aria-hidden="true">Refreshing in {countdown}s…</span>
+    {/if}
+    <button onclick={handleRefresh} disabled={refreshing}>
+      {#if refreshing}Refreshing…{:else}Refresh now{/if}
+    </button>
+    <button onclick={dismiss} aria-label="Dismiss" disabled={refreshing}>✕</button>
   </div>
 {/if}
 
@@ -85,6 +105,11 @@
     cursor: pointer;
     padding: 2px 8px;
     font-size: var(--font-sm);
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
   }
 
   @media (max-width: 480px) {

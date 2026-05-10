@@ -679,6 +679,113 @@ def test_species_page_in_cache_after_navigation(e2e_site_minimal) -> None:
 
 
 @pytest.mark.e2e
+def test_refresh_button_reloads_when_sw_was_already_waiting(_e2e_sw_update_context) -> None:
+    """Clicking Refresh reloads even when the waiting SW was present before the page loaded.
+
+    Regression test for the `event.isUpdate` guard bug in register-sw.ts.
+
+    When a new tab opens and the waiting SW was already installed before the Workbox
+    instance was created, Workbox never sees 'updatefound' on this registration.
+    This means Workbox's internal `_isUpdate` flag stays undefined, so `event.isUpdate`
+    is falsy in the 'controlling' event — the old guard `if (event.isUpdate) reload()`
+    silently skipped the reload, leaving the countdown running and the page unchanged.
+
+    Fix: the `if (event.isUpdate)` condition was removed. The reload is unconditional
+    because the 'controlling' listener is only added inside showSkipWaitingPrompt(),
+    which itself only runs when an update is confirmed.
+
+    Scenario reproduced here:
+      Tab A installs and activates SW V1.
+      sw.js is patched (simulating a deploy).
+      Tab A triggers an update check; V2 installs and enters 'waiting'.
+      Tab B opens (new page) AFTER V2 is already waiting.
+      Tab B's Workbox instance never sees 'updatefound' → _isUpdate=undefined.
+      Clicking Refresh on Tab B must still reload the page.
+    """
+    page_a, base_url, output_dir = _e2e_sw_update_context
+
+    # --- Tab A: install and activate SW V1 ---
+    page_a.goto(f"{base_url}/", wait_until="load")
+    page_a.evaluate("navigator.serviceWorker.ready")
+    page_a.goto(f"{base_url}/", wait_until="load")
+    page_a.evaluate("navigator.serviceWorker.ready")
+
+    # --- Patch sw.js and trigger update on Tab A; wait for V2 to be in 'waiting' ---
+    sw_path = output_dir / "sw.js"
+    sw_path.write_text(
+        sw_path.read_text(encoding="utf-8") + "\n// already-waiting-test-marker",
+        encoding="utf-8",
+    )
+
+    page_a.evaluate("""
+        async () => {
+            const reg = await navigator.serviceWorker.getRegistration();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await reg.update();
+            await new Promise((resolve, reject) => {
+                const deadline = setTimeout(
+                    () => reject(new Error('Timed out waiting for waiting state')), 8_000
+                );
+                const poll = () => {
+                    if (reg.waiting) { clearTimeout(deadline); resolve(); return; }
+                    setTimeout(poll, 50);
+                };
+                poll();
+            });
+        }
+    """)
+
+    # V2 is now in 'waiting'. Open Tab B as a new page in the SAME context as Tab A.
+    # This is critical: a new_context() would have no V1 SW, so V2 would activate
+    # immediately with no 'waiting' state. Tab B must share the SW registration with
+    # Tab A so that V2 stays in 'waiting' (held back by Tab A still being open).
+    page_b = page_a.context.new_page()
+    try:
+        page_b.goto(f"{base_url}/snapshot.html", wait_until="load")
+
+        # Toast must appear on Tab B. Workbox fires 'waiting' with wasWaitingBeforeRegister=true
+        # when the SW was already waiting before this Workbox instance called .register().
+        try:
+            page_b.wait_for_selector(".sw-update-toast", timeout=30_000)
+        except Exception as exc:
+            raise AssertionError(
+                "Toast did not appear on Tab B — cannot test the already-waiting scenario."
+            ) from exc
+
+        # Click Refresh on Tab B — page must reload (regression: countdown kept running).
+        with page_b.expect_navigation(wait_until="load", timeout=15_000):
+            page_b.click(".sw-update-toast button:has-text('Refresh')")
+
+        # After reload: V2 is active, nothing waiting, toast gone.
+        page_b.evaluate("navigator.serviceWorker.ready")
+
+        post_state = page_b.evaluate("""
+            async () => {
+                const reg = await navigator.serviceWorker.getRegistration();
+                return {
+                    waiting: reg?.waiting?.state ?? null,
+                    controller: navigator.serviceWorker.controller !== null,
+                };
+            }
+        """)
+
+        assert post_state["waiting"] is None, (
+            f"reg.waiting is still set after Refresh on Tab B — skipWaiting() was not called "
+            f"or the reload did not happen. This is the regression guarded by this test: "
+            f"the `if (event.isUpdate)` guard in register-sw.ts silently skipped the reload "
+            f"when the SW was already waiting before the page loaded. State: {post_state}"
+        )
+        assert post_state["controller"] is True, (
+            "Expected new SW to be controlling Tab B after reload"
+        )
+        assert page_b.query_selector(".sw-update-toast") is None, (
+            "Expected toast to be gone after successful Refresh on Tab B"
+        )
+    finally:
+        page_b.close()
+
+
+@pytest.mark.e2e
 def test_activate_evicts_previously_cached_species_page(_e2e_sw_update_context) -> None:
     """SW activate handler evicts stale species HTML from html-pages on every SW update.
 

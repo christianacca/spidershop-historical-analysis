@@ -38,6 +38,69 @@ describe('SwUpdateToast', () => {
     expect(mockUpdateServiceWorker).toHaveBeenCalled();
   });
 
+  describe('refresh UX — loading state', () => {
+    it('disables both buttons immediately after Refresh now is clicked', async () => {
+      mockUpdateServiceWorker.mockReturnValue(new Promise(() => {})); // never resolves
+      const { getByText, getByLabelText } = renderToast();
+      mockNeedRefresh.set(true);
+      await Promise.resolve();
+
+      await fireEvent.click(getByText('Refresh now'));
+
+      expect(getByText('Refreshing…').closest('button')).toBeDisabled();
+      expect(getByLabelText('Dismiss')).toBeDisabled();
+    });
+
+    it('shows a spinner after Refresh now is clicked', async () => {
+      mockUpdateServiceWorker.mockReturnValue(new Promise(() => {}));
+      const { getByText, getByLabelText } = renderToast();
+      mockNeedRefresh.set(true);
+      await Promise.resolve();
+
+      await fireEvent.click(getByText('Refresh now'));
+
+      expect(getByLabelText('Refreshing page')).toBeInTheDocument();
+    });
+
+    it('changes Refresh now button text to Refreshing… while loading', async () => {
+      mockUpdateServiceWorker.mockReturnValue(new Promise(() => {}));
+      const { getByText } = renderToast();
+      mockNeedRefresh.set(true);
+      await Promise.resolve();
+
+      await fireEvent.click(getByText('Refresh now'));
+
+      expect(getByText('Refreshing…')).toBeInTheDocument();
+    });
+
+    it('hides the countdown text and shows the spinner while loading', async () => {
+      mockUpdateServiceWorker.mockReturnValue(new Promise(() => {}));
+      const { getByText, queryByText } = renderToast();
+      mockNeedRefresh.set(true);
+      await Promise.resolve();
+
+      await fireEvent.click(getByText('Refresh now'));
+
+      expect(queryByText(/Refreshing in \d+s/)).toBeNull();
+    });
+
+    it('stops the countdown timer when Refresh now is clicked', async () => {
+      vi.useFakeTimers();
+      mockUpdateServiceWorker.mockReturnValue(new Promise(() => {}));
+      const { getByText } = renderToast();
+      mockNeedRefresh.set(true);
+      await Promise.resolve();
+
+      await fireEvent.click(getByText('Refresh now'));
+      vi.advanceTimersByTime(31_000);
+      await Promise.resolve();
+
+      // Called exactly once (by the button click) — countdown did not fire again
+      expect(mockUpdateServiceWorker).toHaveBeenCalledOnce();
+      vi.useRealTimers();
+    });
+  });
+
   it('dismisses the toast when Dismiss (✕) is clicked', async () => {
     const { getByLabelText, queryByRole } = renderToast();
     mockNeedRefresh.set(true);

@@ -22,8 +22,10 @@
      * Visual style variant.
      * - `'default'` (default): outlined style matching the signal filter buttons.
      * - `'primary'`: filled blue style for prominent standalone toggles.
+     * - `'muted'`: compact transparent style for low-emphasis panel toggles.
+     * - `'pill'`: pill-shaped style for embedded card toggles (e.g. GenusSelector).
      */
-    variant?: 'default' | 'primary';
+    variant?: 'default' | 'primary' | 'muted' | 'pill';
     /**
      * Label content. Receives the current `expanded` boolean so the caller
      * can vary the text (or any content) based on state.
@@ -55,6 +57,8 @@
 <button
   class="btn toggle-btn {extraClass}"
   class:toggle-btn--primary={variant === 'primary'}
+  class:toggle-btn--muted={variant === 'muted'}
+  class:toggle-btn--pill={variant === 'pill'}
   class:is-expanded={expanded}
   onclick={onToggle}
   {...rest}
@@ -100,6 +104,43 @@
   .toggle-btn--primary:hover {
     background: var(--toggle-btn-hover-bg, var(--color-accent-hover));
     border-color: var(--toggle-btn-hover-border, transparent);
+  }
+
+  /* ── Muted variant: compact transparent style for low-emphasis panel toggles ── */
+
+  .toggle-btn--muted {
+    background: transparent;
+    color: var(--color-text-label);
+    border: 1px solid var(--color-border-warm);
+    padding: 6px 10px;
+    font-size: 0.82rem;
+    font-weight: normal;
+  }
+
+  .toggle-btn--muted:hover {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: var(--color-border-warm);
+  }
+
+  /* ── Pill variant: rounded pill for embedded-card toggles ─────────────── */
+
+  .toggle-btn--pill {
+    background: var(--toggle-btn-bg, transparent);
+    color: var(--toggle-btn-color, var(--color-text));
+    border: var(--toggle-btn-border, 1px solid var(--color-border-warm));
+    padding: var(--toggle-btn-padding, 8px 12px);
+    border-radius: 999px;
+    font-size: var(--toggle-btn-font-size, 0.86rem);
+    white-space: nowrap;
+  }
+
+  .toggle-btn--pill:hover {
+    background: var(--toggle-btn-hover-bg, rgba(0, 0, 0, 0.04));
+    border-color: var(--toggle-btn-hover-border, var(--color-border-warm));
+  }
+
+  .toggle-btn--pill .toggle-btn__arrow {
+    font-size: 0.6rem;
   }
 
   /* ── Shadow-part equivalent: stable names for consumers to target ─────── */
