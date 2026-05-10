@@ -181,7 +181,7 @@ class TestAnalysisMethodologyBuilder:
         )
 
         assert "🔥 Hot" in sustained_branch["copy"]
-        assert "❌ Avoid" in sustained_branch["copy"]
+        assert "⚠️ Watch" in sustained_branch["copy"]  # hard rule: sustained scarcity never drops below Watch
         assert "🔥 Hot" in emerging_branch["copy"]
         assert "⚠️ Watch" in emerging_branch["copy"]
         assert "⚠️ Watch" in newly_observed_branch["copy"]
