@@ -47,6 +47,9 @@
     }
     refreshing = true;
     await updateServiceWorker();
+    // Reload is handled by updateServiceWorker in register-sw.ts:
+    // - Normal case (waiting SW): via the 'controlling' event listener.
+    // - Race case (no waiting SW): via direct window.location.reload().
   }
 </script>
 
