@@ -126,7 +126,13 @@ Failures always surface at the cheapest valid layer first.
 
 ### ✅ MANDATORY: Always Use Make Commands
 
-**NEVER run pytest directly.** Make commands ensure proper working directory and artifact management.
+**⛔ ABSOLUTE RULE — NO EXCEPTIONS:**
+- **NEVER run `pytest` directly** — not in a terminal, not via `run_in_terminal`, not inside an `execution_subagent` query.
+- **NEVER run `python` (or `.venv/bin/python`) to execute tests** — not `python -m pytest`, not `python -m unittest`, not any equivalent.
+- **This applies to ALL agent tool calls** including `run_in_terminal`, `execution_subagent`, and any subagent prompt.
+- **Always use a `make` command.** Every test command below is the correct form.
+
+Make commands ensure proper working directory, artifact placement, and coverage thresholds.
 
 **For ANY edit in `src/`:**
 1. `make test` (all tests with coverage)

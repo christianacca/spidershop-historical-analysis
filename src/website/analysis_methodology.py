@@ -153,7 +153,7 @@ def build_breeder_methodology() -> MethodologyDict:
                             },
                             {
                                 "label": f"Sustained: OOS runs >= {BREEDER_SUSTAINED_OOS_RUNS}",
-                                "detail": "This is the strongest supply-side setup. With price up or flat it becomes 🔥 Hot; if price falls, the row misses that Hot branch and drops out of the confirmed Hot path.",
+                                "detail": "This is the strongest supply-side setup. With price up or flat it becomes 🔥 Hot; if price falls, the row is held at ⚠️ Watch — sustained scarcity is never downgraded below Watch.",
                             },
                             {
                                 "label": f"Emerging: OOS runs >= {BREEDER_EMERGING_MIN_OOS_RUNS} and < {BREEDER_SUSTAINED_OOS_RUNS}",
@@ -187,8 +187,8 @@ def build_breeder_methodology() -> MethodologyDict:
                                 "detail": "Strong wishlist pressure can strengthen the recommendation wording, but it does not create a second escalation above Hot.",
                             },
                             {
-                                "label": "Sustained + price down => misses Hot confirmation",
-                                "detail": "The current breeder rules do not promote sustained scarcity when the price signal is falling, so the row drops out of the Hot path.",
+                                "label": "Sustained + price down => ⚠️ Watch",
+                                "detail": "A falling price prevents the row from reaching 🔥 Hot, but sustained scarcity is never downgraded below ⚠️ Watch. Price softening appears in the recommendation wording.",
                             },
                             {
                                 "label": "Assign 🔥 Hot: Emerging + price up",
@@ -238,7 +238,7 @@ def build_breeder_methodology() -> MethodologyDict:
                         {
                             "label": "If Sustained",
                             "title": f"OOS runs {BREEDER_SUSTAINED_OOS_RUNS} or more",
-                            "copy": f"Assign 🔥 Hot if price is up or flat. A falling price misses that Hot confirmation branch, so this sustained row does not stay on the confirmed Hot path and can fall through to ❌ Avoid if no other watch-state rule applies. Wishlist Hot can still strengthen the recommendation wording once the row is already Hot, and any OUT-row demand carryover is bounded to {OOS_CARRYOVER_LOOKBACK} runs.",
+                            "copy": f"Assign 🔥 Hot if price is up or flat. A falling price downgrades the row to ⚠️ Watch — sustained scarcity is never dropped below Watch regardless of price. Wishlist Hot can still strengthen the recommendation wording once the row is already Hot, and any OUT-row demand carryover is bounded to {OOS_CARRYOVER_LOOKBACK} runs.",
                         },
                         {
                             "label": "If Emerging",

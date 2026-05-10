@@ -68,6 +68,37 @@ class TestBuildBreederOpportunityTable:
         assert seemanni_entry["Signal"] == "🔥"
         assert "sustained scarcity" in seemanni_entry["Recommendation"].lower()
 
+    def test_sustained_scarcity_with_falling_price_is_watch_not_avoid(self):
+        """Sustained scarcity with a falling price must resolve to ⚠️ Watch, not ❌ Avoid.
+
+        Hard rule: sustained scarcity is never downgraded (see copilot-instructions.md).
+        Price trend only controls whether the row escalates to 🔥 Hot; it must not demote
+        a Sustained pattern below ⚠️ Watch.
+        """
+        history = [
+            # Runs 1-3: seemanni IN with a clearly falling price
+            make_row("2025-01-01", "Aphonopelma seemanni", "1.0", "30.00", "5"),
+            make_row("2025-01-01", "Grammostola pulchra", "2.0", "40.00", "8"),
+            make_row("2025-01-08", "Aphonopelma seemanni", "1.0", "25.00", "5"),
+            make_row("2025-01-08", "Grammostola pulchra", "2.0", "40.00", "8"),
+            make_row("2025-01-15", "Aphonopelma seemanni", "1.0", "20.00", "5"),
+            make_row("2025-01-15", "Grammostola pulchra", "2.0", "40.00", "8"),
+            # Runs 4-7: seemanni goes OUT for 4 consecutive runs (Sustained)
+            make_row("2025-01-22", "Grammostola pulchra", "2.0", "40.00", "8"),
+            make_row("2025-01-29", "Grammostola pulchra", "2.0", "40.00", "8"),
+            make_row("2025-02-05", "Grammostola pulchra", "2.0", "40.00", "8"),
+            make_row("2025-02-12", "Grammostola pulchra", "2.0", "40.00", "8"),
+        ]
+
+        table = build_breeder_opportunity_table(history)
+        seemanni_entry = [r for r in table if r["Species"] == "Aphonopelma seemanni"][0]
+
+        assert seemanni_entry["Stock Pattern"] == "Sustained"
+        assert seemanni_entry["Signal"] == "⚠️", (
+            "Sustained scarcity must stay ⚠️ Watch even when price is falling — "
+            "the hard rule 'sustained scarcity is never downgraded' applies."
+        )
+
     def test_emerging_scarcity_2_3_oos_runs(self):
         """Species missing 2-3 consecutive runs should show 'Emerging' pattern."""
         history = [

@@ -212,6 +212,10 @@ def build_breeder_opportunity_table(history_rows):
         elif pattern == "Sustained" and price_trend in ("↑", "→"):
             signal = "🔥"
             rec = "Pair soon — sustained scarcity"
+        elif pattern == "Sustained":
+            # price_trend == "↓": hard rule — sustained scarcity is never downgraded below ⚠️
+            signal = "⚠️"
+            rec = "Monitor closely — sustained scarcity, price softening"
         elif pattern == "Emerging" and price_trend == "↑":
             signal = "🔥"
             rec = "Consider pairing — rising demand"
