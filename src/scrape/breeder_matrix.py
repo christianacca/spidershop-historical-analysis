@@ -206,12 +206,13 @@ def build_breeder_opportunity_table(history_rows):
                 "Monitor closely — newly observed, limited history "
                 f"({observation_coverage_text})"
             )
-        elif pattern == "Sustained" and price_trend in ("↑", "→") and wishlist_pressure == "🔥":
-            signal = "🔥"
-            rec = "Pair soon — sustained scarcity with strong buyer interest"
         elif pattern == "Sustained" and price_trend in ("↑", "→"):
             signal = "🔥"
-            rec = "Pair soon — sustained scarcity"
+            rec = (
+                "Pair soon — sustained scarcity with strong buyer interest"
+                if wishlist_pressure == "🔥"
+                else "Pair soon — sustained scarcity"
+            )
         elif pattern == "Sustained":
             # price_trend == "↓": hard rule — sustained scarcity is never downgraded below ⚠️
             signal = "⚠️"

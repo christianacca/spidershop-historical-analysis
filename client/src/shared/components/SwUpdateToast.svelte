@@ -32,19 +32,20 @@
     }
   });
 
-  function dismiss() {
+  function clearTimer() {
     if (timer) {
       clearInterval(timer);
       timer = null;
     }
+  }
+
+  function dismiss() {
+    clearTimer();
     needRefresh.set(false);
   }
 
   async function handleRefresh() {
-    if (timer) {
-      clearInterval(timer);
-      timer = null;
-    }
+    clearTimer();
     refreshing = true;
     await updateServiceWorker();
     // Reload is handled by updateServiceWorker in register-sw.ts:

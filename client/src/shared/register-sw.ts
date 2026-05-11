@@ -26,23 +26,15 @@ export function useRegisterSW(swUrl: string): UseRegisterSWResult {
 
   // Reload is unconditional: the 'controlling' listener in showSkipWaitingPrompt
   // always reloads when the new SW takes control. No parameter is needed.
-  //
-  // Race case: if another tab already activated the new SW (e.g. another tab's
-  // Refresh fired first), reg.waiting is null and messageSkipWaiting() is a no-op —
-  // the 'controlling' event will never fire on this tab because the controller already
-  // changed before this call.  In that case we reload directly: the new SW is already
-  // serving fresh assets, so a plain reload gives the user V2 content immediately.
   const updateServiceWorker = async () => {
     const reg = await navigator.serviceWorker.getRegistration();
     if (reg?.waiting) {
       // Normal path: tell the waiting SW to take control.
-      // The 'controlling' listener added in showSkipWaitingPrompt fires the reload
-      // once the new SW becomes the active controller.
+      // The 'controlling' listener fires the reload once the new SW becomes active.
       wb.messageSkipWaiting();
     } else {
-      // Race path: no waiting SW — another tab (or auto-countdown on another tab)
-      // already activated the new SW before this Refresh was clicked.
-      // Reload directly: V2 is already serving, so this page needs a fresh load.
+      // Race path: another tab already activated the new SW.
+      // Reload directly since V2 is already serving.
       window.location.reload();
     }
   };
