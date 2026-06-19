@@ -125,10 +125,8 @@ def build_breeder_opportunity_table(history_rows):
                 prev_map[key].get("price_gbp", ""),
             )
         prices = []
-        if key in cur_map:
-            v = cur_map[key].get("price_gbp", "")
-            if v:
-                prices.append(v)
+        if key in cur_map and (v := cur_map[key].get("price_gbp", "")):
+            prices.append(v)
         prices.extend(
             collect_lookback_values_for_key(
                 key, by_run, runs, cur_run, run_index,
