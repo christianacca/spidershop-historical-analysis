@@ -38,6 +38,52 @@ BREEDER_SUSTAINED_OOS_RUNS = 4
 BREEDER_EMERGING_MIN_OOS_RUNS = 2
 
 
+def _determine_signal_and_recommendation(
+    pattern: str,
+    price_trend: str,
+    wishlist_pressure: str,
+    wishlist_delta: str,
+    lineage_status: str,
+    observation_coverage_text: str,
+) -> tuple[str, str]:
+    """Determine signal emoji and recommendation text based on stock pattern and market conditions.
+    
+    Encapsulates the complex decision logic for signal determination, making the main
+    function more readable while preserving all decision rules.
+    """
+    match pattern:
+        case "Newly Observed":
+            return "⚠️", (
+                "Monitor closely — newly observed, limited history "
+                f"({observation_coverage_text})"
+            )
+        case "Sustained" if price_trend in ("↑", "→") and wishlist_pressure == "🔥":
+            return "🔥", "Pair soon — sustained scarcity with strong buyer interest"
+        case "Sustained" if price_trend in ("↑", "→"):
+            return "🔥", "Pair soon — sustained scarcity"
+        case "Sustained":
+            # price_trend == "↓": hard rule — sustained scarcity is never downgraded below ⚠️
+            return "⚠️", "Monitor closely — sustained scarcity, price softening"
+        case "Emerging" if price_trend == "↑":
+            return "🔥", "Consider pairing — rising demand"
+        case "Emerging" if wishlist_pressure == "🔥" and wishlist_delta == "↑":
+            return "🔥", "Consider pairing — emerging scarcity with surging interest"
+        case "Emerging" if wishlist_pressure == "🔥":
+            rec = (
+                "Monitor closely — emerging scarcity; lineage continuity unconfirmed"
+                if lineage_status == "ambiguous-transition"
+                else "Monitor closely — emerging scarcity and rising interest"
+            )
+            return "⚠️", rec
+        case "Emerging":
+            return "⚠️", "Monitor closely — supply tightening"
+        case "Cyclical":
+            return "⚠️", "Breed cautiously — wave restocking"
+        case _:
+            # Always — ❌ regardless of demand (Decision 5 hard rule)
+            return "❌", "Avoid for profit — oversupplied"
+
+
 def _extract_wishlist_count(row: dict[str, str]) -> int:
     """Extract wishlist count from the combined wishlist display cell."""
     wishlist_value = str(row.get("Wishlist", "")).split()
@@ -47,6 +93,41 @@ def _extract_wishlist_count(row: dict[str, str]) -> int:
         return int(wishlist_value[0])
     except (ValueError, IndexError):
         return 0
+
+
+def _get_price_trend(
+    key: tuple[str, str],
+    cur_map: dict,
+    prev_map: dict,
+    by_run: dict,
+    runs: list,
+    cur_run: str,
+    run_index: dict,
+) -> str:
+    """Compute price trend for a species-size key by comparing historical prices.
+    
+    First tries current and previous run prices. Falls back to lookback if needed.
+    """
+    if key in cur_map and key in prev_map:
+        return compare_prices(
+            cur_map[key].get("price_gbp", ""),
+            prev_map[key].get("price_gbp", ""),
+        )
+    
+    prices = []
+    if key in cur_map:
+        v = cur_map[key].get("price_gbp", "")
+        if v:
+            prices.append(v)
+    
+    prices.extend(
+        collect_lookback_values_for_key(
+            key, by_run, runs, cur_run, run_index,
+            lambda row: row.get("price_gbp", ""),
+            max_values=2 - len(prices),
+        )
+    )
+    return compare_prices(prices[0], prices[1]) if len(prices) >= 2 else "→"
 
 
 def _generate_breeder_drivers_text(
@@ -117,27 +198,6 @@ def build_breeder_opportunity_table(history_rows):
     prev_rows = by_run[prev_run]
     prev_map = {k2(r): r for r in prev_rows}
 
-    # Helper: price trend for a single (sci, size) key
-    def price_trend_for_key(key):
-        if key in cur_map and key in prev_map:
-            return compare_prices(
-                cur_map[key].get("price_gbp", ""),
-                prev_map[key].get("price_gbp", ""),
-            )
-        prices = []
-        if key in cur_map:
-            v = cur_map[key].get("price_gbp", "")
-            if v:
-                prices.append(v)
-        prices.extend(
-            collect_lookback_values_for_key(
-                key, by_run, runs, cur_run, run_index,
-                lambda row: row.get("price_gbp", ""),
-                max_values=2 - len(prices),
-            )
-        )
-        return compare_prices(prices[0], prices[1]) if len(prices) >= 2 else "→"
-
     # Unique species across all history
     all_sci = sorted({r["scientific_name"] for r in history_rows})
 
@@ -183,7 +243,9 @@ def build_breeder_opportunity_table(history_rows):
                 None,
             )
             raw_price = price_row.get("price_gbp", "") if price_row else ""
-            price_trend = price_trend_for_key(active_key)
+            price_trend = _get_price_trend(
+                active_key, cur_map, prev_map, by_run, runs, cur_run, run_index
+            )
             price_cell = format_price_cell(raw_price, price_trend)
 
         # Sparklines
@@ -200,45 +262,10 @@ def build_breeder_opportunity_table(history_rows):
         wishlist_display = f"{wishlist_count} {wishlist_pressure} {wishlist_delta}"
 
         # Signal logic — Always is unconditionally ❌ (Decision 5: hard rule)
-        if pattern == "Newly Observed":
-            signal = "⚠️"
-            rec = (
-                "Monitor closely — newly observed, limited history "
-                f"({observation_coverage_text})"
-            )
-        elif pattern == "Sustained" and price_trend in ("↑", "→") and wishlist_pressure == "🔥":
-            signal = "🔥"
-            rec = "Pair soon — sustained scarcity with strong buyer interest"
-        elif pattern == "Sustained" and price_trend in ("↑", "→"):
-            signal = "🔥"
-            rec = "Pair soon — sustained scarcity"
-        elif pattern == "Sustained":
-            # price_trend == "↓": hard rule — sustained scarcity is never downgraded below ⚠️
-            signal = "⚠️"
-            rec = "Monitor closely — sustained scarcity, price softening"
-        elif pattern == "Emerging" and price_trend == "↑":
-            signal = "🔥"
-            rec = "Consider pairing — rising demand"
-        elif pattern == "Emerging" and wishlist_pressure == "🔥" and wishlist_delta == "↑":
-            signal = "🔥"
-            rec = "Consider pairing — emerging scarcity with surging interest"
-        elif pattern == "Emerging" and wishlist_pressure == "🔥":
-            if lineage_status == "ambiguous-transition":
-                signal = "⚠️"
-                rec = "Monitor closely — emerging scarcity; lineage continuity unconfirmed"
-            else:
-                signal = "⚠️"
-                rec = "Monitor closely — emerging scarcity and rising interest"
-        elif pattern == "Emerging":
-            signal = "⚠️"
-            rec = "Monitor closely — supply tightening"
-        elif pattern == "Cyclical":
-            signal = "⚠️"
-            rec = "Breed cautiously — wave restocking"
-        else:
-            # Always — ❌ regardless of demand (Decision 5 hard rule)
-            signal = "❌"
-            rec = "Avoid for profit — oversupplied"
+        signal, rec = _determine_signal_and_recommendation(
+            pattern, price_trend, wishlist_pressure, wishlist_delta,
+            lineage_status, observation_coverage_text
+        )
 
         # Build transition clause for Drivers
         lineage_clause = build_lineage_clause(lineage_result)
